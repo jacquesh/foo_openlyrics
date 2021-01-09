@@ -1,0 +1,9 @@
+*.obj
+*.pch
+*.pdb
+
+*.user
+Debug/
+Debug FB2K/
+Release/
+.vs/
