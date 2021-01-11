@@ -1,6 +1,7 @@
 *.obj
 *.pch
 *.pdb
+*.aps
 
 *.user
 Debug/
