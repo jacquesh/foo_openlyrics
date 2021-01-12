@@ -11,16 +11,10 @@ static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 
 static const GUID GUID_CFG_FILENAME_FORMAT = { 0x1f7a3804, 0x7147, 0x4b64, { 0x9d, 0x51, 0x4c, 0xdd, 0x90, 0xa7, 0x6d, 0xd6 } };
 static const GUID GUID_CFG_ENABLE_AUTOSAVE = { 0xf25be2d9, 0x4442, 0x4602, { 0xa0, 0xf1, 0x81, 0xd, 0x8e, 0xab, 0x6a, 0x2 } };
 
-#define USE_AUTO_PROPS
-#ifdef USE_AUTO_PROPS
 static cfg_auto_bool cfg_auto_save_enabled(GUID_CFG_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
 static cfg_auto_string cfg_filename_format(GUID_CFG_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% -][%title%]");
 
 static cfg_auto_property* g_all_properties[] = {&cfg_auto_save_enabled, &cfg_filename_format};
-#else
-static cfg_bool cfg_auto_save_enabled(GUID_CFG_ENABLE_AUTOSAVE, true);
-static cfg_string cfg_filename_format(GUID_CFG_FILENAME_FORMAT, "[%artist% -][%title%]");
-#endif
 
 // The UI for the root element (for OpenLyrics) in the preferences UI tree
 class PreferencesRoot : public CDialogImpl<PreferencesRoot>, public preferences_page_instance
@@ -30,7 +24,7 @@ public:
     PreferencesRoot(preferences_page_callback::ptr callback) : m_callback(callback) {}
 
     // Dialog resource ID - Required by WTL/Create()
-    enum {IDD = IDD_MYPREFERENCES};
+    enum {IDD = IDD_PREFERENCES};
 
     // preferences_page_instance methods (not all of them - get_wnd() is supplied by preferences_page_impl helpers)
     t_uint32 get_state() override;
@@ -54,16 +48,10 @@ private:
 };
 
 BOOL PreferencesRoot::OnInitDialog(CWindow, LPARAM) {
-#ifdef USE_AUTO_PROPS
     for(cfg_auto_property* prop : g_all_properties)
     {
         prop->Initialise(m_hWnd);
     }
-#else
-    SetDlgItemInt(IDC_AUTOSAVE_ENABLED_CHKBOX, cfg_auto_save_enabled);
-    //SetDlgItemText(IDC_SAVE_FILENAME_FORMAT, cfg_filename_format);
-    SetDlgItemText(IDC_SAVE_FILENAME_FORMAT, L"this is the default format!!");
-#endif
     return FALSE;
 }
 
@@ -79,15 +67,10 @@ t_uint32 PreferencesRoot::get_state() {
 }
 
 void PreferencesRoot::reset() {
-#ifdef USE_AUTO_PROPS
     for(cfg_auto_property* prop : g_all_properties)
     {
         prop->ResetFromSaved();
     }
-#else
-    SetDlgItemInt(IDC_AUTOSAVE_ENABLED_CHKBOX, true);
-    SetDlgItemText(IDC_SAVE_FILENAME_FORMAT, L"this is the default format!!");
-#endif
     OnChanged();
 }
 
@@ -100,17 +83,13 @@ void PreferencesRoot::apply() {
 }
 
 bool PreferencesRoot::HasChanged() {
-#ifdef USE_AUTO_PROPS
     for(cfg_auto_property* prop : g_all_properties)
     {
         if(prop->HasChanged()) return true;
     }
     return false;
-#else
-    return GetDlgItemInt(IDC_AUTOSAVE_ENABLED_CHKBOX, nullptr) != cfg_auto_save_enabled;
-    // TODO: Also check the string
-#endif
 }
+
 void PreferencesRoot::OnChanged() {
     //tell the host that our state has changed to enable/disable the apply button appropriately.
     m_callback->on_state_changed();
