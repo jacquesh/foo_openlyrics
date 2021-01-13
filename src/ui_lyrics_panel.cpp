@@ -42,6 +42,8 @@ namespace {
 
     private:
         LRESULT OnLyricRefreshRequested(UINT, WPARAM, LPARAM, BOOL&);
+        LRESULT OnWindowCreate(LPCREATESTRUCT);
+        void OnWindowDestroy();
         LRESULT OnTimer(WPARAM);
         void OnPaint(CDCHandle);
         BOOL OnEraseBkgnd(CDCHandle);
@@ -58,7 +60,6 @@ namespace {
         ui_element_config::ptr m_config;
 
         bool m_timerRunning;
-        float textScrollY;
         TCHAR* m_lyrics_string;
         size_t m_lyrics_string_length;
         int m_lyrics_string_height;
@@ -69,6 +70,8 @@ namespace {
 
         BEGIN_MSG_MAP_EX(LyricPanel)
             MESSAGE_HANDLER(WM_USER+1, OnLyricRefreshRequested); // TODO: Define a constant for this message
+            MSG_WM_CREATE(OnWindowCreate)
+            MSG_WM_DESTROY(OnWindowDestroy)
             MSG_WM_TIMER(OnTimer)
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
             MSG_WM_PAINT(OnPaint)
@@ -92,7 +95,6 @@ namespace {
         m_callback(p_callback),
         m_config(config),
         m_timerRunning(false),
-        textScrollY(0),
         m_lyrics_string(nullptr),
         m_lyrics_string_length(0),
         m_lyrics_string_height(0)
@@ -135,6 +137,17 @@ namespace {
     {
         LoadCurrentlyPlayingLyrics();
         return 0;
+    }
+
+    LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*create*/)
+    {
+        sources::localfiles::RegisterLyricPanel(get_wnd());
+        return 0;
+    }
+
+    void LyricPanel::OnWindowDestroy()
+    {
+        sources::localfiles::DeregisterLyricPanel(get_wnd());
     }
 
     LRESULT LyricPanel::OnTimer(WPARAM /*wParam*/)

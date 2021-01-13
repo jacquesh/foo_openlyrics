@@ -6,6 +6,9 @@
 
 namespace sources::localfiles
 {
+    void RegisterLyricPanel(HWND panel_handle);
+    void DeregisterLyricPanel(HWND panel_handle);
+
     pfc::string8 GetLyricsDir();
 
     // Returns the path of the file that was loaded, if any. If no file is found, returns empty string.
