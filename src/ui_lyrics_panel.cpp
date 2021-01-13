@@ -73,7 +73,7 @@ namespace {
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
             MSG_WM_PAINT(OnPaint)
             MSG_WM_SIZE(OnSize)
-            MSG_WM_CONTEXTMENU(OnContextMenu);
+            MSG_WM_CONTEXTMENU(OnContextMenu)
         END_MSG_MAP()
     };
 
@@ -243,6 +243,15 @@ namespace {
 
     void LyricPanel::OnContextMenu(CWindow window, CPoint point)
     {
+        if(m_callback->is_edit_mode_enabled())
+        {
+            // NOTE: When edit-mode is enabled then we want the default behaviour for allowing users
+            //       to change this panel, so we mark the message as unhandled and let foobar's default
+            //       handling take care of it for us.
+            SetMsgHandled(FALSE);
+            return;
+        }
+
         // handle the context menu key case - center the menu
         if (point == CPoint(-1, -1))
         {
