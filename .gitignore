@@ -6,5 +6,6 @@
 *.user
 Debug/
 Debug FB2K/
+Profile/
 Release/
 .vs/

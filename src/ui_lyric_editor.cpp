@@ -15,7 +15,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const LyricEditData& data);
+    LyricEditor(const LyricDataRaw& data);
     ~LyricEditor();
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -39,7 +39,7 @@ private:
     TCHAR* m_input_text;
 };
 
-LyricEditor::LyricEditor(const LyricEditData& data) :
+LyricEditor::LyricEditor(const LyricDataRaw& data) :
     m_save_file_title(data.file_title),
     m_input_text(nullptr)
 {
@@ -88,6 +88,7 @@ void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 void LyricEditor::SaveLyricEdits()
 {
     // TODO: Disable the OK/Cancel buttons if the lyrics text is empty (and )
+    // TODO: Disable the OK/Apply buttons if the lyrics have not changed
     LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
     if(lyric_length <= 0) return;
 
@@ -100,13 +101,14 @@ void LyricEditor::SaveLyricEdits()
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
     delete[] lyric_buffer;
 
+    // TODO: Only save if it actually changed since the last save...
     sources::localfiles::SaveLyrics(m_save_file_title, LyricFormat::Plaintext, lyrics);
 
     // TODO: Should we get passed a handle to the actual lyric window? To send the message just to that? We may as well pass in a reference of some form to the actual panel class then though?
     SendMessage(GetParent(), WM_USER+1, 0, 0);
 }
 
-void SpawnLyricEditor(const LyricEditData& edit_data)
+void SpawnLyricEditor(const LyricDataRaw& edit_data)
 {
     try
     {

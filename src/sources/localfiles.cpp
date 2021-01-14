@@ -132,7 +132,7 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-pfc::string8 sources::localfiles::Query(const pfc::string8& title, pfc::string8& out_lyrics)
+LyricDataRaw sources::localfiles::Query(const pfc::string8& title, pfc::string8& out_file_path)
 {
     /* TODO: Make this async?
     fb2k::splitTask([shared_ptr_to_shared_data](){
@@ -144,11 +144,18 @@ pfc::string8 sources::localfiles::Query(const pfc::string8& title, pfc::string8&
     pfc::string8 lyric_path_prefix = GetLyricsDir();
     lyric_path_prefix.add_filename(title);
 
-    const char* extensions[] = { ".txt", ".lrc" };
-    for (const char* ext : extensions)
+    // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
+    // TODO: Prefer lrc
+    struct ExtensionDefinition
+    {
+        const char* extension;
+        LyricFormat format;
+    };
+    const ExtensionDefinition extensions[] = { {".txt", LyricFormat::Plaintext}, {".lrc", LyricFormat::Timestamped} };
+    for (const ExtensionDefinition& ext : extensions)
     {
         pfc::string8 file_path = lyric_path_prefix;
-        file_path.add_string(ext);
+        file_path.add_string(ext.extension);
 
         try
         {
@@ -160,8 +167,9 @@ pfc::string8 sources::localfiles::Query(const pfc::string8& title, pfc::string8&
                 pfc::string8 file_contents;
                 file->read_string_raw(file_contents, noAbort);
 
-                out_lyrics = file_contents;
-                return file_path;
+                out_file_path = file_path;
+                LyricDataRaw result = {ext.format, title, file_contents};
+                return result;
             }
         }
         catch(const std::exception& e)
@@ -170,7 +178,8 @@ pfc::string8 sources::localfiles::Query(const pfc::string8& title, pfc::string8&
         }
     }
 
-    return pfc::string8();
+    out_file_path = "";
+    return {};
 }
 
 void sources::localfiles::SaveLyrics(const pfc::string& title, LyricFormat format, const pfc::string8& lyrics)

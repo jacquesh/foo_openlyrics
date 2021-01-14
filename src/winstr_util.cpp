@@ -20,17 +20,22 @@ pfc::string8 tchar_to_string(const TCHAR* buffer, size_t buffer_len)
 
 size_t string_to_tchar(const pfc::string8& string, TCHAR*& out_buffer)
 {
+    return string_to_tchar(string, 0, string.length(), out_buffer);
+}
+
+size_t string_to_tchar(const pfc::string8& string, size_t start_index, size_t length, TCHAR*& out_buffer)
+{
 #ifdef UNICODE
-    size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(string.c_str(), string.length());
+    size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(string.c_str() + start_index, length);
     wchar_t* result = new wchar_t[wide_len];
     assert(result != nullptr);
-    pfc::stringcvt::convert_utf8_to_wide(result, wide_len, string.c_str(), string.length());
+    pfc::stringcvt::convert_utf8_to_wide(result, wide_len, string.c_str() + start_index, length);
     out_buffer = result;
     return wide_len;
 #else // UNICODE
-    TCHAR* result = malloc[(string.length()+1)*sizeof(TCHAR)];
-    memcpy(result, string.c_str(), (string.length()+1)*sizeof(TCHAR));
+    TCHAR* result = malloc((length+1)*sizeof(TCHAR));
+    memcpy(result, string.c_str() + start_index, (length+1)*sizeof(TCHAR));
     out_buffer = result;
-    return string.length();
+    return length;
 #endif // UNICODE
 }
