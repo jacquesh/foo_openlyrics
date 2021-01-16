@@ -5,6 +5,7 @@
 #include "foobar2000/helpers/atl-misc.h"
 #pragma warning(pop)
 
+#include "logging.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
@@ -15,7 +16,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const LyricDataRaw& data);
+    LyricEditor(const LyricDataRaw& data, const pfc::string8& save_file_title);
     ~LyricEditor();
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -39,8 +40,8 @@ private:
     TCHAR* m_input_text;
 };
 
-LyricEditor::LyricEditor(const LyricDataRaw& data) :
-    m_save_file_title(data.file_title),
+LyricEditor::LyricEditor(const LyricDataRaw& data, const pfc::string8& save_file_title) :
+    m_save_file_title(save_file_title),
     m_input_text(nullptr)
 {
     string_to_tchar(data.text, m_input_text);
@@ -96,10 +97,27 @@ void LyricEditor::SaveLyricEdits()
     UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
     if(chars_copied != lyric_length)
     {
-        console::printf("WARN-OpenLyrics: Dialog character count mismatch. Expeccted %u, got %u", lyric_length, chars_copied);
+        LOG_WARN("Dialog character count mismatch. Expeccted %u, got %u", lyric_length, chars_copied);
     }
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
     delete[] lyric_buffer;
+
+        // TODO: Allow the user to configure a search string format maybe?
+        /*
+        titleformat_object::ptr format_script;
+        bool compile_success = titleformat_compiler::get()->compile(format_script, "[%artist% - ][%title%]");
+        if (!compile_success)
+        {
+            LOG_WARN("Failed to compile title format script");
+            out_artist.reset();
+            out_album.reset();
+            out_title.reset();
+            return;
+        }
+
+        pfc::string8 track_title;
+        now_playing->format_title(nullptr, track_title, format_script, nullptr);
+        */
 
     // TODO: Only save if it actually changed since the last save...
     sources::localfiles::SaveLyrics(m_save_file_title, LyricFormat::Plaintext, lyrics);
@@ -108,11 +126,24 @@ void LyricEditor::SaveLyricEdits()
     SendMessage(GetParent(), WM_USER+1, 0, 0);
 }
 
-void SpawnLyricEditor(const LyricDataRaw& edit_data)
+void SpawnLyricEditor(const LyricDataRaw& edit_data, metadb_handle_ptr lyric_to_edit_track)
 {
+    // TODO: Allow the user to configure a search string format maybe?
+    const char* save_format = "[%artist% - ][%title%]";
+    titleformat_object::ptr format_script;
+    bool compile_success = titleformat_compiler::get()->compile(format_script, save_format);
+    if (!compile_success)
+    {
+        LOG_WARN("Failed to compile save-file title format: %s", save_format);
+        return;
+    }
+
+    pfc::string8 formatted_save_title;
+    lyric_to_edit_track->format_title(nullptr, formatted_save_title, format_script, nullptr);
+
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), edit_data);
+        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), edit_data, formatted_save_title);
     }
     catch(const std::exception& e)
     {

@@ -4,6 +4,7 @@
 #include "libxml/tree.h"
 #include "libxml/xpath.h"
 
+#include "logging.h"
 #include "lyric_data.h"
 
 namespace sources::azlyricscom
@@ -40,6 +41,7 @@ LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::
     url.add_string("/");
     url.add_string(url_title);
     url.add_string(".html");
+    LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
     try
     {
@@ -54,7 +56,7 @@ LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::
         {
             // TODO: Check for UTF-8 encoding and if its not, then re-encode it.
             //       Read: http://xmlsoft.org/tutorial/ar01s09.html
-            //console::printf("XML document encoding = %s", doc->encoding);
+            //LOG_INFO("XML document encoding = %s", doc->encoding);
             //xmlCharEncodingHandlerPtr encoding_handler = xmlGetCharEncodingHandler(encoding);
 
             xmlXPathContextPtr xpath_ctx = xmlXPathNewContext(doc);
@@ -143,9 +145,9 @@ LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::
             }
             else
             {
+                LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
                 LyricDataRaw result = {};
                 result.format = LyricFormat::Plaintext;
-                result.file_title = title;
                 result.text = std::move(lyric_text);
                 return result;
             }
@@ -153,7 +155,7 @@ LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::
     }
     catch(const std::exception& e)
     {
-        console::printf("ERROR-OpenLyrics: Failed to download azlyrics.com page %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to download azlyrics.com page %s: %s", url.c_str(), e.what());
     }
 
     return {};

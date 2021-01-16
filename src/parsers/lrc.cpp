@@ -2,18 +2,19 @@
 
 #include <algorithm>
 
+#include "logging.h"
 #include "lyric_data.h"
 #include "winstr_util.h"
 
 namespace parsers::lrc
 {
 
-bool is_digit(char c)
+static bool is_digit(char c)
 {
     return ((c >= '0') && (c <= '9'));
 }
 
-int char_pair_to_int(const char* first_char)
+static int char_pair_to_int(const char* first_char)
 {
     assert(is_digit(first_char[0]) && is_digit(first_char[1]));
     int char1_val = (int)first_char[0] - (int)'0';
@@ -76,13 +77,11 @@ static std::vector<double> parse_line_times(const pfc::string8& line, size_t sta
     return result;
 }
 
-// TODO: Handle failure by falling back to plaintext output with just the raw text in the source string
-// TODO: Plaintext lyric file parsing
 LyricData parse(const LyricDataRaw& input)
 {
-    if((input.format != LyricFormat::Timestamped) || input.file_title.is_empty() || input.text.is_empty())
+    if((input.format != LyricFormat::Timestamped) || input.text.is_empty())
     {
-        // TODO: Log?
+        LOG_WARN("Cannot parse given raw lyrics as LRC");
         return {};
     }
 
@@ -142,7 +141,6 @@ LyricData parse(const LyricDataRaw& input)
 
     LyricData result = {};
     result.format = input.format;
-    result.file_title = input.file_title;
     result.text = input.text;
     result.line_count = lines.size();
     result.lines = new TCHAR*[result.line_count];

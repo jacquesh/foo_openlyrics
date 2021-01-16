@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "localfiles.h"
 #include "winstr_util.h"
 
@@ -26,11 +27,11 @@ static DWORD WINAPI file_watch_thread(PVOID param)
 
     if(change_listener == INVALID_HANDLE_VALUE)
     {
-        console::printf("WARN-OpenLyrics: Failed to listen for changes to local files in %s: %d", lyric_dir_os_path.c_str(), GetLastError());
+        LOG_WARN("Failed to listen for changes to local files in %s: %d", lyric_dir_os_path.c_str(), GetLastError());
         return 1;
     }
 
-    console::printf("INFO-OpenLyrics: Listening for changes to %s", lyric_dir_os_path.c_str());
+    LOG_INFO("Listening for changes to %s", lyric_dir_os_path.c_str());
     while(true)
     {
         const HANDLE handles[] = {change_listener, g_shutdown_handle};
@@ -43,7 +44,7 @@ static DWORD WINAPI file_watch_thread(PVOID param)
 
         if(wait_result != WAIT_OBJECT_0)
         {
-            console::printf("WARN-OpenLyrics: Failure waiting for file-watcher handle: %d -> %d", wait_result, GetLastError());
+            LOG_WARN("Failure waiting for file-watcher handle: %d -> %d", wait_result, GetLastError());
             break;
         }
 
@@ -57,7 +58,7 @@ static DWORD WINAPI file_watch_thread(PVOID param)
         BOOL success = FindNextChangeNotification(change_listener);
         if(!success)
         {
-            console::printf("WARN-OpenLyrics: Failed to re-queue the listen for additional file change notifications: %d", GetLastError());
+            LOG_WARN("Failed to re-queue the listen for additional file change notifications: %d", GetLastError());
             break;
         }
     }
@@ -82,7 +83,7 @@ void sources::localfiles::RegisterLyricPanel(HWND panel_handle)
             }
             catch(const std::exception& e)
             {
-                console::print(PFC_string_formatter() << "ERROR-OpenLyrics: Failed to create lyrics directory" << e);
+                LOG_ERROR("Failed to create lyrics directory: %s", e.what());
             }
         }
 
@@ -90,13 +91,13 @@ void sources::localfiles::RegisterLyricPanel(HWND panel_handle)
         g_shutdown_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
         if(g_shutdown_handle == nullptr)
         {
-            console::printf("ERROR-OpenLyrics: Failed to create shutdown handle: %d", GetLastError());
+            LOG_ERROR("Failed to create shutdown handle: %d", GetLastError());
         }
 
         HANDLE thread_handle = CreateThread(nullptr, 0, &file_watch_thread, nullptr, 0, nullptr);
         if(thread_handle == nullptr)
         {
-            console::printf("ERROR-OpenLyrics: Failed to spawn file-watcher thread: %d", GetLastError());
+            LOG_ERROR("Failed to spawn file-watcher thread: %d", GetLastError());
         }
     }
 
@@ -134,7 +135,11 @@ pfc::string8 sources::localfiles::GetLyricsDir()
 
 LyricDataRaw sources::localfiles::Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title)
 {
-    // TODO: Make this configurable
+    LOG_INFO("Querying for lyrics in local files for %s/%s/%s...", artist.c_str(), album.c_str(), title.c_str());
+
+    // TODO: Make this configurable.
+    //       It needs to use the same configuration as the editor uses to save files...
+    //       or we could just pass metadb handles around everywhere and compute it here always?
     pfc::string8 filename = artist;
     filename.add_string(" - ");
     filename.add_string(title);
@@ -153,7 +158,7 @@ LyricDataRaw sources::localfiles::Query(const pfc::string8& artist, const pfc::s
     {
         pfc::string8 file_path = lyric_path_prefix;
         file_path.add_string(ext.extension);
-        console::printf("Look for local file %s", file_path.c_str());
+        LOG_INFO("Querying for lyrics from %s...", file_path.c_str());
 
         try
         {
@@ -166,16 +171,18 @@ LyricDataRaw sources::localfiles::Query(const pfc::string8& artist, const pfc::s
                 pfc::string8 file_contents;
                 file->read_string_raw(file_contents, noAbort);
 
-                LyricDataRaw result = {ext.format, title, file_contents};
+                LyricDataRaw result = {ext.format, file_contents};
+                LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
                 return result;
             }
         }
         catch(const std::exception& e)
         {
-            console::print(PFC_string_formatter() << "WARN-OpenLyrics: Failed to open lyrics file " << file_path << e);
+            LOG_WARN("Failed to open lyrics file %s: %s", file_path.c_str(), e.what());
         }
     }
 
+    LOG_INFO("Failed to find lyrics in local files for %s/%s/%s", artist.c_str(), album.c_str(), title.c_str());
     return {};
 }
 
@@ -195,7 +202,7 @@ void sources::localfiles::SaveLyrics(const pfc::string& title, LyricFormat forma
 
         case LyricFormat::Unknown:
         default:
-            console::printf("ERROR-OpenLyrics: Failed to compute output file path for title %s and format %d", title.c_str(), (int)format);
+            LOG_ERROR("Failed to compute output file path for title %s and format %d", title.c_str(), (int)format);
             return;
     }
 
@@ -217,15 +224,15 @@ void sources::localfiles::SaveLyrics(const pfc::string& title, LyricFormat forma
         if(fs->is_our_path(tmp_path.c_str()))
         {
             fs->move_overwrite(tmp_path.c_str(), output_path.c_str(), noAbort);
-            console::printf("Successfully saved lyrics to %s", output_path.c_str());
+            LOG_INFO("Successfully saved lyrics to %s", output_path.c_str());
         }
         else
         {
-            console::printf("WARN-OpenLyrics: Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems", tmp_path.c_str(), output_path.c_str());
+            LOG_WARN("Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems", tmp_path.c_str(), output_path.c_str());
         }
     }
     catch(std::exception& e)
     {
-        console::print(PFC_string_formatter() << "ERROR-OpenLyrics: Failed to write lyrics file to disk" << e);
+        LOG_ERROR("Failed to write lyrics file to disk", e.what());
     }
 }

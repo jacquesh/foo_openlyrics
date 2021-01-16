@@ -5,6 +5,7 @@
 #include <foobar2000/helpers/BumpableElem.h>
 #pragma warning(pop)
 
+#include "logging.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
@@ -162,7 +163,7 @@ namespace {
         }
         else
         {
-            console::info("WARN-OpenLyrics: Failed to retrieve now_playing");
+            LOG_WARN("Failed to retrieve now_playing");
         }
 
         return 0;
@@ -243,7 +244,7 @@ namespace {
                 int draw_text_height = DrawTextW(back_buffer, line_text , line_length, &text_rect, draw_format);
                 if (draw_text_height <= 0)
                 {
-                    console::printf("WARN-OpenLyrics: Failed to draw text. Returned result %d. Error=%d", draw_text_height, GetLastError());
+                    LOG_WARN("Failed to draw text. Returned result %d. Error=%d", draw_text_height, GetLastError());
                     StopTimer();
                 }
 
@@ -304,7 +305,7 @@ namespace {
 
                 if (draw_text_height <= 0)
                 {
-                    console::printf("WARN-OpenLyrics: Failed to draw text. Returned result %d. Error=%d", draw_text_height, GetLastError());
+                    LOG_WARN("Failed to draw text. Returned result %d. Error=%d", draw_text_height, GetLastError());
                     StopTimer();
                 }
 
@@ -359,6 +360,9 @@ namespace {
 
         try
         {
+            // TODO: This is from the playback_state sample
+            // CMenuDescriptionHybrid menudesc(*this); //this class manages all the voodoo necessary for descriptions of our menu items to show in the status bar.
+
             service_ptr_t<contextmenu_manager> api = contextmenu_manager::get();
             CMenu menu;
             WIN32_OP(menu.CreatePopupMenu());
@@ -408,7 +412,7 @@ namespace {
                     }
                     else
                     {
-                        console::info("WARN-OpenLyrics: Failed to retrieve now_playing");
+                        LOG_WARN("Failed to retrieve now_playing");
                     }
                 } break;
 
@@ -448,29 +452,12 @@ namespace {
         }
         catch(std::exception const & e)
         {
-            console::complain("ERROR-OpenLyrics: Failed to create OpenLyrics context menu", e);
+            LOG_ERROR("Failed to create OpenLyrics context menu: %s", e.what());
         }
     }
 
     void LyricPanel::GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title)
     {
-        // TODO: Allow the user to configure a search string format maybe?
-        /*
-        titleformat_object::ptr format_script;
-        bool compile_success = titleformat_compiler::get()->compile(format_script, "[%artist% - ][%title%]");
-        if (!compile_success)
-        {
-            console::error("WARN-OpenLyrics: Failed to compile title format script");
-            out_artist.reset();
-            out_album.reset();
-            out_title.reset();
-            return;
-        }
-
-        pfc::string8 track_title;
-        now_playing->format_title(nullptr, track_title, format_script, nullptr);
-        */
-
         const metadb_info_container::ptr& track_info_container = track_handle->get_info_ref();
         const file_info& track_info = track_info_container->info();
         // t_filetimestamp track_timestamp = track_info_container->stats().m_timestamp; // TODO: This could be useful for setting a cached timestamp to not reload lyrics all the time? Oh but we need to get this for the lyrics file, not the track itself... although I guess if the lyrics are stored in an id3 tag?
@@ -518,7 +505,7 @@ namespace {
         UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 20, nullptr);
         if (result != PANEL_UPDATE_TIMER)
         {
-            console::error("WARN-OpenLyrics: Unexpected timer result when starting playback timer");
+            LOG_WARN("Unexpected timer result when starting playback timer");
         }
     }
 
@@ -572,17 +559,14 @@ namespace {
                 case LyricSource::None:
                 default:
                 {
-                    console::printf("WARN-OpenLyrics: Invalid lyric source configured: %d", (int)source);
+                    LOG_WARN("Invalid lyric source configured: %d", (int)source);
                 } break;
             }
 
             if(lyric_data_raw.format != LyricFormat::Unknown)
             {
-                console::printf("Found lyrics from source %d", (int)source);
                 break;
             }
-
-            console::printf("Failed to find lyrics from source %d", (int)source);
         }
 
         // TODO: Clean up the existing m_lyrics data (in particular the lines)... or we could give it a constructor?
@@ -601,21 +585,27 @@ namespace {
         {
             case LyricFormat::Plaintext:
             {
-                console::printf("Found plaintext lyrics for %s", track_title.c_str());
+                LOG_INFO("Parsing lyrics as plaintext...");
                 lyric_data = parsers::plaintext::parse(lyric_data_raw);
             } break;
 
             case LyricFormat::Timestamped:
             {
-                console::printf("Found LRC lyrics for %s", track_title.c_str());
+                LOG_INFO("Parsing lyrics as LRC...");
                 lyric_data = parsers::lrc::parse(lyric_data_raw);
+                if(lyric_data.format != LyricFormat::Timestamped)
+                {
+                    LOG_INFO("Failed to parse lyrics as LRC, falling back to plaintext...");
+                    lyric_data_raw.format = LyricFormat::Plaintext;
+                    lyric_data = parsers::plaintext::parse(lyric_data_raw);
+                }
             } break;
 
             case LyricFormat::Unknown:
             default:
             {
                 m_lyrics = {};
-                console::printf("Could not find lyrics for %s", track_title.c_str());
+                LOG_INFO("Could not find lyrics for %s", track_title.c_str());
                 return;
             }
         }
@@ -639,6 +629,7 @@ namespace {
 
             CRect text_rect = clientRect;
             int draw_text_height = DrawText(panel_dc, line_start, line_length, &text_rect, draw_format | DT_CALCRECT);
+            // TODO: Replace this with TextOut or ExTextOut (which might be faster, otherwise we may need to cache the rendered text)
 
             // NOTE: We clamp the drawn height to the font height so that blank lines show up as such.
             if(draw_text_height < font_metrics.tmHeight)
@@ -652,6 +643,7 @@ namespace {
 
         m_lyrics = lyric_data;
         m_lyrics_render_height = text_height;
+        LOG_INFO("Lyric loading complete");
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.

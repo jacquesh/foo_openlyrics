@@ -13,7 +13,6 @@ enum class LyricFormat
 struct LyricDataRaw
 {
     LyricFormat format;
-    pfc::string8 file_title;
     pfc::string8 text;
 };
 

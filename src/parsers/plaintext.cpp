@@ -1,23 +1,18 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "lyric_data.h"
 #include "winstr_util.h"
 
 namespace parsers::plaintext
 {
 
-// TODO: Plaintext lyric file parsing
 LyricData parse(const LyricDataRaw& input)
 {
-    LyricData result = {};
-    result.format = input.format;
-    result.file_title = input.file_title;
-    result.text = input.text;
-
-    if((input.format != LyricFormat::Plaintext) || input.file_title.is_empty() || input.text.is_empty())
+    if((input.format != LyricFormat::Plaintext) || input.text.is_empty())
     {
-        // TODO: Log?
-        return result;
+        LOG_WARN("Cannot parse given raw lyrics as plaintext");
+        return {};
     }
 
     std::vector<TCHAR*> lines;
@@ -52,8 +47,11 @@ LyricData parse(const LyricDataRaw& input)
             line_start_index = line_end_index + 1;
         }
     }
-
     assert(lines.size() == line_lengths.size());
+
+    LyricData result = {};
+    result.format = input.format;
+    result.text = input.text;
     result.line_count = lines.size();
     result.lines = new TCHAR*[result.line_count];
     result.line_lengths = new size_t[result.line_count];

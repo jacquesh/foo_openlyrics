@@ -80,6 +80,9 @@
     <ClInclude Include="..\..\src\sources\localfiles.h">
       <Filter>Header Files\sources</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\logging.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\foo_openlyrics.rc">
