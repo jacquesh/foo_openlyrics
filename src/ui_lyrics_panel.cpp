@@ -18,6 +18,12 @@ namespace plaintext { LyricData parse(const LyricDataRaw& input); } // TODO: Fro
 namespace lrc { LyricData parse(const LyricDataRaw& input); } // TODO: From parsers/lrc.cpp
 }
 
+// TODO: from sources/azlyricscom.cpp
+namespace sources::azlyricscom
+{
+    LyricDataRaw Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title);
+}
+
 namespace {
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
     static const UINT_PTR PANEL_UPDATE_TIMER = 2304692;
@@ -48,7 +54,7 @@ namespace {
         void on_playback_seek(double new_time);
 
     private:
-        LRESULT OnLyricRefreshRequested(UINT, WPARAM, LPARAM, BOOL&);
+        LRESULT OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&);
         LRESULT OnWindowCreate(LPCREATESTRUCT);
         void OnWindowDestroy();
         LRESULT OnTimer(WPARAM);
@@ -57,12 +63,12 @@ namespace {
         void OnSize(UINT nType, CSize size);
         void OnContextMenu(CWindow window, CPoint point);
 
-        pfc::string8 GetNowPlayingLyricTitle();
+        void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title);
 
         void StartTimer();
         void StopTimer();
 
-        void LoadCurrentlyPlayingLyrics();
+        void LoadTrackLyrics(metadb_handle_ptr track);
 
         ui_element_config::ptr m_config;
 
@@ -76,7 +82,7 @@ namespace {
         const ui_element_instance_callback_ptr m_callback;
 
         BEGIN_MSG_MAP_EX(LyricPanel)
-            MESSAGE_HANDLER(WM_USER+1, OnLyricRefreshRequested); // TODO: Define a constant for this message
+            MESSAGE_HANDLER(WM_USER+1, OnLyricSavedToDisk); // TODO: Define a constant for this message
             MSG_WM_CREATE(OnWindowCreate)
             MSG_WM_DESTROY(OnWindowDestroy)
             MSG_WM_TIMER(OnTimer)
@@ -118,7 +124,7 @@ namespace {
 
     void LyricPanel::on_playback_new_track(metadb_handle_ptr p_track)
     {
-        LoadCurrentlyPlayingLyrics();
+        LoadTrackLyrics(p_track);
         StartTimer();
     }
 
@@ -144,10 +150,19 @@ namespace {
         // TODO: Update the rendered lyrics text for the new time...maybe we just need to `Invalidate()`?
     }
 
-    LRESULT LyricPanel::OnLyricRefreshRequested(UINT, WPARAM, LPARAM, BOOL&)
+    LRESULT LyricPanel::OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&)
     {
-        // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
-        LoadCurrentlyPlayingLyrics();
+        metadb_handle_ptr now_playing;
+        bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
+        if(now_playing_success)
+        {
+            LoadTrackLyrics(now_playing);
+        }
+        else
+        {
+            console::info("WARN-OpenLyrics: Failed to retrieve now_playing");
+        }
+
         return 0;
     }
 
@@ -359,6 +374,24 @@ namespace {
             AppendMenu(menu, MF_STRING, ID_EDIT_LYRICS, _T("Edit lyrics"));
             AppendMenu(menu, MF_STRING, ID_OPEN_FILE_DIR, _T("Open file location"));
 
+            // TODO: We should add a submenu for selecting from all of the lyrics that we found, dynamically populated by the search for this track.
+            //       For example we could have:
+            //
+            //       -------------------
+            //      |Search Lyrics      |
+            //      |Preferences        |
+            //      |Edit Lyrics        |
+            //      |Open File Location |  --------------------------------
+            //      |Choose Lyrics      ->|(Local) filename1.txt           |
+            //       -------------------  |(Local) filename2.txt           |
+            //                            |(Local) filename3.lrc           |
+            //                            |(AZLyrics) Artist - Title       |
+            //                            |(Genius) Artist - Album - Title |
+            //                             --------------------------------
+            //
+            //       We might need to have a menu option to populate this list though, because it seems silly
+            //       to keep searching all sources by default once we've already found one (say, on disk locally)
+
             int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, get_wnd(), 0);
             switch(cmd)
             {
@@ -407,27 +440,60 @@ namespace {
         }
     }
 
-    pfc::string8 LyricPanel::GetNowPlayingLyricTitle()
+    void LyricPanel::GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title)
     {
+        // TODO: Allow the user to configure a search string format maybe?
+        /*
         titleformat_object::ptr format_script;
         bool compile_success = titleformat_compiler::get()->compile(format_script, "[%artist% - ][%title%]");
         if (!compile_success)
         {
             console::error("WARN-OpenLyrics: Failed to compile title format script");
-            return "";
-        }
-
-        metadb_handle_ptr now_playing;
-        bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
-        if(!now_playing_success)
-        {
-            console::info("WARN-OpenLyrics: Failed to retrieve now_playing");
-            return "";
+            out_artist.reset();
+            out_album.reset();
+            out_title.reset();
+            return;
         }
 
         pfc::string8 track_title;
         now_playing->format_title(nullptr, track_title, format_script, nullptr);
-        return track_title;
+        */
+
+        const metadb_info_container::ptr& track_info_container = track_handle->get_info_ref();
+        const file_info& track_info = track_info_container->info();
+        // t_filetimestamp track_timestamp = track_info_container->stats().m_timestamp; // TODO: This could be useful for setting a cached timestamp to not reload lyrics all the time? Oh but we need to get this for the lyrics file, not the track itself... although I guess if the lyrics are stored in an id3 tag?
+
+        size_t track_artist_index = track_info.meta_find("artist");
+        size_t track_album_index = track_info.meta_find("album");
+        size_t track_title_index = track_info.meta_find("title");
+        const size_t invalid_index = static_cast<size_t>(pfc_infinite);
+        static_assert(invalid_index == pfc_infinite, "These types are different but they should still compare equal");
+        if((track_artist_index != invalid_index) && (track_info.meta_enum_value_count(track_artist_index) > 0))
+        {
+            out_artist = pfc::string8(track_info.meta_enum_value(track_artist_index, 0));
+        }
+        else
+        {
+            out_artist.reset();
+        }
+
+        if((track_album_index != invalid_index) && (track_info.meta_enum_value_count(track_album_index) > 0))
+        {
+            out_album = pfc::string8(track_info.meta_enum_value(track_album_index, 0));
+        }
+        else
+        {
+            out_album.reset();
+        }
+
+        if((track_title_index != invalid_index) && (track_info.meta_enum_value_count(track_title_index) > 0))
+        {
+            out_title = pfc::string8(track_info.meta_enum_value(track_title_index, 0));
+        }
+        else
+        {
+            out_title.reset();
+        }
     }
 
     void LyricPanel::StartTimer()
@@ -452,17 +518,51 @@ namespace {
         WIN32_OP(KillTimer(PANEL_UPDATE_TIMER))
     }
 
-    void LyricPanel::LoadCurrentlyPlayingLyrics()
+    void LyricPanel::LoadTrackLyrics(metadb_handle_ptr track)
     {
-        pfc::string8 track_title = GetNowPlayingLyricTitle();
-        if(track_title.is_empty())
-        {
-            return;
-        }
+        // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
+        pfc::string8 track_artist;
+        pfc::string8 track_album;
+        pfc::string8 track_title;
+        GetTrackMetaIdentifiers(track, track_artist, track_album, track_title);
+        console::printf("Loading lyrics for %s - %s...", track_artist.c_str(), track_title.c_str());
 
-        // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
-        pfc::string8 lyric_file_path;
-        LyricDataRaw lyric_data_raw = sources::localfiles::Query(track_title, lyric_file_path);
+        enum class LyricSource
+        {
+            None,
+            LocalFiles,
+            AZLyricsCom
+        };
+
+        LyricSource all_sources[] = {LyricSource::LocalFiles, LyricSource::AZLyricsCom};
+
+        LyricDataRaw lyric_data_raw;
+        for(LyricSource source : all_sources)
+        {
+            switch(source)
+            {
+                case LyricSource::LocalFiles:
+                {
+                    // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
+                    pfc::string8 lyric_file_path;
+                    lyric_data_raw = std::move(sources::localfiles::Query(track_title, lyric_file_path));
+                } break;
+
+                case LyricSource::AZLyricsCom:
+                {
+                    lyric_data_raw = std::move(sources::azlyricscom::Query(track_artist, track_album, track_title));
+                    // TODO: Save the lyrics to disk (at least if configured to do so?)
+                } break;
+            }
+
+            if(lyric_data_raw.format != LyricFormat::Unknown)
+            {
+                console::printf("Found lyrics from source %d", (int)source);
+                break;
+            }
+
+            console::printf("Failed to find lyrics from source %d", (int)source);
+        }
 
         // TODO: Clean up the existing m_lyrics data (in particular the lines)... or we could give it a constructor?
         if(m_lyrics.format != LyricFormat::Unknown)

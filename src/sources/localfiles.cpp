@@ -188,6 +188,7 @@ void sources::localfiles::SaveLyrics(const pfc::string& title, LyricFormat forma
 
     // TODO: Validate the filename to remove any bad chars. What are bad chars though?
     //       Maybe this list is a reasonable start:      |*?<>"\/:
+    //       Actually, pfc::string8 has support for this. Looking into pfc::string8::fix_filename_chars()
     pfc::string8 output_path = GetLyricsDir();
     output_path.add_filename(title.c_str());
     switch(format)
