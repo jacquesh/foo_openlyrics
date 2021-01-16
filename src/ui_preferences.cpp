@@ -11,11 +11,11 @@
 static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
 static const GUID GUID_CFG_FILENAME_FORMAT = { 0x1f7a3804, 0x7147, 0x4b64, { 0x9d, 0x51, 0x4c, 0xdd, 0x90, 0xa7, 0x6d, 0xd6 } };
 static const GUID GUID_CFG_ENABLE_AUTOSAVE = { 0xf25be2d9, 0x4442, 0x4602, { 0xa0, 0xf1, 0x81, 0xd, 0x8e, 0xab, 0x6a, 0x2 } };
-static const GUID GUID_CFG_RENDER_LINEGAP = {}; // TODO
+static const GUID GUID_CFG_RENDER_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9, 0x35, 0x9, 0xbb, 0xfa, 0xc6, 0x40, 0x43 } };
 
 static cfg_auto_bool cfg_auto_save_enabled(GUID_CFG_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
 static cfg_auto_int cfg_render_linegap(GUID_CFG_RENDER_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
-static cfg_auto_string cfg_filename_format(GUID_CFG_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% -][%title%]");
+static cfg_auto_string cfg_filename_format(GUID_CFG_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
 
 static cfg_auto_property* g_all_properties[] = {&cfg_auto_save_enabled, &cfg_render_linegap, &cfg_filename_format};
 

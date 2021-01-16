@@ -617,7 +617,7 @@ namespace {
                 case LyricSource::LocalFiles:
                 {
                     // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
-                    lyric_data_raw = std::move(sources::localfiles::Query(track_artist, track_album, track_title));
+                    lyric_data_raw = std::move(sources::localfiles::Query(track));
                 } break;
 
                 case LyricSource::AZLyricsCom:

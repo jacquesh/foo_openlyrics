@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "localfiles.h"
+#include "preferences.h"
 #include "winstr_util.h"
 
 static bool g_initialised = false;
@@ -65,6 +66,21 @@ static DWORD WINAPI file_watch_thread(PVOID param)
 
     FindCloseChangeNotification(change_listener);
     return 0;
+}
+
+static bool ComputeFileTitle(metadb_handle_ptr track, pfc::string8& out_title)
+{
+    const char* save_format = preferences::get_filename_format();
+    titleformat_object::ptr format_script;
+    bool compile_success = titleformat_compiler::get()->compile(format_script, save_format);
+    if (!compile_success)
+    {
+        return false;
+    }
+
+    pfc::string8 save_file_title;
+    track->format_title(nullptr, out_title, format_script, nullptr);
+    return true;
 }
 
 // TODO: Consult IO.cpp and ui_and_threads.cpp for examples on doing async processing. Surely this is something we should be doing?
@@ -133,19 +149,18 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-LyricDataRaw sources::localfiles::Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title)
+LyricDataRaw sources::localfiles::Query(metadb_handle_ptr track)
 {
-    LOG_INFO("Querying for lyrics in local files for %s/%s/%s...", artist.c_str(), album.c_str(), title.c_str());
-
-    // TODO: Make this configurable.
-    //       It needs to use the same configuration as the editor uses to save files...
-    //       or we could just pass metadb handles around everywhere and compute it here always?
-    pfc::string8 filename = artist;
-    filename.add_string(" - ");
-    filename.add_string(title);
+    pfc::string8 file_title;
+    if(!ComputeFileTitle(track, file_title))
+    {
+        LOG_ERROR("Failed to determine query file title");
+        return {};
+    }
+    LOG_INFO("Querying for lyrics in local files for %s...", file_title.c_str());
 
     pfc::string8 lyric_path_prefix = GetLyricsDir();
-    lyric_path_prefix.add_filename(filename);
+    lyric_path_prefix.add_filename(file_title);
 
     // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
     struct ExtensionDefinition
@@ -182,19 +197,24 @@ LyricDataRaw sources::localfiles::Query(const pfc::string8& artist, const pfc::s
         }
     }
 
-    LOG_INFO("Failed to find lyrics in local files for %s/%s/%s", artist.c_str(), album.c_str(), title.c_str());
+    LOG_INFO("Failed to find lyrics in local files for %s", file_title.c_str());
     return {};
 }
 
-void sources::localfiles::SaveLyrics(const pfc::string& title, LyricFormat format, const pfc::string8& lyrics)
+void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, const pfc::string8& lyrics)
 {
-    abort_callback_dummy noAbort; // TODO: What should this be instead?
+    pfc::string8 save_file_title;
+    if(!ComputeFileTitle(track, save_file_title))
+    {
+        LOG_ERROR("Failed to determine save file title");
+        return;
+    }
 
     // TODO: Validate the filename to remove any bad chars. What are bad chars though?
     //       Maybe this list is a reasonable start:      |*?<>"\/:
     //       Actually, pfc::string8 has support for this. Looking into pfc::string8::fix_filename_chars()
     pfc::string8 output_path = GetLyricsDir();
-    output_path.add_filename(title.c_str());
+    output_path.add_filename(save_file_title.c_str());
     switch(format)
     {
         case LyricFormat::Plaintext: output_path.add_string(".txt"); break;
@@ -202,18 +222,20 @@ void sources::localfiles::SaveLyrics(const pfc::string& title, LyricFormat forma
 
         case LyricFormat::Unknown:
         default:
-            LOG_ERROR("Failed to compute output file path for title %s and format %d", title.c_str(), (int)format);
+            LOG_ERROR("Failed to compute output file path for title %s and format %d", save_file_title.c_str(), (int)format);
             return;
     }
+    LOG_INFO("Saving lyrics to %s...", output_path.c_str());
 
     TCHAR temp_path_str[MAX_PATH+1];
     DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
     pfc::string8 tmp_path = tchar_to_string(temp_path_str, temp_path_str_len);
-    tmp_path.add_filename(title.c_str());
+    tmp_path.add_filename(save_file_title.c_str());
 
     try
     {
         // TODO: NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
+        abort_callback_dummy noAbort; // TODO: What should this be instead?
         {
             file_ptr tmp_file;
             filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), noAbort);

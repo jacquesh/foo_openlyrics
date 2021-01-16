@@ -11,7 +11,7 @@ namespace sources::localfiles
 
     pfc::string8 GetLyricsDir();
 
-    LyricDataRaw Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title);
+    LyricDataRaw Query(metadb_handle_ptr track);
 
-    void SaveLyrics(const pfc::string& title, LyricFormat format, const pfc::string8& lyrics);
+    void SaveLyrics(metadb_handle_ptr track, LyricFormat format, const pfc::string8& lyrics);
 }

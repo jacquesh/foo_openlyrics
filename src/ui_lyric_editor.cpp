@@ -16,7 +16,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const LyricDataRaw& data, const pfc::string8& save_file_title);
+    LyricEditor(const LyricDataRaw& data, metadb_handle_ptr track_handle);
     ~LyricEditor();
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -39,13 +39,15 @@ private:
     bool HasContentChanged(size_t* new_length);
     void SaveLyricEdits();
 
-    pfc::string8 m_save_file_title;
+    metadb_handle_ptr m_track_handle;
+    LyricFormat m_lyric_format;
     TCHAR* m_input_text;
     size_t m_input_text_length;
 };
 
-LyricEditor::LyricEditor(const LyricDataRaw& data, const pfc::string8& save_file_title) :
-    m_save_file_title(save_file_title),
+LyricEditor::LyricEditor(const LyricDataRaw& data, metadb_handle_ptr track_handle) :
+    m_track_handle(track_handle),
+    m_lyric_format(data.format),
     m_input_text(nullptr),
     m_input_text_length(0)
 {
@@ -54,7 +56,7 @@ LyricEditor::LyricEditor(const LyricDataRaw& data, const pfc::string8& save_file
 
 LyricEditor::~LyricEditor()
 {
-    if(m_input_text)
+    if(m_input_text != nullptr)
     {
         delete[] m_input_text;
     }
@@ -66,8 +68,6 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
     }
-
-    GetDlgItem(ID_LYRIC_EDIT_APPLY).EnableWindow(FALSE);
 
     ShowWindow(SW_SHOW);
     return TRUE;
@@ -83,7 +83,10 @@ void LyricEditor::OnEditChange(UINT, int, CWindow)
     size_t new_length = 0;
     bool changed = HasContentChanged(&new_length);
     bool is_empty = (new_length == 0);
-    GetDlgItem(ID_LYRIC_EDIT_APPLY).EnableWindow(changed && !is_empty);
+
+    CWindow apply_btn = GetDlgItem(ID_LYRIC_EDIT_APPLY);
+    assert(apply_btn != nullptr);
+    apply_btn.EnableWindow(changed && !is_empty);
 }
 
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
@@ -131,11 +134,7 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
             LOG_WARN("Dialog character count mismatch. Expected %u, got %u", lyric_length, chars_copied);
         }
 
-#ifdef UNICODE
-        bool changed = (wcscmp(lyric_buffer, m_input_text) != 0);
-#else
-        bool changed = (strcmp(lyric_buffer, m_input_text) != 0);
-#endif // UNICODE
+        bool changed = (_tcscmp(lyric_buffer, m_input_text) != 0);
         delete[] lyric_buffer;
 
         return changed;
@@ -148,7 +147,6 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
 
 void LyricEditor::SaveLyricEdits()
 {
-    // TODO: Disable the OK/Cancel buttons if the lyrics text is empty (and )
     LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
     if(lyric_length <= 0) return;
 
@@ -158,51 +156,30 @@ void LyricEditor::SaveLyricEdits()
     {
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }
+
+    // Update m_input_text (and length) so that HasContentChanged() will return the correct value after the same
+    if(m_input_text != nullptr)
+    {
+        delete[] m_input_text;
+    }
+    m_input_text = lyric_buffer;
+    m_input_text_length = chars_copied;
+
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
-    delete[] lyric_buffer;
+    sources::localfiles::SaveLyrics(m_track_handle, m_lyric_format, lyrics);
 
-        // TODO: Allow the user to configure a search string format maybe?
-        /*
-        titleformat_object::ptr format_script;
-        bool compile_success = titleformat_compiler::get()->compile(format_script, "[%artist% - ][%title%]");
-        if (!compile_success)
-        {
-            LOG_WARN("Failed to compile title format script");
-            out_artist.reset();
-            out_album.reset();
-            out_title.reset();
-            return;
-        }
-
-        pfc::string8 track_title;
-        now_playing->format_title(nullptr, track_title, format_script, nullptr);
-        */
-
-    // TODO: Only save if it actually changed since the last save...
-    sources::localfiles::SaveLyrics(m_save_file_title, LyricFormat::Plaintext, lyrics);
-
-    // TODO: Should we get passed a handle to the actual lyric window? To send the message just to that? We may as well pass in a reference of some form to the actual panel class then though?
-    SendMessage(GetParent(), WM_USER+1, 0, 0);
+    // We know that if we ran HasContentChanged() now, it would return false.
+    // So short-circuit it and just disable the apply button directly
+    CWindow apply_btn = GetDlgItem(ID_LYRIC_EDIT_APPLY);
+    assert(apply_btn != nullptr);
+    apply_btn.EnableWindow(FALSE);
 }
 
 void SpawnLyricEditor(const LyricDataRaw& edit_data, metadb_handle_ptr lyric_to_edit_track)
 {
-    // TODO: Allow the user to configure a search string format maybe?
-    const char* save_format = "[%artist% - ][%title%]";
-    titleformat_object::ptr format_script;
-    bool compile_success = titleformat_compiler::get()->compile(format_script, save_format);
-    if (!compile_success)
-    {
-        LOG_WARN("Failed to compile save-file title format: %s", save_format);
-        return;
-    }
-
-    pfc::string8 formatted_save_title;
-    lyric_to_edit_track->format_title(nullptr, formatted_save_title, format_script, nullptr);
-
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), edit_data, formatted_save_title);
+        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), edit_data, lyric_to_edit_track);
     }
     catch(const std::exception& e)
     {
