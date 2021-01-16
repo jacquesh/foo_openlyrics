@@ -132,33 +132,32 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-LyricDataRaw sources::localfiles::Query(const pfc::string8& title, pfc::string8& out_file_path)
+LyricDataRaw sources::localfiles::Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title)
 {
-    /* TODO: Make this async?
-    fb2k::splitTask([shared_ptr_to_shared_data](){
-            // Use the shared data
-    });
-    */
-    abort_callback_dummy noAbort; // TODO: What should this be instead?
+    // TODO: Make this configurable
+    pfc::string8 filename = artist;
+    filename.add_string(" - ");
+    filename.add_string(title);
 
     pfc::string8 lyric_path_prefix = GetLyricsDir();
-    lyric_path_prefix.add_filename(title);
+    lyric_path_prefix.add_filename(filename);
 
     // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
-    // TODO: Prefer lrc
     struct ExtensionDefinition
     {
         const char* extension;
         LyricFormat format;
     };
-    const ExtensionDefinition extensions[] = { {".txt", LyricFormat::Plaintext}, {".lrc", LyricFormat::Timestamped} };
+    const ExtensionDefinition extensions[] = { {".lrc", LyricFormat::Timestamped}, {".txt", LyricFormat::Plaintext} };
     for (const ExtensionDefinition& ext : extensions)
     {
         pfc::string8 file_path = lyric_path_prefix;
         file_path.add_string(ext.extension);
+        console::printf("Look for local file %s", file_path.c_str());
 
         try
         {
+            abort_callback_dummy noAbort; // TODO: What should this be instead?
             if (filesystem::g_exists(file_path.c_str(), noAbort))
             {
                 file_ptr file;
@@ -167,7 +166,6 @@ LyricDataRaw sources::localfiles::Query(const pfc::string8& title, pfc::string8&
                 pfc::string8 file_contents;
                 file->read_string_raw(file_contents, noAbort);
 
-                out_file_path = file_path;
                 LyricDataRaw result = {ext.format, title, file_contents};
                 return result;
             }
@@ -178,7 +176,6 @@ LyricDataRaw sources::localfiles::Query(const pfc::string8& title, pfc::string8&
         }
     }
 
-    out_file_path = "";
     return {};
 }
 

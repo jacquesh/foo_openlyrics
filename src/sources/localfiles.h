@@ -11,8 +11,7 @@ namespace sources::localfiles
 
     pfc::string8 GetLyricsDir();
 
-    // Returns the path of the file that was loaded, if any. If no file is found, returns empty string.
-    LyricDataRaw Query(const pfc::string8& title, pfc::string8& out_loaded_file_path);
+    LyricDataRaw Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title);
 
     void SaveLyrics(const pfc::string& title, LyricFormat format, const pfc::string8& lyrics);
 }

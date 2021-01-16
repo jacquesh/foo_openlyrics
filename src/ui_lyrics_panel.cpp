@@ -28,7 +28,8 @@ namespace {
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
     static const UINT_PTR PANEL_UPDATE_TIMER = 2304692;
 
-    class LyricPanel : public ui_element_instance, public CWindowImpl<LyricPanel>, private play_callback_impl_base {
+    class LyricPanel : public ui_element_instance, public CWindowImpl<LyricPanel>, private play_callback_impl_base
+    {
     public:
         // ATL window class declaration. Replace class name with your own when reusing code.
         //DECLARE_WND_CLASS_EX(TEXT("{DC2917D5-1288-4434-A28C-F16CFCE13C4B}"),CS_VREDRAW | CS_HREDRAW,(-1));
@@ -131,6 +132,7 @@ namespace {
     void LyricPanel::on_playback_stop(play_control::t_stop_reason /*p_reason*/)
     {
         StopTimer();
+        // TODO: Clear the lyric panel again
     }
 
     void LyricPanel::on_playback_pause(bool p_state)
@@ -367,12 +369,13 @@ namespace {
                 ID_OPEN_FILE_DIR,
                 ID_CMD_COUNT,
             };
-            AppendMenu(menu, MF_STRING | MF_GRAYED, ID_SEARCH_LYRICS, _T("Search lyrics (TODO)"));
+            AppendMenu(menu, MF_STRING | MF_GRAYED, ID_SEARCH_LYRICS, _T("Search for lyrics"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING, ID_EDIT_LYRICS, _T("Edit lyrics"));
             AppendMenu(menu, MF_STRING, ID_OPEN_FILE_DIR, _T("Open file location"));
+            // TODO: Delete lyrics (delete the currently-loaded file, maybe search again). Maybe this button actually belongs in the lyric editor window?
 
             // TODO: We should add a submenu for selecting from all of the lyrics that we found, dynamically populated by the search for this track.
             //       For example we could have:
@@ -397,7 +400,16 @@ namespace {
             {
                 case ID_SEARCH_LYRICS:
                 {
-                    popup_message::g_show("Blah!", "TODO: Search for lyrics");
+                    metadb_handle_ptr now_playing;
+                    bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
+                    if(now_playing_success)
+                    {
+                        LoadTrackLyrics(now_playing);
+                    }
+                    else
+                    {
+                        console::info("WARN-OpenLyrics: Failed to retrieve now_playing");
+                    }
                 } break;
 
                 case ID_PREFERENCES:
@@ -525,7 +537,6 @@ namespace {
         pfc::string8 track_album;
         pfc::string8 track_title;
         GetTrackMetaIdentifiers(track, track_artist, track_album, track_title);
-        console::printf("Loading lyrics for %s - %s...", track_artist.c_str(), track_title.c_str());
 
         enum class LyricSource
         {
@@ -536,6 +547,11 @@ namespace {
 
         LyricSource all_sources[] = {LyricSource::LocalFiles, LyricSource::AZLyricsCom};
 
+        /* TODO: Make this async?
+        fb2k::splitTask([shared_ptr_to_shared_data](){
+                // Use the shared data
+        });
+        */
         LyricDataRaw lyric_data_raw;
         for(LyricSource source : all_sources)
         {
@@ -544,14 +560,19 @@ namespace {
                 case LyricSource::LocalFiles:
                 {
                     // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
-                    pfc::string8 lyric_file_path;
-                    lyric_data_raw = std::move(sources::localfiles::Query(track_title, lyric_file_path));
+                    lyric_data_raw = std::move(sources::localfiles::Query(track_artist, track_album, track_title));
                 } break;
 
                 case LyricSource::AZLyricsCom:
                 {
                     lyric_data_raw = std::move(sources::azlyricscom::Query(track_artist, track_album, track_title));
                     // TODO: Save the lyrics to disk (at least if configured to do so?)
+                } break;
+
+                case LyricSource::None:
+                default:
+                {
+                    console::printf("WARN-OpenLyrics: Invalid lyric source configured: %d", (int)source);
                 } break;
             }
 
