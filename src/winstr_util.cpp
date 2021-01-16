@@ -39,6 +39,6 @@ size_t string_to_tchar(const pfc::string8& string, size_t start_index, size_t le
     TCHAR* result = malloc((length+1)*sizeof(TCHAR));
     memcpy(result, string.c_str() + start_index, (length+1)*sizeof(TCHAR));
     out_buffer = result;
-    return length;
+    return length+1;
 #endif // UNICODE
 }

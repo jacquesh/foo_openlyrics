@@ -22,6 +22,7 @@ public:
     BEGIN_MSG_MAP_EX(LyricEditor)
         MSG_WM_INITDIALOG(OnInitDialog)
         MSG_WM_CLOSE(OnClose)
+        COMMAND_HANDLER_EX(IDC_LYRIC_TEXT, EN_CHANGE, OnEditChange)
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_CANCEL, BN_CLICKED, OnCancel)
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_APPLY, BN_CLICKED, OnApply);
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_OK, BN_CLICKED, OnOK);
@@ -30,21 +31,25 @@ public:
 private:
     BOOL OnInitDialog(CWindow parent, LPARAM clientData);
     void OnClose();
+    void OnEditChange(UINT, int, CWindow);
     void OnCancel(UINT btn_id, int notify_code, CWindow btn);
     void OnApply(UINT btn_id, int notify_code, CWindow btn);
     void OnOK(UINT btn_id, int notify_code, CWindow btn);
 
+    bool HasContentChanged(size_t* new_length);
     void SaveLyricEdits();
 
     pfc::string8 m_save_file_title;
     TCHAR* m_input_text;
+    size_t m_input_text_length;
 };
 
 LyricEditor::LyricEditor(const LyricDataRaw& data, const pfc::string8& save_file_title) :
     m_save_file_title(save_file_title),
-    m_input_text(nullptr)
+    m_input_text(nullptr),
+    m_input_text_length(0)
 {
-    string_to_tchar(data.text, m_input_text);
+    m_input_text_length = string_to_tchar(data.text, m_input_text) - 1; // -1 to not count the null-terminator
 }
 
 LyricEditor::~LyricEditor()
@@ -61,6 +66,9 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
     }
+
+    GetDlgItem(ID_LYRIC_EDIT_APPLY).EnableWindow(FALSE);
+
     ShowWindow(SW_SHOW);
     return TRUE;
 }
@@ -70,6 +78,14 @@ void LyricEditor::OnClose()
     DestroyWindow();
 }
 
+void LyricEditor::OnEditChange(UINT, int, CWindow)
+{
+    size_t new_length = 0;
+    bool changed = HasContentChanged(&new_length);
+    bool is_empty = (new_length == 0);
+    GetDlgItem(ID_LYRIC_EDIT_APPLY).EnableWindow(changed && !is_empty);
+}
+
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
     DestroyWindow();
@@ -77,19 +93,62 @@ void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /
 
 void LyricEditor::OnApply(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
+    assert(HasContentChanged(nullptr));
     SaveLyricEdits();
 }
 
 void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
-    SaveLyricEdits();
+    if(HasContentChanged(nullptr))
+    {
+        SaveLyricEdits();
+    }
     DestroyWindow();
+}
+
+bool LyricEditor::HasContentChanged(size_t* new_length)
+{
+    LRESULT lyric_length_result = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
+    assert(lyric_length_result >= 0);
+
+    size_t lyric_length = static_cast<size_t>(lyric_length_result);
+    if(new_length)
+    {
+        *new_length = lyric_length;
+    }
+
+    if(lyric_length != m_input_text_length)
+    {
+        return true;
+    }
+
+    if(lyric_length > 0)
+    {
+        TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
+        UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
+        if(chars_copied != lyric_length)
+        {
+            LOG_WARN("Dialog character count mismatch. Expected %u, got %u", lyric_length, chars_copied);
+        }
+
+#ifdef UNICODE
+        bool changed = (wcscmp(lyric_buffer, m_input_text) != 0);
+#else
+        bool changed = (strcmp(lyric_buffer, m_input_text) != 0);
+#endif // UNICODE
+        delete[] lyric_buffer;
+
+        return changed;
+    }
+    else
+    {
+        return false; // The new length is zero and it matches the old length
+    }
 }
 
 void LyricEditor::SaveLyricEdits()
 {
     // TODO: Disable the OK/Cancel buttons if the lyrics text is empty (and )
-    // TODO: Disable the OK/Apply buttons if the lyrics have not changed
     LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
     if(lyric_length <= 0) return;
 
@@ -97,7 +156,7 @@ void LyricEditor::SaveLyricEdits()
     UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
     if(chars_copied != lyric_length)
     {
-        LOG_WARN("Dialog character count mismatch. Expeccted %u, got %u", lyric_length, chars_copied);
+        LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
     delete[] lyric_buffer;
