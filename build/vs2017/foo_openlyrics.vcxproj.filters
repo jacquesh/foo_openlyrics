@@ -54,6 +54,9 @@
     <ClCompile Include="..\..\src\parsers\lrc.cpp">
       <Filter>Source Files\parsers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\azlyricscom.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">

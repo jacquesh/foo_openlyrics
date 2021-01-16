@@ -70,7 +70,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -96,7 +96,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -117,7 +117,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -169,6 +169,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\azlyricscom.cpp" />
     <ClCompile Include="..\..\src\ui_lyric_editor.cpp" />
     <ClCompile Include="..\..\src\ui_preferences.cpp" />
     <ClCompile Include="..\..\src\sources\geniuscom.cpp">
@@ -206,6 +207,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\3rdparty\foo_SDK\pfc\pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\3rdparty\libxml2-2.9.10\win32\VC10\libxml2.vcxproj">
+      <Project>{1d6039f6-5078-416f-a3af-a36efc7e6a1c}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
