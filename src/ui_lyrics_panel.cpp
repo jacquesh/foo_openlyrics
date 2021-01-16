@@ -373,7 +373,8 @@ namespace {
                 ID_OPEN_FILE_DIR,
                 ID_CMD_COUNT,
             };
-            AppendMenu(menu, MF_STRING | MF_GRAYED, ID_SEARCH_LYRICS, _T("Search for lyrics"));
+            // TODO: Add the MF_GRAYED flag when items should be disabled e.g the edit and open-file-loc buttons when nothing is playing/paused
+            AppendMenu(menu, MF_STRING, ID_SEARCH_LYRICS, _T("Search for lyrics"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
@@ -425,11 +426,20 @@ namespace {
                 {
                     if(m_lyrics.format == LyricFormat::Unknown) break;
 
-                    LyricDataRaw data = {};
-                    data.format = m_lyrics.format;
-                    data.file_title = m_lyrics.file_title;
-                    data.text = m_lyrics.text;
-                    SpawnLyricEditor(data);
+                    // TODO: Store our own metadb handle that we update at the same time as the lyric data to ensure that the two are always in-sync
+                    metadb_handle_ptr now_playing;
+                    bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
+                    if(now_playing_success)
+                    {
+                        LyricDataRaw data = {};
+                        data.format = m_lyrics.format;
+                        data.text = m_lyrics.text;
+                        SpawnLyricEditor(data, now_playing);
+                    }
+                    else
+                    {
+                        LOG_WARN("Failed to retrieve now_playing for save-file format");
+                    }
                 } break;
 
                 case ID_OPEN_FILE_DIR:
