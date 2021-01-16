@@ -2,14 +2,11 @@
 // Microsoft Visual C++ generated include file.
 // Used by foo_openlyrics.rc
 //
-#define IDD_THREADS                     105
 #define IDI_SCROLL                      109
 #define IDD_LYRIC_EDIT                  113
 #define IDD_PREFERENCES                 148
 #define IDC_BOGO1                       1001
 #define IDC_BOGO2                       1002
-#define IDC_LIST                        1019
-#define IDC_HEADER                      1020
 #define IDC_ACTIVE_SOURCE_LIST          1021
 #define IDC_INACTIVE_SOURCE_LIST        1025
 #define IDC_SOURCE_ACTIVATE_BTN         1026
