@@ -65,9 +65,6 @@
     <ClInclude Include="..\..\src\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\config_auto.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -81,6 +78,9 @@
       <Filter>Header Files\sources</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\logging.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\preferences.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

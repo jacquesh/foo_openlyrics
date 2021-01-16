@@ -6,6 +6,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "preferences.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
@@ -76,6 +77,7 @@ namespace {
 
         bool m_timerRunning;
 
+        metadb_handle_ptr m_now_playing;
         LyricData m_lyrics;
         int m_lyrics_render_height;
 
@@ -110,6 +112,7 @@ namespace {
         m_callback(p_callback),
         m_config(config),
         m_timerRunning(false),
+        m_now_playing(nullptr),
         m_lyrics(),
         m_lyrics_render_height(0)
     {
@@ -126,14 +129,17 @@ namespace {
 
     void LyricPanel::on_playback_new_track(metadb_handle_ptr p_track)
     {
+        m_now_playing = p_track;
+
         LoadTrackLyrics(p_track);
         StartTimer();
     }
 
     void LyricPanel::on_playback_stop(play_control::t_stop_reason /*p_reason*/)
     {
+        m_now_playing = nullptr;
         StopTimer();
-        // TODO: Clear the lyric panel again
+        Invalidate(); // Draw one more time to clear the panel
     }
 
     void LyricPanel::on_playback_pause(bool p_state)
@@ -155,15 +161,9 @@ namespace {
 
     LRESULT LyricPanel::OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&)
     {
-        metadb_handle_ptr now_playing;
-        bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
-        if(now_playing_success)
+        if(m_now_playing != nullptr)
         {
-            LoadTrackLyrics(now_playing);
-        }
-        else
-        {
-            LOG_WARN("Failed to retrieve now_playing");
+            LoadTrackLyrics(m_now_playing);
         }
 
         return 0;
@@ -220,8 +220,8 @@ namespace {
         double current_position = playback->playback_get_position();
         double total_length = playback->playback_get_length_ex();
 
-        const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_VCENTER | DT_WORDBREAK;// | DT_SINGLELINE;
-        int line_gap = 4; // TODO: We're just using 4 here as some example value, really we want the font's line_gap value
+        const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_WORDBREAK;
+        int line_gap = preferences::get_render_linegap();
         if(m_lyrics.format == LyricFormat::Plaintext)
         {
             double track_fraction = current_position / total_length;
@@ -315,13 +315,84 @@ namespace {
                     draw_text_height = font_metrics.tmHeight;
                 }
 
-                int line_gap = 4; // TODO: We're just using 4 here as some example value, really we want the font's line_gap value
                 text_rect_y += draw_text_height + line_gap;
             }
         }
         else
         {
-            // TODO: Draw custom we-dont-have-lyrics text
+            if(m_now_playing != nullptr)
+            {
+                // TODO: Line-wrapping for TextOut
+                pfc::string8 artist;
+                pfc::string8 album;
+                pfc::string8 title;
+                GetTrackMetaIdentifiers(m_now_playing, artist, album, title);
+
+                TCHAR* artist_line = nullptr;
+                TCHAR* album_line = nullptr;
+                TCHAR* title_line = nullptr;
+                size_t artist_len = 0;
+                size_t album_len = 0;
+                size_t title_len = 0;
+
+                int line_height = font_metrics.tmHeight + line_gap;
+                int total_height = 0;
+                if(!artist.is_empty())
+                {
+                    pfc::string8 temp = "Artist: ";
+                    temp.add_string(artist);
+                    artist_len = string_to_tchar(temp, artist_line);
+
+                    total_height += line_height;
+                }
+
+                if(!album.is_empty())
+                {
+                    pfc::string8 temp = "Album: ";
+                    temp.add_string(album);
+                    album_len = string_to_tchar(temp, album_line);
+
+                    total_height += line_height;
+                }
+
+                if(!title.is_empty())
+                {
+                    pfc::string8 temp = "Title: ";
+                    temp.add_string(title);
+                    title_len = string_to_tchar(temp, title_line);
+
+                    total_height += line_height;
+                }
+
+                CPoint centre = client_rect.CenterPoint();
+                int current_y = centre.y - total_height/2;
+
+                UINT align_result = SetTextAlign(back_buffer, TA_BASELINE | TA_CENTER); // TODO: Do this up at the top where we set the font
+                if(align_result == GDI_ERROR)
+                {
+                    LOG_WARN("Failed to set alignment: %d", GetLastError());
+                }
+
+                if(artist_line != nullptr)
+                {
+                    TextOut(back_buffer, centre.x, current_y, artist_line, artist_len);
+                    current_y += line_height;
+                }
+                if(album_line != nullptr)
+                {
+                    TextOut(back_buffer, centre.x, current_y, album_line, album_len);
+                    current_y += line_height;
+                }
+                if(title_line != nullptr)
+                {
+                    TextOut(back_buffer, centre.x, current_y, title_line, title_len);
+                    current_y += line_height;
+                }
+
+                delete[] title_line;
+                delete[] album_line;
+                delete[] artist_line;
+            }
         }
 
         BitBlt(front_buffer, client_rect.left, client_rect.top,
@@ -373,12 +444,14 @@ namespace {
                 ID_OPEN_FILE_DIR,
                 ID_CMD_COUNT,
             };
-            // TODO: Add the MF_GRAYED flag when items should be disabled e.g the edit and open-file-loc buttons when nothing is playing/paused
-            AppendMenu(menu, MF_STRING, ID_SEARCH_LYRICS, _T("Search for lyrics"));
+                    // TODO: Store our own metadb handle that we update at the same time as the lyric data to ensure that the two are always in-sync
+
+            UINT disabled_without_nowplaying = (m_now_playing == nullptr) ? MF_GRAYED : 0;
+            AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
-            AppendMenu(menu, MF_STRING, ID_EDIT_LYRICS, _T("Edit lyrics"));
+            AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
             AppendMenu(menu, MF_STRING, ID_OPEN_FILE_DIR, _T("Open file location"));
             // TODO: Delete lyrics (delete the currently-loaded file, maybe search again). Maybe this button actually belongs in the lyric editor window?
 
@@ -405,15 +478,9 @@ namespace {
             {
                 case ID_SEARCH_LYRICS:
                 {
-                    metadb_handle_ptr now_playing;
-                    bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
-                    if(now_playing_success)
+                    if(m_now_playing != nullptr)
                     {
-                        LoadTrackLyrics(now_playing);
-                    }
-                    else
-                    {
-                        LOG_WARN("Failed to retrieve now_playing");
+                        LoadTrackLyrics(m_now_playing);
                     }
                 } break;
 
@@ -426,19 +493,12 @@ namespace {
                 {
                     if(m_lyrics.format == LyricFormat::Unknown) break;
 
-                    // TODO: Store our own metadb handle that we update at the same time as the lyric data to ensure that the two are always in-sync
-                    metadb_handle_ptr now_playing;
-                    bool now_playing_success = playback_control::get()->get_now_playing(now_playing);
-                    if(now_playing_success)
+                    if(m_now_playing != nullptr)
                     {
                         LyricDataRaw data = {};
                         data.format = m_lyrics.format;
                         data.text = m_lyrics.text;
-                        SpawnLyricEditor(data, now_playing);
-                    }
-                    else
-                    {
-                        LOG_WARN("Failed to retrieve now_playing for save-file format");
+                        SpawnLyricEditor(data, m_now_playing);
                     }
                 } break;
 
@@ -582,12 +642,17 @@ namespace {
         // TODO: Clean up the existing m_lyrics data (in particular the lines)... or we could give it a constructor?
         if(m_lyrics.format != LyricFormat::Unknown)
         {
-            for(size_t i=0; i<m_lyrics.line_count; i++)
+            if(m_lyrics.lines != nullptr)
             {
-                delete[] m_lyrics.lines[i];
+                for(size_t i=0; i<m_lyrics.line_count; i++)
+                {
+                    delete[] m_lyrics.lines[i];
+                }
+                delete[] m_lyrics.lines;
             }
-            delete[] m_lyrics.lines;
+
             delete[] m_lyrics.line_lengths;
+            delete[] m_lyrics.timestamps;
         }
 
         LyricData lyric_data = {};
@@ -629,13 +694,14 @@ namespace {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(panel_dc, &font_metrics));
 
+        int line_gap = preferences::get_render_linegap();
         int text_height = 0;
         size_t line_start_index = 0;
         for(size_t line_index=0; line_index<lyric_data.line_count; line_index++)
         {
             TCHAR* line_start = lyric_data.lines[line_index];
             size_t line_length = lyric_data.line_lengths[line_index];
-            const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_VCENTER | DT_WORDBREAK; // TODO: Make this a constant outside this function? So we can share with rendering?
+            const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_WORDBREAK;
 
             CRect text_rect = clientRect;
             int draw_text_height = DrawText(panel_dc, line_start, line_length, &text_rect, draw_format | DT_CALCRECT);
@@ -647,7 +713,6 @@ namespace {
                 draw_text_height = font_metrics.tmHeight;
             }
 
-            int line_gap = 4; // TODO: We're just using 4 here as some example value, really we want the font's line_gap value
             text_height += draw_text_height + line_gap;
         }
 
