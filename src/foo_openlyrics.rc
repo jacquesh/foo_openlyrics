@@ -55,9 +55,7 @@ STYLE DS_SETFONT | WS_CHILD
 FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
 BEGIN
     RTEXT           "Save Method:",IDC_STATIC,29,184,59,8
-    EDITTEXT        IDC_BOGO1,271,182,40,12,ES_AUTOHSCROLL | ES_NUMBER
     RTEXT           "Filename format:",IDC_STATIC,27,199,59,8
-    EDITTEXT        IDC_BOGO2,271,199,40,12,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "This is a sample preferences page with meaningless settings.",IDC_STATIC,79,25,204,8
     LISTBOX         IDC_ACTIVE_SOURCE_LIST,20,39,89,77,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
     LISTBOX         IDC_INACTIVE_SOURCE_LIST,208,39,104,81,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
@@ -65,10 +63,9 @@ BEGIN
     PUSHBUTTON      ">>",IDC_SOURCE_DEACTIVATE_BTN,136,85,50,14
     PUSHBUTTON      "Up",IDC_SOURCE_MOVE_UP_BTN,21,121,28,14
     PUSHBUTTON      "Down",IDC_SOURCE_MOVE_DOWN_BTN,51,121,34,14
-    PUSHBUTTON      "Settings",IDC_SOURCE_SETTINGS_BTN,88,121,40,14
     CONTROL         "Enable automatic save",IDC_AUTOSAVE_ENABLED_CHKBOX,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,159,88,10
-    COMBOBOX        IDC_SAVE_METHOD_COMBO,91,182,112,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SAVE_METHOD_COMBO,91,182,112,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_SAVE_FILENAME_FORMAT,93,197,113,14,ES_AUTOHSCROLL
     LTEXT           "Static",IDC_FILE_NAME_PREVIEW,93,214,113,8
     GROUPBOX        "Saving",IDC_STATIC,15,147,303,88
@@ -116,27 +113,6 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_SCROLL              ICON                    "..\\3rdparty\\foo_SDK\\libPPUI\\IDI_SCROLL.ico"
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog Info
-//
-
-IDD_PREFERENCES DLGINIT
-BEGIN
-    IDC_SAVE_METHOD_COMBO, 0x403, 4, 0
-0x4241, 0x0043, 
-    IDC_SAVE_METHOD_COMBO, 0x403, 4, 0
-0x5751, 0x0045, 
-    IDC_SAVE_METHOD_COMBO, 0x403, 24, 0
-0x6857, 0x7461, 0x6920, 0x2066, 0x2049, 0x7570, 0x2074, 0x6e69, 0x7320, 
-0x6170, 0x6563, 0x0073, 
-    IDC_SAVE_METHOD_COMBO, 0x403, 23, 0
-0x7241, 0x2065, 0x6874, 0x7365, 0x2065, 0x6874, 0x2065, 0x706f, 0x6974, 
-0x6e6f, 0x3f73, "\000" 
-    0
-END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

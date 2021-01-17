@@ -140,6 +140,7 @@ LyricData parse(const LyricDataRaw& input)
     });
 
     LyricData result = {};
+    result.source = input.source;
     result.format = input.format;
     result.text = input.text;
     result.line_count = lines.size();

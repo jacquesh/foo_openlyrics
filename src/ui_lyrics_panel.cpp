@@ -6,6 +6,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "lyric_data.h"
 #include "preferences.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
@@ -259,6 +260,7 @@ namespace {
         }
         else if(m_lyrics.format == LyricFormat::Timestamped)
         {
+            // TODO: Don't highlight the first line until we've reached its timestamp (and don't scroll to it either, stay just above it)
             size_t active_line_index = 0;
             int text_height_above_active_line = 0;
             while((active_line_index+1 < m_lyrics.line_count) && (current_position > m_lyrics.timestamps[active_line_index+1]))
@@ -496,6 +498,7 @@ namespace {
                     if(m_now_playing != nullptr)
                     {
                         LyricDataRaw data = {};
+                        data.source = m_lyrics.source;
                         data.format = m_lyrics.format;
                         data.text = m_lyrics.text;
                         SpawnLyricEditor(data, m_now_playing);
@@ -595,13 +598,6 @@ namespace {
         pfc::string8 track_title;
         GetTrackMetaIdentifiers(track, track_artist, track_album, track_title);
 
-        enum class LyricSource
-        {
-            None,
-            LocalFiles,
-            AZLyricsCom
-        };
-
         LyricSource all_sources[] = {LyricSource::LocalFiles, LyricSource::AZLyricsCom};
 
         /* TODO: Make this async?
@@ -609,7 +605,7 @@ namespace {
                 // Use the shared data
         });
         */
-        LyricDataRaw lyric_data_raw;
+        LyricDataRaw lyric_data_raw = {};
         for(LyricSource source : all_sources)
         {
             switch(source)
@@ -623,7 +619,6 @@ namespace {
                 case LyricSource::AZLyricsCom:
                 {
                     lyric_data_raw = std::move(sources::azlyricscom::Query(track_artist, track_album, track_title));
-                    // TODO: Save the lyrics to disk (at least if configured to do so?)
                 } break;
 
                 case LyricSource::None:
@@ -682,6 +677,36 @@ namespace {
                 m_lyrics = {};
                 LOG_INFO("Could not find lyrics for %s", track_title.c_str());
                 return;
+            }
+        }
+
+        // TODO: If we load from tags, should we save to file (or vice-versa)?
+        if((lyric_data.source != LyricSource::None) && (lyric_data.source != LyricSource::LocalFiles))
+        {
+            if(preferences::get_autosave_enabled())
+            {
+                SaveMethod method = preferences::get_save_method();
+                switch(method)
+                {
+                    case SaveMethod::ConfigDirectory:
+                    {
+                        // TODO: This save triggers an immediate reload from the directory watcher. This is not *necessarily* a problem, but it is some unnecessary work and it means that we immediately lose the source information for downloaded lyrics
+                        sources::localfiles::SaveLyrics(track, lyric_data.format, lyric_data.text);
+                    } break;
+
+                    case SaveMethod::Id3Tag:
+                    {
+                        LOG_WARN("Saving lyrics to file tags is not currently supported");
+                        assert(false);
+                    } break;
+
+                    case SaveMethod::None: break;
+
+                    default:
+                        LOG_WARN("Unrecognised save method: %d", (int)method);
+                        assert(false);
+                        break;
+                }
             }
         }
 

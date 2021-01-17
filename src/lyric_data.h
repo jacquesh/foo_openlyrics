@@ -9,9 +9,17 @@ enum class LyricFormat
     Timestamped
 };
 
+enum class LyricSource
+{
+    None,
+    LocalFiles,
+    AZLyricsCom
+};
+
 // Raw (unparsed) lyric data
 struct LyricDataRaw
 {
+    LyricSource source;
     LyricFormat format;
     pfc::string8 text;
 };

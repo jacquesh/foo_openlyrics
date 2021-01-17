@@ -186,7 +186,7 @@ LyricDataRaw sources::localfiles::Query(metadb_handle_ptr track)
                 pfc::string8 file_contents;
                 file->read_string_raw(file_contents, noAbort);
 
-                LyricDataRaw result = {ext.format, file_contents};
+                LyricDataRaw result = {LyricSource::LocalFiles, ext.format, file_contents};
                 LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
                 return result;
             }

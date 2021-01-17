@@ -147,6 +147,7 @@ LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::
             {
                 LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
                 LyricDataRaw result = {};
+                result.source = LyricSource::AZLyricsCom;
                 result.format = LyricFormat::Plaintext;
                 result.text = std::move(lyric_text);
                 return result;

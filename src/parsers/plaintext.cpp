@@ -50,6 +50,7 @@ LyricData parse(const LyricDataRaw& input)
     assert(lines.size() == line_lengths.size());
 
     LyricData result = {};
+    result.source = input.source;
     result.format = input.format;
     result.text = input.text;
     result.line_count = lines.size();
