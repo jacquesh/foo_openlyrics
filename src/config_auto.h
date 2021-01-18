@@ -1,6 +1,8 @@
 #pragma once
 #include "stdafx.h"
 
+#include "winstr_util.h"
+
 struct cfg_auto_property
 {
     virtual void Initialise(HWND container)
@@ -26,15 +28,10 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
 
     void ResetFromSaved() override
     {
-#ifdef UNICODE
-        size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(c_str(), length());
-        wchar_t* wide_buffer = new wchar_t[wide_len];
-        size_t chars_converted = pfc::stringcvt::convert_utf8_to_wide(wide_buffer, wide_len, c_str(), length());
-        SetDlgItemText(m_hWnd, m_control_id, wide_buffer);
-        delete[] wide_buffer;
-#else
-        SetDlgItemText(m_control_id, c_str());
-#endif // UNICODE
+        TCHAR* saved_value;
+        size_t saved_value_len = string_to_tchar(*this, saved_value);
+        SetDlgItemText(m_hWnd, m_control_id, saved_value);
+        delete[] saved_value;
     }
 
     void Apply() override
@@ -44,15 +41,8 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
-#ifdef UNICODE
-        size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(text_buffer, text_length);
-        char* narrow_buffer = new char[narrow_len];
-        size_t chars_converted = pfc::stringcvt::convert_wide_to_utf8(narrow_buffer, narrow_len, text_buffer, text_length);
-        set_string(narrow_buffer);
-        delete[] narrow_buffer;
-#else
-        set_string(text_buffer);
-#endif // UNICODE
+        pfc::string8 ui_string = tchar_to_string(text_buffer, text_length);
+        set_string(ui_string);
 
         delete[] text_buffer;
     }
@@ -67,18 +57,11 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
-#ifdef UNICODE
-        size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(text_buffer, text_length);
-        char* narrow_buffer = new char[narrow_len];
-        size_t chars_converted = pfc::stringcvt::convert_wide_to_utf8(narrow_buffer, narrow_len, text_buffer, text_length);
-        bool changed = (*this != pfc::string8(narrow_buffer, narrow_len));
-        delete[] narrow_buffer;
-        return changed;
-#else
-        return (*this != pfc::string8(text_buffer, text_length));
-#endif // UNICODE
+        pfc::string8 ui_string = tchar_to_string(text_buffer, text_length);
+        bool changed = (*this != ui_string);
 
         delete[] text_buffer;
+        return changed;
     }
 
 private:

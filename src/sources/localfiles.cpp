@@ -79,8 +79,10 @@ static bool ComputeFileTitle(metadb_handle_ptr track, pfc::string8& out_title)
     }
 
     pfc::string8 save_file_title;
-    track->format_title(nullptr, out_title, format_script, nullptr);
-    return true;
+    bool format_success = track->format_title(nullptr, out_title, format_script, nullptr);
+    out_title.fix_filename_chars();
+
+    return format_success;
 }
 
 // TODO: Consult IO.cpp and ui_and_threads.cpp for examples on doing async processing. Surely this is something we should be doing?
@@ -210,13 +212,14 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
         return;
     }
 
-    // TODO: Validate the filename to remove any bad chars. What are bad chars though?
-    //       Maybe this list is a reasonable start:      |*?<>"\/:
-    //       Actually, pfc::string8 has support for this. Looking into pfc::string8::fix_filename_chars()
     pfc::string8 output_path = GetLyricsDir();
     output_path.add_filename(save_file_title.c_str());
     switch(format)
     {
+        // TODO: The format should be allowed to change with our edits.
+        //       There are 2 use-cases for this requirement:
+        //       1) We start with no lyrics (format=unknown) and we type them in, now we have some other format and should save as that format
+        //       2) We start with plaintext lyrics and timestamp them, now we have lrc lyrics and should save them as such
         case LyricFormat::Plaintext: output_path.add_string(".txt"); break;
         case LyricFormat::Timestamped: output_path.add_string(".lrc"); break;
 

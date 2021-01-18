@@ -9,6 +9,7 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "preferences.h"
+#include "winstr_util.h"
 
 static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
 static const GUID GUID_CFG_FILENAME_FORMAT = { 0x1f7a3804, 0x7147, 0x4b64, { 0x9d, 0x51, 0x4c, 0xdd, 0x90, 0xa7, 0x6d, 0xd6 } };
@@ -74,7 +75,7 @@ public:
     BEGIN_MSG_MAP_EX(PreferencesRoot)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_HANDLER_EX(IDC_AUTOSAVE_ENABLED_CHKBOX, BN_CLICKED, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
         COMMAND_HANDLER_EX(IDC_RENDER_LINEGAP_EDIT, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_METHOD_COMBO, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_UP_BTN, BN_CLICKED, OnMoveUp)
@@ -88,6 +89,7 @@ public:
 private:
     BOOL OnInitDialog(CWindow, LPARAM);
     void OnUIChange(UINT, int, CWindow);
+    void OnSaveNameFormatChange(UINT, int, CWindow);
     void OnMoveUp(UINT, int, CWindow);
     void OnMoveDown(UINT, int, CWindow);
     void OnSourceActivate(UINT, int, CWindow);
@@ -118,6 +120,54 @@ BOOL PreferencesRoot::OnInitDialog(CWindow, LPARAM)
 
 void PreferencesRoot::OnUIChange(UINT, int, CWindow)
 {
+    OnChanged();
+}
+
+void PreferencesRoot::OnSaveNameFormatChange(UINT, int, CWindow)
+{
+    CWindow preview_item = GetDlgItem(IDC_FILE_NAME_PREVIEW);
+    assert(preview_item != nullptr);
+
+    service_ptr_t<playback_control> playback = playback_control::get();
+
+    LRESULT format_text_length = SendDlgItemMessage(IDC_SAVE_FILENAME_FORMAT, WM_GETTEXTLENGTH, 0, 0);
+    if(format_text_length > 0)
+    {
+        TCHAR* format_text_buffer = new TCHAR[format_text_length+1]; // +1 for null-terminator
+        GetDlgItemText(IDC_SAVE_FILENAME_FORMAT, format_text_buffer, format_text_length+1);
+        pfc::string8 format_text = tchar_to_string(format_text_buffer, format_text_length);
+        delete[] format_text_buffer;
+
+        titleformat_object::ptr format_script;
+        bool compile_success = titleformat_compiler::get()->compile(format_script, format_text.c_str());
+        if(compile_success)
+        {
+            pfc::string8 formatted_title;
+            bool format_success = playback->playback_format_title(nullptr, formatted_title, format_script, nullptr, playback_control::display_level_basic); 
+            if(format_success)
+            {
+                formatted_title.fix_filename_chars();
+
+                TCHAR* preview_buffer;
+                size_t preview_len = string_to_tchar(formatted_title, preview_buffer);
+                preview_item.SetWindowText(preview_buffer);
+                delete[] preview_buffer;
+            }
+            else
+            {
+                preview_item.SetWindowText(_T("<Unexpected formatting error>"));
+            }
+        }
+        else
+        {
+            preview_item.SetWindowText(_T("<Invalid format>"));
+        }
+    }
+    else
+    {
+        preview_item.SetWindowText(_T(""));
+    }
+
     OnChanged();
 }
 
@@ -341,6 +391,7 @@ void PreferencesRoot::SourceListInitialise()
 void PreferencesRoot::SourceListResetFromSaved()
 {
     SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
+    SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
 
     // TODO: Clean this up so that this data (the number of sources, name and enum/guid/identifier of each source)
     //       is configured on the source, rather than all in one place here
@@ -353,7 +404,7 @@ void PreferencesRoot::SourceListResetFromSaved()
     {
         {_T("Configuration Folder Files"), LyricSource::LocalFiles},
         {_T("azlyrics.com"), LyricSource::AZLyricsCom},
-        {_T("ID3 Tags"), LyricSource::Id3Tags}
+        {_T("ID3 Tags (TODO)"), LyricSource::Id3Tags}
     };
     const size_t entry_count = sizeof(entries)/sizeof(entries[0]);
     bool entries_active[entry_count] = {};
