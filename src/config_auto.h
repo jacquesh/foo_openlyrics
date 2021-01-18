@@ -179,16 +179,9 @@ struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
             assert(add_result != CB_ERR);
             assert(add_result != CB_ERRSPACE);
 
-            m_index_mapping[i].ui_value = add_result;
-            m_index_mapping[i].logical_value = static_cast<int>(m_options[i].config_value);
-
-            for(int j=0; j<i; j++)
-            {
-                if(m_index_mapping[j].ui_value >= add_result)
-                {
-                    m_index_mapping[j].ui_value++;
-                }
-            }
+            static_assert(sizeof(LPARAM) >= sizeof(int), "LPARAM must have enough space to store the enum");
+            LRESULT set_result = SendDlgItemMessage(container, m_control_id, CB_SETITEMDATA, add_result, (LPARAM)option.config_value);
+            assert(set_result != CB_ERR);
         }
 
         cfg_auto_property::Initialise(container);
@@ -196,63 +189,42 @@ struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
 
     void ResetFromSaved() override
     {
-        int logical_value = cfg_int_t<int>::get_value();
-        int ui_value = logical_to_ui_value(logical_value);
-        LRESULT result = SendDlgItemMessage(m_hWnd, m_control_id, CB_SETCURSEL, ui_value, 0);
-        assert(result != CB_ERR);
+        int saved_logical_value = cfg_int_t<int>::get_value();
+
+        for(int ui_index=0; ui_index<IOptionCount; ui_index++)
+        {
+            LRESULT item_logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
+            assert(item_logical_value != CB_ERR);
+
+            if(item_logical_value == saved_logical_value)
+            {
+                LRESULT result = SendDlgItemMessage(m_hWnd, m_control_id, CB_SETCURSEL, ui_index, 0);
+                assert(result != CB_ERR);
+                return;
+            }
+        }
     }
 
     void Apply() override
     {
-        LRESULT ui_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
-        int logical_value = ui_to_logical_value(ui_value);
+        LRESULT ui_index = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
+        LRESULT logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
+        assert(logical_value != CB_ERR);
+
         cfg_int_t<int>::operator=(logical_value);
     }
 
     bool HasChanged() override
     {
-        LRESULT ui_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
-        int logical_value = ui_to_logical_value(ui_value);
+        LRESULT ui_index = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
+        LRESULT logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
+        assert(logical_value != CB_ERR);
+
         int stored_value = cfg_int_t<int>::get_value();
         return logical_value != stored_value;
     }
 
 private:
-    struct IndexMap
-    {
-        int logical_value;
-        int ui_value;
-    };
-
-    int ui_to_logical_value(int ui_value)
-    {
-        assert((ui_value >= 0) && (ui_value < IOptionCount));
-        for(IndexMap& map : m_index_mapping)
-        {
-            if(map.ui_value == ui_value)
-            {
-                return map.logical_value;
-            }
-        }
-        assert(false);
-        return 0;
-    }
-
-    int logical_to_ui_value(int logical_value)
-    {
-        for(IndexMap& map : m_index_mapping)
-        {
-            if(map.logical_value == logical_value)
-            {
-                assert((map.ui_value >= 0) && (map.ui_value < IOptionCount));
-                return map.ui_value;
-            }
-        }
-        assert(false);
-        return 0;
-    }
-
     int m_control_id;
     cfg_auto_combo_option<TEnum>* m_options;
-    IndexMap m_index_mapping[IOptionCount]; // A mapping of logical/input values to UI values (so this is indexed by enum values and contains the integers used on the UI)
 };

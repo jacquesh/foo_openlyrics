@@ -2,18 +2,13 @@
 
 #include "stdafx.h"
 
+#include "preferences.h"
+
 enum class LyricFormat
 {
     Unknown,
     Plaintext,
     Timestamped
-};
-
-enum class LyricSource
-{
-    None,
-    LocalFiles,
-    AZLyricsCom
 };
 
 // Raw (unparsed) lyric data
