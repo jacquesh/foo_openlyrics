@@ -34,6 +34,18 @@ static cfg_auto_property* g_all_auto_properties[] = {&cfg_auto_save_enabled, &cf
 
 static cfg_objList<int> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, {(int)LyricSource::LocalFiles, (int)LyricSource::AZLyricsCom});
 
+pfc::list_t<LyricSource> preferences::get_active_sources()
+{
+    size_t source_count = cfg_active_sources.get_size();
+    pfc::list_t<LyricSource> result;
+    result.prealloc(source_count);
+    for(size_t i=0; i<source_count; i++)
+    {
+        result.add_item((LyricSource)cfg_active_sources[i]);
+    }
+    return result;
+}
+
 bool preferences::get_autosave_enabled()
 {
     return cfg_auto_save_enabled.get_value();
@@ -44,14 +56,14 @@ SaveMethod preferences::get_save_method()
     return (SaveMethod)cfg_save_method.get_value();
 }
 
-int preferences::get_render_linegap()
-{
-    return cfg_render_linegap.get_value();
-}
-
 const char* preferences::get_filename_format()
 {
     return cfg_filename_format.get_ptr();
+}
+
+int preferences::get_render_linegap()
+{
+    return cfg_render_linegap.get_value();
 }
 
 const LRESULT MAX_SOURCE_NAME_LENGTH = 64;

@@ -24,9 +24,11 @@ enum class LyricSource : int
 
 namespace preferences
 {
+    pfc::list_t<LyricSource> get_active_sources();
+
     bool get_autosave_enabled();
     SaveMethod get_save_method();
+    const char* get_filename_format();
 
     int get_render_linegap();
-    const char* get_filename_format();
 }

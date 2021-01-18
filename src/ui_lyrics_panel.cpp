@@ -493,16 +493,16 @@ namespace {
 
                 case ID_EDIT_LYRICS:
                 {
-                    if(m_lyrics.format == LyricFormat::Unknown) break;
+                    if(m_now_playing == nullptr) break;
 
-                    if(m_now_playing != nullptr)
+                    LyricDataRaw data = {};
+                    if(m_lyrics.format != LyricFormat::Unknown)
                     {
-                        LyricDataRaw data = {};
                         data.source = m_lyrics.source;
                         data.format = m_lyrics.format;
                         data.text = m_lyrics.text;
-                        SpawnLyricEditor(data, m_now_playing);
                     }
+                    SpawnLyricEditor(data, m_now_playing);
                 } break;
 
                 case ID_OPEN_FILE_DIR:
@@ -605,9 +605,12 @@ namespace {
                 // Use the shared data
         });
         */
+
+        const pfc::list_t<LyricSource> active_sources = preferences::get_active_sources();
         LyricDataRaw lyric_data_raw = {};
-        for(LyricSource source : all_sources)
+        for(size_t i=0; i<active_sources.get_count(); i++)
         {
+            LyricSource source = active_sources[i];
             switch(source)
             {
                 case LyricSource::LocalFiles:
