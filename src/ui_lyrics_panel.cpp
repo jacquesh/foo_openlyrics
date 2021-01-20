@@ -7,6 +7,7 @@
 
 #include "logging.h"
 #include "lyric_data.h"
+#include "lyric_search.h"
 #include "preferences.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
@@ -14,18 +15,6 @@
 
 // TODO: This is currently just copied from preferences.cpp
 static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
-
-namespace parsers
-{
-namespace plaintext { LyricData parse(const LyricDataRaw& input); } // TODO: From parsers/plaintext.cpp
-namespace lrc { LyricData parse(const LyricDataRaw& input); } // TODO: From parsers/lrc.cpp
-}
-
-// TODO: from sources/azlyricscom.cpp
-namespace sources::azlyricscom
-{
-    LyricDataRaw Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title);
-}
 
 namespace {
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
@@ -35,14 +24,13 @@ namespace {
     {
     public:
         // ATL window class declaration. Replace class name with your own when reusing code.
-        //DECLARE_WND_CLASS_EX(TEXT("{DC2917D5-1288-4434-A28C-F16CFCE13C4B}"),CS_VREDRAW | CS_HREDRAW,(-1));
-        DECLARE_WND_CLASS_EX(NULL, CS_VREDRAW | CS_HREDRAW, (-1)); // TODO: Does this work? Docs say that if the first parma is null then ATL will generate a class name internally
+        DECLARE_WND_CLASS_EX(TEXT("{32CB89E1-3EA5-4AE7-A6E6-2DEA68A04D53}"), CS_VREDRAW | CS_HREDRAW, (-1));
 
         LyricPanel(ui_element_config::ptr,ui_element_instance_callback_ptr p_callback);
-        HWND get_wnd();
+        HWND get_wnd() override;
         void initialize_window(HWND parent);
-        void set_configuration(ui_element_config::ptr config);
-        ui_element_config::ptr get_configuration();
+        void set_configuration(ui_element_config::ptr config) override;
+        ui_element_config::ptr get_configuration() override;
 
         static GUID g_get_guid();
         static GUID g_get_subclass();
@@ -50,12 +38,11 @@ namespace {
         static ui_element_config::ptr g_get_default_configuration();
         static const char * g_get_description();
 
-        void notify(const GUID & p_what, t_size p_param1, const void * p_param2, t_size p_param2size);
+        void notify(const GUID & p_what, t_size p_param1, const void * p_param2, t_size p_param2size) override;
 
-        void on_playback_new_track(metadb_handle_ptr p_track);
-        void on_playback_stop(play_control::t_stop_reason p_reason);
-        void on_playback_pause(bool p_state);
-        void on_playback_seek(double new_time);
+        void on_playback_new_track(metadb_handle_ptr p_track) override;
+        void on_playback_stop(play_control::t_stop_reason p_reason) override;
+        void on_playback_pause(bool p_state) override;
 
     private:
         LRESULT OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&);
@@ -72,13 +59,15 @@ namespace {
         void StartTimer();
         void StopTimer();
 
-        void LoadTrackLyrics(metadb_handle_ptr track);
+        void InitiateLyricSearch(metadb_handle_ptr track);
+        void CompleteLyricSearch(LyricData* new_lyrics);
 
         ui_element_config::ptr m_config;
 
         bool m_timerRunning;
 
         metadb_handle_ptr m_now_playing;
+        LyricSearch* m_search;
         LyricData m_lyrics;
         int m_lyrics_render_height;
 
@@ -87,7 +76,7 @@ namespace {
         const ui_element_instance_callback_ptr m_callback;
 
         BEGIN_MSG_MAP_EX(LyricPanel)
-            MESSAGE_HANDLER(WM_USER+1, OnLyricSavedToDisk); // TODO: Define a constant for this message
+            MESSAGE_HANDLER(WM_USER+1, OnLyricSavedToDisk) // TODO: Define a constant for this message
             MSG_WM_CREATE(OnWindowCreate)
             MSG_WM_DESTROY(OnWindowDestroy)
             MSG_WM_TIMER(OnTimer)
@@ -114,6 +103,7 @@ namespace {
         m_config(config),
         m_timerRunning(false),
         m_now_playing(nullptr),
+        m_search(nullptr),
         m_lyrics(),
         m_lyrics_render_height(0)
     {
@@ -132,7 +122,7 @@ namespace {
     {
         m_now_playing = p_track;
 
-        LoadTrackLyrics(p_track);
+        InitiateLyricSearch(p_track);
         StartTimer();
     }
 
@@ -155,16 +145,12 @@ namespace {
         }
     }
 
-    void LyricPanel::on_playback_seek(double new_time)
-    {
-        // TODO: Update the rendered lyrics text for the new time...maybe we just need to `Invalidate()`?
-    }
-
     LRESULT LyricPanel::OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&)
     {
         if(m_now_playing != nullptr)
         {
-            LoadTrackLyrics(m_now_playing);
+            // TODO: Do we need to trigger an entire lyric search here? Just update from localfiles if needed?
+            InitiateLyricSearch(m_now_playing);
         }
 
         return 0;
@@ -179,6 +165,8 @@ namespace {
     void LyricPanel::OnWindowDestroy()
     {
         sources::localfiles::DeregisterLyricPanel(get_wnd());
+        // TODO: If we destroy this window while searching for lyrics then we'll leak the memory
+        //       allocated for those lyrics by the search.
     }
 
     LRESULT LyricPanel::OnTimer(WPARAM /*wParam*/)
@@ -194,6 +182,18 @@ namespace {
 
     void LyricPanel::OnPaint(CDCHandle)
     {
+        if(m_search != nullptr)
+        {
+            LyricData* new_lyrics = m_search->get_result();
+            if(new_lyrics != nullptr)
+            {
+                CompleteLyricSearch(new_lyrics);
+
+                delete m_search;
+                m_search = nullptr;
+            }
+        }
+
         CRect client_rect;
         WIN32_OP_D(GetClientRect(&client_rect));
 
@@ -391,6 +391,15 @@ namespace {
                     current_y += line_height;
                 }
 
+                if(m_search != nullptr)
+                {
+                    // TODO: Draw some progress info (be it a progress bar, or just text "63%", maybe the name of the current source being queried)
+                    const TCHAR* search_text = _T("Searching...");
+                    size_t search_text_len = _tcslen(search_text);
+                    TextOut(back_buffer, centre.x, current_y, search_text, search_text_len);
+                    current_y += line_height;
+                }
+
                 delete[] title_line;
                 delete[] album_line;
                 delete[] artist_line;
@@ -482,7 +491,7 @@ namespace {
                 {
                     if(m_now_playing != nullptr)
                     {
-                        LoadTrackLyrics(m_now_playing);
+                        InitiateLyricSearch(m_now_playing);
                     }
                 } break;
 
@@ -590,128 +599,20 @@ namespace {
         WIN32_OP(KillTimer(PANEL_UPDATE_TIMER))
     }
 
-    void LyricPanel::LoadTrackLyrics(metadb_handle_ptr track)
+    void LyricPanel::InitiateLyricSearch(metadb_handle_ptr track)
     {
-        // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
-        pfc::string8 track_artist;
-        pfc::string8 track_album;
-        pfc::string8 track_title;
-        GetTrackMetaIdentifiers(track, track_artist, track_album, track_title);
+        m_lyrics = {};
 
-        LyricSource all_sources[] = {LyricSource::LocalFiles, LyricSource::AZLyricsCom};
-
-        /* TODO: Make this async?
-        fb2k::splitTask([shared_ptr_to_shared_data](){
-                // Use the shared data
-        });
-        */
-
-        const pfc::list_t<LyricSource> active_sources = preferences::get_active_sources();
-        LyricDataRaw lyric_data_raw = {};
-        for(size_t i=0; i<active_sources.get_count(); i++)
+        if(m_search != nullptr)
         {
-            LyricSource source = active_sources[i];
-            switch(source)
-            {
-                case LyricSource::LocalFiles:
-                {
-                    // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
-                    lyric_data_raw = std::move(sources::localfiles::Query(track));
-                } break;
-
-                case LyricSource::AZLyricsCom:
-                {
-                    lyric_data_raw = std::move(sources::azlyricscom::Query(track_artist, track_album, track_title));
-                } break;
-
-                case LyricSource::None:
-                default:
-                {
-                    LOG_WARN("Invalid lyric source configured: %d", (int)source);
-                } break;
-            }
-
-            if(lyric_data_raw.format != LyricFormat::Unknown)
-            {
-                break;
-            }
+            delete m_search;
         }
+        m_search = new LyricSearch(track);
+    }
 
-        // TODO: Clean up the existing m_lyrics data (in particular the lines)... or we could give it a constructor?
-        if(m_lyrics.format != LyricFormat::Unknown)
-        {
-            if(m_lyrics.lines != nullptr)
-            {
-                for(size_t i=0; i<m_lyrics.line_count; i++)
-                {
-                    delete[] m_lyrics.lines[i];
-                }
-                delete[] m_lyrics.lines;
-            }
-
-            delete[] m_lyrics.line_lengths;
-            delete[] m_lyrics.timestamps;
-        }
-
-        LyricData lyric_data = {};
-        switch(lyric_data_raw.format)
-        {
-            case LyricFormat::Plaintext:
-            {
-                LOG_INFO("Parsing lyrics as plaintext...");
-                lyric_data = parsers::plaintext::parse(lyric_data_raw);
-            } break;
-
-            case LyricFormat::Timestamped:
-            {
-                LOG_INFO("Parsing lyrics as LRC...");
-                lyric_data = parsers::lrc::parse(lyric_data_raw);
-                if(lyric_data.format != LyricFormat::Timestamped)
-                {
-                    LOG_INFO("Failed to parse lyrics as LRC, falling back to plaintext...");
-                    lyric_data_raw.format = LyricFormat::Plaintext;
-                    lyric_data = parsers::plaintext::parse(lyric_data_raw);
-                }
-            } break;
-
-            case LyricFormat::Unknown:
-            default:
-            {
-                m_lyrics = {};
-                LOG_INFO("Could not find lyrics for %s", track_title.c_str());
-                return;
-            }
-        }
-
-        // TODO: If we load from tags, should we save to file (or vice-versa)?
-        if((lyric_data.source != LyricSource::None) && (lyric_data.source != LyricSource::LocalFiles))
-        {
-            if(preferences::get_autosave_enabled())
-            {
-                SaveMethod method = preferences::get_save_method();
-                switch(method)
-                {
-                    case SaveMethod::ConfigDirectory:
-                    {
-                        // TODO: This save triggers an immediate reload from the directory watcher. This is not *necessarily* a problem, but it is some unnecessary work and it means that we immediately lose the source information for downloaded lyrics
-                        sources::localfiles::SaveLyrics(track, lyric_data.format, lyric_data.text);
-                    } break;
-
-                    case SaveMethod::Id3Tag:
-                    {
-                        LOG_WARN("Saving lyrics to file tags is not currently supported");
-                        assert(false);
-                    } break;
-
-                    case SaveMethod::None: break;
-
-                    default:
-                        LOG_WARN("Unrecognised save method: %d", (int)method);
-                        assert(false);
-                        break;
-                }
-            }
-        }
+    void LyricPanel::CompleteLyricSearch(LyricData* new_lyrics)
+    {
+        assert(new_lyrics != nullptr);
 
         // Calculate string height
         // TODO: This is almost exactly the same as the painting function, we should do the splitting separately so we can just enumerate lines
@@ -725,10 +626,10 @@ namespace {
         int line_gap = preferences::get_render_linegap();
         int text_height = 0;
         size_t line_start_index = 0;
-        for(size_t line_index=0; line_index<lyric_data.line_count; line_index++)
+        for(size_t line_index=0; line_index<new_lyrics->line_count; line_index++)
         {
-            TCHAR* line_start = lyric_data.lines[line_index];
-            size_t line_length = lyric_data.line_lengths[line_index];
+            TCHAR* line_start = new_lyrics->lines[line_index];
+            size_t line_length = new_lyrics->line_lengths[line_index];
             const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_WORDBREAK;
 
             CRect text_rect = clientRect;
@@ -744,9 +645,9 @@ namespace {
             text_height += draw_text_height + line_gap;
         }
 
-        m_lyrics = lyric_data;
+        // TODO: This is definitely not idea: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
+        m_lyrics = std::move(*new_lyrics);
         m_lyrics_render_height = text_height;
-        LOG_INFO("Lyric loading complete");
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.
