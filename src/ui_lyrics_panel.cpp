@@ -507,7 +507,7 @@ namespace {
                     LyricDataRaw data = {};
                     if(m_lyrics.format != LyricFormat::Unknown)
                     {
-                        data.source = m_lyrics.source;
+                        data.source_id = m_lyrics.source_id;
                         data.format = m_lyrics.format;
                         data.text = m_lyrics.text;
                     }

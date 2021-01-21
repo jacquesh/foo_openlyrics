@@ -9,6 +9,8 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "preferences.h"
+#include "sources/lyric_source.h"
+#include "sources/localfiles.h"
 #include "winstr_util.h"
 
 static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
@@ -32,16 +34,16 @@ static cfg_auto_combo<SaveMethod, 3> cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_S
 
 static cfg_auto_property* g_all_auto_properties[] = {&cfg_auto_save_enabled, &cfg_render_linegap, &cfg_filename_format, &cfg_save_method};
 
-static cfg_objList<int> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, {(int)LyricSource::LocalFiles, (int)LyricSource::AZLyricsCom});
+static cfg_objList<GUID> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, {sources::localfiles::src_guid});
 
-pfc::list_t<LyricSource> preferences::get_active_sources()
+pfc::list_t<GUID> preferences::get_active_sources()
 {
     size_t source_count = cfg_active_sources.get_size();
-    pfc::list_t<LyricSource> result;
+    pfc::list_t<GUID> result;
     result.prealloc(source_count);
     for(size_t i=0; i<source_count; i++)
     {
-        result.add_item((LyricSource)cfg_active_sources[i]);
+        result.add_item(cfg_active_sources[i]);
     }
     return result;
 }
@@ -213,6 +215,8 @@ void PreferencesRoot::OnMoveUp(UINT, int, CWindow)
     assert(set_result != LB_ERR);
     assert(select_result != LB_ERR);
 
+    OnActiveSourceSelect(0, 0, {}); // Update the button enabled state (e.g if we moved an item to the bottom we should disable the "down" button)
+
     OnChanged();
 }
 
@@ -248,6 +252,8 @@ void PreferencesRoot::OnMoveDown(UINT, int, CWindow)
     assert((new_index != LB_ERR) && (new_index != LB_ERRSPACE));
     assert(set_result != LB_ERR);
     assert(select_result != LB_ERR);
+
+    OnActiveSourceSelect(0, 0, {}); // Update the button enabled state (e.g if we moved an item to the bottom we should disable the "down" button)
 
     OnChanged();
 }
@@ -405,57 +411,51 @@ void PreferencesRoot::SourceListResetFromSaved()
     SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
     SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
 
-    // TODO: Clean this up so that this data (the number of sources, name and enum/guid/identifier of each source)
-    //       is configured on the source, rather than all in one place here
-    struct SourceListEntry
+    pfc::list_t<GUID> all_src_ids = LyricSourceBase::get_all_ids();
+    size_t total_source_count = all_src_ids.get_count();
+    pfc::list_t<bool> sources_active;
+    sources_active.prealloc(total_source_count);
+    for(size_t i=0; i<total_source_count; i++)
     {
-        const TCHAR* display_string;
-        LyricSource config_value;
-    };
-    SourceListEntry entries[] =
-    {
-        {_T("Configuration Folder Files"), LyricSource::LocalFiles},
-        {_T("azlyrics.com"), LyricSource::AZLyricsCom},
-        {_T("ID3 Tags (TODO)"), LyricSource::Id3Tags}
-    };
-    const size_t entry_count = sizeof(entries)/sizeof(entries[0]);
-    bool entries_active[entry_count] = {};
+        sources_active.add_item(false);
+    }
 
-    size_t source_count = cfg_active_sources.get_count();
-    for(size_t source_index=0; source_index<source_count; source_index++)
+    size_t active_source_count = cfg_active_sources.get_count();
+    for(size_t active_source_index=0; active_source_index<active_source_count; active_source_index++)
     {
-        LyricSource src = (LyricSource)cfg_active_sources[source_index];
+        GUID src_guid = cfg_active_sources[active_source_index];
+        LyricSourceBase* src = LyricSourceBase::get(src_guid);
+        assert(src != nullptr);
 
-        int entry_index = -1;
-        for(int i=0; i<sizeof(entries)/sizeof(entries[0]); i++)
+        bool found = false;
+        for(size_t i=0; i<total_source_count; i++)
         {
-            if(entries[i].config_value == src)
+            if(all_src_ids[i] == src_guid)
             {
-                entry_index = i;
+                sources_active[i] = true;
+                found = true;
                 break;
             }
         }
-        assert(entry_index != -1);
+        assert(found);
 
-        entries_active[entry_index] = true;
-        SourceListEntry& entry = entries[entry_index];
-
-        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)entry.display_string);
-        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)entry.config_value);
+        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
     }
 
-    for(size_t entry_index=0; entry_index<entry_count; entry_index++)
+    for(size_t entry_index=0; entry_index<total_source_count; entry_index++)
     {
-        if(!entries_active[entry_index])
-        {
-            SourceListEntry& entry = entries[entry_index];
-            LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)entry.display_string);
-            LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)entry.config_value);
-            assert(new_index != LB_ERR);
-            assert(set_result != LB_ERR);
-        }
+        if(sources_active[entry_index]) continue;
+
+        LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
+        assert(src != nullptr);
+
+        LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
+        assert(new_index != LB_ERR);
+        assert(set_result != LB_ERR);
     }
 }
 
@@ -470,8 +470,10 @@ void PreferencesRoot::SourceListApply()
     {
         LRESULT item_data = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETITEMDATA, item_index, 0);
         assert(item_data != LB_ERR);
+        const GUID* ui_item_id = (GUID*)item_data;
+        assert(ui_item_id != nullptr);
 
-        cfg_active_sources += item_data;
+        cfg_active_sources.add_item(*ui_item_id);
     }
 }
 
@@ -494,9 +496,12 @@ bool PreferencesRoot::SourceListHasChanged()
         LRESULT ui_item = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETITEMDATA, item_index, 0);
         assert(ui_item != LB_ERR);
 
-        LyricSource saved_item = (LyricSource)cfg_active_sources[item_index];
+        const GUID* ui_item_id = (const GUID*)ui_item;
+        assert(ui_item_id != nullptr);
 
-        if((int)saved_item != (int)ui_item)
+        GUID saved_item_id = cfg_active_sources[item_index];
+
+        if(saved_item_id != *ui_item_id)
         {
             return true;
         }

@@ -14,7 +14,7 @@ enum class LyricFormat
 // Raw (unparsed) lyric data
 struct LyricDataRaw
 {
-    LyricSource source;
+    GUID source_id;
     LyricFormat format;
     pfc::string8 text;
 };

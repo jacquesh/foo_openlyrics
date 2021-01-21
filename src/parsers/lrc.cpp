@@ -45,16 +45,16 @@ static std::vector<double> parse_line_times(const pfc::string8& line, size_t sta
                 break;
             }
 
-            if((line[start_index + 0] != '[') ||
-               !is_digit(line[start_index + 1]) ||
-               !is_digit(line[start_index + 2]) ||
-               (line[start_index + 3] != ':') ||
-               !is_digit(line[start_index + 4]) ||
-               !is_digit(line[start_index + 5]) ||
-               (line[start_index + 6] != '.') ||
-               !is_digit(line[start_index + 7]) ||
-               !is_digit(line[start_index + 8]) ||
-               (line[start_index + 9] != ']'))
+            if((line[start_index + index + 0] != '[') ||
+               !is_digit(line[start_index + index + 1]) ||
+               !is_digit(line[start_index + index + 2]) ||
+               (line[start_index + index + 3] != ':') ||
+               !is_digit(line[start_index + index + 4]) ||
+               !is_digit(line[start_index + index + 5]) ||
+               (line[start_index + index + 6] != '.') ||
+               !is_digit(line[start_index + index + 7]) ||
+               !is_digit(line[start_index + index + 8]) ||
+               (line[start_index + index + 9] != ']'))
             {
                 // We do not have a well-formed timestamp
                 break;
@@ -140,7 +140,7 @@ LyricData parse(const LyricDataRaw& input)
     });
 
     LyricData result = {};
-    result.source = input.source;
+    result.source_id = input.source_id;
     result.format = input.format;
     result.text = input.text;
     result.line_count = lines.size();

@@ -22,4 +22,3 @@ private:
 
     LyricData* m_lyrics;
 };
-

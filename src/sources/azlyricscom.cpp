@@ -6,11 +6,18 @@
 
 #include "logging.h"
 #include "lyric_data.h"
+#include "lyric_source.h"
 
-namespace sources::azlyricscom
+static const GUID src_guid = { 0xadf3a1ba, 0x7e88, 0x4539, { 0xaf, 0x9e, 0xa8, 0xc4, 0xbc, 0x62, 0x98, 0xf1 } };
+
+class AZLyricsComSource : public LyricSourceBase
 {
-    LyricDataRaw Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title);
-}
+    const GUID& id() const final { return src_guid; }
+    const TCHAR* friendly_name() const final { return _T("azlyrics.com"); }
+
+    LyricDataRaw query(metadb_handle_ptr track) final;
+};
+static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
 static pfc::string8 remove_chars_for_url(const pfc::string8& input)
 {
@@ -29,13 +36,13 @@ static pfc::string8 remove_chars_for_url(const pfc::string8& input)
     return output;
 }
 
-LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title)
+LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
     request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
 
-    pfc::string8 url_artist = std::move(remove_chars_for_url(artist));
-    pfc::string8 url_title = std::move(remove_chars_for_url(title));
+    pfc::string8 url_artist = std::move(remove_chars_for_url(get_artist(track)));
+    pfc::string8 url_title = std::move(remove_chars_for_url(get_title(track)));
     pfc::string8 url = "https://www.azlyrics.com/lyrics/";
     url.add_string(url_artist);
     url.add_string("/");
@@ -147,7 +154,7 @@ LyricDataRaw sources::azlyricscom::Query(const pfc::string8& artist, const pfc::
             {
                 LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
                 LyricDataRaw result = {};
-                result.source = LyricSource::AZLyricsCom;
+                result.source_id = id();
                 result.format = LyricFormat::Plaintext;
                 result.text = std::move(lyric_text);
                 return result;

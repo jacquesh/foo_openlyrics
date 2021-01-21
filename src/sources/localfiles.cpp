@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "localfiles.h"
+#include "lyric_source.h"
 #include "preferences.h"
 #include "winstr_util.h"
 
@@ -151,58 +152,6 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-LyricDataRaw sources::localfiles::Query(metadb_handle_ptr track)
-{
-    pfc::string8 file_title;
-    if(!ComputeFileTitle(track, file_title))
-    {
-        LOG_ERROR("Failed to determine query file title");
-        return {};
-    }
-    LOG_INFO("Querying for lyrics in local files for %s...", file_title.c_str());
-
-    pfc::string8 lyric_path_prefix = GetLyricsDir();
-    lyric_path_prefix.add_filename(file_title);
-
-    // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
-    struct ExtensionDefinition
-    {
-        const char* extension;
-        LyricFormat format;
-    };
-    const ExtensionDefinition extensions[] = { {".lrc", LyricFormat::Timestamped}, {".txt", LyricFormat::Plaintext} };
-    for (const ExtensionDefinition& ext : extensions)
-    {
-        pfc::string8 file_path = lyric_path_prefix;
-        file_path.add_string(ext.extension);
-        LOG_INFO("Querying for lyrics from %s...", file_path.c_str());
-
-        try
-        {
-            abort_callback_dummy noAbort; // TODO: What should this be instead?
-            if (filesystem::g_exists(file_path.c_str(), noAbort))
-            {
-                file_ptr file;
-                filesystem::g_open_read(file, file_path.c_str(), noAbort);
-
-                pfc::string8 file_contents;
-                file->read_string_raw(file_contents, noAbort);
-
-                LyricDataRaw result = {LyricSource::LocalFiles, ext.format, file_contents};
-                LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
-                return result;
-            }
-        }
-        catch(const std::exception& e)
-        {
-            LOG_WARN("Failed to open lyrics file %s: %s", file_path.c_str(), e.what());
-        }
-    }
-
-    LOG_INFO("Failed to find lyrics in local files for %s", file_title.c_str());
-    return {};
-}
-
 void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, const pfc::string8& lyrics)
 {
     pfc::string8 save_file_title;
@@ -261,3 +210,67 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
         LOG_ERROR("Failed to write lyrics file to disk", e.what());
     }
 }
+
+const GUID sources::localfiles::src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+
+class LocalFileSource : public LyricSourceBase
+{
+    const GUID& id() const final { return sources::localfiles::src_guid; }
+    const TCHAR* friendly_name() const final { return _T("Configuration Folder Files"); }
+
+    LyricDataRaw query(metadb_handle_ptr track) final;
+};
+static const LyricSourceFactory<LocalFileSource> src_factory;
+
+LyricDataRaw LocalFileSource::query(metadb_handle_ptr track)
+{
+    pfc::string8 file_title;
+    if(!ComputeFileTitle(track, file_title))
+    {
+        LOG_ERROR("Failed to determine query file title");
+        return {};
+    }
+    LOG_INFO("Querying for lyrics in local files for %s...", file_title.c_str());
+
+    pfc::string8 lyric_path_prefix = sources::localfiles::GetLyricsDir();
+    lyric_path_prefix.add_filename(file_title);
+
+    // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
+    struct ExtensionDefinition
+    {
+        const char* extension;
+        LyricFormat format;
+    };
+    const ExtensionDefinition extensions[] = { {".lrc", LyricFormat::Timestamped}, {".txt", LyricFormat::Plaintext} };
+    for (const ExtensionDefinition& ext : extensions)
+    {
+        pfc::string8 file_path = lyric_path_prefix;
+        file_path.add_string(ext.extension);
+        LOG_INFO("Querying for lyrics from %s...", file_path.c_str());
+
+        try
+        {
+            abort_callback_dummy noAbort; // TODO: What should this be instead?
+            if (filesystem::g_exists(file_path.c_str(), noAbort))
+            {
+                file_ptr file;
+                filesystem::g_open_read(file, file_path.c_str(), noAbort);
+
+                pfc::string8 file_contents;
+                file->read_string_raw(file_contents, noAbort);
+
+                LyricDataRaw result = {id(), ext.format, file_contents};
+                LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
+                return result;
+            }
+        }
+        catch(const std::exception& e)
+        {
+            LOG_WARN("Failed to open lyrics file %s: %s", file_path.c_str(), e.what());
+        }
+    }
+
+    LOG_INFO("Failed to find lyrics in local files for %s", file_title.c_str());
+    return {};
+}
+

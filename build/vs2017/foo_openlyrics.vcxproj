@@ -172,6 +172,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\sources\azlyricscom.cpp" />
+    <ClCompile Include="..\..\src\sources\lyric_source.cpp" />
     <ClCompile Include="..\..\src\ui_lyric_editor.cpp" />
     <ClCompile Include="..\..\src\ui_preferences.cpp" />
     <ClCompile Include="..\..\src\sources\geniuscom.cpp">
@@ -193,6 +194,7 @@
     <ClInclude Include="..\..\src\preferences.h" />
     <ClInclude Include="..\..\src\resource.h" />
     <ClInclude Include="..\..\src\sources\localfiles.h" />
+    <ClInclude Include="..\..\src\sources\lyric_source.h" />
     <ClInclude Include="..\..\src\stdafx.h" />
     <ClInclude Include="..\..\src\winstr_util.h" />
   </ItemGroup>

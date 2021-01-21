@@ -177,6 +177,8 @@ void LyricEditor::SaveLyricEdits()
 
 void SpawnLyricEditor(const LyricDataRaw& edit_data, metadb_handle_ptr lyric_to_edit_track)
 {
+    // TODO: We should split out LRC lines that include multiple timestamps so that the
+    //       editor sees just one timestamp per line (and they're all sorted and nice)
     try
     {
         new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), edit_data, lyric_to_edit_track);

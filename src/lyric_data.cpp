@@ -19,7 +19,7 @@ LyricData::LyricData(LyricData&& other)
 void LyricData::operator =(LyricData&& other)
 {
     format = other.format;
-    source = other.source;
+    source_id = other.source_id;
     text = other.text;
     line_count = other.line_count;
     lines = other.lines;
@@ -27,7 +27,7 @@ void LyricData::operator =(LyricData&& other)
     timestamps = other.timestamps;
 
     other.format = LyricFormat::Unknown;
-    other.source = LyricSource::None;
+    other.source_id = {};
     other.text.reset();
     other.line_count = 0;
     other.lines = nullptr;

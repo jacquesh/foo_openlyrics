@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_search.h"
+#include "sources/lyric_source.h"
 #include "sources/localfiles.h"
 
 namespace parsers
@@ -16,7 +17,6 @@ namespace sources::azlyricscom
 {
     LyricDataRaw Query(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title);
 }
-
 
 LyricSearch::LyricSearch(metadb_handle_ptr track) :
     m_track(track),
@@ -95,30 +95,16 @@ void LyricSearch::run_async()
     pfc::string8 track_title;
     GetTrackMetaIdentifiers(m_track, track_artist, track_album, track_title);
 
-    const pfc::list_t<LyricSource> active_sources = preferences::get_active_sources();
+    const pfc::list_t<GUID> active_source_ids = preferences::get_active_sources();
     LyricDataRaw lyric_data_raw = {};
-    for(size_t i=0; i<active_sources.get_count(); i++)
+    for(size_t i=0; i<active_source_ids.get_count(); i++)
     {
-        LyricSource source = active_sources[i];
-        switch(source)
-        {
-            case LyricSource::LocalFiles:
-            {
-                // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
-                lyric_data_raw = std::move(sources::localfiles::Query(m_track));
-            } break;
+        GUID source_id = active_source_ids[i];
+        LyricSourceBase* source = LyricSourceBase::get(source_id);
+        assert(source != nullptr);
 
-            case LyricSource::AZLyricsCom:
-            {
-                lyric_data_raw = std::move(sources::azlyricscom::Query(track_artist, track_album, track_title));
-            } break;
-
-            case LyricSource::None:
-            default:
-            {
-                LOG_WARN("Invalid lyric source configured: %d", (int)source);
-            } break;
-        }
+        // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
+        lyric_data_raw = std::move(source->query(m_track));
 
         if(lyric_data_raw.format != LyricFormat::Unknown)
         {

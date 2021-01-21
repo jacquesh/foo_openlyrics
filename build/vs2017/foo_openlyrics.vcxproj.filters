@@ -63,6 +63,9 @@
     <ClCompile Include="..\..\src\lyric_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\lyric_source.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">
@@ -91,6 +94,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\lyric_search.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sources\lyric_source.h">
+      <Filter>Header Files\sources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

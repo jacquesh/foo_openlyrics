@@ -14,17 +14,9 @@ enum class SaveMethod : int
     Id3Tag          = 2
 };
 
-enum class LyricSource : int
-{
-    None         = 0,
-    LocalFiles   = 1,
-    AZLyricsCom  = 2,
-    Id3Tags      = 3
-};
-
 namespace preferences
 {
-    pfc::list_t<LyricSource> get_active_sources();
+    pfc::list_t<GUID> get_active_sources();
 
     bool get_autosave_enabled();
     SaveMethod get_save_method();
