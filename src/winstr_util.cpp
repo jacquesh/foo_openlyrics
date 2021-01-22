@@ -2,6 +2,11 @@
 
 #include "winstr_util.h"
 
+pfc::string8 tchar_to_string(const TCHAR* buffer)
+{
+    return tchar_to_string(buffer, _tcslen(buffer));
+}
+
 pfc::string8 tchar_to_string(const TCHAR* buffer, size_t buffer_len)
 {
 #ifdef UNICODE

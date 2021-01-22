@@ -165,8 +165,9 @@ void LyricEditor::SaveLyricEdits()
     m_input_text = lyric_buffer;
     m_input_text_length = chars_copied;
 
+    abort_callback_dummy noAbort;
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
-    sources::localfiles::SaveLyrics(m_track_handle, m_lyric_format, lyrics);
+    sources::localfiles::SaveLyrics(m_track_handle, m_lyric_format, lyrics, noAbort);
 
     // We know that if we ran HasContentChanged() now, it would return false.
     // So short-circuit it and just disable the apply button directly

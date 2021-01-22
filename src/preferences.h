@@ -16,7 +16,7 @@ enum class SaveMethod : int
 
 namespace preferences
 {
-    pfc::list_t<GUID> get_active_sources();
+    std::vector<GUID> get_active_sources();
 
     bool get_autosave_enabled();
     SaveMethod get_save_method();

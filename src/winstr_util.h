@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 
+pfc::string8 tchar_to_string(const TCHAR* buffer);
 pfc::string8 tchar_to_string(const TCHAR* buffer, size_t buffer_len);
 
 // Returns the number of bytes written (not the length of the string, which should be 1 less)

@@ -22,6 +22,9 @@
     <Filter Include="Source Files\parsers">
       <UniqueIdentifier>{0cf207a7-1838-4386-a3b5-0a61b8c81c54}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{63fb422d-c866-4158-b17b-d345356462c5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp">
@@ -63,8 +66,14 @@
     <ClCompile Include="..\..\src\lyric_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\netease.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\sources\lyric_source.cpp">
       <Filter>Source Files\sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rdparty\cJSON\cJSON.c">
+      <Filter>3rdparty</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +106,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\sources\lyric_source.h">
       <Filter>Header Files\sources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rdparty\cJSON\cJSON.h">
+      <Filter>3rdparty</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

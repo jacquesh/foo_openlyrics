@@ -18,13 +18,13 @@ LyricSourceBase* LyricSourceBase::get(GUID id)
     return nullptr;
 }
 
-pfc::list_t<GUID> LyricSourceBase::get_all_ids()
+std::vector<GUID> LyricSourceBase::get_all_ids()
 {
-    pfc::list_t<GUID> result;
-    result.prealloc(g_lyric_sources.size());
+    std::vector<GUID> result;
+    result.reserve(g_lyric_sources.size());
     for(LyricSourceBase* src : g_lyric_sources)
     {
-        result.add_item(src->id());
+        result.push_back(src->id());
     }
     return result;
 }

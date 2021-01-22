@@ -70,7 +70,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;$(SolutionDir)/../../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -159,6 +159,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\cJSON\cJSON.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\lyric_data.cpp" />
     <ClCompile Include="..\..\src\lyric_search.cpp" />
     <ClCompile Include="..\..\src\main.cpp">
@@ -173,6 +176,7 @@
     </ClCompile>
     <ClCompile Include="..\..\src\sources\azlyricscom.cpp" />
     <ClCompile Include="..\..\src\sources\lyric_source.cpp" />
+    <ClCompile Include="..\..\src\sources\netease.cpp" />
     <ClCompile Include="..\..\src\ui_lyric_editor.cpp" />
     <ClCompile Include="..\..\src\ui_preferences.cpp" />
     <ClCompile Include="..\..\src\sources\geniuscom.cpp">
@@ -187,6 +191,7 @@
     <ClCompile Include="..\..\src\winstr_util.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\3rdparty\cJSON\cJSON.h" />
     <ClInclude Include="..\..\src\config_auto.h" />
     <ClInclude Include="..\..\src\logging.h" />
     <ClInclude Include="..\..\src\lyric_data.h" />

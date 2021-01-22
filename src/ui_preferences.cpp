@@ -36,14 +36,14 @@ static cfg_auto_property* g_all_auto_properties[] = {&cfg_auto_save_enabled, &cf
 
 static cfg_objList<GUID> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, {sources::localfiles::src_guid});
 
-pfc::list_t<GUID> preferences::get_active_sources()
+std::vector<GUID> preferences::get_active_sources()
 {
     size_t source_count = cfg_active_sources.get_size();
-    pfc::list_t<GUID> result;
-    result.prealloc(source_count);
+    std::vector<GUID> result;
+    result.reserve(source_count);
     for(size_t i=0; i<source_count; i++)
     {
-        result.add_item(cfg_active_sources[i]);
+        result.push_back(cfg_active_sources[i]);
     }
     return result;
 }
@@ -411,14 +411,9 @@ void PreferencesRoot::SourceListResetFromSaved()
     SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
     SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
 
-    pfc::list_t<GUID> all_src_ids = LyricSourceBase::get_all_ids();
-    size_t total_source_count = all_src_ids.get_count();
-    pfc::list_t<bool> sources_active;
-    sources_active.prealloc(total_source_count);
-    for(size_t i=0; i<total_source_count; i++)
-    {
-        sources_active.add_item(false);
-    }
+    std::vector<GUID> all_src_ids = LyricSourceBase::get_all_ids();
+    size_t total_source_count = all_src_ids.size();
+    std::vector<bool> sources_active(total_source_count);
 
     size_t active_source_count = cfg_active_sources.get_count();
     for(size_t active_source_index=0; active_source_index<active_source_count; active_source_index++)

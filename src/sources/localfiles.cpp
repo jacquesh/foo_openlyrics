@@ -152,7 +152,7 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, const pfc::string8& lyrics)
+void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, const pfc::string8& lyrics, abort_callback& abort)
 {
     pfc::string8 save_file_title;
     if(!ComputeFileTitle(track, save_file_title))
@@ -187,17 +187,16 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
     try
     {
         // TODO: NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
-        abort_callback_dummy noAbort; // TODO: What should this be instead?
         {
             file_ptr tmp_file;
-            filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), noAbort);
-            tmp_file->write_string_raw(lyrics.c_str(), noAbort);
+            filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), abort);
+            tmp_file->write_string_raw(lyrics.c_str(), abort);
         }
 
         service_ptr_t<filesystem> fs = filesystem::get(output_path.c_str());
         if(fs->is_our_path(tmp_path.c_str()))
         {
-            fs->move_overwrite(tmp_path.c_str(), output_path.c_str(), noAbort);
+            fs->move_overwrite(tmp_path.c_str(), output_path.c_str(), abort);
             LOG_INFO("Successfully saved lyrics to %s", output_path.c_str());
         }
         else
@@ -218,11 +217,11 @@ class LocalFileSource : public LyricSourceBase
     const GUID& id() const final { return sources::localfiles::src_guid; }
     const TCHAR* friendly_name() const final { return _T("Configuration Folder Files"); }
 
-    LyricDataRaw query(metadb_handle_ptr track) final;
+    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
-LyricDataRaw LocalFileSource::query(metadb_handle_ptr track)
+LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abort)
 {
     pfc::string8 file_title;
     if(!ComputeFileTitle(track, file_title))
@@ -250,14 +249,13 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track)
 
         try
         {
-            abort_callback_dummy noAbort; // TODO: What should this be instead?
-            if (filesystem::g_exists(file_path.c_str(), noAbort))
+            if (filesystem::g_exists(file_path.c_str(), abort))
             {
                 file_ptr file;
-                filesystem::g_open_read(file, file_path.c_str(), noAbort);
+                filesystem::g_open_read(file, file_path.c_str(), abort);
 
                 pfc::string8 file_contents;
-                file->read_string_raw(file_contents, noAbort);
+                file->read_string_raw(file_contents, abort);
 
                 LyricDataRaw result = {id(), ext.format, file_contents};
                 LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());

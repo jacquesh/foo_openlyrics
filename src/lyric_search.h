@@ -18,7 +18,7 @@ private:
     metadb_handle_ptr m_track;
 
     CRITICAL_SECTION m_mutex;
-    bool m_finished;
-
     LyricData* m_lyrics;
+    abort_callback_impl m_abort;
+    HANDLE m_complete;
 };
