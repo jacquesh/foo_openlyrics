@@ -4,6 +4,9 @@
 
 #include "lyric_data.h"
 
+// TODO: Add sources for:
+// - https://www.syair.info
+
 class LyricSourceBase : public initquit
 {
 public:

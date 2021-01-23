@@ -54,8 +54,8 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
     try
     {
         file_ptr response_file = request->run(url.c_str(), abort);
-
         response_file->read_string_raw(content, abort);
+        // NOTE: We're assuming here that the response is encoded in UTF-8 
     }
     catch(const std::exception& e)
     {
@@ -66,11 +66,6 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
     htmlDocPtr doc = htmlReadMemory(content.c_str(), content.length(), url.c_str(), nullptr, 0);
     if(doc != nullptr)
     {
-        // TODO: Check for UTF-8 encoding and if its not, then re-encode it.
-        //       Read: http://xmlsoft.org/tutorial/ar01s09.html
-        //LOG_INFO("XML document encoding = %s", doc->encoding);
-        //xmlCharEncodingHandlerPtr encoding_handler = xmlGetCharEncodingHandler(encoding);
-
         xmlXPathContextPtr xpath_ctx = xmlXPathNewContext(doc);
         if(xpath_ctx == nullptr)
         {
@@ -125,7 +120,7 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
             {
                 if(child->type == XML_TEXT_NODE)
                 {
-                    // TODO: Encoding? This cast should probably tell us something...
+                    // NOTE: libxml2 stores strings as UTF8 internally, so we don't need to do any conversion here
                     pfc::string8 line_text = trim_surrounding_whitespace((char*)child->content);
                     lyric_text.add_string(line_text);
                     lyric_text.add_string("\r\n");

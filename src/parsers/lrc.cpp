@@ -104,21 +104,21 @@ LyricData parse(const LyricDataRaw& input)
         {
             line_end_index++;
         }
-        size_t line_length = line_end_index - line_start_index;
+        size_t line_bytes = line_end_index - line_start_index;
 
-        if(line_length > 0)
+        if(line_bytes > 0)
         {
             const size_t timestamp_text_length = strlen("[00.00.00]");
-            std::vector<double> line_times = parse_line_times(input.text, line_start_index, line_length);
+            std::vector<double> line_times = parse_line_times(input.text, line_start_index, line_bytes);
 
-            const size_t line_timestamp_length = timestamp_text_length*line_times.size();
-            assert(line_length >= line_timestamp_length);
-            size_t lyric_line_length = line_length - line_timestamp_length;
+            const size_t line_timestamp_bytes = timestamp_text_length*line_times.size();
+            assert(line_bytes >= line_timestamp_bytes);
+            size_t lyric_line_bytes = line_bytes - line_timestamp_bytes;
             for(double timestamp : line_times)
             {
                 TCHAR* line_text = nullptr;
-                string_to_tchar(input.text, line_start_index + line_timestamp_length, lyric_line_length, line_text);
-                lines.push_back({line_text, lyric_line_length, timestamp});
+                size_t line_length = string_to_tchar(input.text, line_start_index + line_timestamp_bytes, lyric_line_bytes, line_text);
+                lines.push_back({line_text, line_length, timestamp});
             }
         }
 

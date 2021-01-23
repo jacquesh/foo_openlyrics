@@ -29,10 +29,10 @@ LyricData parse(const LyricDataRaw& input)
         {
             line_end_index++;
         }
-        size_t line_length = line_end_index - line_start_index;
+        size_t line_bytes = line_end_index - line_start_index;
 
         TCHAR* line_text = nullptr;
-        string_to_tchar(input.text, line_start_index, line_length, line_text);
+        size_t line_length = string_to_tchar(input.text, line_start_index, line_bytes, line_text);
         lines.push_back(line_text);
         line_lengths.push_back(line_length);
 

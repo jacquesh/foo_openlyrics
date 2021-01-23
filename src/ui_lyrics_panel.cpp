@@ -235,7 +235,7 @@ namespace {
         double total_length = playback->playback_get_length_ex();
         int line_gap = preferences::get_render_linegap();
 
-        // TODO: Line-wrapping for TextOut
+        // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         if(m_lyrics.format == LyricFormat::Plaintext)
         {
             double track_fraction = current_position / total_length;
@@ -580,7 +580,7 @@ namespace {
             WIN32_OP_D(GetTextMetrics(panel_dc, &font_metrics));
         }
 
-        // TODO: Line-wrapping
+        // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         int line_gap = preferences::get_render_linegap();
         int line_count = static_cast<int>(new_lyrics->line_count);
         int text_height = line_count * (font_metrics.tmHeight + line_gap);

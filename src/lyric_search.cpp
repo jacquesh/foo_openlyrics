@@ -144,8 +144,10 @@ void LyricSearch::run_async()
         }
     }
 
+    try
+    {
         // TODO: If we load from tags, should we save to file (or vice-versa)?
-        if((lyric_data->source != LyricSource::None) && preferences::get_autosave_enabled())
+        if((lyric_data->format != LyricFormat::Unknown) && preferences::get_autosave_enabled())
         {
             SaveMethod method = preferences::get_save_method();
             switch(method)
@@ -156,7 +158,7 @@ void LyricSearch::run_async()
                     //       This is not *necessarily* a problem, but it is some unnecessary work
                     //       and it means that we immediately lose the source information for
                     //       downloaded lyrics.
-                    if(lyric_data->source != LyricSource::LocalFiles)
+                    if(lyric_data->source_id != sources::localfiles::src_guid)
                     {
                         sources::localfiles::SaveLyrics(m_track, lyric_data->format, lyric_data->text, m_abort);
                     }
