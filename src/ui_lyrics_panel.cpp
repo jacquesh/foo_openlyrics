@@ -196,6 +196,7 @@ namespace {
 
         CRect client_rect;
         WIN32_OP_D(GetClientRect(&client_rect));
+        CPoint client_centre = client_rect.CenterPoint();
 
         CPaintDC front_buffer(*this);
         HDC back_buffer = CreateCompatibleDC(front_buffer.m_hDC);
@@ -212,7 +213,16 @@ namespace {
 
         SetBkMode(back_buffer, TRANSPARENT);
         SelectObject(back_buffer, m_callback->query_font_ex(ui_font_console));
-        SetTextColor(back_buffer, m_callback->query_std_color(ui_color_text));
+        COLORREF color_result = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_text));
+        UINT align_result = SetTextAlign(back_buffer, TA_BASELINE | TA_CENTER);
+        if(color_result == CLR_INVALID)
+        {
+            LOG_WARN("Failed to set text colour: %d", GetLastError());
+        }
+        if(align_result == GDI_ERROR)
+        {
+            LOG_WARN("Failed to set text alignment: %d", GetLastError());
+        }
 
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(back_buffer, &font_metrics));
@@ -220,42 +230,28 @@ namespace {
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_position = playback->playback_get_position();
         double total_length = playback->playback_get_length_ex();
-
-        const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_WORDBREAK;
         int line_gap = preferences::get_render_linegap();
+
+        // TODO: Line-wrapping for TextOut
         if(m_lyrics.format == LyricFormat::Plaintext)
         {
             double track_fraction = current_position / total_length;
             int text_rect_y = client_rect.CenterPoint().y - (int)(track_fraction * m_lyrics_render_height);
+            int current_y = text_rect_y;
 
             for(size_t line_index=0; line_index < m_lyrics.line_count; line_index++)
             {
-                CRect text_rect = client_rect;
-                text_rect.bottom = text_rect_y + font_metrics.tmDescent;
-                text_rect.top = text_rect_y - font_metrics.tmAscent;
-
                 TCHAR* line_text = m_lyrics.lines[line_index];
                 size_t line_length = m_lyrics.line_lengths[line_index];
-                DrawText(back_buffer, line_text, line_length, &text_rect, draw_format | DT_CALCRECT);
 
-                // NOTE: CALCRECT will shrink the width to that of the text, but we want the text to still be centred, so reset it.
-                text_rect.left = client_rect.left;
-                text_rect.right = client_rect.right;
-
-                int draw_text_height = DrawTextW(back_buffer, line_text , line_length, &text_rect, draw_format);
-                if (draw_text_height <= 0)
+                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line_text, line_length);
+                if(!draw_success)
                 {
-                    LOG_WARN("Failed to draw text. Returned result %d. Error=%d", draw_text_height, GetLastError());
+                    LOG_WARN("Failed to draw text: %d", GetLastError());
                     StopTimer();
+                    break;
                 }
-
-                // NOTE: We clamp the drawn height to the font height so that blank lines show up as such.
-                if(draw_text_height < font_metrics.tmHeight)
-                {
-                    draw_text_height = font_metrics.tmHeight;
-                }
-
-                text_rect_y += draw_text_height + line_gap;
+                current_y += font_metrics.tmHeight + line_gap;
             }
         }
         else if(m_lyrics.format == LyricFormat::Timestamped)
@@ -265,66 +261,42 @@ namespace {
             int text_height_above_active_line = 0;
             while((active_line_index+1 < m_lyrics.line_count) && (current_position > m_lyrics.timestamps[active_line_index+1]))
             {
-                CRect text_rect = client_rect;
-                text_rect.bottom = font_metrics.tmDescent;
-                text_rect.top = -font_metrics.tmAscent;
-
-                TCHAR* line_text = m_lyrics.lines[active_line_index];
-                size_t line_length = m_lyrics.line_lengths[active_line_index];
-                DrawText(back_buffer, line_text, line_length, &text_rect, draw_format | DT_CALCRECT);
-
-                text_height_above_active_line += text_rect.Height() + line_gap;
+                text_height_above_active_line += font_metrics.tmHeight + line_gap;
                 active_line_index++;
             }
 
-            int text_rect_y = client_rect.CenterPoint().y - text_height_above_active_line; // TODO: Subtract an additional descent and line_gap?
-
+            int current_y = client_rect.CenterPoint().y - text_height_above_active_line; // TODO: Subtract an additional descent and line_gap?
             for(size_t line_index=0; line_index < m_lyrics.line_count; line_index++)
             {
-                CRect text_rect = client_rect;
-                text_rect.bottom = text_rect_y + font_metrics.tmDescent;
-                text_rect.top = text_rect_y - font_metrics.tmAscent;
-
                 TCHAR* line_text = m_lyrics.lines[line_index];
                 size_t line_length = m_lyrics.line_lengths[line_index];
 
-                int draw_text_height = DrawText(back_buffer, line_text, line_length, &text_rect, draw_format | DT_CALCRECT);
-
-                // NOTE: CALCRECT will shrink the width to that of the text, but we want the text to still be centred, so reset it.
-                text_rect.left = client_rect.left;
-                text_rect.right = client_rect.right;
-
+                BOOL draw_success = FALSE;
                 if(line_index == active_line_index)
                 {
                     COLORREF previous_colour = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_highlight));
-                    DrawTextW(back_buffer, line_text , line_length, &text_rect, draw_format);
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line_text, line_length);
                     SetTextColor(back_buffer, previous_colour);
                 }
                 else
                 {
-                    DrawTextW(back_buffer, line_text , line_length, &text_rect, draw_format);
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line_text, line_length);
                 }
 
-                if (draw_text_height <= 0)
+                if(!draw_success)
                 {
-                    LOG_WARN("Failed to draw text. Returned result %d. Error=%d", draw_text_height, GetLastError());
+                    LOG_WARN("Failed to draw text: %d", GetLastError());
                     StopTimer();
+                    break;
                 }
 
-                // NOTE: We clamp the drawn height to the font height so that blank lines show up as such.
-                if(draw_text_height < font_metrics.tmHeight)
-                {
-                    draw_text_height = font_metrics.tmHeight;
-                }
-
-                text_rect_y += draw_text_height + line_gap;
+                current_y += font_metrics.tmHeight + line_gap;
             }
         }
         else
         {
             if(m_now_playing != nullptr)
             {
-                // TODO: Line-wrapping for TextOut
                 pfc::string8 artist;
                 pfc::string8 album;
                 pfc::string8 title;
@@ -366,28 +338,20 @@ namespace {
                     total_height += line_height;
                 }
 
-                CPoint centre = client_rect.CenterPoint();
-                int current_y = centre.y - total_height/2;
-
-                UINT align_result = SetTextAlign(back_buffer, TA_BASELINE | TA_CENTER); // TODO: Do this up at the top where we set the font
-                if(align_result == GDI_ERROR)
-                {
-                    LOG_WARN("Failed to set alignment: %d", GetLastError());
-                }
-
+                int current_y = client_centre.y - total_height/2;
                 if(artist_line != nullptr)
                 {
-                    TextOut(back_buffer, centre.x, current_y, artist_line, artist_len);
+                    TextOut(back_buffer, client_centre.x, current_y, artist_line, artist_len);
                     current_y += line_height;
                 }
                 if(album_line != nullptr)
                 {
-                    TextOut(back_buffer, centre.x, current_y, album_line, album_len);
+                    TextOut(back_buffer, client_centre.x, current_y, album_line, album_len);
                     current_y += line_height;
                 }
                 if(title_line != nullptr)
                 {
-                    TextOut(back_buffer, centre.x, current_y, title_line, title_len);
+                    TextOut(back_buffer, client_centre.x, current_y, title_line, title_len);
                     current_y += line_height;
                 }
 
@@ -396,7 +360,7 @@ namespace {
                     // TODO: Draw some progress info (be it a progress bar, or just text "63%", maybe the name of the current source being queried)
                     const TCHAR* search_text = _T("Searching...");
                     size_t search_text_len = _tcslen(search_text);
-                    TextOut(back_buffer, centre.x, current_y, search_text, search_text_len);
+                    TextOut(back_buffer, client_centre.x, current_y, search_text, search_text_len);
                     current_y += line_height;
                 }
 
@@ -613,37 +577,18 @@ namespace {
         assert(new_lyrics != nullptr);
 
         // Calculate string height
-        // TODO: This is almost exactly the same as the painting function, we should do the splitting separately so we can just enumerate lines
-        CRect clientRect;
-        WIN32_OP_D(GetClientRect(&clientRect));
-
-        CDC panel_dc(GetDC());
         TEXTMETRIC font_metrics = {};
-        WIN32_OP_D(GetTextMetrics(panel_dc, &font_metrics));
-
-        int line_gap = preferences::get_render_linegap();
-        int text_height = 0;
-        size_t line_start_index = 0;
-        for(size_t line_index=0; line_index<new_lyrics->line_count; line_index++)
         {
-            TCHAR* line_start = new_lyrics->lines[line_index];
-            size_t line_length = new_lyrics->line_lengths[line_index];
-            const UINT draw_format = DT_NOPREFIX | DT_CENTER | DT_WORDBREAK;
-
-            CRect text_rect = clientRect;
-            int draw_text_height = DrawText(panel_dc, line_start, line_length, &text_rect, draw_format | DT_CALCRECT);
-            // TODO: Replace this with TextOut or ExTextOut (which might be faster, otherwise we may need to cache the rendered text)
-
-            // NOTE: We clamp the drawn height to the font height so that blank lines show up as such.
-            if(draw_text_height < font_metrics.tmHeight)
-            {
-                draw_text_height = font_metrics.tmHeight;
-            }
-
-            text_height += draw_text_height + line_gap;
+            CDC panel_dc(GetDC());
+            WIN32_OP_D(GetTextMetrics(panel_dc, &font_metrics));
         }
 
-        // TODO: This is definitely not idea: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
+        // TODO: Line-wrapping
+        int line_gap = preferences::get_render_linegap();
+        int line_count = static_cast<int>(new_lyrics->line_count);
+        int text_height = line_count * (font_metrics.tmHeight + line_gap);
+
+        // TODO: This isn't idea;: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
         m_lyrics = std::move(*new_lyrics);
         m_lyrics_render_height = text_height;
     }
