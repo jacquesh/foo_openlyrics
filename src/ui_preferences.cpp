@@ -24,13 +24,12 @@ static cfg_auto_combo_option<SaveMethod> save_method_options[] =
 {
     {_T("Don't save"), SaveMethod::None},
     {_T("Save to the configuration folder"), SaveMethod::ConfigDirectory},
-    {_T("Save to tag (TODO)"), SaveMethod::Id3Tag}
 };
 
 static cfg_auto_bool cfg_auto_save_enabled(GUID_CFG_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
 static cfg_auto_int cfg_render_linegap(GUID_CFG_RENDER_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
 static cfg_auto_string cfg_filename_format(GUID_CFG_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
-static cfg_auto_combo<SaveMethod, 3> cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::ConfigDirectory, save_method_options);
+static cfg_auto_combo<SaveMethod, 2> cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::ConfigDirectory, save_method_options);
 
 static cfg_auto_property* g_all_auto_properties[] = {&cfg_auto_save_enabled, &cfg_render_linegap, &cfg_filename_format, &cfg_save_method};
 

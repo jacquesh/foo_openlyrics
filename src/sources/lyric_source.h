@@ -4,10 +4,6 @@
 
 #include "lyric_data.h"
 
-// TODO: Add sources:
-// - id3 tags
-// - genius.com
-
 class LyricSourceBase : public initquit
 {
 public:
@@ -21,9 +17,11 @@ public:
     virtual LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) = 0;
 
 protected:
-    const char* get_artist(metadb_handle_ptr track);
-    const char* get_album(metadb_handle_ptr track);
-    const char* get_title(metadb_handle_ptr track);
+    const char* get_artist(metadb_handle_ptr track) const;
+    const char* get_album(metadb_handle_ptr track) const;
+    const char* get_title(metadb_handle_ptr track) const;
+
+    pfc::string8 trim_surrounding_whitespace(const char* str) const;
 };
 
 template<typename T>

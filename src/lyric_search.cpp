@@ -84,57 +84,65 @@ static void ensure_windows_newlines(pfc::string8& str)
 void LyricSearch::run_async()
 {
     LyricData* lyric_data = new LyricData();
-    try
+
+    // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
+    LyricDataRaw lyric_data_raw = {};
+    for(GUID source_id : preferences::get_active_sources())
     {
-        // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
-        LyricDataRaw lyric_data_raw = {};
-        for(GUID source_id : preferences::get_active_sources())
+        LyricSourceBase* source = LyricSourceBase::get(source_id);
+        assert(source != nullptr);
+
+        // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
+        try
         {
             m_abort.check();
 
-            LyricSourceBase* source = LyricSourceBase::get(source_id);
-            assert(source != nullptr);
-
-            // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
-            lyric_data_raw = std::move(source->query(m_track, m_abort));
-
+            lyric_data_raw = source->query(m_track, m_abort);
             if(lyric_data_raw.format != LyricFormat::Unknown)
             {
                 LOG_INFO("Successfully retrieved lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
                 break;
             }
-
-            LOG_INFO("Failed to retrieve lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
         }
-
-        ensure_windows_newlines(lyric_data_raw.text);
-
-        switch(lyric_data_raw.format)
+        catch(const std::exception& e)
         {
-            case LyricFormat::Plaintext:
-            {
-                LOG_INFO("Parsing lyrics as plaintext...");
-                *lyric_data = parsers::plaintext::parse(lyric_data_raw);
-            } break;
-
-            case LyricFormat::Timestamped:
-            {
-                LOG_INFO("Parsing lyrics as LRC...");
-                *lyric_data = parsers::lrc::parse(lyric_data_raw);
-                if(lyric_data->format != LyricFormat::Timestamped)
-                {
-                    LOG_INFO("Failed to parse lyrics as LRC, falling back to plaintext...");
-                    lyric_data_raw.format = LyricFormat::Plaintext;
-                    *lyric_data = parsers::plaintext::parse(lyric_data_raw);
-                }
-            } break;
-
-            case LyricFormat::Unknown:
-            default:
-            {
-                LOG_INFO("Could not find lyrics for current track");
-            }
+            LOG_ERROR("Error while searching %s: %s", tchar_to_string(source->friendly_name()).c_str(), e.what());
         }
+        catch(...)
+        {
+            LOG_ERROR("Error of unrecognised type while searching %s", tchar_to_string(source->friendly_name()));
+        }
+
+        LOG_INFO("Failed to retrieve lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
+    }
+    ensure_windows_newlines(lyric_data_raw.text);
+
+    switch(lyric_data_raw.format)
+    {
+        case LyricFormat::Plaintext:
+        {
+            LOG_INFO("Parsing lyrics as plaintext...");
+            *lyric_data = parsers::plaintext::parse(lyric_data_raw);
+        } break;
+
+        case LyricFormat::Timestamped:
+        {
+            LOG_INFO("Parsing lyrics as LRC...");
+            *lyric_data = parsers::lrc::parse(lyric_data_raw);
+            if(lyric_data->format != LyricFormat::Timestamped)
+            {
+                LOG_INFO("Failed to parse lyrics as LRC, falling back to plaintext...");
+                lyric_data_raw.format = LyricFormat::Plaintext;
+                *lyric_data = parsers::plaintext::parse(lyric_data_raw);
+            }
+        } break;
+
+        case LyricFormat::Unknown:
+        default:
+        {
+            break; // No lyrics to parse
+        }
+    }
 
         // TODO: If we load from tags, should we save to file (or vice-versa)?
         if((lyric_data->source != LyricSource::None) && preferences::get_autosave_enabled())
@@ -169,7 +177,7 @@ void LyricSearch::run_async()
             }
         }
     }
-    catch(std::exception e)
+    catch(const std::exception& e)
     {
         LOG_ERROR("Failed to download lyrics: %s", e.what());
     }

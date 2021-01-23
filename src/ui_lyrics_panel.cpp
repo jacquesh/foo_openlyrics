@@ -51,7 +51,6 @@ namespace {
         LRESULT OnTimer(WPARAM);
         void OnPaint(CDCHandle);
         BOOL OnEraseBkgnd(CDCHandle);
-        void OnSize(UINT nType, CSize size);
         void OnContextMenu(CWindow window, CPoint point);
 
         void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title);
@@ -82,7 +81,6 @@ namespace {
             MSG_WM_TIMER(OnTimer)
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
             MSG_WM_PAINT(OnPaint)
-            MSG_WM_SIZE(OnSize)
             MSG_WM_CONTEXTMENU(OnContextMenu)
         END_MSG_MAP()
     };
@@ -165,8 +163,13 @@ namespace {
     void LyricPanel::OnWindowDestroy()
     {
         sources::localfiles::DeregisterLyricPanel(get_wnd());
-        // TODO: If we destroy this window while searching for lyrics then we'll leak the memory
-        //       allocated for those lyrics by the search.
+
+        if(m_search != nullptr)
+        {
+            // Cancel and clean up a pending search, if there is one
+            delete m_search;
+            m_search = nullptr;
+        }
     }
 
     LRESULT LyricPanel::OnTimer(WPARAM /*wParam*/)
@@ -379,12 +382,6 @@ namespace {
         DeleteDC(back_buffer);
     }
 
-    void LyricPanel::OnSize(UINT nType, CSize size)
-    {
-        // TODO: Recalculate the string height
-    }
-
-
     void LyricPanel::OnContextMenu(CWindow window, CPoint point)
     {
         if(m_callback->is_edit_mode_enabled())
@@ -545,7 +542,7 @@ namespace {
         m_timerRunning = true;
 
         // TODO: How often do we need to re-draw? If its not that often then can we instead just use the per-second callback from play_callback_impl?
-        // TODO: Similarly, the other lyrics example uses timeSetEvent (https://docs.microsoft.com/en-us/previous-versions/dd757634(v=vs.85)) instead. Should we be using that?
+        // TODO: Another option is timeSetEvent (https://docs.microsoft.com/en-us/previous-versions/dd757634(v=vs.85)) instead. Should we be using that?
         UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 20, nullptr);
         if (result != PANEL_UPDATE_TIMER)
         {
@@ -588,7 +585,7 @@ namespace {
         int line_count = static_cast<int>(new_lyrics->line_count);
         int text_height = line_count * (font_metrics.tmHeight + line_gap);
 
-        // TODO: This isn't idea;: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
+        // TODO: This isn't ideal: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
         m_lyrics = std::move(*new_lyrics);
         m_lyrics_render_height = text_height;
     }

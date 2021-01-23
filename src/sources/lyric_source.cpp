@@ -34,7 +34,7 @@ void LyricSourceBase::on_init()
     g_lyric_sources.push_back(this);
 }
 
-const char* LyricSourceBase::get_artist(metadb_handle_ptr track)
+const char* LyricSourceBase::get_artist(metadb_handle_ptr track) const
 {
     const metadb_info_container::ptr& track_info_container = track->get_info_ref();
     const file_info& track_info = track_info_container->info();
@@ -49,7 +49,7 @@ const char* LyricSourceBase::get_artist(metadb_handle_ptr track)
     return "";
 }
 
-const char* LyricSourceBase::get_album(metadb_handle_ptr track)
+const char* LyricSourceBase::get_album(metadb_handle_ptr track) const
 {
     const metadb_info_container::ptr& track_info_container = track->get_info_ref();
     const file_info& track_info = track_info_container->info();
@@ -63,7 +63,7 @@ const char* LyricSourceBase::get_album(metadb_handle_ptr track)
     return "";
 }
 
-const char* LyricSourceBase::get_title(metadb_handle_ptr track)
+const char* LyricSourceBase::get_title(metadb_handle_ptr track) const
 {
     const metadb_info_container::ptr& track_info_container = track->get_info_ref();
     const file_info& track_info = track_info_container->info();
@@ -75,4 +75,19 @@ const char* LyricSourceBase::get_title(metadb_handle_ptr track)
     }
 
     return "";
+}
+
+pfc::string8 LyricSourceBase::trim_surrounding_whitespace(const char* str) const
+{
+    int leading_chars_to_remove = 0;
+    while((str[leading_chars_to_remove] == '\r') ||
+          (str[leading_chars_to_remove] == '\n') ||
+          (str[leading_chars_to_remove] == ' '))
+    {
+        leading_chars_to_remove++;
+    }
+
+    pfc::string8 result(str + leading_chars_to_remove);
+    result.skip_trailing_chars("\r\n ");
+    return result;
 }

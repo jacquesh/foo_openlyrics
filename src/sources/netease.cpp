@@ -91,7 +91,7 @@ int edit_distance(const char* strA, const char* strB)
             int delete_cost = prev_row[i+1] + 1;
             int insert_cost = cur_row[i] + 1;
             int subst_cost;
-            if(strA[row] == strB[i])
+            if(strA[row] == strB[i]) // TODO: Make this comparison case-insensitive
             {
                 subst_cost = prev_row[i];
             }

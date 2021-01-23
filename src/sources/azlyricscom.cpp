@@ -125,21 +125,9 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
             {
                 if(child->type == XML_TEXT_NODE)
                 {
-                    int leading_chars_to_remove = 0;
-                    while((child->content[leading_chars_to_remove] == '\r') ||
-                          (child->content[leading_chars_to_remove] == '\n') ||
-                          (child->content[leading_chars_to_remove] == ' '))
-                    {
-                        leading_chars_to_remove++;
-                    }
-
-                    if(child->content[leading_chars_to_remove] != '\0')
-                    {
-                        // TODO: Encoding? This cast should probably tell us something...
-                        pfc::string8 line_text((char*)child->content + leading_chars_to_remove);
-                        line_text.skip_trailing_chars("\r\n ");
-                        lyric_text.add_string(line_text);
-                    }
+                    // TODO: Encoding? This cast should probably tell us something...
+                    pfc::string8 line_text = trim_surrounding_whitespace((char*)child->content);
+                    lyric_text.add_string(line_text);
                     lyric_text.add_string("\r\n");
                 }
 
