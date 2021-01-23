@@ -547,9 +547,7 @@ namespace {
         size_t track_artist_index = track_info.meta_find("artist");
         size_t track_album_index = track_info.meta_find("album");
         size_t track_title_index = track_info.meta_find("title");
-        const size_t invalid_index = static_cast<size_t>(pfc_infinite);
-        static_assert(invalid_index == pfc_infinite, "These types are different but they should still compare equal");
-        if((track_artist_index != invalid_index) && (track_info.meta_enum_value_count(track_artist_index) > 0))
+        if((track_artist_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_artist_index) > 0))
         {
             out_artist = pfc::string8(track_info.meta_enum_value(track_artist_index, 0));
         }
@@ -558,7 +556,7 @@ namespace {
             out_artist.reset();
         }
 
-        if((track_album_index != invalid_index) && (track_info.meta_enum_value_count(track_album_index) > 0))
+        if((track_album_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_album_index) > 0))
         {
             out_album = pfc::string8(track_info.meta_enum_value(track_album_index, 0));
         }
@@ -567,7 +565,7 @@ namespace {
             out_album.reset();
         }
 
-        if((track_title_index != invalid_index) && (track_info.meta_enum_value_count(track_title_index) > 0))
+        if((track_title_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_title_index) > 0))
         {
             out_title = pfc::string8(track_info.meta_enum_value(track_title_index, 0));
         }

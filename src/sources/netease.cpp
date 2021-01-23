@@ -114,11 +114,6 @@ int edit_distance(const char* strA, const char* strB)
     return result;
 }
 
-void replace_newlines_linux2win(pfc::string8& str)
-{
-    // TODO: Replace linux newlines with windows newlines
-}
-
 static int64_t parse_song_id(cJSON* json, const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title)
 {
     if((json == nullptr) || (json->type != cJSON_Object))
@@ -299,19 +294,12 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
         cJSON* lrc_item = cJSON_GetObjectItem(json, "lrc");
         if((lrc_item != nullptr) && (lrc_item->type == cJSON_Object))
         {
-            cJSON* lrc_version = cJSON_GetObjectItem(lrc_item, "version");
-            if((lrc_version != nullptr) && (lrc_version->type == cJSON_Number))
-            {
-                LOG_INFO("LRC version: %d", (int)lrc_version->valuedouble);
-            }
             cJSON* lrc_lyric = cJSON_GetObjectItem(lrc_item, "lyric");
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
-                LOG_INFO("LRC Lyrics:\n%s", lrc_lyric->valuestring);
                 result.source_id = src_guid;
                 result.format = LyricFormat::Timestamped;
                 result.text.set_string(lrc_lyric->valuestring);
-                replace_newlines_linux2win(result.text);
             }
         }
     }

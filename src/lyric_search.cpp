@@ -58,6 +58,29 @@ LyricData* LyricSearch::get_result()
     return result;
 }
 
+static void ensure_windows_newlines(pfc::string8& str)
+{
+    int replace_count = 0;
+    size_t prev_index = 0;
+    while(true)
+    {
+        size_t next_index = str.find_first('\n', prev_index);
+        if(next_index == pfc::infinite_size)
+        {
+            break;
+        }
+
+        if((next_index == 0) || (str[next_index-1] != '\r'))
+        {
+            char cr = '\r';
+            str.insert_chars(next_index, &cr, 1);
+            replace_count++;
+        }
+
+        prev_index = next_index+1;
+    }
+}
+
 void LyricSearch::run_async()
 {
     LyricData* lyric_data = new LyricData();
@@ -83,6 +106,8 @@ void LyricSearch::run_async()
 
             LOG_INFO("Failed to retrieve lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
         }
+
+        ensure_windows_newlines(lyric_data_raw.text);
 
         switch(lyric_data_raw.format)
         {
