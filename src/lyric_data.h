@@ -22,7 +22,7 @@ struct LyricDataRaw
 // Parsed lyric data
 struct LyricData : LyricDataRaw
 {
-    size_t line_count;
+    int line_count;
     TCHAR** lines;
     size_t* line_lengths;
     double* timestamps;

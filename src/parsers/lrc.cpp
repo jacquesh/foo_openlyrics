@@ -147,7 +147,7 @@ LyricData parse(const LyricDataRaw& input)
     result.lines = new TCHAR*[result.line_count];
     result.line_lengths = new size_t[result.line_count];
     result.timestamps = new double[result.line_count];
-    for(size_t i=0; i<result.line_count; i++)
+    for(int i=0; i<result.line_count; i++)
     {
         result.lines[i] = lines[i].text;
         result.line_lengths[i] = lines[i].length;

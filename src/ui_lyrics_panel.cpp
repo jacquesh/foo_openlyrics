@@ -242,7 +242,7 @@ namespace {
             int text_rect_y = client_rect.CenterPoint().y - (int)(track_fraction * m_lyrics_render_height);
             int current_y = text_rect_y;
 
-            for(size_t line_index=0; line_index < m_lyrics.line_count; line_index++)
+            for(int line_index=0; line_index < m_lyrics.line_count; line_index++)
             {
                 TCHAR* line_text = m_lyrics.lines[line_index];
                 size_t line_length = m_lyrics.line_lengths[line_index];
@@ -259,17 +259,16 @@ namespace {
         }
         else if(m_lyrics.format == LyricFormat::Timestamped)
         {
-            // TODO: Don't highlight the first line until we've reached its timestamp (and don't scroll to it either, stay just above it)
-            size_t active_line_index = 0;
-            int text_height_above_active_line = 0;
+            int active_line_index = -1;
+            int text_height_above_active_line = -(font_metrics.tmHeight + line_gap);
             while((active_line_index+1 < m_lyrics.line_count) && (current_position > m_lyrics.timestamps[active_line_index+1]))
             {
                 text_height_above_active_line += font_metrics.tmHeight + line_gap;
                 active_line_index++;
             }
 
-            int current_y = client_rect.CenterPoint().y - text_height_above_active_line; // TODO: Subtract an additional descent and line_gap?
-            for(size_t line_index=0; line_index < m_lyrics.line_count; line_index++)
+            int current_y = client_rect.CenterPoint().y - text_height_above_active_line;
+            for(int line_index=0; line_index < m_lyrics.line_count; line_index++)
             {
                 TCHAR* line_text = m_lyrics.lines[line_index];
                 size_t line_length = m_lyrics.line_lengths[line_index];
@@ -416,7 +415,6 @@ namespace {
                 ID_OPEN_FILE_DIR,
                 ID_CMD_COUNT,
             };
-                    // TODO: Store our own metadb handle that we update at the same time as the lyric data to ensure that the two are always in-sync
 
             UINT disabled_without_nowplaying = (m_now_playing == nullptr) ? MF_GRAYED : 0;
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
@@ -486,9 +484,7 @@ namespace {
                     int exec_result = (int)ShellExecute(get_wnd(), _T("explore"), lyric_dir, nullptr, nullptr, SW_SHOWMAXIMIZED);
                     if(exec_result <= 32)
                     {
-                        char buffer[512];
-                        snprintf(buffer, sizeof(buffer), "Failed to open lyric file directory.\nError: %d", exec_result);
-                        popup_message::g_show(buffer, "foo_openlyrics Error");
+                        LOG_WARN("Failed to open lyric file directory: %d", exec_result);
                     }
                 } break;
             }
@@ -503,7 +499,6 @@ namespace {
     {
         const metadb_info_container::ptr& track_info_container = track_handle->get_info_ref();
         const file_info& track_info = track_info_container->info();
-        // t_filetimestamp track_timestamp = track_info_container->stats().m_timestamp; // TODO: This could be useful for setting a cached timestamp to not reload lyrics all the time? Oh but we need to get this for the lyrics file, not the track itself... although I guess if the lyrics are stored in an id3 tag?
 
         size_t track_artist_index = track_info.meta_find("artist");
         size_t track_album_index = track_info.meta_find("album");
@@ -582,8 +577,7 @@ namespace {
 
         // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         int line_gap = preferences::get_render_linegap();
-        int line_count = static_cast<int>(new_lyrics->line_count);
-        int text_height = line_count * (font_metrics.tmHeight + line_gap);
+        int text_height = new_lyrics->line_count * (font_metrics.tmHeight + line_gap);
 
         // TODO: This isn't ideal: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
         m_lyrics = std::move(*new_lyrics);

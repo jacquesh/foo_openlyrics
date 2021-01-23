@@ -39,7 +39,7 @@ LyricData::~LyricData()
 {
     if(lines != nullptr)
     {
-        for(size_t i=0; i<line_count; i++)
+        for(int i=0; i<line_count; i++)
         {
             delete[] lines[i];
         }
