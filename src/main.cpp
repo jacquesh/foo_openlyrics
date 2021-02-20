@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "0.1"
+#define OPENLYRICS_VERSION "0.2"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -14,6 +14,15 @@ DECLARE_COMPONENT_VERSION(
     "Source available at https://github.com/jacquesh/foo_openlyrics\n"
     "\n"
     "Built " __DATE__  "\n"
+    "\n"
+    "Changelog:\n"
+    "Version 0.2:\n"
+    "- Add support for LRC files with timestamps of the form [00.00.000]\n"
+    "- Fix fallback to loading lyrics as plain text when LRC parsing fails\n"
+    "- Fix saving lyrics for a track that has not yet saved any\n"
+    "\n"
+    "Version 0.1:\n"
+    "- Initial release\n"
 );
 
 
