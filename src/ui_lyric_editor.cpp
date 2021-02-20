@@ -165,9 +165,18 @@ void LyricEditor::SaveLyricEdits()
     m_input_text = lyric_buffer;
     m_input_text_length = chars_copied;
 
+    // TODO: Should we do this even if we know the format?
+    //       What if somebody adds timestamps to existing plaintext lyrics?
+    LyricFormat format = m_lyric_format;
+    if(format == LyricFormat::Unknown) 
+    {
+        format = LyricFormat::Plaintext;
+        // TODO: Auto-detect format for new lyrics (IE: try parsing as LRC)
+    }
+
     abort_callback_dummy noAbort;
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
-    sources::localfiles::SaveLyrics(m_track_handle, m_lyric_format, lyrics, noAbort);
+    sources::localfiles::SaveLyrics(m_track_handle, format, lyrics, noAbort);
 
     // We know that if we ran HasContentChanged() now, it would return false.
     // So short-circuit it and just disable the apply button directly
