@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include <algorithm>
+#include <string_view>
 
 #include "logging.h"
 #include "lyric_data.h"
@@ -14,67 +15,145 @@ static bool is_digit(char c)
     return ((c >= '0') && (c <= '9'));
 }
 
-static int char_pair_to_int(const char* first_char)
+static int str_to_int(std::string_view str)
 {
-    assert(is_digit(first_char[0]) && is_digit(first_char[1]));
-    int char1_val = (int)first_char[0] - (int)'0';
-    int char2_val = (int)first_char[1] - (int)'0';
-    return char1_val*10 + char2_val;
+    assert(str.length() <= 6); // Just to ensure no overflow, could actually be larger
+    int result = 0;
+    for(char c : str)
+    {
+        assert(is_digit(c));
+        int char_val = (int)c - (int)'0';
+        result = (result*10) + char_val;
+    }
+    return result;
 }
 
-static std::vector<double> parse_line_times(const pfc::string8& line, size_t start_index, size_t length)
+struct ParsedLineContents
 {
-    const size_t timestamp_length = 10;
-    std::vector<double> result;
-    if(length < timestamp_length)
+    std::vector<double> timestamps;
+    pfc::string8 line;
+};
+
+struct LineTagParseResult
+{
+    bool success;
+    double timestamp;
+    int charsConsumed;
+};
+
+bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
+{
+    if((tag.length() != 10) ||
+       (tag[0] != '[') ||
+       !is_digit(tag[1]) ||
+       !is_digit(tag[2]) ||
+       (tag[3] != ':') ||
+       !is_digit(tag[4]) ||
+       !is_digit(tag[5]) ||
+       (tag[6] != '.') ||
+       !is_digit(tag[7]) ||
+       !is_digit(tag[8]) ||
+       (tag[9] != ']'))
     {
-        return result;
+        // We do not have a well-formed timestamp
+        return false;
     }
 
-    size_t index = 0;
-    // Well-formed timestamps have a fixed length, so we don't need to iterate right to the end of the string
-    while(index <= length - timestamp_length)
+    int minute = str_to_int(tag.substr(1, 2));
+    int second = str_to_int(tag.substr(4,2));
+    int centisec = str_to_int(tag.substr(7,2));
+    double timestamp = (double)(minute*60) + (double)second + ((double)centisec * 0.01);
+    out_timestamp = timestamp;
+    return true;
+}
+
+bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
+{
+    if((tag.length() != 11) ||
+       (tag[0] != '[') ||
+       !is_digit(tag[1]) ||
+       !is_digit(tag[2]) ||
+       (tag[3] != ':') ||
+       !is_digit(tag[4]) ||
+       !is_digit(tag[5]) ||
+       (tag[6] != '.') ||
+       !is_digit(tag[7]) ||
+       !is_digit(tag[8]) ||
+       !is_digit(tag[9]) ||
+       (tag[10] != ']'))
     {
-        if(line[start_index + index] == '[')
+        // We do not have a well-formed timestamp
+        return false;
+    }
+
+    int minute = str_to_int(tag.substr(1, 2));
+    int second = str_to_int(tag.substr(4,2));
+    int millisec = str_to_int(tag.substr(7,3));
+    double timestamp = (double)(minute*60) + (double)second + ((double)millisec * 0.001);
+    out_timestamp = timestamp;
+    return true;
+}
+
+static LineTagParseResult parse_tag_from_line(std::string_view line)
+{
+    int line_length = static_cast<int>(line.length());
+    int index = 0;
+    while(index < line_length)
+    {
+        if(line[index] != '[') break;
+
+        int close_index = index;
+        while((close_index < line_length) && (line[close_index] != ']')) close_index++;
+
+        const int min_tag_length = 10; // [00.00.00]
+        const int max_tag_length = 11; // [00.00.000]
+        int tag_length = close_index - index + 1;
+        int tag_index = index;
+        index += tag_length; // We move this up here so that if its invalid we actually progress and don't loop forever
+
+        if((tag_length < min_tag_length) || (tag_length > max_tag_length))
         {
-            size_t close_index = index;
-            while((close_index < length) && (line[start_index + close_index] != ']')) close_index++;
-            if(close_index+1 - index != timestamp_length) // We +1 because we stop counting when we find the ], not after it
-            {
-                // There is a pair of square-brackets but they are not the correct distance apart to bound a well-formed timestamp
-                break;
-            }
+            // There is a pair of square-brackets but they are not the correct distance apart to bound a well-formed timestamp
+            continue;
+        }
+        std::string_view tag = line.substr(tag_index, tag_length);
 
-            if((line[start_index + index + 0] != '[') ||
-               !is_digit(line[start_index + index + 1]) ||
-               !is_digit(line[start_index + index + 2]) ||
-               (line[start_index + index + 3] != ':') ||
-               !is_digit(line[start_index + index + 4]) ||
-               !is_digit(line[start_index + index + 5]) ||
-               (line[start_index + index + 6] != '.') ||
-               !is_digit(line[start_index + index + 7]) ||
-               !is_digit(line[start_index + index + 8]) ||
-               (line[start_index + index + 9] != ']'))
-            {
-                // We do not have a well-formed timestamp
-                break;
-            }
+        double timestamp = -1.0;
+        if(try_parse_6digit_timestamp(tag, timestamp) ||
+           try_parse_7digit_timestamp(tag, timestamp))
+        {
+            return {true, timestamp, index};
+        }
+    }
 
-            int minute = char_pair_to_int(&line[start_index + index + 1]);
-            int second = char_pair_to_int(&line[start_index + index + 4]);
-            int centisec = char_pair_to_int(&line[start_index + index + 7]);
-            double timestamp = (double)(minute*60) + (double)second + ((double)centisec * 0.01);
-            result.push_back(timestamp);
+    // NOTE: It is important that we return `index` here so that we move forwards correctly
+    //       in the calling parser function. In particular when it fails we need to extract
+    //       the non-tag string correctly and without `index` here we'll include the last
+    //       tag (if any) in that string (which is wrong, since we want to ignore metadata
+    //       tags such as title and artist).
+    return {false, 0.0, index};
+}
 
-            index += timestamp_length;
+static ParsedLineContents parse_line_times(std::string_view line, size_t start_index, size_t length)
+{
+    std::vector<double> result;
+    size_t index = 0;
+    while(index <= length)
+    {
+        LineTagParseResult parse_result = parse_tag_from_line(line.substr(start_index + index, length - index));
+        index += parse_result.charsConsumed;
+
+        if(parse_result.success)
+        {
+            result.push_back(parse_result.timestamp);
         }
         else
         {
-            index++;
+            break;
         }
     }
 
-    return result;
+    return {result, pfc::string8(line.substr(start_index + index).data(), length-index)};
 }
 
 LyricData parse(const LyricDataRaw& input)
@@ -87,8 +166,7 @@ LyricData parse(const LyricDataRaw& input)
 
     struct LineData
     {
-        TCHAR* text;
-        size_t length;
+        pfc::string8 text;
         double timestamp;
     };
     std::vector<LineData> lines;
@@ -108,17 +186,17 @@ LyricData parse(const LyricDataRaw& input)
 
         if(line_bytes > 0)
         {
-            const size_t timestamp_text_length = strlen("[00.00.00]");
-            std::vector<double> line_times = parse_line_times(input.text, line_start_index, line_bytes);
-
-            const size_t line_timestamp_bytes = timestamp_text_length*line_times.size();
-            assert(line_bytes >= line_timestamp_bytes);
-            size_t lyric_line_bytes = line_bytes - line_timestamp_bytes;
-            for(double timestamp : line_times)
+            std::string_view input_view {input.text.c_str(), input.text.length()};
+            ParsedLineContents parse_output = parse_line_times(input_view, line_start_index, line_bytes);
+            if((parse_output.timestamps.size() == 0) && (parse_output.line.length() != 0))
             {
-                TCHAR* line_text = nullptr;
-                size_t line_length = string_to_tchar(input.text, line_start_index + line_timestamp_bytes, lyric_line_bytes, line_text);
-                lines.push_back({line_text, line_length, timestamp});
+                LOG_WARN("Failed to parse a line of lyrics as LRC, no valid timestamps");
+                return {};
+            }
+
+            for(double timestamp : parse_output.timestamps)
+            {
+                lines.push_back({parse_output.line, timestamp});
             }
         }
 
@@ -149,8 +227,11 @@ LyricData parse(const LyricDataRaw& input)
     result.timestamps = new double[result.line_count];
     for(int i=0; i<result.line_count; i++)
     {
-        result.lines[i] = lines[i].text;
-        result.line_lengths[i] = lines[i].length;
+        TCHAR* line_text = nullptr;
+        size_t line_length = string_to_tchar(lines[i].text, line_text);
+
+        result.lines[i] = line_text;
+        result.line_lengths[i] = line_length;
         result.timestamps[i] = lines[i].timestamp;
     }
     return result;
