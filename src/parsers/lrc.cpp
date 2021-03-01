@@ -184,6 +184,21 @@ LyricData parse(const LyricDataRaw& input)
         }
         size_t line_bytes = line_end_index - line_start_index;
 
+        if(line_bytes >= 3)
+        {
+            // NOTE: We're consuming UTF-8 text here and sometimes files contain byte-order marks.
+            //       We don't want to process them so just skip past them. Ordinarily we'd do this
+            //       just once at the start of the file but I've seen files with BOMs at the start
+            //       of random lines in the file, so just check every line.
+            if((input.text[line_start_index] == '\u00EF') &&
+               (input.text[line_start_index+1] == '\u00BB') &&
+               (input.text[line_start_index+2] == '\u00BF'))
+            {
+                line_start_index += 3;
+                line_bytes -= 3;
+            }
+        }
+
         if(line_bytes > 0)
         {
             std::string_view input_view {input.text.c_str(), input.text.length()};
