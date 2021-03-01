@@ -43,6 +43,7 @@ namespace {
         void on_playback_new_track(metadb_handle_ptr p_track) override;
         void on_playback_stop(play_control::t_stop_reason p_reason) override;
         void on_playback_pause(bool p_state) override;
+        void on_playback_seek(double p_time) override;
 
     private:
         LRESULT OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&);
@@ -141,6 +142,11 @@ namespace {
         {
             StartTimer();
         }
+    }
+
+    void LyricPanel::on_playback_seek(double p_time)
+    {
+        Invalidate(); // Draw again to update the scroll for the new seek time
     }
 
     LRESULT LyricPanel::OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&)
