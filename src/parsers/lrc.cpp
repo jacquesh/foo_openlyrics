@@ -28,6 +28,22 @@ static int str_to_int(std::string_view str)
     return result;
 }
 
+static bool is_tag_line(std::string_view line)
+{
+    if(line.size() <= 0) return false;
+    if(line[0] != '[') return false;
+    if(line[line.size()-1] != ']') return false;
+
+    size_t colon_index = line.find(':');
+    if(colon_index == std::string::npos) return false;
+    assert(colon_index != 0); // We've already checked that the first char is '['
+
+    size_t tag_length = colon_index - 1; // Tag lines have the form [tag:value] so we -1 to count from the 't' to the ':'
+    if(tag_length == 0) return false;
+
+    return true;
+}
+
 struct ParsedLineContents
 {
     std::vector<double> timestamps;
@@ -105,24 +121,22 @@ static LineTagParseResult parse_tag_from_line(std::string_view line)
         int close_index = index;
         while((close_index < line_length) && (line[close_index] != ']')) close_index++;
 
-        const int min_tag_length = 10; // [00.00.00]
-        const int max_tag_length = 11; // [00.00.000]
+        const int min_tag_length = 10; // [00:00.00]
+        const int max_tag_length = 11; // [00:00.000]
         int tag_length = close_index - index + 1;
-        int tag_index = index;
-        index += tag_length; // We move this up here so that if its invalid we actually progress and don't loop forever
 
-        if((tag_length < min_tag_length) || (tag_length > max_tag_length))
-        {
-            // There is a pair of square-brackets but they are not the correct distance apart to bound a well-formed timestamp
-            continue;
-        }
-        std::string_view tag = line.substr(tag_index, tag_length);
+        std::string_view tag = line.substr(index, tag_length);
 
         double timestamp = -1.0;
         if(try_parse_6digit_timestamp(tag, timestamp) ||
            try_parse_7digit_timestamp(tag, timestamp))
         {
-            return {true, timestamp, index};
+            return {true, timestamp, index + tag_length};
+        }
+        else
+        {
+            // If we find something that is not a well-formed timestamp then stop and just 
+            break;
         }
     }
 
@@ -134,13 +148,13 @@ static LineTagParseResult parse_tag_from_line(std::string_view line)
     return {false, 0.0, index};
 }
 
-static ParsedLineContents parse_line_times(std::string_view line, size_t start_index, size_t length)
+static ParsedLineContents parse_line_times(std::string_view line)
 {
     std::vector<double> result;
     size_t index = 0;
-    while(index <= length)
+    while(index <= line.size())
     {
-        LineTagParseResult parse_result = parse_tag_from_line(line.substr(start_index + index, length - index));
+        LineTagParseResult parse_result = parse_tag_from_line(line.substr(index));
         index += parse_result.charsConsumed;
 
         if(parse_result.success)
@@ -153,7 +167,7 @@ static ParsedLineContents parse_line_times(std::string_view line, size_t start_i
         }
     }
 
-    return {result, pfc::string8(line.substr(start_index + index).data(), length-index)};
+    return {result, pfc::string8(line.substr(index).data(), line.size()-index)};
 }
 
 LyricData parse(const LyricDataRaw& input)
@@ -201,17 +215,28 @@ LyricData parse(const LyricDataRaw& input)
 
         if(line_bytes > 0)
         {
-            std::string_view input_view {input.text.c_str(), input.text.length()};
-            ParsedLineContents parse_output = parse_line_times(input_view, line_start_index, line_bytes);
-            if((parse_output.timestamps.size() == 0) && (parse_output.line.length() != 0))
+            std::string_view line_view {input.text.c_str() + line_start_index, line_bytes};
+            ParsedLineContents parse_output = parse_line_times(line_view);
+            if(parse_output.timestamps.size() > 0)
             {
-                LOG_WARN("Failed to parse a line of lyrics as LRC, no valid timestamps");
-                return {};
+                for(double timestamp : parse_output.timestamps)
+                {
+                    lines.push_back({parse_output.line, timestamp});
+                }
             }
-
-            for(double timestamp : parse_output.timestamps)
+            else
             {
-                lines.push_back({parse_output.line, timestamp});
+                // We don't have a timestamp, but rather than failing to parse the entire file,
+                // we just keep the line around as "not having a timestamp". We represent this
+                // as a line with a timestamp that is way out of the actual length of the track.
+                // That way the line will never be highlighted and it neatly slots into the rest
+                // of the system without special handling.
+                // NOTE: It is important however, to note that this means we need to stable_sort
+                //       below, to preserve the ordering of the "untimed" lines
+                if((line_bytes != 0) && !is_tag_line(line_view))
+                {
+                    lines.push_back({pfc::string8(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
+                }
             }
         }
 
@@ -227,7 +252,7 @@ LyricData parse(const LyricDataRaw& input)
         }
     }
 
-    std::sort(lines.begin(), lines.end(), [](const LineData& a, const LineData& b)
+    std::stable_sort(lines.begin(), lines.end(), [](const LineData& a, const LineData& b)
     {
         return a.timestamp < b.timestamp;
     });
