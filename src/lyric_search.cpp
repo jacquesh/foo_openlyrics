@@ -53,13 +53,13 @@ LyricData* LyricSearch::get_result()
     return result;
 }
 
-static void ensure_windows_newlines(pfc::string8& str)
+static void ensure_windows_newlines(std::string& str)
 {
     int replace_count = 0;
     size_t prev_index = 0;
     while(true)
     {
-        size_t next_index = str.find_first('\n', prev_index);
+        size_t next_index = str.find('\n', prev_index);
         if(next_index == pfc::infinite_size)
         {
             break;
@@ -68,7 +68,7 @@ static void ensure_windows_newlines(pfc::string8& str)
         if((next_index == 0) || (str[next_index-1] != '\r'))
         {
             char cr = '\r';
-            str.insert_chars(next_index, &cr, 1);
+            str.insert(next_index, 1, cr);
             replace_count++;
         }
 

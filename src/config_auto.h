@@ -41,7 +41,7 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
-        pfc::string8 ui_string = tchar_to_string(text_buffer, text_length);
+        pfc::string8 ui_string = tchar_to_pfcstring(text_buffer, text_length);
         set_string(ui_string);
 
         delete[] text_buffer;
@@ -57,7 +57,7 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
-        pfc::string8 ui_string = tchar_to_string(text_buffer, text_length);
+        pfc::string8 ui_string = tchar_to_pfcstring(text_buffer, text_length);
         bool changed = (*this != ui_string);
 
         delete[] text_buffer;

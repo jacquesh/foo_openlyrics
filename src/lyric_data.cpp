@@ -28,7 +28,7 @@ void LyricData::operator =(LyricData&& other)
 
     other.format = LyricFormat::Unknown;
     other.source_id = {};
-    other.text.reset();
+    other.text.clear();
     other.line_count = 0;
     other.lines = nullptr;
     other.line_lengths = nullptr;

@@ -175,14 +175,12 @@ void LyricEditor::SaveLyricEdits()
         // TODO: Auto-detect format for new lyrics (IE: try parsing as LRC)
     }
 
-    pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
+    std::string lyrics = tchar_to_string(lyric_buffer, chars_copied);
     if(format == LyricFormat::Timestamped)
     {
         LyricDataRaw data_raw = {{}, format, lyrics};
         LyricData data = parsers::lrc::parse(data_raw);
-        std::string shrunk_str = parsers::lrc::shrink_text(data);
-
-        lyrics = pfc::string8(shrunk_str.c_str());
+        lyrics = parsers::lrc::shrink_text(data);
     }
 
     abort_callback_dummy noAbort;

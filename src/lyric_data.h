@@ -16,7 +16,7 @@ struct LyricDataRaw
 {
     GUID source_id;
     LyricFormat format;
-    pfc::string8 text;
+    std::string text;
 };
 
 // Parsed lyric data

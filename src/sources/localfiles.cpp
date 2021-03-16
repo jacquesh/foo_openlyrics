@@ -152,7 +152,7 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, const pfc::string8& lyrics, abort_callback& abort)
+void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, std::string_view lyrics, abort_callback& abort)
 {
     pfc::string8 save_file_title;
     if(!ComputeFileTitle(track, save_file_title))
@@ -181,7 +181,7 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
 
     TCHAR temp_path_str[MAX_PATH+1];
     DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
-    pfc::string8 tmp_path = tchar_to_string(temp_path_str, temp_path_str_len);
+    pfc::string8 tmp_path = tchar_to_pfcstring(temp_path_str, temp_path_str_len);
     tmp_path.add_filename(save_file_title.c_str());
 
     try
@@ -190,7 +190,7 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
         {
             file_ptr tmp_file;
             filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), abort);
-            tmp_file->write_string_raw(lyrics.c_str(), abort);
+            tmp_file->write_object(lyrics.data(), lyrics.size(), abort);
         }
 
         service_ptr_t<filesystem> fs = filesystem::get(output_path.c_str());

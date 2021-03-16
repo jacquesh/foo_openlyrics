@@ -299,7 +299,7 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
             {
                 result.source_id = src_guid;
                 result.format = LyricFormat::Timestamped;
-                result.text.set_string(lrc_lyric->valuestring);
+                result.text = lrc_lyric->valuestring;
             }
         }
     }

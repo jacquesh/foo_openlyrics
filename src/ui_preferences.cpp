@@ -148,7 +148,7 @@ void PreferencesRoot::OnSaveNameFormatChange(UINT, int, CWindow)
     {
         TCHAR* format_text_buffer = new TCHAR[format_text_length+1]; // +1 for null-terminator
         GetDlgItemText(IDC_SAVE_FILENAME_FORMAT, format_text_buffer, format_text_length+1);
-        pfc::string8 format_text = tchar_to_string(format_text_buffer, format_text_length);
+        std::string format_text = tchar_to_string(format_text_buffer, format_text_length);
         delete[] format_text_buffer;
 
         titleformat_object::ptr format_script;

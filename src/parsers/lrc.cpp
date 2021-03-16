@@ -183,7 +183,7 @@ static ParsedLineContents parse_line_times(std::string_view line)
 
 LyricData parse(const LyricDataRaw& input)
 {
-    if((input.format != LyricFormat::Timestamped) || input.text.is_empty())
+    if((input.format != LyricFormat::Timestamped) || input.text.empty())
     {
         LOG_WARN("Cannot parse given raw lyrics as LRC");
         return {};
@@ -316,9 +316,7 @@ std::string expand_text(const LyricData& data)
             expanded_text += timestamp;
         }
 
-        pfc::string8 line = tchar_to_string(data.lines[i]);
-
-        expanded_text += line.c_str();
+        expanded_text += tchar_to_string(data.lines[i]);
         expanded_text += "\r\n";
     }
 
@@ -342,9 +340,7 @@ std::string shrink_text(const LyricData& data)
     {
         if(data.timestamps[i] == DBL_MAX) continue;
 
-        pfc::string8 linepfc = tchar_to_string(data.lines[i]);
-        std::string line(linepfc.c_str());
-
+        std::string line = tchar_to_string(data.lines[i]);
         auto iter = std::find_if(timestamp_map.begin(),
                                  timestamp_map.end(),
                                  [&line](const auto& entry) { return entry.first == line; });
@@ -373,10 +369,7 @@ std::string shrink_text(const LyricData& data)
     {
         if(data.timestamps[i] != DBL_MAX) continue;
 
-        pfc::string8 linepfc = tchar_to_string(data.lines[i]);
-        std::string line(linepfc.c_str());
-
-        shrunk_text += line;
+        shrunk_text += tchar_to_string(data.lines[i]);
         shrunk_text += "\r\n";
     }
 

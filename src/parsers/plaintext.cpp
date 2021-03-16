@@ -9,7 +9,7 @@ namespace parsers::plaintext
 
 LyricData parse(const LyricDataRaw& input)
 {
-    if((input.format != LyricFormat::Plaintext) || input.text.is_empty())
+    if((input.format != LyricFormat::Plaintext) || input.text.empty())
     {
         LOG_WARN("Cannot parse given raw lyrics as plaintext");
         return {};
@@ -32,7 +32,7 @@ LyricData parse(const LyricDataRaw& input)
         size_t line_bytes = line_end_index - line_start_index;
 
         TCHAR* line_text = nullptr;
-        size_t line_length = string_to_tchar(input.text, line_start_index, line_bytes, line_text);
+        size_t line_length = string_to_tchar(input.text.c_str(), line_start_index, line_bytes, line_text);
         lines.push_back(line_text);
         line_lengths.push_back(line_length);
 
