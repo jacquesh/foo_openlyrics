@@ -86,13 +86,12 @@ static bool ComputeFileTitle(metadb_handle_ptr track, pfc::string8& out_title)
     return format_success;
 }
 
-// TODO: Consult IO.cpp and ui_and_threads.cpp for examples on doing async processing. Surely this is something we should be doing?
 void sources::localfiles::RegisterLyricPanel(HWND panel_handle)
 {
     if(!g_initialised)
     {
         g_initialised = true;
-        abort_callback_dummy noAbort; // TODO: What should this be instead?
+        abort_callback_dummy noAbort;
         pfc::string8 lyric_dir = sources::localfiles::GetLyricsDir();
         if(!filesystem::g_exists(lyric_dir.c_str(), noAbort))
         {
@@ -165,10 +164,6 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
     output_path.add_filename(save_file_title.c_str());
     switch(format)
     {
-        // TODO: The format should be allowed to change with our edits.
-        //       There are 2 use-cases for this requirement:
-        //       1) We start with no lyrics (format=unknown) and we type them in, now we have some other format and should save as that format
-        //       2) We start with plaintext lyrics and timestamp them, now we have lrc lyrics and should save them as such
         case LyricFormat::Plaintext: output_path.add_string(".txt"); break;
         case LyricFormat::Timestamped: output_path.add_string(".lrc"); break;
 
@@ -186,8 +181,8 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
 
     try
     {
-        // TODO: NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
         {
+            // NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
             file_ptr tmp_file;
             filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), abort);
             tmp_file->write_object(lyrics.data(), lyrics.size(), abort);

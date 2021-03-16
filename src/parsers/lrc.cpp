@@ -47,7 +47,7 @@ bool is_tag_line(std::string_view line)
 struct ParsedLineContents
 {
     std::vector<double> timestamps;
-    pfc::string8 line;
+    std::string line;
 };
 
 struct LineTagParseResult
@@ -178,7 +178,7 @@ static ParsedLineContents parse_line_times(std::string_view line)
         }
     }
 
-    return {result, pfc::string8(line.substr(index).data(), line.size()-index)};
+    return {result, std::string(line.substr(index).data(), line.size()-index)};
 }
 
 LyricData parse(const LyricDataRaw& input)
@@ -191,7 +191,7 @@ LyricData parse(const LyricDataRaw& input)
 
     struct LineData
     {
-        pfc::string8 text;
+        std::string text;
         double timestamp;
     };
     std::vector<LineData> lines;
@@ -253,7 +253,7 @@ LyricData parse(const LyricDataRaw& input)
                     }
                     else
                     {
-                        lines.push_back({pfc::string8(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
+                        lines.push_back({std::string(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
                     }
                 }
             }

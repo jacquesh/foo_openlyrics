@@ -38,7 +38,6 @@ const char* LyricSourceBase::get_artist(metadb_handle_ptr track) const
 {
     const metadb_info_container::ptr& track_info_container = track->get_info_ref();
     const file_info& track_info = track_info_container->info();
-    // t_filetimestamp track_timestamp = track_info_container->stats().m_timestamp; // TODO: This could be useful for setting a cached timestamp to not reload lyrics all the time? Oh but we need to get this for the lyrics file, not the track itself... although I guess if the lyrics are stored in an id3 tag?
 
     size_t meta_index = track_info.meta_find("artist");
     if((meta_index != pfc::infinite_size) && (track_info.meta_enum_value_count(meta_index) > 0))
