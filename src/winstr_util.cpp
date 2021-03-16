@@ -32,8 +32,7 @@ std::string tchar_to_string(const TCHAR* buffer, size_t buffer_len)
 {
 #ifdef UNICODE
     size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(buffer, buffer_len);
-    std::string result;
-    result.reserve(narrow_len);
+    std::string result(narrow_len, '\0');
     size_t chars_converted = pfc::stringcvt::convert_wide_to_utf8(result.data(), narrow_len, buffer, buffer_len);
     result.resize(chars_converted);
     return result;

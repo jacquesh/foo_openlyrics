@@ -303,7 +303,7 @@ std::string expand_text(const LyricData& data)
     expanded_text.reserve(data.line_count * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
     for(const std::string& tag : data.tags)
     {
-        expanded_text += tag.c_str();
+        expanded_text += tag;
         expanded_text += "\r\n";
     }
     expanded_text += "\r\n";
@@ -330,7 +330,7 @@ std::string shrink_text(const LyricData& data)
 
     for(const std::string& tag : data.tags)
     {
-        shrunk_text += tag.c_str();
+        shrunk_text += tag;
         shrunk_text += "\r\n";
     }
     shrunk_text += "\r\n";

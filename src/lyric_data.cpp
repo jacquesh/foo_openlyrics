@@ -4,6 +4,7 @@
 
 LyricData::LyricData() :
     LyricDataRaw(),
+    tags(),
     line_count(0),
     lines(nullptr),
     line_lengths(nullptr),
@@ -21,6 +22,7 @@ void LyricData::operator =(LyricData&& other)
     format = other.format;
     source_id = other.source_id;
     text = other.text;
+    tags = std::move(other.tags);
     line_count = other.line_count;
     lines = other.lines;
     line_lengths = other.line_lengths;

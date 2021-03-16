@@ -11,7 +11,7 @@
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
 
-class LyricEditor : public CDialogImpl<LyricEditor>
+class LyricEditor : public CDialogImpl<LyricEditor>, private play_callback_impl_base
 {
 public:
     // Dialog resource ID
@@ -24,6 +24,11 @@ public:
         MSG_WM_INITDIALOG(OnInitDialog)
         MSG_WM_CLOSE(OnClose)
         COMMAND_HANDLER_EX(IDC_LYRIC_TEXT, EN_CHANGE, OnEditChange)
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_BACK5, BN_CLICKED, OnBackwardSeek);
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_FWD5, BN_CLICKED, OnForwardSeek);
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_PLAY, BN_CLICKED, OnPlaybackToggle);
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_SYNC, BN_CLICKED, OnLineSync);
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_RESET, BN_CLICKED, OnEditReset);
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_CANCEL, BN_CLICKED, OnCancel)
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_APPLY, BN_CLICKED, OnApply);
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_OK, BN_CLICKED, OnOK);
@@ -33,10 +38,23 @@ private:
     BOOL OnInitDialog(CWindow parent, LPARAM clientData);
     void OnClose();
     void OnEditChange(UINT, int, CWindow);
+    void OnBackwardSeek(UINT btn_id, int notify_code, CWindow btn);
+    void OnForwardSeek(UINT btn_id, int notify_code, CWindow btn);
+    void OnPlaybackToggle(UINT btn_id, int notify_code, CWindow btn);
+    void OnLineSync(UINT btn_id, int notify_code, CWindow btn);
+    void OnEditReset(UINT btn_id, int notify_code, CWindow btn);
     void OnCancel(UINT btn_id, int notify_code, CWindow btn);
     void OnApply(UINT btn_id, int notify_code, CWindow btn);
     void OnOK(UINT btn_id, int notify_code, CWindow btn);
 
+    void on_playback_new_track(metadb_handle_ptr track) override;
+    void on_playback_stop(play_control::t_stop_reason reason) override;
+    void on_playback_pause(bool state) override;
+    void on_playback_seek(double new_time) override;
+    void on_playback_time(double new_time) override;
+
+    void update_play_button();
+    void update_time_text(double time);
     bool HasContentChanged(size_t* new_length);
     void SaveLyricEdits();
 
@@ -70,6 +88,10 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
     }
 
+    service_ptr_t<playback_control> playback = playback_control::get();
+    update_time_text(playback->playback_get_position());
+    update_play_button();
+
     ShowWindow(SW_SHOW);
     return TRUE;
 }
@@ -90,6 +112,41 @@ void LyricEditor::OnEditChange(UINT, int, CWindow)
     apply_btn.EnableWindow(changed && !is_empty);
 }
 
+void LyricEditor::OnBackwardSeek(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    service_ptr_t<playback_control> playback = playback_control::get();
+    playback->playback_seek_delta(-5.0);
+}
+
+void LyricEditor::OnForwardSeek(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    service_ptr_t<playback_control> playback = playback_control::get();
+    playback->playback_seek_delta(5.0);
+}
+
+void LyricEditor::OnPlaybackToggle(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    service_ptr_t<playback_control> playback = playback_control::get();
+    playback->play_or_pause();
+}
+
+void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    // TODO
+}
+
+void LyricEditor::OnEditReset(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    if(m_input_text)
+    {
+        SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
+    }
+    else
+    {
+        SetDlgItemText(IDC_LYRIC_TEXT, _T(""));
+    }
+}
+
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
     DestroyWindow();
@@ -108,6 +165,61 @@ void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
         SaveLyricEdits();
     }
     DestroyWindow();
+}
+
+void LyricEditor::on_playback_new_track(metadb_handle_ptr /*track*/)
+{
+    update_play_button();
+    update_time_text(0);
+}
+
+void LyricEditor::on_playback_stop(play_control::t_stop_reason /*reason*/)
+{
+    update_play_button();
+    update_time_text(0);
+}
+
+void LyricEditor::on_playback_pause(bool state)
+{
+    update_play_button();
+}
+
+void LyricEditor::on_playback_seek(double new_time)
+{
+    update_time_text(new_time);
+}
+
+void LyricEditor::on_playback_time(double new_time)
+{
+    update_time_text(new_time);
+}
+
+void LyricEditor::update_time_text(double new_time)
+{
+    // NOTE: The time text doesn't exist when this class first gets created, so we should handle
+    //       that possibility in general (because we could create it just before a seek/time event).
+    CWindow time_text = GetDlgItem(IDC_LYRIC_EDIT_TIME);
+    if(time_text == nullptr) return;
+
+    int total_sec = static_cast<int>(new_time);
+    int time_min = total_sec / 60;
+    int time_sec = total_sec % 60;
+
+    TCHAR buffer[64];
+    constexpr size_t buffer_len = sizeof(buffer)/sizeof(buffer[0]);
+    _sntprintf_s(buffer, buffer_len, _T("Playback time: %02d:%02d"), time_min, time_sec);
+
+    time_text.SetWindowText(buffer);
+}
+
+void LyricEditor::update_play_button()
+{
+    CWindow btn = GetDlgItem(IDC_LYRIC_EDIT_PLAY);
+    if(btn == nullptr) return;
+
+    service_ptr_t<playback_control> playback = playback_control::get();
+    const TCHAR* newText = playback->is_playing() && playback->is_paused() ? TEXT("Pause") : TEXT("Play");
+    btn.SetWindowText(newText);
 }
 
 bool LyricEditor::HasContentChanged(size_t* new_length)
