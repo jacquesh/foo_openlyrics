@@ -22,6 +22,7 @@ struct LyricDataRaw
 // Parsed lyric data
 struct LyricData : LyricDataRaw
 {
+    std::vector<std::string> tags;
     int line_count;
     TCHAR** lines;
     size_t* line_lengths;

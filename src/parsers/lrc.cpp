@@ -57,7 +57,18 @@ struct LineTagParseResult
     int charsConsumed;
 };
 
-bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
+static void print_6digit_timestamp(double timestamp, char (&out_timestamp)[11])
+{
+    double total_seconds_flt = std::floor(timestamp);
+    int total_seconds = static_cast<int>(total_seconds_flt);
+    int time_minutes = total_seconds/60;
+    int time_seconds = total_seconds - (time_minutes*60);
+    int time_centisec = static_cast<int>((timestamp - total_seconds_flt) * 100.0);
+
+    snprintf(out_timestamp, sizeof(out_timestamp), "[%02d:%02d.%02d]", time_minutes, time_seconds, time_centisec);
+}
+
+static bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
 {
     if((tag.length() != 10) ||
        (tag[0] != '[') ||
@@ -83,7 +94,7 @@ bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
     return true;
 }
 
-bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
+static bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
 {
     if((tag.length() != 11) ||
        (tag[0] != '[') ||
@@ -184,6 +195,7 @@ LyricData parse(const LyricDataRaw& input)
         double timestamp;
     };
     std::vector<LineData> lines;
+    std::vector<std::string> tags;
     const size_t text_length = input.text.length();
     size_t line_start_index = 0;
     while (line_start_index < text_length)
@@ -233,9 +245,16 @@ LyricData parse(const LyricDataRaw& input)
                 // of the system without special handling.
                 // NOTE: It is important however, to note that this means we need to stable_sort
                 //       below, to preserve the ordering of the "untimed" lines
-                if((line_bytes != 0) && !is_tag_line(line_view))
+                if(line_bytes != 0)
                 {
-                    lines.push_back({pfc::string8(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
+                    if(is_tag_line(line_view))
+                    {
+                        tags.emplace_back(line_view);
+                    }
+                    else
+                    {
+                        lines.push_back({pfc::string8(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
+                    }
                 }
             }
         }
@@ -261,6 +280,7 @@ LyricData parse(const LyricDataRaw& input)
     result.source_id = input.source_id;
     result.format = input.format;
     result.text = input.text;
+    result.tags = std::move(tags);
     result.line_count = lines.size();
     result.lines = new TCHAR*[result.line_count];
     result.line_lengths = new size_t[result.line_count];
@@ -275,6 +295,92 @@ LyricData parse(const LyricDataRaw& input)
         result.timestamps[i] = lines[i].timestamp;
     }
     return result;
+}
+
+std::string expand_text(const LyricData& data)
+{
+    std::string expanded_text;
+    expanded_text.reserve(data.line_count * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
+    for(const std::string& tag : data.tags)
+    {
+        expanded_text += tag.c_str();
+        expanded_text += "\r\n";
+    }
+    expanded_text += "\r\n";
+    for(int i=0; i<data.line_count; i++)
+    {
+        if(data.timestamps[i] != DBL_MAX)
+        {
+            char timestamp[11];
+            print_6digit_timestamp(data.timestamps[i], timestamp);
+            expanded_text += timestamp;
+        }
+
+        pfc::string8 line = tchar_to_string(data.lines[i]);
+
+        expanded_text += line.c_str();
+        expanded_text += "\r\n";
+    }
+
+    return expanded_text;
+}
+
+std::string shrink_text(const LyricData& data)
+{
+    std::string shrunk_text;
+    shrunk_text.reserve(data.line_count * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
+
+    for(const std::string& tag : data.tags)
+    {
+        shrunk_text += tag.c_str();
+        shrunk_text += "\r\n";
+    }
+    shrunk_text += "\r\n";
+
+    std::vector<std::pair<std::string, std::vector<double>>> timestamp_map;
+    for(int i=0; i<data.line_count; i++)
+    {
+        if(data.timestamps[i] == DBL_MAX) continue;
+
+        pfc::string8 linepfc = tchar_to_string(data.lines[i]);
+        std::string line(linepfc.c_str());
+
+        auto iter = std::find_if(timestamp_map.begin(),
+                                 timestamp_map.end(),
+                                 [&line](const auto& entry) { return entry.first == line; });
+        if(iter == timestamp_map.end())
+        {
+            timestamp_map.emplace_back(line, std::vector<double>{data.timestamps[i]});
+        }
+        else
+        {
+            iter->second.push_back(data.timestamps[i]);
+        }
+    }
+
+    for(const auto& [line, times] : timestamp_map)
+    {
+        char timestamp_str[11];
+        for(double time : times)
+        {
+            print_6digit_timestamp(time, timestamp_str);
+            shrunk_text += timestamp_str;
+        }
+        shrunk_text += line;
+        shrunk_text += "\r\n";
+    }
+    for(int i=0; i<data.line_count; i++)
+    {
+        if(data.timestamps[i] != DBL_MAX) continue;
+
+        pfc::string8 linepfc = tchar_to_string(data.lines[i]);
+        std::string line(linepfc.c_str());
+
+        shrunk_text += line;
+        shrunk_text += "\r\n";
+    }
+
+    return shrunk_text;
 }
 
 } // namespace parsers::lrc

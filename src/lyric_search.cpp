@@ -3,15 +3,10 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_search.h"
+#include "parsers.h"
 #include "sources/lyric_source.h"
 #include "sources/localfiles.h"
 #include "winstr_util.h"
-
-namespace parsers
-{
-namespace plaintext { LyricData parse(const LyricDataRaw& input); } // TODO: From parsers/plaintext.cpp
-namespace lrc { LyricData parse(const LyricDataRaw& input); } // TODO: From parsers/lrc.cpp
-}
 
 LyricSearch::LyricSearch(metadb_handle_ptr track) :
     m_track(track),

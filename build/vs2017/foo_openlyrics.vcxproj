@@ -198,6 +198,7 @@
     <ClInclude Include="..\..\src\logging.h" />
     <ClInclude Include="..\..\src\lyric_data.h" />
     <ClInclude Include="..\..\src\lyric_search.h" />
+    <ClInclude Include="..\..\src\parsers.h" />
     <ClInclude Include="..\..\src\preferences.h" />
     <ClInclude Include="..\..\src\resource.h" />
     <ClInclude Include="..\..\src\sources\localfiles.h" />

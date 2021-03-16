@@ -6,6 +6,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "parsers.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
@@ -174,8 +175,17 @@ void LyricEditor::SaveLyricEdits()
         // TODO: Auto-detect format for new lyrics (IE: try parsing as LRC)
     }
 
-    abort_callback_dummy noAbort;
     pfc::string8 lyrics = tchar_to_string(lyric_buffer, chars_copied);
+    if(format == LyricFormat::Timestamped)
+    {
+        LyricDataRaw data_raw = {{}, format, lyrics};
+        LyricData data = parsers::lrc::parse(data_raw);
+        std::string shrunk_str = parsers::lrc::shrink_text(data);
+
+        lyrics = pfc::string8(shrunk_str.c_str());
+    }
+
+    abort_callback_dummy noAbort;
     sources::localfiles::SaveLyrics(m_track_handle, format, lyrics, noAbort);
 
     // We know that if we ran HasContentChanged() now, it would return false.

@@ -8,6 +8,7 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_search.h"
+#include "parsers.h"
 #include "preferences.h"
 #include "sources/localfiles.h"
 #include "ui_lyric_editor.h"
@@ -472,9 +473,11 @@ namespace {
                     LyricDataRaw data = {};
                     if(m_lyrics.format != LyricFormat::Unknown)
                     {
+                        std::string expanded_str = parsers::lrc::expand_text(m_lyrics);
+
                         data.source_id = m_lyrics.source_id;
                         data.format = m_lyrics.format;
-                        data.text = m_lyrics.text;
+                        data.text = pfc::string8(expanded_str.c_str());
                     }
                     SpawnLyricEditor(data, m_now_playing);
                 } break;

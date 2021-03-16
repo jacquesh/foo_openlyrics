@@ -110,6 +110,9 @@
     <ClInclude Include="..\..\3rdparty\cJSON\cJSON.h">
       <Filter>3rdparty</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\parsers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\foo_openlyrics.rc">
