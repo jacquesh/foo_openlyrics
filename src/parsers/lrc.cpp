@@ -28,7 +28,7 @@ static int str_to_int(std::string_view str)
     return result;
 }
 
-static bool is_tag_line(std::string_view line)
+bool is_tag_line(std::string_view line)
 {
     if(line.size() <= 0) return false;
     if(line[0] != '[') return false;
@@ -57,7 +57,7 @@ struct LineTagParseResult
     int charsConsumed;
 };
 
-static void print_6digit_timestamp(double timestamp, char (&out_timestamp)[11])
+void print_6digit_timestamp(double timestamp, char (&out_timestamp)[11])
 {
     double total_seconds_flt = std::floor(timestamp);
     int total_seconds = static_cast<int>(total_seconds_flt);
@@ -68,7 +68,7 @@ static void print_6digit_timestamp(double timestamp, char (&out_timestamp)[11])
     snprintf(out_timestamp, sizeof(out_timestamp), "[%02d:%02d.%02d]", time_minutes, time_seconds, time_centisec);
 }
 
-static bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
+bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
 {
     if((tag.length() != 10) ||
        (tag[0] != '[') ||
@@ -94,7 +94,7 @@ static bool try_parse_6digit_timestamp(std::string_view tag, double& out_timesta
     return true;
 }
 
-static bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
+bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
 {
     if((tag.length() != 11) ||
        (tag[0] != '[') ||
