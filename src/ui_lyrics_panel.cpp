@@ -249,12 +249,9 @@ namespace {
             int text_rect_y = client_rect.CenterPoint().y - (int)(track_fraction * m_lyrics_render_height);
             int current_y = text_rect_y;
 
-            for(int line_index=0; line_index < m_lyrics.line_count; line_index++)
+            for(const LyricDataLine& line : m_lyrics.lines)
             {
-                TCHAR* line_text = m_lyrics.lines[line_index];
-                size_t line_length = m_lyrics.line_lengths[line_index];
-
-                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line_text, line_length);
+                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
                 if(!draw_success)
                 {
                     LOG_WARN("Failed to draw text: %d", GetLastError());
@@ -267,29 +264,26 @@ namespace {
         else if(m_lyrics.format == LyricFormat::Timestamped)
         {
             int active_line_index = -1;
-            int text_height_above_active_line = -(font_metrics.tmHeight + line_gap);
-            while((active_line_index+1 < m_lyrics.line_count) && (current_position > m_lyrics.timestamps[active_line_index+1]))
+            while((active_line_index+1 < m_lyrics.lines.size()) && (current_position > m_lyrics.lines[active_line_index+1].timestamp))
             {
-                text_height_above_active_line += font_metrics.tmHeight + line_gap;
                 active_line_index++;
             }
 
+            int text_height_above_active_line = (font_metrics.tmHeight + line_gap) * active_line_index;
             int current_y = client_rect.CenterPoint().y - text_height_above_active_line;
-            for(int line_index=0; line_index < m_lyrics.line_count; line_index++)
+            for(int line_index=0; line_index < m_lyrics.lines.size(); line_index++)
             {
-                TCHAR* line_text = m_lyrics.lines[line_index];
-                size_t line_length = m_lyrics.line_lengths[line_index];
-
+                const LyricDataLine& line = m_lyrics.lines[line_index];
                 BOOL draw_success = FALSE;
                 if(line_index == active_line_index)
                 {
                     COLORREF previous_colour = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_highlight));
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line_text, line_length);
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
                     SetTextColor(back_buffer, previous_colour);
                 }
                 else
                 {
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line_text, line_length);
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
                 }
 
                 if(!draw_success)
@@ -587,7 +581,7 @@ namespace {
 
         // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         int line_gap = preferences::get_render_linegap();
-        int text_height = new_lyrics->line_count * (font_metrics.tmHeight + line_gap);
+        int text_height = new_lyrics->lines.size() * (font_metrics.tmHeight + line_gap);
 
         // TODO: This isn't ideal: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
         m_lyrics = std::move(*new_lyrics);

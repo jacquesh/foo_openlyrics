@@ -20,15 +20,19 @@ struct LyricDataRaw
 };
 
 // Parsed lyric data
+struct LyricDataLine
+{
+    TCHAR* text;
+    size_t text_length;
+    double timestamp;
+};
+
 struct LyricData : LyricDataRaw
 {
     std::vector<std::string> tags;
-    int line_count;
-    TCHAR** lines;
-    size_t* line_lengths;
-    double* timestamps;
+    std::vector<LyricDataLine> lines;
 
-    LyricData();
+    LyricData() = default;
     LyricData(const LyricData& other) = delete;
     LyricData(LyricData&& other);
 

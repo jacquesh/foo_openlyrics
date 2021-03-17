@@ -54,13 +54,11 @@ LyricData parse(const LyricDataRaw& input)
     result.source_id = input.source_id;
     result.format = input.format;
     result.text = input.text;
-    result.line_count = lines.size();
-    result.lines = new TCHAR*[result.line_count];
-    result.line_lengths = new size_t[result.line_count];
-    for(int i=0; i<result.line_count; i++)
+
+    result.lines.reserve(lines.size());
+    for(size_t i=0; i<lines.size(); i++)
     {
-        result.lines[i] = lines[i];
-        result.line_lengths[i] = line_lengths[i];
+        result.lines.push_back({lines[i], line_lengths[i], DBL_MAX});
     }
     return result;
 }

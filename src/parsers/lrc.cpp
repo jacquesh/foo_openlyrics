@@ -281,19 +281,14 @@ LyricData parse(const LyricDataRaw& input)
     result.format = input.format;
     result.text = input.text;
     result.tags = std::move(tags);
-    result.line_count = lines.size();
-    result.lines = new TCHAR*[result.line_count];
-    result.line_lengths = new size_t[result.line_count];
-    result.timestamps = new double[result.line_count];
-    for(int i=0; i<result.line_count; i++)
+    result.lines.reserve(lines.size());
+    for(const auto& line : lines)
     {
         TCHAR* line_text = nullptr;
-        size_t line_length = string_to_tchar(lines[i].text, line_text);
-        assert(line_length > 0); // The given length includes a null-terminator
+        size_t line_length = string_to_tchar(line.text, line_text);
+        assert(line_length > 0); // The given length includes a null-terminator, we don't want to count the null terminator here
 
-        result.lines[i] = line_text;
-        result.line_lengths[i] = line_length-1; // We don't want to count the null terminator here
-        result.timestamps[i] = lines[i].timestamp;
+        result.lines.push_back({line_text, line_length-1, line.timestamp});
     }
     return result;
 }
@@ -301,29 +296,29 @@ LyricData parse(const LyricDataRaw& input)
 std::string expand_text(const LyricData& data)
 {
     std::string expanded_text;
-    expanded_text.reserve(data.line_count * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
+    expanded_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
     for(const std::string& tag : data.tags)
     {
         expanded_text += tag;
         expanded_text += "\r\n";
     }
     expanded_text += "\r\n";
-    for(int i=0; i<data.line_count; i++)
+    for(const LyricDataLine& line : data.lines)
     {
-        if((data.timestamps != nullptr) && (data.timestamps[i] != DBL_MAX))
+        if(line.timestamp != DBL_MAX)
         {
             char timestamp[11];
-            print_6digit_timestamp(data.timestamps[i], timestamp);
+            print_6digit_timestamp(line.timestamp, timestamp);
             expanded_text += timestamp;
         }
 
-        if(data.line_lengths[i] == 0)
+        if(line.text_length == 0)
         {
             expanded_text += " ";
         }
         else
         {
-            expanded_text += tchar_to_string(data.lines[i]);
+            expanded_text += tchar_to_string(line.text);
         }
         expanded_text += "\r\n";
     }
@@ -334,7 +329,7 @@ std::string expand_text(const LyricData& data)
 std::string shrink_text(const LyricData& data)
 {
     std::string shrunk_text;
-    shrunk_text.reserve(data.line_count * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
+    shrunk_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
 
     for(const std::string& tag : data.tags)
     {
@@ -344,22 +339,22 @@ std::string shrink_text(const LyricData& data)
     shrunk_text += "\r\n";
 
     std::vector<std::pair<std::string, std::vector<double>>> timestamp_map;
-    for(int i=0; i<data.line_count; i++)
+    for(const LyricDataLine& line : data.lines)
     {
-        if(data.timestamps[i] == DBL_MAX) continue;
+        if(line.timestamp == DBL_MAX) continue;
 
-        std::string line = tchar_to_string(data.lines[i]);
+        std::string linestr = tchar_to_string(line.text);
         auto iter = std::find_if(timestamp_map.begin(),
                                  timestamp_map.end(),
-                                 [&line](const auto& entry) { return entry.first == line; });
+                                 [&linestr](const auto& entry) { return entry.first == linestr; });
         if(iter == timestamp_map.end())
         {
-            std::string_view line_to_insert = (line == " ") ? "" : line;
-            timestamp_map.emplace_back(line_to_insert, std::vector<double>{data.timestamps[i]});
+            std::string_view line_to_insert = (linestr == " ") ? "" : linestr;
+            timestamp_map.emplace_back(line_to_insert, std::vector<double>{line.timestamp});
         }
         else
         {
-            iter->second.push_back(data.timestamps[i]);
+            iter->second.push_back(line.timestamp);
         }
     }
 
@@ -374,14 +369,14 @@ std::string shrink_text(const LyricData& data)
         shrunk_text += line;
         shrunk_text += "\r\n";
     }
-    for(int i=0; i<data.line_count; i++)
+    for(const LyricDataLine& line : data.lines)
     {
-        if(data.timestamps[i] != DBL_MAX) continue;
+        if(line.timestamp != DBL_MAX) continue;
 
-        bool was_expanded = ((data.lines[i][0] == ' ') && (data.lines[i][1] == '\0'));
+        bool was_expanded = ((line.text[0] == ' ') && (line.text[1] == '\0'));
         if(!was_expanded)
         {
-            shrunk_text += tchar_to_string(data.lines[i]);
+            shrunk_text += tchar_to_string(line.text);
         }
         shrunk_text += "\r\n";
     }
