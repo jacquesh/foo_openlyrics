@@ -179,8 +179,6 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     DWORD select_index = 0;
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETSEL, (WPARAM)&select_index, (LPARAM)nullptr);
 
-    LRESULT first_visible_line = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETFIRSTVISIBLELINE, 0, 0);
-
     int line_start_index = find_line_start_index_back(lyric_buffer, chars_copied, select_index);
     int next_line_index = find_line_start_index_fwd(lyric_buffer, chars_copied, select_index);
     int next_next_index = find_line_start_index_fwd(lyric_buffer, chars_copied, next_line_index);
@@ -200,12 +198,11 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     SetDlgItemText(IDC_LYRIC_TEXT, new_buffer);
     delete[] new_buffer;
 
-    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINESCROLL, 0, first_visible_line);
-
     // Add 10 to account for the timestamp we just added before these indices
     int new_select_start = next_line_index + 10;
     int new_select_end = next_next_index + 10;
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, new_select_start, new_select_end);
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0); // Scroll the selected line into view
 
     m_lyric_format = LyricFormat::Timestamped;
 
