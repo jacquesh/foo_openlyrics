@@ -462,17 +462,8 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
-                    LyricDataRaw data = {};
-                    if(m_lyrics.format != LyricFormat::Unknown)
-                    {
-                        data.source_id = m_lyrics.source_id;
-                        data.format = m_lyrics.format;
-
-                        // TODO: std::string everywhere!
-                        std::string expanded_str = parsers::lrc::expand_text(m_lyrics);
-                        data.text = pfc::string8(expanded_str.c_str());
-                    }
-                    SpawnLyricEditor(data, m_now_playing);
+                    std::string text = parsers::lrc::expand_text(m_lyrics);
+                    SpawnLyricEditor(text, m_lyrics.format, m_now_playing);
                 } break;
 
                 case ID_OPEN_FILE_DIR:

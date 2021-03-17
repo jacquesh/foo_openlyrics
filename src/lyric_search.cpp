@@ -114,6 +114,9 @@ void LyricSearch::run_async()
 
     switch(lyric_data_raw.format)
     {
+        // TODO: Maybe we don't need this? Our LRC parser already puts all un-timestamped lines
+        //       after all timestamped lines in the order they appear in the file. Plaintext is just
+        //       the extreme case of that where there are *no* timestamped lines...
         case LyricFormat::Plaintext:
         {
             LOG_INFO("Parsing lyrics as plaintext...");

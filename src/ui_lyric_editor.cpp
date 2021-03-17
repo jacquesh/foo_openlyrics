@@ -11,13 +11,15 @@
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
 
+// TODO: Add a "seek to the time of the timestamp on the selected line" button
+
 class LyricEditor : public CDialogImpl<LyricEditor>, private play_callback_impl_base
 {
 public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const LyricDataRaw& data, metadb_handle_ptr track_handle);
+    LyricEditor(const std::string& text, LyricFormat format, metadb_handle_ptr track_handle);
     ~LyricEditor();
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -64,13 +66,13 @@ private:
     size_t m_input_text_length;
 };
 
-LyricEditor::LyricEditor(const LyricDataRaw& data, metadb_handle_ptr track_handle) :
+LyricEditor::LyricEditor(const std::string& text, LyricFormat format, metadb_handle_ptr track_handle) :
     m_track_handle(track_handle),
-    m_lyric_format(data.format),
+    m_lyric_format(format),
     m_input_text(nullptr),
     m_input_text_length(0)
 {
-    m_input_text_length = string_to_tchar(data.text, m_input_text) - 1; // -1 to not count the null-terminator
+    m_input_text_length = string_to_tchar(text, m_input_text) - 1; // -1 to not count the null-terminator
 }
 
 LyricEditor::~LyricEditor()
@@ -395,13 +397,11 @@ void LyricEditor::SaveLyricEdits()
     apply_btn.EnableWindow(FALSE);
 }
 
-void SpawnLyricEditor(const LyricDataRaw& edit_data, metadb_handle_ptr lyric_to_edit_track)
+void SpawnLyricEditor(const std::string& lyric_text, LyricFormat lyric_format, metadb_handle_ptr lyric_to_edit_track)
 {
-    // TODO: We should split out LRC lines that include multiple timestamps so that the
-    //       editor sees just one timestamp per line (and they're all sorted and nice)
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), edit_data, lyric_to_edit_track);
+        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, lyric_format, lyric_to_edit_track);
     }
     catch(const std::exception& e)
     {
