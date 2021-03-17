@@ -476,16 +476,9 @@ namespace {
                         data.source_id = m_lyrics.source_id;
                         data.format = m_lyrics.format;
 
-                        if(m_lyrics.format == LyricFormat::Timestamped)
-                        {
-                            // TODO: std::string everywhere!
-                            std::string expanded_str = parsers::lrc::expand_text(m_lyrics);
-                            data.text = pfc::string8(expanded_str.c_str());
-                        }
-                        else
-                        {
-                            data.text = m_lyrics.text;
-                        }
+                        // TODO: std::string everywhere!
+                        std::string expanded_str = parsers::lrc::expand_text(m_lyrics);
+                        data.text = pfc::string8(expanded_str.c_str());
                     }
                     SpawnLyricEditor(data, m_now_playing);
                 } break;

@@ -33,8 +33,9 @@ LyricData parse(const LyricDataRaw& input)
 
         TCHAR* line_text = nullptr;
         size_t line_length = string_to_tchar(input.text.c_str(), line_start_index, line_bytes, line_text);
+        assert(line_length > 0); // The given length includes a null-terminator
         lines.push_back(line_text);
-        line_lengths.push_back(line_length);
+        line_lengths.push_back(line_length-1); // We don't want to count the null-terminator here
 
         if ((line_end_index + 1 < input.text.length()) &&
             (input.text[line_end_index] == '\r') &&

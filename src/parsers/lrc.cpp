@@ -289,9 +289,10 @@ LyricData parse(const LyricDataRaw& input)
     {
         TCHAR* line_text = nullptr;
         size_t line_length = string_to_tchar(lines[i].text, line_text);
+        assert(line_length > 0); // The given length includes a null-terminator
 
         result.lines[i] = line_text;
-        result.line_lengths[i] = line_length;
+        result.line_lengths[i] = line_length-1; // We don't want to count the null terminator here
         result.timestamps[i] = lines[i].timestamp;
     }
     return result;
@@ -309,14 +310,21 @@ std::string expand_text(const LyricData& data)
     expanded_text += "\r\n";
     for(int i=0; i<data.line_count; i++)
     {
-        if(data.timestamps[i] != DBL_MAX)
+        if((data.timestamps != nullptr) && (data.timestamps[i] != DBL_MAX))
         {
             char timestamp[11];
             print_6digit_timestamp(data.timestamps[i], timestamp);
             expanded_text += timestamp;
         }
 
-        expanded_text += tchar_to_string(data.lines[i]);
+        if(data.line_lengths[i] == 0)
+        {
+            expanded_text += " ";
+        }
+        else
+        {
+            expanded_text += tchar_to_string(data.lines[i]);
+        }
         expanded_text += "\r\n";
     }
 
@@ -346,7 +354,8 @@ std::string shrink_text(const LyricData& data)
                                  [&line](const auto& entry) { return entry.first == line; });
         if(iter == timestamp_map.end())
         {
-            timestamp_map.emplace_back(line, std::vector<double>{data.timestamps[i]});
+            std::string_view line_to_insert = (line == " ") ? "" : line;
+            timestamp_map.emplace_back(line_to_insert, std::vector<double>{data.timestamps[i]});
         }
         else
         {
@@ -369,7 +378,11 @@ std::string shrink_text(const LyricData& data)
     {
         if(data.timestamps[i] != DBL_MAX) continue;
 
-        shrunk_text += tchar_to_string(data.lines[i]);
+        bool was_expanded = ((data.lines[i][0] == ' ') && (data.lines[i][1] == '\0'));
+        if(!was_expanded)
+        {
+            shrunk_text += tchar_to_string(data.lines[i]);
+        }
         shrunk_text += "\r\n";
     }
 
