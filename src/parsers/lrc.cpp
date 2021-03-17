@@ -331,12 +331,15 @@ std::string shrink_text(const LyricData& data)
     std::string shrunk_text;
     shrunk_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
 
-    for(const std::string& tag : data.tags)
+    if(!data.tags.empty())
     {
-        shrunk_text += tag;
+        for(const std::string& tag : data.tags)
+        {
+            shrunk_text += tag;
+            shrunk_text += "\r\n";
+        }
         shrunk_text += "\r\n";
     }
-    shrunk_text += "\r\n";
 
     std::vector<std::pair<std::string, std::vector<double>>> timestamp_map;
     for(const LyricDataLine& line : data.lines)
@@ -349,7 +352,11 @@ std::string shrink_text(const LyricData& data)
                                  [&linestr](const auto& entry) { return entry.first == linestr; });
         if(iter == timestamp_map.end())
         {
-            std::string_view line_to_insert = (linestr == " ") ? "" : linestr;
+            std::string_view line_to_insert("");
+            if(linestr != " ")
+            {
+                line_to_insert = std::string_view(linestr);
+            }
             timestamp_map.emplace_back(line_to_insert, std::vector<double>{line.timestamp});
         }
         else
