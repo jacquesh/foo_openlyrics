@@ -87,8 +87,37 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
 
-        LRESULT first_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, 0, 0);
-        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, 0, first_line_length);
+        int select_start = 0;
+        int select_end = 0;
+        TCHAR* line_buffer = nullptr;
+        int line_buffer_len = 0;
+        int line_count = (int)SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINECOUNT, 0, 0);
+        for(int i=0; i<line_count; i++)
+        {
+            LRESULT line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, i, 0);
+            LRESULT line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, line_start, 0);
+            if(line_length <= 0) continue;
+
+            if(line_buffer_len < line_length)
+            {
+                line_buffer = (TCHAR*)realloc(line_buffer, (line_length+1)*sizeof(TCHAR));
+                line_buffer_len = line_length;
+            }
+
+            line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
+            LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
+            std::string linestr = tchar_to_string(line_buffer, chars_copied);
+            if(!parsers::lrc::is_tag_line(linestr))
+            {
+                select_start = line_start;
+                select_end = line_start + line_length;
+                break;
+            }
+        }
+        free(line_buffer);
+
+        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, select_start, select_end);
+        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
     }
 
     service_ptr_t<playback_control> playback = playback_control::get();
@@ -135,32 +164,50 @@ void LyricEditor::OnPlaybackToggle(UINT /*btn_id*/, int /*notification_type*/, C
 
 void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
-    LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
-    TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
-    UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
-    if(chars_copied != lyric_length)
-    {
-        LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
-    }
-
     // NOTE: Passing -1 will give the line index of the line containing the start of the current selection
     LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, -1, 0);
     LRESULT curr_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index, 0);
     LRESULT curr_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, curr_line_start, 0);
 
-    std::string insert_prefix = tchar_to_string(lyric_buffer, curr_line_start);
-    std::string insert_suffix = tchar_to_string(lyric_buffer + curr_line_start, chars_copied-curr_line_start);
-    delete[] lyric_buffer;
+    assert((curr_line_length >= 0) && (curr_line_length <= INT_MAX));
+    int replace_start = (int)curr_line_start;
+    int replace_end = replace_start;
+
+    assert(curr_line_length >= 0);
+    const int line_buffer_len = 32;
+    TCHAR line_buffer[line_buffer_len+1] = {}; // +1 for the null-terminator
+    line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
+    LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, curr_line_index, (LPARAM)line_buffer);
+    assert(chars_copied <= line_buffer_len+1);
+    if(line_buffer[0] == _T('['))
+    {
+        for(int i=0; i<line_buffer_len; i++)
+        {
+            if(line_buffer[i] == _T('\0')) break;
+            if(line_buffer[i] == _T(']'))
+            {
+                double time = 0;
+                std::string tag = tchar_to_string(&line_buffer[0], i+1); // +1 so that the length covers this current (']') character
+                bool success6 = parsers::lrc::try_parse_6digit_timestamp(tag, time);
+                bool success7 = parsers::lrc::try_parse_7digit_timestamp(tag, time);
+                if(success6 || success7)
+                {
+                    replace_end = replace_start + i + 1;
+                }
+                break;
+            }
+        }
+    }
 
     service_ptr_t<playback_control> playback = playback_control::get();
     double timestamp = playback->playback_get_position();
     char timestamp_str[11] = {};
     parsers::lrc::print_6digit_timestamp(timestamp, timestamp_str);
-    std::string new_text = insert_prefix + timestamp_str + insert_suffix;
 
     TCHAR* new_buffer = nullptr;
-    size_t new_buffer_length = string_to_tchar(new_text, new_buffer);
-    SetDlgItemText(IDC_LYRIC_TEXT, new_buffer);
+    string_to_tchar(timestamp_str, 0, sizeof(timestamp_str), new_buffer);
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, replace_start, replace_end);
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_REPLACESEL, TRUE, (LPARAM)new_buffer);
     delete[] new_buffer;
 
     LRESULT next_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index+1, 0); 
