@@ -64,38 +64,6 @@ private:
     size_t m_input_text_length;
 };
 
-static int find_line_start_index_fwd(TCHAR* text, int text_length, int start_index)
-{
-    assert(start_index >= 0);
-
-    int result = 0;
-    for(int index=start_index; index<text_length; index++)
-    {
-        if(text[index] == _T('\n'))
-        {
-            result = index + 1;
-            break;
-        }
-    }
-    return result;
-}
-
-static int find_line_start_index_back(TCHAR* text, int text_length, int start_index)
-{
-    assert(start_index < text_length);
-
-    int result = 0;
-    for(int index=start_index; index>=0; index--)
-    {
-        if(text[index] == _T('\n'))
-        {
-            result = index+1;
-            break;
-        }
-    }
-    return result;
-}
-
 LyricEditor::LyricEditor(const LyricDataRaw& data, metadb_handle_ptr track_handle) :
     m_track_handle(track_handle),
     m_lyric_format(data.format),
@@ -119,9 +87,8 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
 
-        int select_start = 0;
-        int select_end = find_line_start_index_fwd(m_input_text, m_input_text_length, 0);
-        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, select_start, select_end);
+        LRESULT first_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, 0, 0);
+        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, 0, first_line_length);
     }
 
     service_ptr_t<playback_control> playback = playback_control::get();
@@ -176,15 +143,13 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }
 
-    DWORD select_index = 0;
-    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETSEL, (WPARAM)&select_index, (LPARAM)nullptr);
+    // NOTE: Passing -1 will give the line index of the line containing the start of the current selection
+    LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, -1, 0);
+    LRESULT curr_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index, 0);
+    LRESULT curr_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, curr_line_start, 0);
 
-    int line_start_index = find_line_start_index_back(lyric_buffer, chars_copied, select_index);
-    int next_line_index = find_line_start_index_fwd(lyric_buffer, chars_copied, select_index);
-    int next_next_index = find_line_start_index_fwd(lyric_buffer, chars_copied, next_line_index);
-
-    std::string insert_prefix = tchar_to_string(lyric_buffer, line_start_index);
-    std::string insert_suffix = tchar_to_string(lyric_buffer + line_start_index, chars_copied-line_start_index);
+    std::string insert_prefix = tchar_to_string(lyric_buffer, curr_line_start);
+    std::string insert_suffix = tchar_to_string(lyric_buffer + curr_line_start, chars_copied-curr_line_start);
     delete[] lyric_buffer;
 
     service_ptr_t<playback_control> playback = playback_control::get();
@@ -198,10 +163,11 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     SetDlgItemText(IDC_LYRIC_TEXT, new_buffer);
     delete[] new_buffer;
 
-    // Add 10 to account for the timestamp we just added before these indices
-    int new_select_start = next_line_index + 10;
-    int new_select_end = next_next_index + 10;
-    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, new_select_start, new_select_end);
+    LRESULT next_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index+1, 0); 
+    LRESULT next_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, next_line_start, 0);
+    LRESULT next_line_end = next_line_start + next_line_length;
+
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, next_line_start, next_line_end);
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0); // Scroll the selected line into view
 
     m_lyric_format = LyricFormat::Timestamped;
