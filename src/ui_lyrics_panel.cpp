@@ -61,7 +61,6 @@ namespace {
         void StopTimer();
 
         void InitiateLyricSearch(metadb_handle_ptr track);
-        void CompleteLyricSearch(LyricData* new_lyrics);
 
         ui_element_config::ptr m_config;
 
@@ -70,7 +69,6 @@ namespace {
         metadb_handle_ptr m_now_playing;
         LyricSearch* m_search;
         LyricData m_lyrics;
-        int m_lyrics_render_height;
 
     protected:
         // this must be declared as protected for ui_element_impl_withpopup<> to work.
@@ -104,8 +102,7 @@ namespace {
         m_timerRunning(false),
         m_now_playing(nullptr),
         m_search(nullptr),
-        m_lyrics(),
-        m_lyrics_render_height(0)
+        m_lyrics()
     {
     }
 
@@ -197,7 +194,8 @@ namespace {
             LyricData* new_lyrics = m_search->get_result();
             if(new_lyrics != nullptr)
             {
-                CompleteLyricSearch(new_lyrics);
+                // TODO: This isn't ideal: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
+                m_lyrics = std::move(*new_lyrics);
 
                 delete m_search;
                 m_search = nullptr;
@@ -239,15 +237,15 @@ namespace {
 
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_position = playback->playback_get_position();
-        double total_length = playback->playback_get_length_ex();
         int line_gap = preferences::get_render_linegap();
 
         // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         if(m_lyrics.format == LyricFormat::Plaintext)
         {
+            double total_length = playback->playback_get_length_ex();
             double track_fraction = current_position / total_length;
-            int text_rect_y = client_rect.CenterPoint().y - (int)(track_fraction * m_lyrics_render_height);
-            int current_y = text_rect_y;
+            int lyrics_render_height = m_lyrics.lines.size() * (font_metrics.tmHeight + line_gap);
+            int current_y = client_rect.CenterPoint().y - (int)(track_fraction * lyrics_render_height);
 
             for(const LyricDataLine& line : m_lyrics.lines)
             {
@@ -566,26 +564,6 @@ namespace {
             delete m_search;
         }
         m_search = new LyricSearch(track);
-    }
-
-    void LyricPanel::CompleteLyricSearch(LyricData* new_lyrics)
-    {
-        assert(new_lyrics != nullptr);
-
-        // Calculate string height
-        TEXTMETRIC font_metrics = {};
-        {
-            CDC panel_dc(GetDC());
-            WIN32_OP_D(GetTextMetrics(panel_dc, &font_metrics));
-        }
-
-        // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
-        int line_gap = preferences::get_render_linegap();
-        int text_height = new_lyrics->lines.size() * (font_metrics.tmHeight + line_gap);
-
-        // TODO: This isn't ideal: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
-        m_lyrics = std::move(*new_lyrics);
-        m_lyrics_render_height = text_height;
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.
