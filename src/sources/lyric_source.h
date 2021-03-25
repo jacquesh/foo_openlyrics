@@ -17,6 +17,7 @@ public:
 
     virtual const GUID& id() const = 0;
     virtual const TCHAR* friendly_name() const = 0;
+    virtual bool is_local() const = 0;
     virtual LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) = 0;
 
 protected:

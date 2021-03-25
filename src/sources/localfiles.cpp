@@ -211,6 +211,7 @@ class LocalFileSource : public LyricSourceBase
 {
     const GUID& id() const final { return sources::localfiles::src_guid; }
     const TCHAR* friendly_name() const final { return _T("Configuration Folder Files"); }
+    bool is_local() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };

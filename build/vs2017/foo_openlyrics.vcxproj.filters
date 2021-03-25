@@ -75,6 +75,9 @@
     <ClCompile Include="..\..\3rdparty\cJSON\cJSON.c">
       <Filter>3rdparty</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\id3tag.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">

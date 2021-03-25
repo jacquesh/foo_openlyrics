@@ -14,6 +14,7 @@ class AZLyricsComSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("azlyrics.com"); }
+    bool is_local() const final { return false; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };

@@ -81,6 +81,7 @@ void LyricSearch::run_async()
     LyricData* lyric_data = new LyricData();
 
     // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
+    LyricSourceBase* success_source = nullptr;
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::get_active_sources())
     {
@@ -95,6 +96,7 @@ void LyricSearch::run_async()
             lyric_data_raw = source->query(m_track, m_abort);
             if(lyric_data_raw.format != LyricFormat::Unknown)
             {
+                success_source = source;
                 LOG_INFO("Successfully retrieved lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
                 break;
             }
@@ -144,8 +146,8 @@ void LyricSearch::run_async()
 
     try
     {
-        // TODO: If we load from tags, should we save to file (or vice-versa)?
-        if((lyric_data->format != LyricFormat::Unknown) && preferences::get_autosave_enabled())
+        if((lyric_data->format != LyricFormat::Unknown) && preferences::get_autosave_enabled() &&
+           (success_source != nullptr) && !success_source->is_local())
         {
             SaveMethod method = preferences::get_save_method();
             switch(method)
@@ -156,14 +158,12 @@ void LyricSearch::run_async()
                     //       This is not *necessarily* a problem, but it is some unnecessary work
                     //       and it means that we immediately lose the source information for
                     //       downloaded lyrics.
-                    if(lyric_data->source_id != sources::localfiles::src_guid)
-                    {
-                        sources::localfiles::SaveLyrics(m_track, lyric_data->format, lyric_data->text, m_abort);
-                    }
+                    sources::localfiles::SaveLyrics(m_track, lyric_data->format, lyric_data->text, m_abort);
                 } break;
 
                 case SaveMethod::Id3Tag:
                 {
+                    // TODO: Add saving to ID3 tag
                     LOG_WARN("Saving lyrics to file tags is not currently supported");
                     assert(false);
                 } break;

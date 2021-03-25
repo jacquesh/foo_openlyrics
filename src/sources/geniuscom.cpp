@@ -13,6 +13,7 @@ class GeniusComSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("genius.com"); }
+    bool is_local() const final { return false; }
 
     void add_all_text_to_string(pfc::string8& output, xmlNodePtr node) const;
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
