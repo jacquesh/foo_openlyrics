@@ -7,22 +7,18 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Create GitHub release
-      id: release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: release-test
-        release_name: release-test
-        draft: true
-        prerelease: true
-
     - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Add MSBuild to the PATH
       uses: microsoft/setup-msbuild@v1
+      with:
+        vs-version: '[15.6, 16.0)'
+
+    - name: Install Windows SDK dependencies
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: install visualstudio2017-workload-vctools --package-parameters "--add Microsoft.VisualStudio.Component.Windows81SDK --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC"
 
     - name: Build binary
       working-directory: ${{ env.GITHUB_WORKSPACE }}
@@ -35,6 +31,17 @@ jobs:
         archivename="foo_openlyrics-${release_version}.fb2k-component"
         7z a "${archivename}" ./build/vs2017/Release/foo_openlyrics.dll
         echo "BINARY_PATH=${archivename}" >> $GITHUB_ENV
+
+    - name: Create GitHub release
+      id: release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: release-test
+        release_name: release-test
+        draft: true
+        prerelease: true
 
     - name: Upload release archive
       uses: actions/upload-release-asset@v1.0.1
