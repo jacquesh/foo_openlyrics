@@ -13,12 +13,12 @@ jobs:
     - name: Add MSBuild to the PATH
       uses: microsoft/setup-msbuild@v1
       with:
-        vs-version: '[15.6, 16.0)'
+        vs-version: '[16.0, 17.0)'
 
     - name: Install Windows SDK dependencies
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install visualstudio2017-workload-vctools --package-parameters "--add Microsoft.VisualStudio.Component.Windows81SDK --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC"
+        args: install visualstudio2019-workload-vctools --package-parameters "--add Microsoft.VisualStudio.Component.Windows81SDK --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC"
 
     - name: Build binary
       working-directory: ${{ env.GITHUB_WORKSPACE }}
