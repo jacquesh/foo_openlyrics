@@ -15,6 +15,7 @@ jobs:
       with:
         tag_name: release-test
         release_name: release-test
+        draft: true
         prerelease: true
 
     - name: Checkout code
