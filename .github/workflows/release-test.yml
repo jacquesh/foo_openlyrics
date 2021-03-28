@@ -47,7 +47,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.RELEASE_VERSION }}
-        draft: true
+        release_name: ${{ env.RELEASE_VERSION }}
 
     - name: Upload component archive
       uses: actions/upload-release-asset@v1.0.1
