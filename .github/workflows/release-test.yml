@@ -31,8 +31,8 @@ jobs:
       run: |
         $release_version="0.0"
         $archivename="foo_openlyrics-${release_version}"
-        7z a "${archivename}.fb2k-component" "build\vs2017\Release\foo_openlyrics.dll"
-        7z a "${archivename}-with_debug_symbols.zip" "build\vs2017\Release\foo_openlyrics.dll" "builds\vs2017\Release\foo_openlyrics.pdb"
+        7z a "${archivename}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
+        7z a "${archivename}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
         echo "ARCHIVE_NAME=${archivename}" >> $GITHUB_ENV
 
     - name: Create GitHub release
