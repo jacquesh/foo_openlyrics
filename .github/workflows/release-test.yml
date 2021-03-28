@@ -27,7 +27,7 @@ jobs:
 
     - name: Build binary
       working-directory: ${{ env.GITHUB_WORKSPACE }}
-      run: msbuild /m /p:Configuration=Release /p:Platform=x86 /p:WindowsTargetPlatformVersion=10.0.16299.0 ./build/vs2017/foo_openlyrics.sln
+      run: msbuild /m /p:Configuration=Release /p:Platform=x86 build\vs2017\foo_openlyrics.sln
 
     - name: Pack binary into archive
       shell: bash
