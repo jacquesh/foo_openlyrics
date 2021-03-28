@@ -32,30 +32,19 @@ jobs:
     - name: Pack binary into archive
       shell: bash
       run: |
-        echo "Git ref = ${GITHUB_REF}"
         release_version="${GITHUB_REF#refs/tags/}"
-        release_notes=`git tag -l --format="%(contents)" ${release_version}`
         release_name="foo_openlyrics-${release_version}"
-        echo "Release version ${release_version} with release notes:"
-        echo ${release_notes}
-        echo "Release notes command output:"
-        git tag -l --format="%(contents)" ${release_version}
+        echo "Release version ${release_version}"
         7z a "${release_name}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
         7z a "${release_name}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
         echo "RELEASE_VERSION=${release_version}" >> $GITHUB_ENV
         echo "RELEASE_NAME=${release_name}" >> $GITHUB_ENV
-        echo "RELEASE_NOTES=${release_notes}" >> $GITHUB_ENV
 
     - name: Create GitHub release
       id: release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.RELEASE_VERSION }}
-        release_name: ${{ env.RELEASE_VERSION }}
-        body: ${{ env.RELEASE_NOTES }}
-        draft: true
 
     - name: Upload component archive
       uses: actions/upload-release-asset@v1.0.1
