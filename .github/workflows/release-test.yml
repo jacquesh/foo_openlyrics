@@ -38,7 +38,7 @@ jobs:
         release_name="foo_openlyrics-${release_version}"
         7z a "${release_name}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
         7z a "${release_name}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
-        echo "ARCHIVE_NAME=${archivename}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=${release_name}" >> $GITHUB_ENV
         echo "RELEASE_NOTES=${release_notes}" >> $GITHUB_ENV
 
     - name: Create GitHub release
@@ -47,6 +47,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
+        tag_name: ${GITHUB_REF#refs/tags/}
+        release_name: ${GITHUB_REF#refs/tags/}
         body: ${{ env.RELEASE_NOTES }}
-        artifacts: ${{ env.ARCHIVE_NAME }}.fb2k-component,${{ env.ARCHIVE_NAME }}-with_debug_symbols.zip
+        artifacts: ${{ env.RELEASE_NAME }}.fb2k-component,${{ env.RELEASE_NAME }}-with_debug_symbols.zip
         draft: true
