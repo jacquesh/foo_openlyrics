@@ -34,6 +34,8 @@ jobs:
         7z a "${archivename}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
         7z a "${archivename}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
         echo "ARCHIVE_NAME=${archivename}" >> $GITHUB_ENV
+        echo $GITHUB_ENV
+        cat $GITHUB_ENV
 
     - name: Create GitHub release
       id: release
@@ -61,7 +63,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ${{ env.BINARY_PATH }}-with_debug_symbols.zip
-        asset_name: ${{ env.BINARY_PATH }}-with_debug_symbols.zip
+        asset_path: ${{ env.ARCHIVE_NAME }}-with_debug_symbols.zip
+        asset_name: ${{ env.ARCHIVE_NAME }}-with_debug_symbols.zip
         asset_content_type: application/octet-stream
 
