@@ -20,6 +20,13 @@ jobs:
       with:
         args: install visualstudio2019-workload-vctools --package-parameters "--add Microsoft.VisualStudio.Component.Windows81SDK --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC"
 
+    - name: Print SDK versions
+      shell: bash
+      run: |
+        ls -la "C:\Program Files (x86)\Windows Kits"
+        cat "C:\Program Files (x86)\Windows Kits\8.1\SDKManifest.xml"
+        cat "C:\Program Files (x86)\Windows Kits\10\SDKManifest.xml"
+
     - name: Build binary
       working-directory: ${{ env.GITHUB_WORKSPACE }}
       run: msbuild /m /p:Configuration=Release /p:Platform=x86 ./build/vs2017/foo_openlyrics.sln
