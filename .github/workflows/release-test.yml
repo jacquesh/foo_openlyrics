@@ -7,39 +7,17 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Print Windows SDK registry info before installation
+    - name: Print installed Windows SDK versions
       shell: powershell
       continue-on-error: true
       run: |
         Get-Item "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
-        Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
+        Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
     - name: Add MSBuild to the PATH
       uses: microsoft/setup-msbuild@v1
       with:
         vs-version: '[16.0, 17.0)'
-
-    - name: Install Windows SDK dependencies
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Component.Windows81SDK --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC"
-
-    - name: Print SDK versions
-      shell: bash
-      continue-on-error: true
-      run: |
-        ls -la "C:/Program Files (x86)/Windows Kits"
-        ls -la "C:/Program Files (x86)/Windows Kits/10"
-        ls -la "C:/Program Files (x86)/Windows Kits/8.1"
-        cat "C:/Program Files (x86)/Windows Kits/10/SDKManifest.xml"
-        cat "C:/Program Files (x86)/Windows Kits/8.1/SDKManifest.xml"
-
-    - name: Print Windows SDK registry info
-      shell: powershell
-      continue-on-error: true
-      run: |
-        Get-Item "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
-        Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
     - name: Checkout code
       uses: actions/checkout@v2
