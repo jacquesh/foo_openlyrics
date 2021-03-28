@@ -22,10 +22,20 @@ jobs:
 
     - name: Print SDK versions
       shell: bash
+      continue-on-error: true
       run: |
-        ls -la "C:\Program Files (x86)\Windows Kits"
-        cat "C:\Program Files (x86)\Windows Kits\8.1\SDKManifest.xml"
-        cat "C:\Program Files (x86)\Windows Kits\10\SDKManifest.xml"
+        ls -la "C:/Program Files (x86)/Windows Kits"
+        ls -la "C:/Program Files (x86)/Windows Kits/8.1"
+        ls -la "C:/Program Files (x86)/Windows Kits/10"
+        cat "C:/Program Files (x86)/Windows Kits/8.1/SDKManifest.xml"
+        cat "C:/Program Files (x86)/Windows Kits/10/SDKManifest.xml"
+
+    - name: Print Windows SDK registry info
+      shell: powershell
+      continue-on-error: true
+      run: |
+        Get-Item "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
+        Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
     - name: Build binary
       working-directory: ${{ env.GITHUB_WORKSPACE }}
