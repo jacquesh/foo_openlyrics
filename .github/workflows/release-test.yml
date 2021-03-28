@@ -1,5 +1,8 @@
 name: release
-on: [push]
+on:
+  push:
+    tags:
+    - 'v[0-9]+.[0-9]+.*'
 
 jobs:
   build-release:
@@ -29,11 +32,14 @@ jobs:
     - name: Pack binary into archive
       shell: bash
       run: |
-        release_version="0.0"
-        archivename="foo_openlyrics-${release_version}"
-        7z a "${archivename}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
-        7z a "${archivename}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
+        release_version="${GITHUB_REF#refs/tags/}"
+        echo "version is: $release_version"
+        release_notes=`git tag -l --format="%(contents)" ${release_version}`
+        release_name="foo_openlyrics-${release_version}"
+        7z a "${release_name}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
+        7z a "${release_name}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
         echo "ARCHIVE_NAME=${archivename}" >> $GITHUB_ENV
+        echo "RELEASE_NOTES=${release_notes}" >> $GITHUB_ENV
 
     - name: Create GitHub release
       id: release
@@ -41,27 +47,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: release-test
-        release_name: release-test
+        body: ${{ env.RELEASE_NOTES }}
+        artifacts: ${{ env.ARCHIVE_NAME }}.fb2k-component,${{ env.ARCHIVE_NAME }}-with_debug_symbols.zip
         draft: true
-
-    - name: Upload component archive
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ${{ env.ARCHIVE_NAME }}.fb2k-component
-        asset_name: ${{ env.ARCHIVE_NAME }}.fb2k-component
-        asset_content_type: application/octet-stream
-
-    - name: Upload debug symbols
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ${{ env.ARCHIVE_NAME }}-with_debug_symbols.zip
-        asset_name: ${{ env.ARCHIVE_NAME }}-with_debug_symbols.zip
-        asset_content_type: application/octet-stream
-
