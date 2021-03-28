@@ -10,9 +10,7 @@ jobs:
     - name: Print installed Windows SDK versions
       shell: powershell
       continue-on-error: true
-      run: |
-        Get-Item "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
-        Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
+      run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
     - name: Add MSBuild to the PATH
       uses: microsoft/setup-msbuild@v1
@@ -26,16 +24,16 @@ jobs:
       run: 3rdparty\libxml2-2.9.10\win32\configure.bat
 
     - name: Build binary
-      working-directory: ${{ env.GITHUB_WORKSPACE }}
       run: msbuild /m /p:Configuration=Release /p:Platform=x86 build\vs2017\foo_openlyrics.sln
 
     - name: Pack binary into archive
       shell: bash
       run: |
-        release_version="0.0"
-        archivename="foo_openlyrics-${release_version}.fb2k-component"
-        7z a "${archivename}" ./build/vs2017/Release/foo_openlyrics.dll
-        echo "BINARY_PATH=${archivename}" >> $GITHUB_ENV
+        $release_version="0.0"
+        $archivename="foo_openlyrics-${release_version}"
+        7z a "${archivename}.fb2k-component" "build\vs2017\Release\foo_openlyrics.dll"
+        7z a "${archivename}-with_debug_symbols.zip" "build\vs2017\Release\foo_openlyrics.dll" "builds\vs2017\Release\foo_openlyrics.pdb"
+        echo "ARCHIVE_NAME=${archivename}" >> $GITHUB_ENV
 
     - name: Create GitHub release
       id: release
@@ -46,15 +44,24 @@ jobs:
         tag_name: release-test
         release_name: release-test
         draft: true
-        prerelease: true
 
-    - name: Upload release archive
+    - name: Upload component archive
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ${{ env.BINARY_PATH }}
-        asset_name: ${{ env.BINARY_PATH }}
+        asset_path: ${{ env.ARCHIVE_NAME }}.fb2k-component
+        asset_name: ${{ env.ARCHIVE_NAME }}.fb2k-component
+        asset_content_type: application/octet-stream
+
+    - name: Upload debug symbols
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.release.outputs.upload_url }}
+        asset_path: ${{ env.BINARY_PATH }}-with_debug_symbols.zip
+        asset_name: ${{ env.BINARY_PATH }}-with_debug_symbols.zip
         asset_content_type: application/octet-stream
 
