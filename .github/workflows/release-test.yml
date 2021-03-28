@@ -8,7 +8,7 @@ jobs:
 
     steps:
     - name: Print installed Windows SDK versions
-      shell: powershell
+      shell: pwsh
       continue-on-error: true
       run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
@@ -27,7 +27,7 @@ jobs:
       run: msbuild /m /p:Configuration=Release /p:Platform=x86 build\vs2017\foo_openlyrics.sln
 
     - name: Pack binary into archive
-      shell: bash
+      shell: pwsh
       run: |
         $release_version="0.0"
         $archivename="foo_openlyrics-${release_version}"
