@@ -9,6 +9,7 @@ namespace parsers::plaintext
 
 LyricData parse(const LyricDataRaw& input)
 {
+    TRACK_CALL_TEXT("Parse plaintext lyric text");
     if((input.format != LyricFormat::Plaintext) || input.text.empty())
     {
         LOG_WARN("Cannot parse given raw lyrics as plaintext");

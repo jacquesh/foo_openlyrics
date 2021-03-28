@@ -189,6 +189,7 @@ namespace {
 
     void LyricPanel::OnPaint(CDCHandle)
     {
+        TRACK_CALL_TEXT("Paint lyrics panel");
         if(m_search != nullptr)
         {
             LyricData* new_lyrics = m_search->get_result();
@@ -548,6 +549,7 @@ namespace {
 
     void LyricPanel::InitiateLyricSearch(metadb_handle_ptr track)
     {
+        TRACK_CALL_TEXT("Initiate lyric search");
         m_lyrics = {};
 
         if(m_search != nullptr)

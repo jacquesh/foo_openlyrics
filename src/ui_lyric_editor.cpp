@@ -85,6 +85,7 @@ LyricEditor::~LyricEditor()
 
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
+    TRACK_CALL_TEXT("Editor window initialisation");
     if(m_input_text)
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
@@ -166,6 +167,7 @@ void LyricEditor::OnPlaybackToggle(UINT /*btn_id*/, int /*notification_type*/, C
 
 void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
+    TRACK_CALL_TEXT("Editor line synchronisation");
     // NOTE: Passing -1 will give the line index of the line containing the start of the current selection
     LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, -1, 0);
     LRESULT curr_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index, 0);
@@ -352,6 +354,7 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
 
 void LyricEditor::SaveLyricEdits()
 {
+    TRACK_CALL_TEXT("Editor save");
     LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
     if(lyric_length <= 0) return;
 
@@ -399,6 +402,7 @@ void LyricEditor::SaveLyricEdits()
 
 void SpawnLyricEditor(const std::string& lyric_text, LyricFormat lyric_format, metadb_handle_ptr lyric_to_edit_track)
 {
+    TRACK_CALL_TEXT("Editor spawn");
     try
     {
         new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, lyric_format, lyric_to_edit_track);

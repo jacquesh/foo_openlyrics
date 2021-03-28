@@ -78,6 +78,7 @@ static void ensure_windows_newlines(std::string& str)
 
 void LyricSearch::run_async()
 {
+    TRACK_CALL_TEXT("Search for lyrics");
     LyricData* lyric_data = new LyricData();
 
     // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
