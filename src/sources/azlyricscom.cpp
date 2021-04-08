@@ -144,7 +144,6 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
             LyricDataRaw result = {};
             result.source_id = id();
-            result.format = LyricFormat::Plaintext;
             result.text = std::move(lyric_text);
             return result;
         }

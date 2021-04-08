@@ -51,9 +51,6 @@
     <ClCompile Include="..\..\src\winstr_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\parsers\plaintext.cpp">
-      <Filter>Source Files\parsers</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\parsers\lrc.cpp">
       <Filter>Source Files\parsers</Filter>
     </ClCompile>

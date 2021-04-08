@@ -7,7 +7,6 @@
 namespace parsers
 {
 
-namespace plaintext { LyricData parse(const LyricDataRaw& input); }
 namespace lrc
 {
     bool is_tag_line(std::string_view line);

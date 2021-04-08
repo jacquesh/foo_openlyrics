@@ -299,7 +299,6 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
                 result.source_id = src_guid;
-                result.format = LyricFormat::Timestamped;
                 result.text = lrc_lyric->valuestring;
             }
         }

@@ -95,7 +95,7 @@ void LyricSearch::run_async()
             m_abort.check();
 
             lyric_data_raw = source->query(m_track, m_abort);
-            if(lyric_data_raw.format != LyricFormat::Unknown)
+            if(!lyric_data_raw.text.empty())
             {
                 success_source = source;
                 LOG_INFO("Successfully retrieved lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
@@ -115,39 +115,15 @@ void LyricSearch::run_async()
     }
     ensure_windows_newlines(lyric_data_raw.text);
 
-    switch(lyric_data_raw.format)
+    if(!lyric_data_raw.text.empty())
     {
-        // TODO: Maybe we don't need this? Our LRC parser already puts all un-timestamped lines
-        //       after all timestamped lines in the order they appear in the file. Plaintext is just
-        //       the extreme case of that where there are *no* timestamped lines...
-        case LyricFormat::Plaintext:
-        {
-            LOG_INFO("Parsing lyrics as plaintext...");
-            *lyric_data = parsers::plaintext::parse(lyric_data_raw);
-        } break;
-
-        case LyricFormat::Timestamped:
-        {
-            LOG_INFO("Parsing lyrics as LRC...");
-            *lyric_data = parsers::lrc::parse(lyric_data_raw);
-            if(lyric_data->format != LyricFormat::Timestamped)
-            {
-                LOG_INFO("Failed to parse lyrics as LRC, falling back to plaintext...");
-                lyric_data_raw.format = LyricFormat::Plaintext;
-                *lyric_data = parsers::plaintext::parse(lyric_data_raw);
-            }
-        } break;
-
-        case LyricFormat::Unknown:
-        default:
-        {
-            break; // No lyrics to parse
-        }
+        LOG_INFO("Parsing lyrics as LRC...");
+        *lyric_data = parsers::lrc::parse(lyric_data_raw);
     }
 
     try
     {
-        if((lyric_data->format != LyricFormat::Unknown) && preferences::get_autosave_enabled() &&
+        if(!lyric_data->IsEmpty() && preferences::get_autosave_enabled() &&
            (success_source != nullptr) && !success_source->is_local())
         {
             SaveMethod method = preferences::get_save_method();
@@ -159,7 +135,15 @@ void LyricSearch::run_async()
                     //       This is not *necessarily* a problem, but it is some unnecessary work
                     //       and it means that we immediately lose the source information for
                     //       downloaded lyrics.
-                    sources::localfiles::SaveLyrics(m_track, lyric_data->format, lyric_data->text, m_abort);
+                    if(lyric_data->IsTimestamped())
+                    {
+                        std::string shrunk_text = parsers::lrc::shrink_text(*lyric_data);
+                        sources::localfiles::SaveLyrics(m_track, true, shrunk_text, m_abort);
+                    }
+                    else
+                    {
+                        sources::localfiles::SaveLyrics(m_track, false, lyric_data->text, m_abort);
+                    }
                 } break;
 
                 case SaveMethod::Id3Tag:

@@ -241,61 +241,7 @@ namespace {
         int line_gap = preferences::get_render_linegap();
 
         // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
-        if(m_lyrics.format == LyricFormat::Plaintext)
-        {
-            double total_length = playback->playback_get_length_ex();
-            double track_fraction = current_position / total_length;
-            int lyrics_render_height = m_lyrics.lines.size() * (font_metrics.tmHeight + line_gap);
-            int current_y = client_rect.CenterPoint().y - (int)(track_fraction * lyrics_render_height);
-
-            for(const LyricDataLine& line : m_lyrics.lines)
-            {
-                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
-                if(!draw_success)
-                {
-                    LOG_WARN("Failed to draw text: %d", GetLastError());
-                    StopTimer();
-                    break;
-                }
-                current_y += font_metrics.tmHeight + line_gap;
-            }
-        }
-        else if(m_lyrics.format == LyricFormat::Timestamped)
-        {
-            int active_line_index = -1;
-            while((active_line_index+1 < m_lyrics.lines.size()) && (current_position > m_lyrics.lines[active_line_index+1].timestamp))
-            {
-                active_line_index++;
-            }
-
-            int text_height_above_active_line = (font_metrics.tmHeight + line_gap) * active_line_index;
-            int current_y = client_rect.CenterPoint().y - text_height_above_active_line;
-            for(int line_index=0; line_index < m_lyrics.lines.size(); line_index++)
-            {
-                const LyricDataLine& line = m_lyrics.lines[line_index];
-                BOOL draw_success = FALSE;
-                if(line_index == active_line_index)
-                {
-                    COLORREF previous_colour = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_highlight));
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
-                    SetTextColor(back_buffer, previous_colour);
-                }
-                else
-                {
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
-                }
-
-                if(!draw_success)
-                {
-                    LOG_WARN("Failed to draw text: %d", GetLastError());
-                    StopTimer();
-                    break;
-                }
-
-                current_y += font_metrics.tmHeight + line_gap;
-            }
-        }
-        else
+        if(m_lyrics.IsEmpty())
         {
             if(m_now_playing != nullptr)
             {
@@ -369,6 +315,61 @@ namespace {
                 delete[] title_line;
                 delete[] album_line;
                 delete[] artist_line;
+            }
+        }
+        else if(m_lyrics.IsTimestamped())
+        {
+            int active_line_index = -1;
+            int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
+            while((active_line_index+1 < lyric_line_count) && (current_position > m_lyrics.lines[active_line_index+1].timestamp))
+            {
+                active_line_index++;
+            }
+
+            int text_height_above_active_line = (font_metrics.tmHeight + line_gap) * active_line_index;
+            int current_y = client_rect.CenterPoint().y - text_height_above_active_line;
+            for(int line_index=0; line_index < lyric_line_count; line_index++)
+            {
+                const LyricDataLine& line = m_lyrics.lines[line_index];
+                BOOL draw_success = FALSE;
+                if(line_index == active_line_index)
+                {
+                    COLORREF previous_colour = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_highlight));
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
+                    SetTextColor(back_buffer, previous_colour);
+                }
+                else
+                {
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
+                }
+
+                if(!draw_success)
+                {
+                    LOG_WARN("Failed to draw text: %d", GetLastError());
+                    StopTimer();
+                    break;
+                }
+
+                current_y += font_metrics.tmHeight + line_gap;
+            }
+        }
+        else // We have lyrics, but no timestamps
+        {
+            double total_length = playback->playback_get_length_ex();
+            double track_fraction = current_position / total_length;
+            int lyrics_render_height = m_lyrics.lines.size() * (font_metrics.tmHeight + line_gap);
+            int current_y = client_rect.CenterPoint().y - (int)(track_fraction * lyrics_render_height);
+
+            for(const LyricDataLine& line : m_lyrics.lines)
+            {
+                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
+                if(!draw_success)
+                {
+                    LOG_WARN("Failed to draw text: %d", GetLastError());
+                    StopTimer();
+                    break;
+                }
+                current_y += font_metrics.tmHeight + line_gap;
             }
         }
 
@@ -464,7 +465,7 @@ namespace {
                     if(m_now_playing == nullptr) break;
 
                     std::string text = parsers::lrc::expand_text(m_lyrics);
-                    SpawnLyricEditor(text, m_lyrics.format, m_now_playing);
+                    SpawnLyricEditor(text, m_now_playing);
                 } break;
 
                 case ID_OPEN_FILE_DIR:

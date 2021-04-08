@@ -13,5 +13,5 @@ namespace sources::localfiles
 
     pfc::string8 GetLyricsDir();
 
-    void SaveLyrics(metadb_handle_ptr track, LyricFormat format, std::string_view lyrics, abort_callback& abort);
+    void SaveLyrics(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort);
 }

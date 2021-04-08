@@ -54,7 +54,6 @@ LyricDataRaw ID3TagLyricSource::query(metadb_handle_ptr track, abort_callback& a
     if(!text.empty())
     {
         result.text = text;
-        result.format = LyricFormat::Plaintext;
     }
 
     return result;

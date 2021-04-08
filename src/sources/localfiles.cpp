@@ -151,7 +151,7 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format, std::string_view lyrics, abort_callback& abort)
+void sources::localfiles::SaveLyrics(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
 {
     pfc::string8 save_file_title;
     if(!ComputeFileTitle(track, save_file_title))
@@ -162,16 +162,9 @@ void sources::localfiles::SaveLyrics(metadb_handle_ptr track, LyricFormat format
 
     pfc::string8 output_path = GetLyricsDir();
     output_path.add_filename(save_file_title.c_str());
-    switch(format)
-    {
-        case LyricFormat::Plaintext: output_path.add_string(".txt"); break;
-        case LyricFormat::Timestamped: output_path.add_string(".lrc"); break;
 
-        case LyricFormat::Unknown:
-        default:
-            LOG_ERROR("Failed to compute output file path for title %s and format %d", save_file_title.c_str(), (int)format);
-            return;
-    }
+    const char* extension = is_timestamped ? ".lrc" : ".txt";
+    output_path.add_string(extension);
     LOG_INFO("Saving lyrics to %s...", output_path.c_str());
 
     TCHAR temp_path_str[MAX_PATH+1];
@@ -231,16 +224,12 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
     lyric_path_prefix.add_filename(file_title);
 
     // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
-    struct ExtensionDefinition
-    {
-        const char* extension;
-        LyricFormat format;
-    };
-    const ExtensionDefinition extensions[] = { {".lrc", LyricFormat::Timestamped}, {".txt", LyricFormat::Plaintext} };
-    for (const ExtensionDefinition& ext : extensions)
+    // TODO: Should these extensions be configurable?
+    const char* extensions[] = { ".lrc", ".txt" };
+    for (const char* ext : extensions)
     {
         pfc::string8 file_path = lyric_path_prefix;
-        file_path.add_string(ext.extension);
+        file_path.add_string(ext);
         LOG_INFO("Querying for lyrics from %s...", file_path.c_str());
 
         try
@@ -253,7 +242,7 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
                 pfc::string8 file_contents;
                 file->read_string_raw(file_contents, abort);
 
-                LyricDataRaw result = {id(), ext.format, file_contents};
+                LyricDataRaw result = {id(), file_contents};
                 LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
                 return result;
             }

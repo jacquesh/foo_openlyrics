@@ -184,9 +184,9 @@ static ParsedLineContents parse_line_times(std::string_view line)
 LyricData parse(const LyricDataRaw& input)
 {
     TRACK_CALL_TEXT("Parse LRC lyric text");
-    if((input.format != LyricFormat::Timestamped) || input.text.empty())
+    if(input.text.empty())
     {
-        LOG_WARN("Cannot parse given raw lyrics as LRC");
+        LOG_WARN("Cannot parse empty raw lyrics as LRC");
         return {};
     }
 
@@ -279,7 +279,6 @@ LyricData parse(const LyricDataRaw& input)
 
     LyricData result = {};
     result.source_id = input.source_id;
-    result.format = input.format;
     result.text = input.text;
     result.tags = std::move(tags);
     result.lines.reserve(lines.size());

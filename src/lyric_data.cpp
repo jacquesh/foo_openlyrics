@@ -7,15 +7,23 @@ LyricData::LyricData(LyricData&& other)
     *this = std::move(other);
 }
 
+bool LyricData::IsTimestamped()
+{
+    return !lines.empty() && (lines[0].timestamp != DBL_MAX);
+}
+
+bool LyricData::IsEmpty()
+{
+    return lines.empty();
+}
+
 void LyricData::operator =(LyricData&& other)
 {
-    format = other.format;
     source_id = other.source_id;
     text = other.text;
     tags = std::move(other.tags);
     lines = std::move(other.lines);
 
-    other.format = LyricFormat::Unknown;
     other.source_id = {};
     other.text.clear();
 }

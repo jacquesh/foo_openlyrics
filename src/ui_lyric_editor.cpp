@@ -19,8 +19,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const std::string& text, LyricFormat format, metadb_handle_ptr track_handle);
-    ~LyricEditor();
+    LyricEditor(const std::string& text, metadb_handle_ptr track_handle);
 
     BEGIN_MSG_MAP_EX(LyricEditor)
         MSG_WM_INITDIALOG(OnInitDialog)
@@ -61,14 +60,12 @@ private:
     void SaveLyricEdits();
 
     metadb_handle_ptr m_track_handle;
-    LyricFormat m_lyric_format;
     TCHAR* m_input_text;
     size_t m_input_text_length;
 };
 
-LyricEditor::LyricEditor(const std::string& text, LyricFormat format, metadb_handle_ptr track_handle) :
+LyricEditor::LyricEditor(const std::string& text, metadb_handle_ptr track_handle) :
     m_track_handle(track_handle),
-    m_lyric_format(format),
     m_input_text(nullptr),
     m_input_text_length(0)
 {
@@ -221,8 +218,6 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, next_line_start, next_line_end);
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0); // Scroll the selected line into view
 
-    m_lyric_format = LyricFormat::Timestamped;
-
     // We've (almost) certainly changed the contents so enable the "Apply" button
     CWindow apply_btn = GetDlgItem(ID_LYRIC_EDIT_APPLY);
     assert(apply_btn != nullptr);
@@ -373,25 +368,22 @@ void LyricEditor::SaveLyricEdits()
     m_input_text = lyric_buffer;
     m_input_text_length = chars_copied;
 
-    // TODO: Should we do this even if we know the format?
-    //       What if somebody adds timestamps to existing plaintext lyrics?
-    LyricFormat format = m_lyric_format;
-    if(format == LyricFormat::Unknown) 
-    {
-        format = LyricFormat::Plaintext;
-        // TODO: Auto-detect format for new lyrics (IE: try parsing as LRC)
-    }
-
     std::string lyrics = tchar_to_string(lyric_buffer, chars_copied);
-    if(format == LyricFormat::Timestamped)
-    {
-        LyricDataRaw data_raw = {{}, format, lyrics};
-        LyricData data = parsers::lrc::parse(data_raw);
-        lyrics = parsers::lrc::shrink_text(data);
-    }
+    LyricDataRaw data_raw = {{}, lyrics}; // TODO: Should we store/fill in the original source of the lyrics?
 
-    abort_callback_dummy noAbort;
-    sources::localfiles::SaveLyrics(m_track_handle, format, lyrics, noAbort);
+    LyricData data = parsers::lrc::parse(data_raw);
+    if(data.IsTimestamped())
+    {
+        lyrics = parsers::lrc::shrink_text(data);
+
+        abort_callback_dummy noAbort;
+        sources::localfiles::SaveLyrics(m_track_handle, true, lyrics, noAbort);
+    }
+    else
+    {
+        abort_callback_dummy noAbort;
+        sources::localfiles::SaveLyrics(m_track_handle, false, lyrics, noAbort);
+    }
 
     // We know that if we ran HasContentChanged() now, it would return false.
     // So short-circuit it and just disable the apply button directly
@@ -400,12 +392,12 @@ void LyricEditor::SaveLyricEdits()
     apply_btn.EnableWindow(FALSE);
 }
 
-void SpawnLyricEditor(const std::string& lyric_text, LyricFormat lyric_format, metadb_handle_ptr lyric_to_edit_track)
+void SpawnLyricEditor(const std::string& lyric_text, metadb_handle_ptr lyric_to_edit_track)
 {
     TRACK_CALL_TEXT("Editor spawn");
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, lyric_format, lyric_to_edit_track);
+        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, lyric_to_edit_track);
     }
     catch(const std::exception& e)
     {

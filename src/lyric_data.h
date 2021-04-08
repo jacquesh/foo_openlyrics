@@ -4,18 +4,10 @@
 
 #include "preferences.h"
 
-enum class LyricFormat
-{
-    Unknown,
-    Plaintext,
-    Timestamped
-};
-
 // Raw (unparsed) lyric data
 struct LyricDataRaw
 {
     GUID source_id;
-    LyricFormat format;
     std::string text;
 };
 
@@ -35,6 +27,9 @@ struct LyricData : LyricDataRaw
     LyricData() = default;
     LyricData(const LyricData& other) = delete;
     LyricData(LyricData&& other);
+
+    bool IsTimestamped();
+    bool IsEmpty();
 
     void operator =(const LyricData& other) = delete;
     void operator =(LyricData&& other);
