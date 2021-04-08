@@ -25,7 +25,7 @@ namespace {
     {
     public:
         // ATL window class declaration. Replace class name with your own when reusing code.
-        DECLARE_WND_CLASS_EX(TEXT("{32CB89E1-3EA5-4AE7-A6E6-2DEA68A04D53}"), CS_VREDRAW | CS_HREDRAW, (-1));
+        DECLARE_WND_CLASS_EX(TEXT("{32CB89E1-3EA5-4AE7-A6E6-2DEA68A04D53}"), CS_VREDRAW | CS_HREDRAW, (-1))
 
         LyricPanel(ui_element_config::ptr,ui_element_instance_callback_ptr p_callback);
         HWND get_wnd() override;
@@ -86,7 +86,7 @@ namespace {
     };
 
     HWND LyricPanel::get_wnd() { return *this; }
-    void LyricPanel::initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
+    void LyricPanel::initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL) }
     void LyricPanel::set_configuration(ui_element_config::ptr config) { m_config = config; }
     ui_element_config::ptr LyricPanel::get_configuration() { return m_config; }
 
@@ -97,12 +97,12 @@ namespace {
     const char * LyricPanel::g_get_description() { return "The OpenLyrics Lyrics Panel"; }
 
     LyricPanel::LyricPanel(ui_element_config::ptr config, ui_element_instance_callback_ptr p_callback) :
-        m_callback(p_callback),
         m_config(config),
         m_timerRunning(false),
         m_now_playing(nullptr),
         m_search(nullptr),
-        m_lyrics()
+        m_lyrics(),
+        m_callback(p_callback)
     {
     }
 
@@ -142,7 +142,7 @@ namespace {
         }
     }
 
-    void LyricPanel::on_playback_seek(double p_time)
+    void LyricPanel::on_playback_seek(double /*p_time*/)
     {
         Invalidate(); // Draw again to update the scroll for the new seek time
     }
@@ -182,7 +182,7 @@ namespace {
         return 0;
     }
 
-    BOOL LyricPanel::OnEraseBkgnd(CDCHandle dc)
+    BOOL LyricPanel::OnEraseBkgnd(CDCHandle /*dc*/)
     {
         return TRUE;
     }
@@ -204,7 +204,7 @@ namespace {
         }
 
         CRect client_rect;
-        WIN32_OP_D(GetClientRect(&client_rect));
+        WIN32_OP_D(GetClientRect(&client_rect))
         CPoint client_centre = client_rect.CenterPoint();
 
         CPaintDC front_buffer(*this);
@@ -234,7 +234,7 @@ namespace {
         }
 
         TEXTMETRIC font_metrics = {};
-        WIN32_OP_D(GetTextMetrics(back_buffer, &font_metrics));
+        WIN32_OP_D(GetTextMetrics(back_buffer, &font_metrics))
 
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_position = playback->playback_get_position();
@@ -397,7 +397,7 @@ namespace {
         if (point == CPoint(-1, -1))
         {
             CRect rc;
-            WIN32_OP(window.GetWindowRect(&rc));
+            WIN32_OP(window.GetWindowRect(&rc))
             point = rc.CenterPoint();
         }
 
@@ -408,7 +408,7 @@ namespace {
 
             service_ptr_t<contextmenu_manager> api = contextmenu_manager::get();
             CMenu menu;
-            WIN32_OP(menu.CreatePopupMenu());
+            WIN32_OP(menu.CreatePopupMenu())
             enum {
                 ID_SEARCH_LYRICS = 1,
                 ID_PREFERENCES,
@@ -444,7 +444,7 @@ namespace {
             //       We might need to have a menu option to populate this list though, because it seems silly
             //       to keep searching all sources by default once we've already found one (say, on disk locally)
 
-            int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, get_wnd(), 0);
+            int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, get_wnd(), nullptr);
             switch(cmd)
             {
                 case ID_SEARCH_LYRICS:
