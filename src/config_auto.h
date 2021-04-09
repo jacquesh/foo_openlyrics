@@ -11,6 +11,7 @@ struct cfg_auto_property
         ResetFromSaved();
     }
     virtual void ResetFromSaved() = 0;
+    virtual void ResetToDefault() = 0;
     virtual void Apply() = 0;
     virtual bool HasChanged() = 0;
 
@@ -22,16 +23,25 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
 {
     cfg_auto_string(const GUID& guid, int control_id, const char* default_value) :
         cfg_string(guid, default_value),
-        m_control_id(control_id)
+        m_control_id(control_id),
+        m_default_value(default_value)
     {
     }
 
     void ResetFromSaved() override
     {
         TCHAR* saved_value;
-        size_t saved_value_len = string_to_tchar(*this, saved_value);
+        /*size_t saved_value_len =*/ string_to_tchar(*this, saved_value);
         SetDlgItemText(m_hWnd, m_control_id, saved_value);
         delete[] saved_value;
+    }
+
+    void ResetToDefault() override
+    {
+        TCHAR* default_value;
+        /*size_t default_value_len =*/ string_to_tchar(m_default_value, default_value);
+        SetDlgItemText(m_hWnd, m_control_id, default_value);
+        delete[] default_value;
     }
 
     void Apply() override
@@ -66,6 +76,7 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
 
 private:
     int m_control_id;
+    std::string m_default_value;
 };
 
 template<typename TInt>
@@ -73,13 +84,19 @@ struct cfg_auto_int_t : public cfg_int_t<TInt>, public cfg_auto_property
 {
     cfg_auto_int_t(const GUID& guid, int control_id, TInt default_value) :
         cfg_int_t<TInt>(guid, default_value),
-        m_control_id(control_id)
+        m_control_id(control_id),
+        m_default_value(default_value)
     {
     }
 
     void ResetFromSaved() override
     {
         SetDlgItemInt(m_hWnd, m_control_id, cfg_int_t<TInt>::get_value(), std::is_signed<TInt>());
+    }
+
+    void ResetToDefault() override
+    {
+        SetDlgItemInt(m_hWnd, m_control_id, m_default_value, std::is_signed<TInt>());
     }
 
     void Apply() override
@@ -97,6 +114,7 @@ struct cfg_auto_int_t : public cfg_int_t<TInt>, public cfg_auto_property
 
 private:
     int m_control_id;
+    TInt m_default_value;
 };
 
 typedef cfg_auto_int_t<t_int32> cfg_auto_int;
@@ -108,13 +126,19 @@ struct cfg_auto_bool : public cfg_int_t<bool>, public cfg_auto_property
 {
     cfg_auto_bool(const GUID& guid, int control_id, bool default_value) :
         cfg_int_t<bool>(guid, default_value),
-        m_control_id(control_id)
+        m_control_id(control_id),
+        m_default_value(default_value)
     {
     }
 
     void ResetFromSaved() override
     {
         CheckDlgButton(m_hWnd, m_control_id, cfg_int_t<bool>::get_value() ? BST_CHECKED : BST_UNCHECKED);
+    }
+
+    void ResetToDefault() override
+    {
+        CheckDlgButton(m_hWnd, m_control_id, m_default_value ? BST_CHECKED : BST_UNCHECKED);
     }
 
     void Apply() override
@@ -134,6 +158,7 @@ struct cfg_auto_bool : public cfg_int_t<bool>, public cfg_auto_property
 
 private:
     int m_control_id;
+    bool m_default_value;
 };
 
 template<typename TEnum>
@@ -149,7 +174,8 @@ struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
     cfg_auto_combo(const GUID& guid, int control_id, TEnum default_value, cfg_auto_combo_option<TEnum> (&options)[IOptionCount]) :
         cfg_int_t<int>(guid, static_cast<int>(default_value)),
         m_control_id(control_id),
-        m_options(options)
+        m_options(options),
+        m_default_value(default_value)
     {
     }
 
@@ -188,6 +214,22 @@ struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
         }
     }
 
+    void ResetToDefault() override
+    {
+        for(int ui_index=0; ui_index<IOptionCount; ui_index++)
+        {
+            LRESULT item_logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
+            assert(item_logical_value != CB_ERR);
+
+            if(item_logical_value == static_cast<int>(m_default_value))
+            {
+                LRESULT result = SendDlgItemMessage(m_hWnd, m_control_id, CB_SETCURSEL, ui_index, 0);
+                assert(result != CB_ERR);
+                return;
+            }
+        }
+    }
+
     void Apply() override
     {
         LRESULT ui_index = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
@@ -210,4 +252,5 @@ struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
 private:
     int m_control_id;
     cfg_auto_combo_option<TEnum>* m_options;
+    TEnum m_default_value;
 };

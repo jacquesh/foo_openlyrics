@@ -20,6 +20,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add support for saving lyrics to ID3 tags\n"
     "- Add support for configuring which ID3 tags are searched or saved to\n"
     "- Fix the release process producing incompatible *.fb2k-component archives\n"
+    "- Fix the config reset resetting to the last-saved value rather than the default\n"
     "\n"
     "Version 0.3:\n"
     "- Add built-in support for synchronising lines in the lyric editor\n"

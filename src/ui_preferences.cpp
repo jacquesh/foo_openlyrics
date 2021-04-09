@@ -50,7 +50,8 @@ static cfg_auto_property* g_all_auto_properties[] =
     &cfg_search_tags
 };
 
-static cfg_objList<GUID> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, {sources::localfiles::src_guid});
+static const GUID cfg_active_sources_default[] = {sources::localfiles::src_guid};
+static cfg_objList<GUID> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, cfg_active_sources_default);
 
 std::vector<GUID> preferences::searching::active_sources()
 {
@@ -168,6 +169,7 @@ private:
 
     void SourceListInitialise();
     void SourceListResetFromSaved();
+    void SourceListResetToDefault();
     void SourceListApply();
     bool SourceListHasChanged();
 
@@ -419,10 +421,10 @@ void PreferencesRoot::reset()
 {
     for(cfg_auto_property* prop : g_all_auto_properties)
     {
-        prop->ResetFromSaved();
+        prop->ResetToDefault();
     }
 
-    SourceListResetFromSaved();
+    SourceListResetToDefault();
     OnChanged();
 }
 
@@ -472,6 +474,52 @@ void PreferencesRoot::SourceListResetFromSaved()
     for(size_t active_source_index=0; active_source_index<active_source_count; active_source_index++)
     {
         GUID src_guid = cfg_active_sources[active_source_index];
+        LyricSourceBase* src = LyricSourceBase::get(src_guid);
+        assert(src != nullptr);
+
+        bool found = false;
+        for(size_t i=0; i<total_source_count; i++)
+        {
+            if(all_src_ids[i] == src_guid)
+            {
+                sources_active[i] = true;
+                found = true;
+                break;
+            }
+        }
+        assert(found);
+
+        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
+        assert(new_index != LB_ERR);
+        assert(set_result != LB_ERR);
+    }
+
+    for(size_t entry_index=0; entry_index<total_source_count; entry_index++)
+    {
+        if(sources_active[entry_index]) continue;
+
+        LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
+        assert(src != nullptr);
+
+        LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
+        assert(new_index != LB_ERR);
+        assert(set_result != LB_ERR);
+    }
+}
+
+void PreferencesRoot::SourceListResetToDefault()
+{
+    SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
+    SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
+
+    std::vector<GUID> all_src_ids = LyricSourceBase::get_all_ids();
+    size_t total_source_count = all_src_ids.size();
+    std::vector<bool> sources_active(total_source_count);
+
+    for(GUID src_guid : cfg_active_sources_default)
+    {
         LyricSourceBase* src = LyricSourceBase::get(src_guid);
         assert(src != nullptr);
 
