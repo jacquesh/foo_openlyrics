@@ -17,9 +17,9 @@ class ID3TagLyricSource : public LyricSourceBase
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-static std::string GetTrackMetaString(const file_info& track_info, const char* key)
+static std::string GetTrackMetaString(const file_info& track_info, std::string_view key)
 {
-    size_t value_index = track_info.meta_find(key);
+    size_t value_index = track_info.meta_find_ex(key.data(), key.length());
     if(value_index != pfc::infinite_size)
     {
         std::string result;
@@ -29,16 +29,10 @@ static std::string GetTrackMetaString(const file_info& track_info, const char* k
             const char* value = track_info.meta_enum_value(value_index, i);
             result += value;
         }
-
-        if(!result.empty())
-        {
-            LOG_INFO("Found lyrics in ID3 tag '%s'", key);
-        }
         return result;
     }
     else
     {
-        LOG_INFO("No ID3 tag '%s' found", key);
         return "";
     }
 }
@@ -51,20 +45,24 @@ LyricDataRaw ID3TagLyricSource::query(metadb_handle_ptr track, abort_callback& a
     LyricDataRaw result = {};
     result.source_id = src_guid;
 
-    std::string text = GetTrackMetaString(track_info, "UNSYNCEDLYRICS");
-    if(!text.empty())
+    for(const std::string& tag : preferences::searching::tags())
     {
-        result.text = text;
+        LOG_INFO("Searching for lyrics in tag: %s", tag.c_str());
+
+        std::string text = GetTrackMetaString(track_info, tag);
+        if(!text.empty())
+        {
+            LOG_INFO("Found lyrics in tag: %s", tag.c_str());
+            result.text = text;
+            break;
+        }
     }
 
     return result;
 }
 
-void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
+void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, abort_callback& /*abort*/)
 {
-    // TODO: Configurable
-    std::string tag_name = "UNSYNCEDLYRICS";
-
     struct MetaCompletionLogger : public completion_notify
     {
         std::string metatag;
@@ -82,7 +80,18 @@ void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::
         }
     };
 
-    auto update_meta_tag = [tag_name, lyrics{std::move(lyrics)}](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+    std::string tag_name;
+    if(is_timestamped)
+    {
+        tag_name = preferences::saving::timestamped_tag();
+    }
+    else
+    {
+        tag_name = preferences::saving::untimed_tag();
+    }
+
+    std::string lyrics(lyric_view);
+    auto update_meta_tag = [tag_name, lyrics](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
     {
         t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
         if(tag_index != pfc::infinite_size)
@@ -99,6 +108,6 @@ void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::
 	meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
                                updater,
                                core_api::get_main_window(),
-                               metadb_io_v2::op_flag_no_errors,
+                               metadb_io_v2::op_flag_no_errors | metadb_io_v2::op_flag_delay_ui,
                                completion);
 }

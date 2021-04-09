@@ -18,6 +18,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.4:\n"
     "- Add support for saving lyrics to ID3 tags\n"
+    "- Add support for configuring which ID3 tags are searched or saved to\n"
     "- Fix the release process producing incompatible *.fb2k-component archives\n"
     "\n"
     "Version 0.3:\n"

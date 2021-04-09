@@ -71,7 +71,7 @@ static DWORD WINAPI file_watch_thread(PVOID param)
 
 static bool ComputeFileTitle(metadb_handle_ptr track, pfc::string8& out_title)
 {
-    const char* save_format = preferences::get_filename_format();
+    const char* save_format = preferences::saving::filename_format();
     titleformat_object::ptr format_script;
     bool compile_success = titleformat_compiler::get()->compile(format_script, save_format);
     if (!compile_success)

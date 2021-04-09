@@ -20,6 +20,10 @@ static const GUID GUID_CFG_RENDER_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9
 static const GUID GUID_CFG_SAVE_METHOD = { 0xdf39b51c, 0xec55, 0x41aa, { 0x93, 0xd3, 0x32, 0xb6, 0xc0, 0x5d, 0x4f, 0xcc } };
 static const GUID GUID_CFG_ACTIVE_SOURCES = { 0x7d3c9b2c, 0xb87b, 0x4250, { 0x99, 0x56, 0x8d, 0xf5, 0x80, 0xc9, 0x2f, 0x39 } };
 
+static const GUID GUID_CFG_SAVE_TAG_UNTIMED = { 0x39b0bc08, 0x5c3a, 0x4359, { 0x9d, 0xdb, 0xd4, 0x90, 0x84, 0xb, 0x31, 0x88 } };
+static const GUID GUID_CFG_SAVE_TAG_TIMESTAMPED = { 0x337d0d40, 0xe9da, 0x4531, { 0xb0, 0x82, 0x13, 0x24, 0x56, 0xe5, 0xc4, 0x2 } };
+static const GUID GUID_CFG_SEARCH_TAGS = { 0xb7332708, 0xe70b, 0x4a6e, { 0xa4, 0xd, 0x14, 0x6d, 0xe3, 0x74, 0x56, 0x65 } };
+
 static cfg_auto_combo_option<SaveMethod> save_method_options[] =
 {
     {_T("Don't save"), SaveMethod::None},
@@ -27,16 +31,28 @@ static cfg_auto_combo_option<SaveMethod> save_method_options[] =
     {_T("Save to tag"), SaveMethod::Id3Tag},
 };
 
-static cfg_auto_bool cfg_auto_save_enabled(GUID_CFG_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
-static cfg_auto_int cfg_render_linegap(GUID_CFG_RENDER_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
-static cfg_auto_string cfg_filename_format(GUID_CFG_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
+static cfg_auto_bool                 cfg_auto_save_enabled(GUID_CFG_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
+static cfg_auto_int                  cfg_render_linegap(GUID_CFG_RENDER_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
+static cfg_auto_string               cfg_filename_format(GUID_CFG_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
+static cfg_auto_string               cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCEDLYRICS");
+static cfg_auto_string               cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "LYRICS");
 static cfg_auto_combo<SaveMethod, 3> cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::ConfigDirectory, save_method_options);
+static cfg_auto_string               cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCEDLYRICS;UNSYNCED LYRICS");
 
-static cfg_auto_property* g_all_auto_properties[] = {&cfg_auto_save_enabled, &cfg_render_linegap, &cfg_filename_format, &cfg_save_method};
+static cfg_auto_property* g_all_auto_properties[] =
+{
+    &cfg_auto_save_enabled,
+    &cfg_render_linegap,
+    &cfg_filename_format,
+    &cfg_save_method,
+    &cfg_save_tag_untimed,
+    &cfg_save_tag_timestamped,
+    &cfg_search_tags
+};
 
 static cfg_objList<GUID> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, {sources::localfiles::src_guid});
 
-std::vector<GUID> preferences::get_active_sources()
+std::vector<GUID> preferences::searching::active_sources()
 {
     size_t source_count = cfg_active_sources.get_size();
     std::vector<GUID> result;
@@ -48,19 +64,53 @@ std::vector<GUID> preferences::get_active_sources()
     return result;
 }
 
-bool preferences::get_autosave_enabled()
+std::vector<std::string> preferences::searching::tags()
+{
+    const std::string_view setting = {cfg_search_tags.get_ptr(), cfg_search_tags.get_length()};
+    std::vector<std::string> result;
+
+    size_t prev_index = 0;
+    for(size_t i=0; i<setting.length(); i++) // Avoid infinite loops
+    {
+        size_t next_index = setting.find(';', prev_index);
+        size_t len = next_index - prev_index;
+        if(len > 0)
+        {
+            result.emplace_back(setting.substr(prev_index, len));
+        }
+
+        if((next_index == std::string_view::npos) || (next_index >= setting.length()))
+        {
+            break;
+        }
+        prev_index = next_index + 1;
+    }
+    return result;
+}
+
+bool preferences::saving::autosave_enabled()
 {
     return cfg_auto_save_enabled.get_value();
 }
 
-SaveMethod preferences::get_save_method()
+SaveMethod preferences::saving::save_method()
 {
     return (SaveMethod)cfg_save_method.get_value();
 }
 
-const char* preferences::get_filename_format()
+const char* preferences::saving::filename_format()
 {
     return cfg_filename_format.get_ptr();
+}
+
+std::string_view preferences::saving::untimed_tag()
+{
+    return {cfg_save_tag_untimed.get_ptr(), cfg_save_tag_untimed.get_length()};
+}
+
+std::string_view preferences::saving::timestamped_tag()
+{
+    return {cfg_save_tag_timestamped.get_ptr(), cfg_save_tag_timestamped.get_length()};
 }
 
 int preferences::get_render_linegap()
@@ -91,13 +141,16 @@ public:
         COMMAND_HANDLER_EX(IDC_AUTOSAVE_ENABLED_CHKBOX, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
         COMMAND_HANDLER_EX(IDC_RENDER_LINEGAP_EDIT, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SEARCH_TAGS, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_TAG_SYNCED, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_TAG_UNSYNCED, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_METHOD_COMBO, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_UP_BTN, BN_CLICKED, OnMoveUp)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_DOWN_BTN, BN_CLICKED, OnMoveDown)
         COMMAND_HANDLER_EX(IDC_SOURCE_ACTIVATE_BTN, BN_CLICKED, OnSourceActivate)
         COMMAND_HANDLER_EX(IDC_SOURCE_DEACTIVATE_BTN, BN_CLICKED, OnSourceDeactivate)
-        COMMAND_HANDLER_EX(IDC_ACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnActiveSourceSelect);
-        COMMAND_HANDLER_EX(IDC_INACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnInactiveSourceSelect);
+        COMMAND_HANDLER_EX(IDC_ACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnActiveSourceSelect)
+        COMMAND_HANDLER_EX(IDC_INACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnInactiveSourceSelect)
     END_MSG_MAP()
 
 private:

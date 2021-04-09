@@ -16,11 +16,22 @@ enum class SaveMethod : int
 
 namespace preferences
 {
-    std::vector<GUID> get_active_sources();
+    namespace searching
+    {
+        std::vector<GUID> active_sources();
+        std::vector<std::string> tags();
+    }
 
-    bool get_autosave_enabled();
-    SaveMethod get_save_method();
-    const char* get_filename_format();
+    namespace saving
+    {
+        bool autosave_enabled();
+        SaveMethod save_method();
+
+        const char* filename_format();
+
+        std::string_view untimed_tag();
+        std::string_view timestamped_tag();
+    }
 
     int get_render_linegap();
 }

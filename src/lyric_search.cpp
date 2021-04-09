@@ -83,7 +83,7 @@ void LyricSearch::run_async()
     // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
     LyricSourceBase* success_source = nullptr;
     LyricDataRaw lyric_data_raw = {};
-    for(GUID source_id : preferences::get_active_sources())
+    for(GUID source_id : preferences::searching::active_sources())
     {
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
@@ -124,7 +124,7 @@ void LyricSearch::run_async()
 
     try
     {
-        if(!lyric_data->IsEmpty() && preferences::get_autosave_enabled() &&
+        if(!lyric_data->IsEmpty() && preferences::saving::autosave_enabled() &&
            (success_source != nullptr) && !success_source->is_local())
         {
             sources::SaveLyrics(m_track, *lyric_data, m_abort);

@@ -26,6 +26,9 @@
 #define IDC_LYRIC_EDIT_FWD5             1045
 #define IDC_LYRIC_EDIT_RESET            1046
 #define IDC_LYRIC_EDIT_TIME             1047
+#define IDC_SAVE_TAG_UNSYNCED           1048
+#define IDC_SAVE_TAG_SYNCED             1049
+#define IDC_SEARCH_TAGS                 1050
 
 // Next default values for new objects
 // 
@@ -33,7 +36,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        119
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1048
+#define _APS_NEXT_CONTROL_VALUE         1051
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
