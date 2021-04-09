@@ -8,11 +8,10 @@
 
 static const GUID src_guid = { 0xaac13215, 0xe32e, 0x4667, { 0xac, 0xd7, 0x1f, 0xd, 0xbd, 0x84, 0x27, 0xe4 } };
 
-class NetEaseLyricsSource : public LyricSourceBase
+class NetEaseLyricsSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("NetEase Online Music"); }
-    bool is_local() const final { return false; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };

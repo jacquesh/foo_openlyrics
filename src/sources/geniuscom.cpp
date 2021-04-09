@@ -9,11 +9,10 @@
 
 static const GUID src_guid = { 0xb4cf497f, 0xd2c, 0x45ff, { 0xaa, 0x46, 0xf1, 0x45, 0xa7, 0xf, 0x90, 0x14 } };
 
-class GeniusComSource : public LyricSourceBase
+class GeniusComSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("genius.com"); }
-    bool is_local() const final { return false; }
 
     void add_all_text_to_string(pfc::string8& output, xmlNodePtr node) const;
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;

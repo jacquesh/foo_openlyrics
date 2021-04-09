@@ -1,6 +1,9 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "lyric_source.h"
+#include "parsers.h"
+#include "winstr_util.h" // Included (temporarily?) for tchar_to_string used in the save() call
 
 static const size_t MAX_SOURCE_COUNT = 64;
 static std::vector<LyricSourceBase*> g_lyric_sources;
@@ -90,3 +93,65 @@ pfc::string8 LyricSourceBase::trim_surrounding_whitespace(const char* str) const
     result.skip_trailing_chars("\r\n ");
     return result;
 }
+
+bool LyricSourceRemote::is_local() const
+{
+    return false;
+}
+
+void LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, abort_callback& abort)
+{
+    LOG_WARN("Cannot save lyrics to a remote source");
+    assert(false);
+}
+
+// TODO: This really should be somewhere else
+void sources::SaveLyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort)
+{
+    // TODO: These are copied from their definitions in the source file. Find another way.
+    const GUID localfiles_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+    const GUID id3tag_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+
+    LyricSourceBase* source = nullptr;
+    SaveMethod method = preferences::get_save_method();
+    if(method == SaveMethod::ConfigDirectory)
+    {
+        // TODO: This save triggers an immediate reload from the directory watcher.
+        //       This is not *necessarily* a problem, but it is some unnecessary work
+        //       and it means that we immediately lose the source information for
+        //       downloaded lyrics.
+        source = LyricSourceBase::get(localfiles_guid);
+    }
+    else if(method == SaveMethod::Id3Tag)
+    {
+        source = LyricSourceBase::get(id3tag_guid);
+    }
+    else
+    {
+        // Not configured to save at all
+    }
+
+    if(source != nullptr)
+    {
+        std::string text;
+        if(lyrics.IsTimestamped())
+        {
+            text = parsers::lrc::shrink_text(lyrics);
+        }
+        else
+        {
+            text = lyrics.text;
+        }
+
+        try
+        {
+            source->save(track, lyrics.IsTimestamped(), text, abort);
+        }
+        catch(const std::exception& e)
+        {
+            std::string source_name = tchar_to_string(source->friendly_name());
+            LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
+        }
+    }
+}
+

@@ -12,6 +12,4 @@ namespace sources::localfiles
     void DeregisterLyricPanel(HWND panel_handle);
 
     pfc::string8 GetLyricsDir();
-
-    void SaveLyrics(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort);
 }

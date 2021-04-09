@@ -28,8 +28,8 @@ struct LyricData : LyricDataRaw
     LyricData(const LyricData& other) = delete;
     LyricData(LyricData&& other);
 
-    bool IsTimestamped();
-    bool IsEmpty();
+    bool IsTimestamped() const;
+    bool IsEmpty() const;
 
     void operator =(const LyricData& other) = delete;
     void operator =(LyricData&& other);

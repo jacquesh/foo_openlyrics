@@ -10,11 +10,10 @@
 
 static const GUID src_guid = { 0xadf3a1ba, 0x7e88, 0x4539, { 0xaf, 0x9e, 0xa8, 0xc4, 0xbc, 0x62, 0x98, 0xf1 } };
 
-class AZLyricsComSource : public LyricSourceBase
+class AZLyricsComSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("azlyrics.com"); }
-    bool is_local() const final { return false; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };

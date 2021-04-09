@@ -151,53 +151,6 @@ pfc::string8 sources::localfiles::GetLyricsDir()
     return lyricDirPath;
 }
 
-void sources::localfiles::SaveLyrics(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
-{
-    pfc::string8 save_file_title;
-    if(!ComputeFileTitle(track, save_file_title))
-    {
-        LOG_ERROR("Failed to determine save file title");
-        return;
-    }
-
-    pfc::string8 output_path = GetLyricsDir();
-    output_path.add_filename(save_file_title.c_str());
-
-    const char* extension = is_timestamped ? ".lrc" : ".txt";
-    output_path.add_string(extension);
-    LOG_INFO("Saving lyrics to %s...", output_path.c_str());
-
-    TCHAR temp_path_str[MAX_PATH+1];
-    DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
-    pfc::string8 tmp_path = tchar_to_pfcstring(temp_path_str, temp_path_str_len);
-    tmp_path.add_filename(save_file_title.c_str());
-
-    try
-    {
-        {
-            // NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
-            file_ptr tmp_file;
-            filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), abort);
-            tmp_file->write_object(lyrics.data(), lyrics.size(), abort);
-        }
-
-        service_ptr_t<filesystem> fs = filesystem::get(output_path.c_str());
-        if(fs->is_our_path(tmp_path.c_str()))
-        {
-            fs->move_overwrite(tmp_path.c_str(), output_path.c_str(), abort);
-            LOG_INFO("Successfully saved lyrics to %s", output_path.c_str());
-        }
-        else
-        {
-            LOG_WARN("Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems", tmp_path.c_str(), output_path.c_str());
-        }
-    }
-    catch(std::exception& e)
-    {
-        LOG_ERROR("Failed to write lyrics file to disk", e.what());
-    }
-}
-
 const GUID sources::localfiles::src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
 
 class LocalFileSource : public LyricSourceBase
@@ -207,6 +160,7 @@ class LocalFileSource : public LyricSourceBase
     bool is_local() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
@@ -255,5 +209,52 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
 
     LOG_INFO("Failed to find lyrics in local files for %s", file_title.c_str());
     return {};
+}
+
+void LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
+{
+    pfc::string8 save_file_title;
+    if(!ComputeFileTitle(track, save_file_title))
+    {
+        LOG_ERROR("Failed to determine save file title");
+        return;
+    }
+
+    pfc::string8 output_path = sources::localfiles::GetLyricsDir();
+    output_path.add_filename(save_file_title.c_str());
+
+    const char* extension = is_timestamped ? ".lrc" : ".txt";
+    output_path.add_string(extension);
+    LOG_INFO("Saving lyrics to %s...", output_path.c_str());
+
+    TCHAR temp_path_str[MAX_PATH+1];
+    DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
+    pfc::string8 tmp_path = tchar_to_pfcstring(temp_path_str, temp_path_str_len);
+    tmp_path.add_filename(save_file_title.c_str());
+
+    try
+    {
+        {
+            // NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
+            file_ptr tmp_file;
+            filesystem::g_open_write_new(tmp_file, tmp_path.c_str(), abort);
+            tmp_file->write_object(lyrics.data(), lyrics.size(), abort);
+        }
+
+        service_ptr_t<filesystem> fs = filesystem::get(output_path.c_str());
+        if(fs->is_our_path(tmp_path.c_str()))
+        {
+            fs->move_overwrite(tmp_path.c_str(), output_path.c_str(), abort);
+            LOG_INFO("Successfully saved lyrics to %s", output_path.c_str());
+        }
+        else
+        {
+            LOG_WARN("Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems", tmp_path.c_str(), output_path.c_str());
+        }
+    }
+    catch(std::exception& e)
+    {
+        LOG_ERROR("Failed to write lyrics file to disk", e.what());
+    }
 }
 

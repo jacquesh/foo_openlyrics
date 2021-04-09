@@ -12,6 +12,7 @@ class ID3TagLyricSource : public LyricSourceBase
     bool is_local() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
 };
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
@@ -57,4 +58,47 @@ LyricDataRaw ID3TagLyricSource::query(metadb_handle_ptr track, abort_callback& a
     }
 
     return result;
+}
+
+void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
+{
+    // TODO: Configurable
+    std::string tag_name = "UNSYNCEDLYRICS";
+
+    struct MetaCompletionLogger : public completion_notify
+    {
+        std::string metatag;
+        MetaCompletionLogger(std::string_view tag) : metatag(tag) {}
+        void on_completion(unsigned int result_code) final
+        {
+            if(result_code == metadb_io::update_info_success)
+            {
+                LOG_INFO("Successfully saved lyrics to %s", metatag.c_str());
+            }
+            else
+            {
+                LOG_WARN("Failed to save lyrics to tag %s: %u", metatag.c_str(), result_code);
+            }
+        }
+    };
+
+    auto update_meta_tag = [tag_name, lyrics{std::move(lyrics)}](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+    {
+        t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
+        if(tag_index != pfc::infinite_size)
+        {
+            info.meta_remove_index(tag_index);
+        }
+        info.meta_add_ex(tag_name.data(), tag_name.length(), lyrics.data(), lyrics.length());
+        return true;
+    };
+
+    service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
+    service_ptr_t<MetaCompletionLogger> completion = fb2k::service_new<MetaCompletionLogger>(tag_name);
+    service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
+	meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
+                               updater,
+                               core_api::get_main_window(),
+                               metadb_io_v2::op_flag_no_errors,
+                               completion);
 }

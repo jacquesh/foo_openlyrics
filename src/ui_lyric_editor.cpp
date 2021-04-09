@@ -7,7 +7,7 @@
 
 #include "logging.h"
 #include "parsers.h"
-#include "sources/localfiles.h"
+#include "sources/lyric_source.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
 
@@ -20,6 +20,7 @@ public:
     enum { IDD = IDD_LYRIC_EDIT };
 
     LyricEditor(const std::string& text, metadb_handle_ptr track_handle);
+    ~LyricEditor() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
         MSG_WM_INITDIALOG(OnInitDialog)
@@ -371,18 +372,15 @@ void LyricEditor::SaveLyricEdits()
     std::string lyrics = tchar_to_string(lyric_buffer, chars_copied);
     LyricDataRaw data_raw = {{}, lyrics}; // TODO: Should we store/fill in the original source of the lyrics?
 
-    LyricData data = parsers::lrc::parse(data_raw);
-    if(data.IsTimestamped())
+    try
     {
-        lyrics = parsers::lrc::shrink_text(data);
-
+        LyricData data = parsers::lrc::parse(data_raw);
         abort_callback_dummy noAbort;
-        sources::localfiles::SaveLyrics(m_track_handle, true, lyrics, noAbort);
+        sources::SaveLyrics(m_track_handle, data, noAbort);
     }
-    else
+    catch(const std::exception& e)
     {
-        abort_callback_dummy noAbort;
-        sources::localfiles::SaveLyrics(m_track_handle, false, lyrics, noAbort);
+        LOG_ERROR("Failed to save modified lyrics: %s", e.what());
     }
 
     // We know that if we ran HasContentChanged() now, it would return false.

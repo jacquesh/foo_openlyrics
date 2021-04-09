@@ -5,7 +5,6 @@
 #include "lyric_search.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
-#include "sources/localfiles.h"
 #include "winstr_util.h"
 
 LyricSearch::LyricSearch(metadb_handle_ptr track) :
@@ -108,10 +107,12 @@ void LyricSearch::run_async()
         }
         catch(...)
         {
-            LOG_ERROR("Error of unrecognised type while searching %s", tchar_to_string(source->friendly_name()));
+            std::string source_name = tchar_to_string(source->friendly_name());
+            LOG_ERROR("Error of unrecognised type while searching %s", source_name.c_str());
         }
 
-        LOG_INFO("Failed to retrieve lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
+        std::string source_name = tchar_to_string(source->friendly_name());
+        LOG_INFO("Failed to retrieve lyrics from source: %s", source_name.c_str());
     }
     ensure_windows_newlines(lyric_data_raw.text);
 
@@ -126,45 +127,12 @@ void LyricSearch::run_async()
         if(!lyric_data->IsEmpty() && preferences::get_autosave_enabled() &&
            (success_source != nullptr) && !success_source->is_local())
         {
-            SaveMethod method = preferences::get_save_method();
-            switch(method)
-            {
-                case SaveMethod::ConfigDirectory:
-                {
-                    // TODO: This save triggers an immediate reload from the directory watcher.
-                    //       This is not *necessarily* a problem, but it is some unnecessary work
-                    //       and it means that we immediately lose the source information for
-                    //       downloaded lyrics.
-                    if(lyric_data->IsTimestamped())
-                    {
-                        std::string shrunk_text = parsers::lrc::shrink_text(*lyric_data);
-                        sources::localfiles::SaveLyrics(m_track, true, shrunk_text, m_abort);
-                    }
-                    else
-                    {
-                        sources::localfiles::SaveLyrics(m_track, false, lyric_data->text, m_abort);
-                    }
-                } break;
-
-                case SaveMethod::Id3Tag:
-                {
-                    // TODO: Add saving to ID3 tag
-                    LOG_WARN("Saving lyrics to file tags is not currently supported");
-                    assert(false);
-                } break;
-
-                case SaveMethod::None: break;
-
-                default:
-                    LOG_WARN("Unrecognised save method: %d", (int)method);
-                    assert(false);
-                    break;
-            }
+            sources::SaveLyrics(m_track, *lyric_data, m_abort);
         }
     }
     catch(const std::exception& e)
     {
-        LOG_ERROR("Failed to download lyrics: %s", e.what());
+        LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
     }
 
     EnterCriticalSection(&m_mutex);

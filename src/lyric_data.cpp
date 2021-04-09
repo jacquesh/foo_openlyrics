@@ -7,12 +7,12 @@ LyricData::LyricData(LyricData&& other)
     *this = std::move(other);
 }
 
-bool LyricData::IsTimestamped()
+bool LyricData::IsTimestamped() const
 {
     return !lines.empty() && (lines[0].timestamp != DBL_MAX);
 }
 
-bool LyricData::IsEmpty()
+bool LyricData::IsEmpty() const
 {
     return lines.empty();
 }
