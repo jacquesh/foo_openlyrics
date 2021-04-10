@@ -405,9 +405,6 @@ namespace {
 
         try
         {
-            // TODO: This is from the playback_state sample
-            // CMenuDescriptionHybrid menudesc(*this); //this class manages all the voodoo necessary for descriptions of our menu items to show in the status bar.
-
             service_ptr_t<contextmenu_manager> api = contextmenu_manager::get();
             CMenu menu;
             WIN32_OP(menu.CreatePopupMenu())
@@ -428,6 +425,12 @@ namespace {
             AppendMenu(menu, MF_STRING, ID_OPEN_FILE_DIR, _T("Open file location"));
             // TODO: Delete lyrics (delete the currently-loaded file, maybe search again). Maybe this button actually belongs in the lyric editor window?
 
+            CMenuDescriptionHybrid menudesc(get_wnd());
+            menudesc.Set(ID_SEARCH_LYRICS, "Start a completely new search for lyrics");
+            menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
+            menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
+            menudesc.Set(ID_OPEN_FILE_DIR, "Open explorer to the location of the lyrics file");
+
             // TODO: We should add a submenu for selecting from all of the lyrics that we found, dynamically populated by the search for this track.
             //       For example we could have:
             //
@@ -445,7 +448,7 @@ namespace {
             //       We might need to have a menu option to populate this list though, because it seems silly
             //       to keep searching all sources by default once we've already found one (say, on disk locally)
 
-            int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, get_wnd(), nullptr);
+            int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
             switch(cmd)
             {
                 case ID_SEARCH_LYRICS:
