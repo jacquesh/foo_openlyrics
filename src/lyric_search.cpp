@@ -125,7 +125,7 @@ void LyricSearch::run_async()
     try
     {
         if(!lyric_data->IsEmpty() && preferences::saving::autosave_enabled() &&
-           (success_source != nullptr) && !success_source->is_local())
+           (success_source != nullptr) && !success_source->can_save()) // Don't save to the source we just loaded from
         {
             sources::SaveLyrics(m_track, *lyric_data, m_abort);
         }

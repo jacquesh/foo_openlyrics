@@ -22,7 +22,7 @@ public:
 
     virtual const GUID& id() const = 0;
     virtual const TCHAR* friendly_name() const = 0;
-    virtual bool is_local() const = 0;
+    virtual bool can_save() const = 0;
     virtual LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) = 0;
     virtual void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) = 0;
 
@@ -36,7 +36,7 @@ protected:
 
 class LyricSourceRemote : public LyricSourceBase
 {
-    bool is_local() const final;
+    bool can_save() const final;
     void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
 };
 

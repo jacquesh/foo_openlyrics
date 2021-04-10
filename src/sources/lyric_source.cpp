@@ -94,7 +94,7 @@ pfc::string8 LyricSourceBase::trim_surrounding_whitespace(const char* str) const
     return result;
 }
 
-bool LyricSourceRemote::is_local() const
+bool LyricSourceRemote::can_save() const
 {
     return false;
 }

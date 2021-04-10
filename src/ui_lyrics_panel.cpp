@@ -14,9 +14,6 @@
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
 
-// TODO: This is currently just copied from preferences.cpp
-static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
-
 namespace {
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
     static const UINT_PTR PANEL_UPDATE_TIMER = 2304692;
@@ -184,6 +181,11 @@ namespace {
 
     BOOL LyricPanel::OnEraseBkgnd(CDCHandle /*dc*/)
     {
+        // NOTE: It isn't strictly required to implement this behaviour, but it's an optimisation.
+        //       By default (if we return FALSE here or don't overload this at all), the window
+        //       will be erased (filled with the background colour) when invalidated (to prepare
+        //       for drawing). However we draw the correct background during our paint anyway
+        //       so there is no need for the system (or us) to do it again here.
         return TRUE;
     }
 
@@ -435,8 +437,7 @@ namespace {
             //      |Edit Lyrics        |
             //      |Open File Location |  --------------------------------
             //      |Choose Lyrics      ->|(Local) filename1.txt           |
-            //       -------------------  |(Local) filename2.txt           |
-            //                            |(Local) filename3.lrc           |
+            //       -------------------  |(Local) filename2.lrc           |
             //                            |(AZLyrics) Artist - Title       |
             //                            |(Genius) Artist - Album - Title |
             //                             --------------------------------
@@ -457,7 +458,7 @@ namespace {
 
                 case ID_PREFERENCES:
                 {
-                    ui_control::get()->show_preferences(GUID_PREFERENCES_PAGE);
+                    ui_control::get()->show_preferences(GUID_PREFERENCES_PAGE_ROOT);
                 } break;
 
                 case ID_EDIT_LYRICS:

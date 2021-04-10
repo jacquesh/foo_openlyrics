@@ -9,7 +9,7 @@ class ID3TagLyricSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("ID3 Tags"); }
-    bool is_local() const final { return true; }
+    bool can_save() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
     void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;

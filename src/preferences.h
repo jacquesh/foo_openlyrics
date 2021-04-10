@@ -14,6 +14,8 @@ enum class SaveMethod : int
     Id3Tag          = 2
 };
 
+extern const GUID GUID_PREFERENCES_PAGE_ROOT;
+
 namespace preferences
 {
     namespace searching
