@@ -33,7 +33,6 @@ static void ensure_windows_newlines(std::string& str)
 static void internal_search_for_lyrics(LyricUpdateHandle* handle)
 {
     LOG_INFO("Searching for lyrics...");
-    handle->begin();
 
     // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
     LyricSourceBase* success_source = nullptr;
@@ -71,7 +70,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle* handle)
     LOG_INFO("Parsing lyrics text...");
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw);
 
-    handle->set_result(std::move(lyric_data));
+    handle->set_result(std::move(lyric_data), true);
     LOG_INFO("Lyric loading complete");
 }
 
@@ -89,7 +88,7 @@ LyricUpdateHandle::LyricUpdateHandle(metadb_handle_ptr track) :
     m_lyrics(),
     m_abort(),
     m_complete(nullptr),
-    m_status(Status::Initialized)
+    m_status(Status::Running)
 {
     InitializeCriticalSection(&m_mutex);
     m_complete = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -115,17 +114,32 @@ LyricUpdateHandle::~LyricUpdateHandle()
 bool LyricUpdateHandle::is_complete()
 {
     EnterCriticalSection(&m_mutex);
-    bool complete = (m_status == Status::Complete) || (m_status == Status::Retrieved);
+    bool complete = ((m_status == Status::Complete) || (m_status == Status::Closed));
+    LeaveCriticalSection(&m_mutex);
+    return complete;
+}
+
+bool LyricUpdateHandle::has_result()
+{
+    EnterCriticalSection(&m_mutex);
+    bool complete = ((m_status == Status::ResultAvailable) || (m_status == Status::Complete));
     LeaveCriticalSection(&m_mutex);
     return complete;
 }
 
 LyricData LyricUpdateHandle::get_result()
 {
+    assert(has_result());
     EnterCriticalSection(&m_mutex);
-    assert(m_status == Status::Complete);
     LyricData result = std::move(m_lyrics);
-    m_status = Status::Retrieved;
+    if(m_status == Status::ResultAvailable)
+    {
+        m_status = Status::Running;
+    }
+    else
+    {
+        m_status = Status::Closed;
+    }
     LeaveCriticalSection(&m_mutex);
     return result;
 }
@@ -141,21 +155,23 @@ metadb_handle_ptr LyricUpdateHandle::get_track()
     return m_track;
 }
 
-void LyricUpdateHandle::begin()
-{
-    assert(m_status == Status::Initialized);
-    m_status = Status::Running;
-}
-
-void LyricUpdateHandle::set_result(LyricData&& data)
+void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Running);
-    m_status = Status::Complete;
     m_lyrics = std::move(data);
 
-    BOOL complete_success = SetEvent(m_complete);
-    assert(complete_success);
+    if(final_result)
+    {
+        m_status = Status::Complete;
+        BOOL complete_success = SetEvent(m_complete);
+        assert(complete_success);
+    }
+    else
+    {
+        m_status = Status::ResultAvailable;
+    }
+
     LeaveCriticalSection(&m_mutex);
 }
 

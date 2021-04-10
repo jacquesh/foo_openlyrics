@@ -7,6 +7,7 @@
 
 #include "logging.h"
 #include "parsers.h"
+#include "lyric_search.h" // TODO: Included just for LyricUpdateHandle, which ideally does not live in lyric_search.h
 #include "sources/lyric_source.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
@@ -19,7 +20,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const std::string& text, metadb_handle_ptr track_handle);
+    LyricEditor(const std::string& text, LyricUpdateHandle& update);
     ~LyricEditor() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -58,15 +59,15 @@ private:
     void update_play_button();
     void update_time_text(double time);
     bool HasContentChanged(size_t* new_length);
-    void SaveLyricEdits();
+    void ApplyLyricEdits(bool is_editor_closing);
 
-    metadb_handle_ptr m_track_handle;
+    LyricUpdateHandle& m_update;
     TCHAR* m_input_text;
     size_t m_input_text_length;
 };
 
-LyricEditor::LyricEditor(const std::string& text, metadb_handle_ptr track_handle) :
-    m_track_handle(track_handle),
+LyricEditor::LyricEditor(const std::string& text, LyricUpdateHandle& update) :
+    m_update(update),
     m_input_text(nullptr),
     m_input_text_length(0)
 {
@@ -131,6 +132,7 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
 void LyricEditor::OnClose()
 {
+    m_update.set_result({}, true);
     DestroyWindow();
 }
 
@@ -239,20 +241,25 @@ void LyricEditor::OnEditReset(UINT /*btn_id*/, int /*notification_type*/, CWindo
 
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
+    m_update.set_result({}, true);
     DestroyWindow();
 }
 
 void LyricEditor::OnApply(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
     assert(HasContentChanged(nullptr));
-    SaveLyricEdits();
+    ApplyLyricEdits(false);
 }
 
 void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
     if(HasContentChanged(nullptr))
     {
-        SaveLyricEdits();
+        ApplyLyricEdits(true);
+    }
+    else
+    {
+        m_update.set_result({}, true);
     }
     DestroyWindow();
 }
@@ -348,11 +355,15 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
     }
 }
 
-void LyricEditor::SaveLyricEdits()
+void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
 {
     LOG_INFO("Saving lyrics from editor...");
     LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
-    if(lyric_length <= 0) return;
+    if(lyric_length <= 0)
+    {
+        m_update.set_result({}, is_editor_closing);
+        return;
+    }
 
     TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
     UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
@@ -371,17 +382,8 @@ void LyricEditor::SaveLyricEdits()
 
     std::string lyrics = tchar_to_string(lyric_buffer, chars_copied);
     LyricDataRaw data_raw = {{}, lyrics}; // TODO: Should we store/fill in the original source of the lyrics?
-
-    try
-    {
-        LyricData data = parsers::lrc::parse(data_raw);
-        abort_callback_dummy noAbort;
-        sources::SaveLyrics(m_track_handle, data, noAbort);
-    }
-    catch(const std::exception& e)
-    {
-        LOG_ERROR("Failed to save modified lyrics: %s", e.what());
-    }
+    LyricData data = parsers::lrc::parse(data_raw);
+    m_update.set_result(std::move(data), is_editor_closing);
 
     // We know that if we ran HasContentChanged() now, it would return false.
     // So short-circuit it and just disable the apply button directly
@@ -390,12 +392,12 @@ void LyricEditor::SaveLyricEdits()
     apply_btn.EnableWindow(FALSE);
 }
 
-void SpawnLyricEditor(const std::string& lyric_text, metadb_handle_ptr lyric_to_edit_track)
+void SpawnLyricEditor(const std::string& lyric_text, LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning editor window...");
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, lyric_to_edit_track);
+        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, update);
     }
     catch(const std::exception& e)
     {

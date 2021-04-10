@@ -11,21 +11,22 @@ public:
     ~LyricUpdateHandle();
 
     bool is_complete();
+    bool has_result();
     LyricData get_result();
 
     abort_callback& get_checked_abort(); // Checks the abort flag (so it might throw) and returns it
     metadb_handle_ptr get_track();
 
-    void begin(); // TODO
-    void set_result(LyricData&& data);
+    void set_result(LyricData&& data, bool final_result);
 
 private:
     enum class Status
     {
-        Initialized,
+        Unknown,
         Running,
+        ResultAvailable,
         Complete,
-        Retrieved
+        Closed
     };
 
     const metadb_handle_ptr m_track;
