@@ -213,6 +213,7 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
 
 void LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
 {
+    LOG_INFO("Saving lyrics to a local file...");
     pfc::string8 save_file_title;
     if(!ComputeFileTitle(track, save_file_title))
     {
@@ -254,7 +255,7 @@ void LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::st
     }
     catch(std::exception& e)
     {
-        LOG_ERROR("Failed to write lyrics file to disk", e.what());
+        LOG_ERROR("Failed to write lyrics file to disk: %s", e.what());
     }
 }
 

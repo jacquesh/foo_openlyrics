@@ -4,21 +4,37 @@
 
 #include "lyric_data.h"
 
-class LyricSearch
+class LyricUpdateHandle
 {
 public:
-    LyricSearch(metadb_handle_ptr track);
-    ~LyricSearch();
+    LyricUpdateHandle(metadb_handle_ptr track);
+    ~LyricUpdateHandle();
 
-    LyricData* get_result();
+    bool is_complete();
+    LyricData get_result();
+
+    abort_callback& get_checked_abort(); // Checks the abort flag (so it might throw) and returns it
+    metadb_handle_ptr get_track();
+
+    void begin(); // TODO
+    void set_result(LyricData&& data);
 
 private:
-    void run_async();
+    enum class Status
+    {
+        Initialized,
+        Running,
+        Complete,
+        Retrieved
+    };
 
-    metadb_handle_ptr m_track;
+    const metadb_handle_ptr m_track;
 
     CRITICAL_SECTION m_mutex;
-    LyricData* m_lyrics;
+    LyricData m_lyrics;
     abort_callback_impl m_abort;
     HANDLE m_complete;
+    Status m_status;
 };
+
+void search_for_lyrics(LyricUpdateHandle* handle);

@@ -104,12 +104,20 @@ void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::
         return true;
     };
 
-    service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
-    service_ptr_t<MetaCompletionLogger> completion = fb2k::service_new<MetaCompletionLogger>(tag_name);
-    service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
-	meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
-                               updater,
-                               core_api::get_main_window(),
-                               metadb_io_v2::op_flag_no_errors | metadb_io_v2::op_flag_delay_ui,
-                               completion);
+    try
+    {
+        service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
+        service_ptr_t<MetaCompletionLogger> completion = fb2k::service_new<MetaCompletionLogger>(tag_name);
+        service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
+        meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
+                                   updater,
+                                   core_api::get_main_window(),
+                                   metadb_io_v2::op_flag_no_errors | metadb_io_v2::op_flag_delay_ui,
+                                   completion);
+        LOG_INFO("Successfully wrote lyrics to ID3 tag %s", tag_name.c_str());
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("Failed to write lyrics to ID3 tag %s: %s", tag_name.c_str(), e.what());
+    }
 }

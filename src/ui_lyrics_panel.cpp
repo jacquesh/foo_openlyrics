@@ -11,6 +11,7 @@
 #include "parsers.h"
 #include "preferences.h"
 #include "sources/localfiles.h"
+#include "sources/lyric_source.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
 
@@ -58,13 +59,14 @@ namespace {
         void StopTimer();
 
         void InitiateLyricSearch(metadb_handle_ptr track);
+        void ProcessCompletedLyricUpdate(LyricUpdateHandle* update);
 
         ui_element_config::ptr m_config;
 
         bool m_timerRunning;
 
         metadb_handle_ptr m_now_playing;
-        LyricSearch* m_search;
+        LyricUpdateHandle* m_update_handle;
         LyricData m_lyrics;
 
     protected:
@@ -97,7 +99,7 @@ namespace {
         m_config(config),
         m_timerRunning(false),
         m_now_playing(nullptr),
-        m_search(nullptr),
+        m_update_handle(nullptr),
         m_lyrics(),
         m_callback(p_callback)
     {
@@ -165,11 +167,11 @@ namespace {
     {
         sources::localfiles::DeregisterLyricPanel(get_wnd());
 
-        if(m_search != nullptr)
+        if(m_update_handle != nullptr)
         {
             // Cancel and clean up a pending search, if there is one
-            delete m_search;
-            m_search = nullptr;
+            delete m_update_handle;
+            m_update_handle = nullptr;
         }
     }
 
@@ -191,18 +193,12 @@ namespace {
 
     void LyricPanel::OnPaint(CDCHandle)
     {
-        TRACK_CALL_TEXT("Paint lyrics panel");
-        if(m_search != nullptr)
+        // TODO: Support multiple concurrent handles
+        if((m_update_handle != nullptr) && (m_update_handle->is_complete()))
         {
-            LyricData* new_lyrics = m_search->get_result();
-            if(new_lyrics != nullptr)
-            {
-                // TODO: This isn't ideal: We're implicitly taking ownership of the memory allocated *inside* new_lyrics (IE timestamps etc)
-                m_lyrics = std::move(*new_lyrics);
-
-                delete m_search;
-                m_search = nullptr;
-            }
+            ProcessCompletedLyricUpdate(m_update_handle);
+            delete m_update_handle;
+            m_update_handle = nullptr;
         }
 
         CRect client_rect;
@@ -305,7 +301,7 @@ namespace {
                     current_y += line_height;
                 }
 
-                if(m_search != nullptr)
+                if(m_update_handle != nullptr)
                 {
                     // TODO: Draw some progress info (be it a progress bar, or just text "63%", maybe the name of the current source being queried)
                     const TCHAR* search_text = _T("Searching...");
@@ -406,7 +402,7 @@ namespace {
         try
         {
             service_ptr_t<contextmenu_manager> api = contextmenu_manager::get();
-            CMenu menu;
+            CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
             enum {
                 ID_SEARCH_LYRICS = 1,
@@ -557,11 +553,41 @@ namespace {
         LOG_INFO("Initiate lyric search");
         m_lyrics = {};
 
-        if(m_search != nullptr)
+        // TODO: Support multiple requests (e.g editor still open while go to new track & search)
+        if(m_update_handle != nullptr)
         {
-            delete m_search;
+            delete m_update_handle;
         }
-        m_search = new LyricSearch(track);
+        m_update_handle = new LyricUpdateHandle(track);
+        search_for_lyrics(m_update_handle);
+    }
+
+    void LyricPanel::ProcessCompletedLyricUpdate(LyricUpdateHandle* update)
+    {
+        assert(update->is_complete());
+        LyricData lyrics = m_update_handle->get_result();
+
+        if(m_lyrics.IsEmpty())
+        {
+            LOG_INFO("Received empty lyric update, skipping save...");
+            return;
+        }
+
+        LyricSourceBase* source = LyricSourceBase::get(m_lyrics.source_id);
+        try
+        {
+            if(preferences::saving::autosave_enabled() &&
+               (source != nullptr) && !source->can_save()) // Don't save to the source we just loaded from
+            {
+                sources::SaveLyrics(update->get_track(), m_lyrics, update->get_checked_abort());
+            }
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
+        }
+
+        m_lyrics = std::move(lyrics);
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.

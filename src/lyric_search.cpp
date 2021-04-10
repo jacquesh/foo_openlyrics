@@ -7,51 +7,6 @@
 #include "sources/lyric_source.h"
 #include "winstr_util.h"
 
-LyricSearch::LyricSearch(metadb_handle_ptr track) :
-    m_track(track),
-    m_mutex({}),
-    m_lyrics(nullptr),
-    m_abort(),
-    m_complete(nullptr)
-{
-    InitializeCriticalSection(&m_mutex);
-    m_complete = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-    assert(m_complete != nullptr);
-
-    fb2k::splitTask([this](){
-        run_async();
-    });
-}
-
-LyricSearch::~LyricSearch()
-{
-    if(!m_abort.is_aborting())
-    {
-        m_abort.abort();
-    }
-
-    DWORD wait_result = WaitForSingleObject(m_complete, 30'000);
-    if(wait_result != WAIT_OBJECT_0)
-    {
-        LOG_ERROR("Lyric search did not complete successfully during cleanup: %d", wait_result);
-    }
-    CloseHandle(m_complete);
-    DeleteCriticalSection(&m_mutex);
-
-    if(m_lyrics != nullptr)
-    {
-        delete m_lyrics;
-    }
-}
-
-LyricData* LyricSearch::get_result()
-{
-    EnterCriticalSection(&m_mutex);
-    LyricData* result = m_lyrics;
-    LeaveCriticalSection(&m_mutex);
-    return result;
-}
-
 static void ensure_windows_newlines(std::string& str)
 {
     int replace_count = 0;
@@ -75,10 +30,10 @@ static void ensure_windows_newlines(std::string& str)
     }
 }
 
-void LyricSearch::run_async()
+static void internal_search_for_lyrics(LyricUpdateHandle* handle)
 {
-    LyricData* lyric_data = new LyricData();
     LOG_INFO("Searching for lyrics...");
+    handle->begin();
 
     // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
     LyricSourceBase* success_source = nullptr;
@@ -88,12 +43,9 @@ void LyricSearch::run_async()
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
 
-        // TODO: Only load files if the file that gets loaded has a newer timestamp than the existing one
         try
         {
-            m_abort.check();
-
-            lyric_data_raw = source->query(m_track, m_abort);
+            lyric_data_raw = source->query(handle->get_track(), handle->get_checked_abort());
             if(!lyric_data_raw.text.empty())
             {
                 success_source = source;
@@ -116,30 +68,94 @@ void LyricSearch::run_async()
     }
     ensure_windows_newlines(lyric_data_raw.text);
 
-    if(!lyric_data_raw.text.empty())
+    LOG_INFO("Parsing lyrics text...");
+    LyricData lyric_data = parsers::lrc::parse(lyric_data_raw);
+
+    handle->set_result(std::move(lyric_data));
+    LOG_INFO("Lyric loading complete");
+}
+
+void search_for_lyrics(LyricUpdateHandle* handle)
+{
+    fb2k::splitTask([handle](){
+        internal_search_for_lyrics(handle);
+    });
+}
+
+
+LyricUpdateHandle::LyricUpdateHandle(metadb_handle_ptr track) :
+    m_track(track),
+    m_mutex({}),
+    m_lyrics(),
+    m_abort(),
+    m_complete(nullptr),
+    m_status(Status::Initialized)
+{
+    InitializeCriticalSection(&m_mutex);
+    m_complete = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    assert(m_complete != nullptr);
+}
+
+LyricUpdateHandle::~LyricUpdateHandle()
+{
+    if(!m_abort.is_aborting())
     {
-        LOG_INFO("Parsing lyrics as LRC...");
-        *lyric_data = parsers::lrc::parse(lyric_data_raw);
+        m_abort.abort();
     }
 
-    try
+    DWORD wait_result = WaitForSingleObject(m_complete, 30'000);
+    if(wait_result != WAIT_OBJECT_0)
     {
-        if(!lyric_data->IsEmpty() && preferences::saving::autosave_enabled() &&
-           (success_source != nullptr) && !success_source->can_save()) // Don't save to the source we just loaded from
-        {
-            sources::SaveLyrics(m_track, *lyric_data, m_abort);
-        }
+        LOG_ERROR("Lyric search did not complete successfully during cleanup: %d", wait_result);
     }
-    catch(const std::exception& e)
-    {
-        LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
-    }
+    CloseHandle(m_complete);
+    DeleteCriticalSection(&m_mutex);
+}
 
+bool LyricUpdateHandle::is_complete()
+{
     EnterCriticalSection(&m_mutex);
-    m_lyrics = lyric_data;
+    bool complete = (m_status == Status::Complete) || (m_status == Status::Retrieved);
     LeaveCriticalSection(&m_mutex);
+    return complete;
+}
+
+LyricData LyricUpdateHandle::get_result()
+{
+    EnterCriticalSection(&m_mutex);
+    assert(m_status == Status::Complete);
+    LyricData result = std::move(m_lyrics);
+    m_status = Status::Retrieved;
+    LeaveCriticalSection(&m_mutex);
+    return result;
+}
+
+abort_callback& LyricUpdateHandle::get_checked_abort()
+{
+    m_abort.check();
+    return m_abort;
+}
+
+metadb_handle_ptr LyricUpdateHandle::get_track()
+{
+    return m_track;
+}
+
+void LyricUpdateHandle::begin()
+{
+    assert(m_status == Status::Initialized);
+    m_status = Status::Running;
+}
+
+void LyricUpdateHandle::set_result(LyricData&& data)
+{
+    EnterCriticalSection(&m_mutex);
+    assert(m_status == Status::Running);
+    m_status = Status::Complete;
+    m_lyrics = std::move(data);
 
     BOOL complete_success = SetEvent(m_complete);
     assert(complete_success);
-    LOG_INFO("Lyric loading complete");
+    LeaveCriticalSection(&m_mutex);
 }
+
