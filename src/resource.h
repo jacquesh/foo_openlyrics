@@ -4,7 +4,7 @@
 //
 #define IDI_SCROLL                      109
 #define IDD_LYRIC_EDIT                  113
-#define IDD_PREFERENCES                 148
+#define IDD_PREFERENCES_ROOT            148
 #define IDC_ACTIVE_SOURCE_LIST          1021
 #define IDC_INACTIVE_SOURCE_LIST        1025
 #define IDC_SOURCE_ACTIVATE_BTN         1026

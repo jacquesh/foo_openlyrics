@@ -13,7 +13,7 @@
 #include "sources/localfiles.h"
 #include "winstr_util.h"
 
-static const GUID GUID_PREFERENCES_PAGE = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
+static const GUID GUID_PREFERENCES_PAGE_ROOT = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
 static const GUID GUID_CFG_FILENAME_FORMAT = { 0x1f7a3804, 0x7147, 0x4b64, { 0x9d, 0x51, 0x4c, 0xdd, 0x90, 0xa7, 0x6d, 0xd6 } };
 static const GUID GUID_CFG_ENABLE_AUTOSAVE = { 0xf25be2d9, 0x4442, 0x4602, { 0xa0, 0xf1, 0x81, 0xd, 0x8e, 0xab, 0x6a, 0x2 } };
 static const GUID GUID_CFG_RENDER_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9, 0x35, 0x9, 0xbb, 0xfa, 0xc6, 0x40, 0x43 } };
@@ -129,7 +129,7 @@ public:
     PreferencesRoot(preferences_page_callback::ptr callback) : m_callback(callback) {}
 
     // Dialog resource ID - Required by WTL/Create()
-    enum {IDD = IDD_PREFERENCES};
+    enum {IDD = IDD_PREFERENCES_ROOT};
 
     // preferences_page_instance methods (not all of them - get_wnd() is supplied by preferences_page_impl helpers)
     t_uint32 get_state() override;
@@ -197,8 +197,6 @@ void PreferencesRoot::OnSaveNameFormatChange(UINT, int, CWindow)
     CWindow preview_item = GetDlgItem(IDC_FILE_NAME_PREVIEW);
     assert(preview_item != nullptr);
 
-    service_ptr_t<playback_control> playback = playback_control::get();
-
     LRESULT format_text_length = SendDlgItemMessage(IDC_SAVE_FILENAME_FORMAT, WM_GETTEXTLENGTH, 0, 0);
     if(format_text_length > 0)
     {
@@ -211,20 +209,56 @@ void PreferencesRoot::OnSaveNameFormatChange(UINT, int, CWindow)
         bool compile_success = titleformat_compiler::get()->compile(format_script, format_text.c_str());
         if(compile_success)
         {
-            pfc::string8 formatted_title;
-            bool format_success = playback->playback_format_title(nullptr, formatted_title, format_script, nullptr, playback_control::display_level_basic); 
-            if(format_success)
-            {
-                formatted_title.fix_filename_chars();
+            metadb_handle_ptr preview_track = nullptr;
 
-                TCHAR* preview_buffer;
-                size_t preview_len = string_to_tchar(formatted_title, preview_buffer);
-                preview_item.SetWindowText(preview_buffer);
-                delete[] preview_buffer;
+            service_ptr_t<playback_control> playback = playback_control::get();
+            if(playback->get_now_playing(preview_track))
+            {
+                LOG_INFO("Playback is currently active, using the now-playing track for format preview");
             }
             else
             {
-                preview_item.SetWindowText(_T("<Unexpected formatting error>"));
+                pfc::list_t<metadb_handle_ptr> selection;
+
+                service_ptr_t<playlist_manager> playlist = playlist_manager::get();
+	            playlist->activeplaylist_get_selected_items(selection);
+
+                if(selection.get_count() > 0)
+                {
+                    LOG_INFO("Using the first selected item for format preview");
+                    preview_track = selection[0];
+                }
+                else if(playlist->activeplaylist_get_item_handle(preview_track, 0))
+                {
+                    LOG_INFO("No selection available, using the first playlist item for format preview");
+                }
+                else
+                {
+                    LOG_INFO("No selection available & no active playlist. There will be no format preview");
+                }
+            }
+
+            if(preview_track != nullptr)
+            {
+                pfc::string8 formatted_title;
+                bool format_success = preview_track->format_title(nullptr, formatted_title, format_script, nullptr); 
+                if(format_success)
+                {
+                    formatted_title.fix_filename_chars();
+
+                    TCHAR* preview_buffer;
+                    /*size_t preview_len =*/ string_to_tchar(formatted_title, preview_buffer);
+                    preview_item.SetWindowText(preview_buffer);
+                    delete[] preview_buffer;
+                }
+                else
+                {
+                    preview_item.SetWindowText(_T("<Unexpected formatting error>"));
+                }
+            }
+            else
+            {
+                preview_item.SetWindowText(_T(""));
             }
         }
         else
@@ -609,8 +643,8 @@ bool PreferencesRoot::SourceListHasChanged()
 class PreferencesRootImpl : public preferences_page_impl<PreferencesRoot>
 {
 public:
-    const char * get_name() {return "OpenLyrics";}
-    GUID get_guid() { return GUID_PREFERENCES_PAGE; }
+    const char* get_name() { return "OpenLyrics"; }
+    GUID get_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
     GUID get_parent_guid() { return guid_tools; }
 };
 
