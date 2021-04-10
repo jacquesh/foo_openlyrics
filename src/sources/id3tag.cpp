@@ -63,6 +63,7 @@ LyricDataRaw ID3TagLyricSource::query(metadb_handle_ptr track, abort_callback& a
 
 void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, abort_callback& /*abort*/)
 {
+    LOG_INFO("Saving lyrics to an ID3 tag...");
     struct MetaCompletionLogger : public completion_notify
     {
         std::string metatag;
@@ -89,6 +90,7 @@ void ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::
     {
         tag_name = preferences::saving::untimed_tag();
     }
+    LOG_INFO("Saving lyrics to ID3 tag %s...", tag_name.c_str());
 
     std::string lyrics(lyric_view);
     auto update_meta_tag = [tag_name, lyrics](trackRef /*location*/, t_filestats /*stats*/, file_info& info)

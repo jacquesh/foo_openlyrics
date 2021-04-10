@@ -554,7 +554,7 @@ namespace {
 
     void LyricPanel::InitiateLyricSearch(metadb_handle_ptr track)
     {
-        TRACK_CALL_TEXT("Initiate lyric search");
+        LOG_INFO("Initiate lyric search");
         m_lyrics = {};
 
         if(m_search != nullptr)

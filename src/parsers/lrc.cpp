@@ -183,7 +183,7 @@ static ParsedLineContents parse_line_times(std::string_view line)
 
 LyricData parse(const LyricDataRaw& input)
 {
-    TRACK_CALL_TEXT("Parse LRC lyric text");
+    LOG_INFO("Parsing LRC lyric text...");
     if(input.text.empty())
     {
         LOG_WARN("Cannot parse empty raw lyrics as LRC");
@@ -295,7 +295,7 @@ LyricData parse(const LyricDataRaw& input)
 
 std::string expand_text(const LyricData& data)
 {
-    TRACK_CALL_TEXT("Expand lyric text");
+    LOG_INFO("Expanding lyric text...");
     std::string expanded_text;
     expanded_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
     for(const std::string& tag : data.tags)
@@ -329,7 +329,7 @@ std::string expand_text(const LyricData& data)
 
 std::string shrink_text(const LyricData& data)
 {
-    TRACK_CALL_TEXT("Shrink lyric text");
+    LOG_INFO("Shrinking lyric text...");
     std::string shrunk_text;
     shrunk_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
 
