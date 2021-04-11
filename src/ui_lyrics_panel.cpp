@@ -44,7 +44,6 @@ namespace {
         void on_playback_seek(double p_time) override;
 
     private:
-        LRESULT OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&);
         void OnWindowDestroy();
         LRESULT OnTimer(WPARAM);
         void OnPaint(CDCHandle);
@@ -72,7 +71,6 @@ namespace {
         const ui_element_instance_callback_ptr m_callback;
 
         BEGIN_MSG_MAP_EX(LyricPanel)
-            MESSAGE_HANDLER(WM_USER+1, OnLyricSavedToDisk) // TODO: Define a constant for this message
             MSG_WM_DESTROY(OnWindowDestroy)
             MSG_WM_TIMER(OnTimer)
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
@@ -141,17 +139,6 @@ namespace {
     void LyricPanel::on_playback_seek(double /*p_time*/)
     {
         Invalidate(); // Draw again to update the scroll for the new seek time
-    }
-
-    LRESULT LyricPanel::OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&)
-    {
-        if(m_now_playing != nullptr)
-        {
-            // TODO: Do we need to trigger an entire lyric search here? Just update from localfiles if needed?
-            InitiateLyricSearch(m_now_playing);
-        }
-
-        return 0;
     }
 
     void LyricPanel::OnWindowDestroy()
