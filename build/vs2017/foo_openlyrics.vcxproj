@@ -165,7 +165,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\lyric_data.cpp" />
-    <ClCompile Include="..\..\src\lyric_search.cpp" />
+    <ClCompile Include="..\..\src\lyric_io.cpp" />
     <ClCompile Include="..\..\src\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
@@ -197,7 +197,7 @@
     <ClInclude Include="..\..\src\config_auto.h" />
     <ClInclude Include="..\..\src\logging.h" />
     <ClInclude Include="..\..\src\lyric_data.h" />
-    <ClInclude Include="..\..\src\lyric_search.h" />
+    <ClInclude Include="..\..\src\lyric_io.h" />
     <ClInclude Include="..\..\src\parsers.h" />
     <ClInclude Include="..\..\src\preferences.h" />
     <ClInclude Include="..\..\src\resource.h" />

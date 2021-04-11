@@ -2,10 +2,63 @@
 
 #include "logging.h"
 #include "lyric_data.h"
-#include "lyric_search.h"
+#include "lyric_io.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
 #include "winstr_util.h"
+
+GUID io::get_save_source()
+{
+    // TODO: These are copied from their definitions in the source file. Find another way.
+    const GUID localfiles_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+    const GUID id3tag_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+
+    SaveMethod method = preferences::saving::save_method();
+    if(method == SaveMethod::ConfigDirectory)
+    {
+        return localfiles_guid;
+    }
+    else if(method == SaveMethod::Id3Tag)
+    {
+        return id3tag_guid;
+    }
+    else
+    {
+        // Not configured to save at all
+        return {};
+    }
+}
+
+void io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort)
+{
+    // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
+    //       only happen on the main thread.
+    core_api::ensure_main_thread();
+
+    LyricSourceBase* source = LyricSourceBase::get(get_save_source());
+    if(source != nullptr)
+    {
+        std::string text;
+        if(lyrics.IsTimestamped())
+        {
+            text = parsers::lrc::shrink_text(lyrics);
+        }
+        else
+        {
+            text = lyrics.text;
+        }
+
+        try
+        {
+            source->save(track, lyrics.IsTimestamped(), text, abort);
+        }
+        catch(const std::exception& e)
+        {
+            std::string source_name = tchar_to_string(source->friendly_name());
+            LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
+        }
+    }
+}
 
 static void ensure_windows_newlines(std::string& str)
 {
@@ -74,13 +127,12 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
     LOG_INFO("Lyric loading complete");
 }
 
-void search_for_lyrics(LyricUpdateHandle& handle)
+void io::search_for_lyrics(LyricUpdateHandle& handle)
 {
     fb2k::splitTask([&handle](){
         internal_search_for_lyrics(handle);
     });
 }
-
 
 LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track) :
     m_track(track),

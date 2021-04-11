@@ -4,6 +4,16 @@
 
 #include "lyric_data.h"
 
+class LyricUpdateHandle;
+
+namespace io
+{
+    GUID get_save_source();
+    void save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort);
+    void search_for_lyrics(LyricUpdateHandle& handle);
+}
+
+
 class LyricUpdateHandle
 {
 public:
@@ -16,6 +26,8 @@ public:
 
     LyricUpdateHandle(Type type, metadb_handle_ptr track);
     ~LyricUpdateHandle();
+
+    // TODO: double get_progress();
 
     Type get_type();
     bool is_complete();
@@ -47,4 +59,3 @@ private:
     Status m_status;
 };
 
-void search_for_lyrics(LyricUpdateHandle& handle);

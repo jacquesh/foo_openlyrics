@@ -7,8 +7,7 @@
 
 #include "logging.h"
 #include "parsers.h"
-#include "lyric_search.h" // TODO: Included just for LyricUpdateHandle, which ideally does not live in lyric_search.h
-#include "sources/lyric_source.h"
+#include "lyric_io.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
 

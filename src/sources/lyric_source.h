@@ -4,12 +4,6 @@
 
 #include "lyric_data.h"
 
-namespace sources
-{
-    GUID GetSaveSource();
-    void SaveLyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort);
-}
-
 // TODO: Add sources for:
 // - https://www.syair.info
 

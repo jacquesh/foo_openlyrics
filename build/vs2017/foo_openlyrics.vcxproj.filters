@@ -57,9 +57,6 @@
     <ClCompile Include="..\..\src\sources\azlyricscom.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\lyric_search.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\lyric_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -74,6 +71,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\sources\id3tag.cpp">
       <Filter>Source Files\sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lyric_io.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -101,9 +101,6 @@
     <ClInclude Include="..\..\src\preferences.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\lyric_search.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\sources\lyric_source.h">
       <Filter>Header Files\sources</Filter>
     </ClInclude>
@@ -111,6 +108,9 @@
       <Filter>3rdparty</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\parsers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\lyric_io.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
