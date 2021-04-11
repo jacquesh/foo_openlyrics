@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "0.4-WIP"
+#define OPENLYRICS_VERSION "0.4"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -16,7 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "Built " __DATE__  "\n"
     "\n"
     "Changelog:\n"
-    "Version 0.4-WIP:\n"
+    "Version 0.4:\n"
     "- Add support for saving lyrics to ID3 tags\n"
     "- Add support for configuring which ID3 tags are searched or saved to\n"
     "- Add status-bar descriptions for lyric panel context menu entries\n"
