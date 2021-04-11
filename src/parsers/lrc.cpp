@@ -226,37 +226,31 @@ LyricData parse(const LyricDataRaw& input)
             }
         }
 
-        if(line_bytes > 0)
+        std::string_view line_view {input.text.c_str() + line_start_index, line_bytes};
+        ParsedLineContents parse_output = parse_line_times(line_view);
+        if(parse_output.timestamps.size() > 0)
         {
-            std::string_view line_view {input.text.c_str() + line_start_index, line_bytes};
-            ParsedLineContents parse_output = parse_line_times(line_view);
-            if(parse_output.timestamps.size() > 0)
+            for(double timestamp : parse_output.timestamps)
             {
-                for(double timestamp : parse_output.timestamps)
-                {
-                    lines.push_back({parse_output.line, timestamp});
-                }
+                lines.push_back({parse_output.line, timestamp});
+            }
+        }
+        else
+        {
+            // We don't have a timestamp, but rather than failing to parse the entire file,
+            // we just keep the line around as "not having a timestamp". We represent this
+            // as a line with a timestamp that is way out of the actual length of the track.
+            // That way the line will never be highlighted and it neatly slots into the rest
+            // of the system without special handling.
+            // NOTE: It is important however, to note that this means we need to stable_sort
+            //       below, to preserve the ordering of the "untimed" lines
+            if(is_tag_line(line_view))
+            {
+                tags.emplace_back(line_view);
             }
             else
             {
-                // We don't have a timestamp, but rather than failing to parse the entire file,
-                // we just keep the line around as "not having a timestamp". We represent this
-                // as a line with a timestamp that is way out of the actual length of the track.
-                // That way the line will never be highlighted and it neatly slots into the rest
-                // of the system without special handling.
-                // NOTE: It is important however, to note that this means we need to stable_sort
-                //       below, to preserve the ordering of the "untimed" lines
-                if(line_bytes != 0)
-                {
-                    if(is_tag_line(line_view))
-                    {
-                        tags.emplace_back(line_view);
-                    }
-                    else
-                    {
-                        lines.push_back({std::string(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
-                    }
-                }
+                lines.push_back({std::string(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
             }
         }
 
