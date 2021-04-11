@@ -30,7 +30,7 @@ static void ensure_windows_newlines(std::string& str)
     }
 }
 
-static void internal_search_for_lyrics(LyricUpdateHandle* handle)
+static void internal_search_for_lyrics(LyricUpdateHandle& handle)
 {
     LOG_INFO("Searching for lyrics...");
 
@@ -44,7 +44,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle* handle)
 
         try
         {
-            lyric_data_raw = source->query(handle->get_track(), handle->get_checked_abort());
+            lyric_data_raw = source->query(handle.get_track(), handle.get_checked_abort());
             if(!lyric_data_raw.text.empty())
             {
                 success_source = source;
@@ -70,13 +70,13 @@ static void internal_search_for_lyrics(LyricUpdateHandle* handle)
     LOG_INFO("Parsing lyrics text...");
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw);
 
-    handle->set_result(std::move(lyric_data), true);
+    handle.set_result(std::move(lyric_data), true);
     LOG_INFO("Lyric loading complete");
 }
 
-void search_for_lyrics(LyricUpdateHandle* handle)
+void search_for_lyrics(LyricUpdateHandle& handle)
 {
-    fb2k::splitTask([handle](){
+    fb2k::splitTask([&handle](){
         internal_search_for_lyrics(handle);
     });
 }

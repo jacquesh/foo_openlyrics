@@ -59,7 +59,7 @@ namespace {
         void StopTimer();
 
         void InitiateLyricSearch(metadb_handle_ptr track);
-        void ProcessCompletedLyricUpdate(LyricUpdateHandle* update);
+        void ProcessAvailableLyricUpdate(LyricUpdateHandle& update);
 
         ui_element_config::ptr m_config;
 
@@ -196,15 +196,15 @@ namespace {
         for(auto iter=m_update_handles.begin(); iter!=m_update_handles.end(); /*omitted*/)
         {
             LyricUpdateHandle* update = *iter;
+            assert(update != nullptr);
             if(update == nullptr)
             {
-                assert(update != nullptr);
                 continue;
             }
 
             if(update->has_result())
             {
-                ProcessCompletedLyricUpdate(update);
+                ProcessAvailableLyricUpdate(*update);
             }
 
             if(update->is_complete())
@@ -574,13 +574,13 @@ namespace {
 
         LyricUpdateHandle* update = new LyricUpdateHandle(track);
         m_update_handles.push_back(update);
-        search_for_lyrics(update);
+        search_for_lyrics(*update);
     }
 
-    void LyricPanel::ProcessCompletedLyricUpdate(LyricUpdateHandle* update)
+    void LyricPanel::ProcessAvailableLyricUpdate(LyricUpdateHandle& update)
     {
-        assert(update->has_result());
-        LyricData lyrics = update->get_result();
+        assert(update.has_result());
+        LyricData lyrics = update.get_result();
 
         if(lyrics.IsEmpty())
         {
@@ -594,7 +594,7 @@ namespace {
             if(preferences::saving::autosave_enabled() &&
                (source != nullptr) && !source->can_save()) // Don't save to the source we just loaded from
             {
-                sources::SaveLyrics(update->get_track(), lyrics, update->get_checked_abort());
+                sources::SaveLyrics(update.get_track(), lyrics, update.get_checked_abort());
             }
         }
         catch(const std::exception& e)
@@ -602,7 +602,7 @@ namespace {
             LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
         }
 
-        if(update->get_track() == m_now_playing)
+        if(update.get_track() == m_now_playing)
         {
             m_lyrics = std::move(lyrics);
         }

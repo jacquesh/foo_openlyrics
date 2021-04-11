@@ -38,4 +38,4 @@ private:
     Status m_status;
 };
 
-void search_for_lyrics(LyricUpdateHandle* handle);
+void search_for_lyrics(LyricUpdateHandle& handle);
