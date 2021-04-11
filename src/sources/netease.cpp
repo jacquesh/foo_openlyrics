@@ -253,9 +253,12 @@ static int64_t get_song_id(const std::string& artist, const std::string& album, 
 
 static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
 {
+    LyricDataRaw result = {};
+    result.source_id = src_guid;
+
     if(song_id == 0)
     {
-        return {};
+        return result;
     }
 
     LOG_INFO("Get NetEase lyrics for song id %d", song_id);
@@ -263,6 +266,7 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
     snprintf(id_buffer, sizeof(id_buffer), "%lld", song_id);
 
     std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=" + id_buffer;
+    result.persistent_storage_path = url;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
     pfc::string8 content;
@@ -276,12 +280,9 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download NetEase page %s: %s", url.c_str(), e.what());
-        return {};
+        return result;
     }
 
-    LyricDataRaw result = {};
-    result.source_id = src_guid;
-    result.persistent_storage_path = url;
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
     if((json != nullptr) && (json->type == cJSON_Object))
