@@ -29,11 +29,13 @@ GUID io::get_save_source()
     }
 }
 
-void io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort)
+std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
     //       only happen on the main thread.
     core_api::ensure_main_thread();
+
+    std::string output_path;
 
     LyricSourceBase* source = LyricSourceBase::get(get_save_source());
     if(source != nullptr)
@@ -50,7 +52,7 @@ void io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_cal
 
         try
         {
-            source->save(track, lyrics.IsTimestamped(), text, abort);
+            output_path = source->save(track, lyrics.IsTimestamped(), text, abort);
         }
         catch(const std::exception& e)
         {
@@ -58,6 +60,8 @@ void io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_cal
             LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
         }
     }
+
+    return output_path;
 }
 
 static void ensure_windows_newlines(std::string& str)
@@ -87,7 +91,6 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
 {
     LOG_INFO("Searching for lyrics...");
 
-    LyricSourceBase* success_source = nullptr;
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::searching::active_sources())
     {
@@ -100,9 +103,10 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
         try
         {
             lyric_data_raw = source->query(handle.get_track(), handle.get_checked_abort());
+            assert(lyric_data_raw.source_id == source_id);
+
             if(!lyric_data_raw.text.empty())
             {
-                success_source = source;
                 LOG_INFO("Successfully retrieved lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
                 break;
             }

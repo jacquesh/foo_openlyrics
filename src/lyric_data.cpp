@@ -20,7 +20,8 @@ bool LyricData::IsEmpty() const
 void LyricData::operator =(LyricData&& other)
 {
     source_id = other.source_id;
-    text = other.text;
+    persistent_storage_path = std::move(other.persistent_storage_path);
+    text = std::move(other.text);
     tags = std::move(other.tags);
     lines = std::move(other.lines);
 

@@ -92,9 +92,6 @@
     <ClInclude Include="..\..\src\lyric_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\sources\localfiles.h">
-      <Filter>Header Files\sources</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\logging.h">
       <Filter>Header Files</Filter>
     </ClInclude>

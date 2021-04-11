@@ -10,7 +10,6 @@
 #include "lyric_io.h"
 #include "parsers.h"
 #include "preferences.h"
-#include "sources/localfiles.h"
 #include "sources/lyric_source.h"
 #include "ui_lyric_editor.h"
 #include "winstr_util.h"
@@ -494,16 +493,31 @@ namespace {
 
                 case ID_OPEN_FILE_DIR:
                 {
-                    // TODO: Really we should be opening the directory for *the current* file, rather than just the default one (there might be multiple directories?)
-                    pfc::string8 lyric_dir_utf8 = sources::localfiles::GetLyricsDir();
-                    size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(lyric_dir_utf8.c_str(), lyric_dir_utf8.length());
-                    wchar_t* lyric_dir = new wchar_t[wide_len];
-                    pfc::stringcvt::convert_utf8_to_wide(lyric_dir, wide_len, lyric_dir_utf8.c_str(), lyric_dir_utf8.length());
-
-                    int exec_result = (int)ShellExecute(get_wnd(), _T("explore"), lyric_dir, nullptr, nullptr, SW_SHOWMAXIMIZED);
-                    if(exec_result <= 32)
+                    if(m_lyrics.persistent_storage_path.empty())
                     {
-                        LOG_WARN("Failed to open lyric file directory: %d", exec_result);
+                        popup_message::g_complain("The selected track does not have any lyrics stored locally");
+                    }
+                    else
+                    {
+                        TCHAR* buffer = nullptr;
+                        size_t buffer_len = string_to_tchar(m_lyrics.persistent_storage_path, buffer);
+
+                        // Truncate the string at the last directory separator to get a directory path
+                        for(size_t i=buffer_len; i>0; i--)
+                        {
+                            if(buffer[i] == '\\')
+                            {
+                                buffer[i] = '\0';
+                                break;
+                            }
+                        }
+
+                        int exec_result = (int)ShellExecute(get_wnd(), _T("explore"), buffer, nullptr, nullptr, SW_SHOWMAXIMIZED);
+                        if(exec_result <= 32)
+                        {
+                            LOG_WARN("Failed to open lyric file directory: %d", exec_result);
+                        }
+                        delete[] buffer;
                     }
                 } break;
             }
@@ -601,7 +615,7 @@ namespace {
         {
             try
             {
-                io::save_lyrics(update.get_track(), lyrics, update.get_checked_abort());
+                lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, update.get_checked_abort());
             }
             catch(const std::exception& e)
             {

@@ -10,7 +10,6 @@
 #include "lyric_data.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
-#include "sources/localfiles.h"
 #include "winstr_util.h"
 
 extern const GUID GUID_PREFERENCES_PAGE_ROOT = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
@@ -50,7 +49,12 @@ static cfg_auto_property* g_all_auto_properties[] =
     &cfg_search_tags
 };
 
-static const GUID cfg_active_sources_default[] = {sources::localfiles::src_guid};
+// NOTE: This was copied from the localfiles source file.
+//       It should not be a problem because these GUIDs must never change anyway (since it would
+//       break everybody's config), but probably worth noting that the information is duplicated.
+static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+
+static const GUID cfg_active_sources_default[] = {localfiles_src_guid};
 static cfg_objList<GUID> cfg_active_sources(GUID_CFG_ACTIVE_SOURCES, cfg_active_sources_default);
 
 std::vector<GUID> preferences::searching::active_sources()

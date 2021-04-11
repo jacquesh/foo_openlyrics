@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <cctype>
 
 #include "libxml/HTMLparser.h"
 #include "libxml/tree.h"
@@ -19,17 +20,17 @@ class AZLyricsComSource : public LyricSourceRemote
 };
 static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
-static pfc::string8 remove_chars_for_url(const pfc::string8& input)
+static std::string remove_chars_for_url(const std::string& input)
 {
     // TODO: This almost certainly does not work for non-ASCII characters
-    pfc::string8 output;
-    output.prealloc(input.length());
+    std::string output;
+    output.reserve(input.length());
 
     for(size_t i=0; i<input.length(); i++)
     {
         if(pfc::char_is_ascii_alphanumeric(input[i]))
         {
-            pfc::stringToLowerAppend(output, &input[i], 1);
+            output += static_cast<char>(std::tolower(static_cast<unsigned char>(input[i])));
         }
     }
 
@@ -41,14 +42,14 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
     http_request::ptr request = http_client::get()->create_request("GET");
     request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
 
-    pfc::string8 url_artist = std::move(remove_chars_for_url(get_artist(track)));
-    pfc::string8 url_title = std::move(remove_chars_for_url(get_title(track)));
-    pfc::string8 url = "https://www.azlyrics.com/lyrics/";
-    url.add_string(url_artist);
-    url.add_string("/");
-    url.add_string(url_title);
-    url.add_string(".html");
+    std::string url_artist = remove_chars_for_url(get_artist(track));
+    std::string url_title = remove_chars_for_url(get_title(track));
+    std::string url = "https://www.azlyrics.com/lyrics/" + url_artist + "/" + url_title + ".html";;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
+
+    LyricDataRaw result = {};
+    result.source_id = id();
+    result.persistent_storage_path = url;
 
     pfc::string8 content;
     try
@@ -60,7 +61,7 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download azlyrics.com page %s: %s", url.c_str(), e.what());
-        return {};
+        return result;
     }
 
     htmlDocPtr doc = htmlReadMemory(content.c_str(), content.length(), url.c_str(), nullptr, 0);
@@ -112,7 +113,7 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
             target_node = xmlNextElementSibling(target_node);
         }
 
-        pfc::string8 lyric_text;
+        std::string lyric_text;
         if(target_node != nullptr)
         {
             xmlNode* child = target_node->children;
@@ -121,9 +122,9 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
                 if(child->type == XML_TEXT_NODE)
                 {
                     // NOTE: libxml2 stores strings as UTF8 internally, so we don't need to do any conversion here
-                    pfc::string8 line_text = trim_surrounding_whitespace((char*)child->content);
-                    lyric_text.add_string(line_text);
-                    lyric_text.add_string("\r\n");
+                    std::string line_text = trim_surrounding_whitespace((char*)child->content);
+                    lyric_text += line_text;
+                    lyric_text += "\r\n";
                 }
 
                 child = child->next;
@@ -134,19 +135,17 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
         xmlXPathFreeContext(xpath_ctx);
         xmlFreeDoc(doc);
 
-        if(lyric_text.is_empty())
+        if(lyric_text.empty())
         {
             throw new std::runtime_error("Failed to parse lyrics, the page format may have changed");
         }
         else
         {
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
-            LyricDataRaw result = {};
-            result.source_id = id();
             result.text = std::move(lyric_text);
             return result;
         }
     }
 
-    return {};
+    return result;
 }

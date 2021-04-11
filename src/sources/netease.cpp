@@ -29,11 +29,11 @@ http_request::ptr make_post_request()
     return request;
 }
 
-static pfc::string8 urlencode(const pfc::string8& input)
+static std::string urlencode(std::string_view input)
 {
     size_t inlen = input.length();
-    pfc::string8 result;
-    result.prealloc(inlen * 3);
+    std::string result;
+    result.reserve(inlen * 3);
 
     for(size_t i=0; i<inlen; i++)
     {
@@ -43,11 +43,11 @@ static pfc::string8 urlencode(const pfc::string8& input)
             (input[i] == '.') ||
             (input[i] == '~'))
         {
-            result.add_char(input[i]);
+            result += input[i];
         }
         else if(input[i] == ' ')
         {
-            result.add_char('+');
+            result += '+';
         }
         else
         {
@@ -60,9 +60,9 @@ static pfc::string8 urlencode(const pfc::string8& input)
             char hi_nibble = ((input[i] >> 4) & 0xF);
             char lo_nibble = ((input[i] >> 0) & 0xF);
 
-            result.add_char('%');
-            result.add_char(nibble_to_hex(hi_nibble));
-            result.add_char(nibble_to_hex(lo_nibble));
+            result += '%';
+            result += nibble_to_hex(hi_nibble);
+            result += nibble_to_hex(lo_nibble);
         }
     }
 
@@ -114,7 +114,7 @@ int edit_distance(const char* strA, const char* strB)
     return result;
 }
 
-static int64_t parse_song_id(cJSON* json, const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title)
+static int64_t parse_song_id(cJSON* json, const std::string& artist, const std::string& album, const std::string& title)
 {
     if((json == nullptr) || (json->type != cJSON_Object))
     {
@@ -225,14 +225,9 @@ static int64_t parse_song_id(cJSON* json, const pfc::string8& artist, const pfc:
     return 0;
 }
 
-static int64_t get_song_id(const pfc::string8& artist, const pfc::string8& album, const pfc::string8& title, abort_callback& abort)
+static int64_t get_song_id(const std::string& artist, const std::string& album, const std::string& title, abort_callback& abort)
 {
-    pfc::string8 url = BASE_URL;
-    url.add_string("/search/get?s=");
-    url.add_string(urlencode(artist));
-    url.add_string("+");
-    url.add_string(urlencode(title));
-    url.add_string("&type=1&offset=0&sub=false&limit=5");
+    std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(artist) + '+' + urlencode(title) + "&type=1&offset=0&sub=false&limit=5";
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;
@@ -267,9 +262,7 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
     char id_buffer[16];
     snprintf(id_buffer, sizeof(id_buffer), "%lld", song_id);
 
-    pfc::string8 url = BASE_URL;
-    url.add_string("/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=");
-    url.add_string(id_buffer);
+    std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=" + id_buffer;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
     pfc::string8 content;
@@ -287,6 +280,8 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
     }
 
     LyricDataRaw result = {};
+    result.source_id = src_guid;
+    result.persistent_storage_path = url;
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
     if((json != nullptr) && (json->type == cJSON_Object))
@@ -297,7 +292,6 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
             cJSON* lrc_lyric = cJSON_GetObjectItem(lrc_item, "lyric");
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
-                result.source_id = src_guid;
                 result.text = lrc_lyric->valuestring;
             }
         }

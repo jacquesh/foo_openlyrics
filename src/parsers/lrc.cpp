@@ -274,6 +274,7 @@ LyricData parse(const LyricDataRaw& input)
 
     LyricData result = {};
     result.source_id = input.source_id;
+    result.persistent_storage_path = input.persistent_storage_path;
     result.text = input.text;
     result.tags = std::move(tags);
     result.lines.reserve(lines.size());

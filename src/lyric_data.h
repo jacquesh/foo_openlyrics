@@ -8,6 +8,7 @@
 struct LyricDataRaw
 {
     GUID source_id;
+    std::string persistent_storage_path;
     std::string text;
 };
 

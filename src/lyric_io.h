@@ -9,8 +9,10 @@ class LyricUpdateHandle;
 namespace io
 {
     GUID get_save_source();
-    void save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort);
     void search_for_lyrics(LyricUpdateHandle& handle);
+
+    // Returns the path of the file on disk to which the lyrics were saved
+    std::string save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort);
 }
 
 

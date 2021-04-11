@@ -96,8 +96,9 @@ bool LyricSourceRemote::can_save() const
     return false;
 }
 
-void LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, abort_callback& /*abort*/)
+std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, abort_callback& /*abort*/)
 {
     LOG_WARN("Cannot save lyrics to a remote source");
     assert(false);
+    return "";
 }

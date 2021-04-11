@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <cctype>
 
 #include "libxml/HTMLparser.h"
 #include "libxml/tree.h"
@@ -19,27 +20,27 @@ class GeniusComSource : public LyricSourceRemote
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
 
-static pfc::string8 remove_chars_for_url(const pfc::string8& input)
+static std::string remove_chars_for_url(const std::string& input)
 {
-    pfc::string8 output;
-    output.prealloc(input.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
+    std::string output;
+    output.reserve(input.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
     for(size_t i=0; i<input.length(); i++)
     {
         if(pfc::char_is_ascii_alphanumeric(input[i]))
         {
-            pfc::stringToLowerAppend(output, &input[i], 1);
+            output += static_cast<char>(std::tolower(static_cast<unsigned char>(input[i])));
         }
         else if((input[i] == ' ') || (input[i] == '-'))
         {
-            output.add_char('-');
+            output += '-';
         }
         else if(input[i] == '&')
         {
-            output.add_string("and");
+            output += "and";
         }
         else if(input[i] == '@')
         {
-            output.add_string("at");
+            output += "at";
         }
     }
 
@@ -66,7 +67,6 @@ void GeniusComSource::add_all_text_to_string(pfc::string8& output, xmlNodePtr no
         else if(child->type == XML_ELEMENT_NODE)
         {
             add_all_text_to_string(output, child);
-            xmlNode* grandchild = child->children;
         }
 
         child = child->next;
@@ -78,11 +78,15 @@ LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abo
     abort_callback_dummy noAbort;
     auto request = http_client::get()->create_request("GET");
 
-    pfc::string8 url = "https://genius.com/";
-    url.add_string(remove_chars_for_url(get_artist(track)));
-    url.add_char('-');
-    url.add_string(remove_chars_for_url(get_title(track)));
-    url.add_string("-lyrics");
+    std::string url = "https://genius.com/";
+    url += remove_chars_for_url(get_artist(track));
+    url += '-';
+    url += remove_chars_for_url(get_title(track));
+    url += "-lyrics";
+
+    LyricDataRaw result = {};
+    result.source_id = id();
+    result.persistent_storage_path = url;
 
     pfc::string8 content;
     try
@@ -94,7 +98,7 @@ LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abo
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download genius.com page %s: %s", url.c_str(), e.what());
-        return {};
+        return result;
     }
 
     LOG_INFO("Page %s retrieved", url.c_str());
@@ -156,8 +160,6 @@ LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abo
         else
         {
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
-            LyricDataRaw result = {};
-            result.source_id = id();
             result.text = std::move(lyric_text);
             return result;
         }
@@ -167,5 +169,5 @@ LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abo
         LOG_WARN("Failed to parse HTML response from %s", url.c_str());
     }
 
-    return {};
+    return result;
 }

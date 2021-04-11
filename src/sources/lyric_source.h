@@ -19,7 +19,7 @@ public:
     virtual const TCHAR* friendly_name() const = 0;
     virtual bool can_save() const = 0;
     virtual LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) = 0;
-    virtual void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) = 0;
+    virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) = 0;
 
 protected:
     const char* get_artist(metadb_handle_ptr track) const;
@@ -32,7 +32,7 @@ protected:
 class LyricSourceRemote : public LyricSourceBase
 {
     bool can_save() const final;
-    void save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
 };
 
 template<typename T>
