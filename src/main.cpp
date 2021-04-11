@@ -20,6 +20,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add support for saving lyrics to ID3 tags\n"
     "- Add support for configuring which ID3 tags are searched or saved to\n"
     "- Add status-bar descriptions for lyric panel context menu entries\n"
+    "- Change lyric loading to not auto-reload whenever any lyrics file changes\n"
     "- Fix the release process producing incompatible *.fb2k-component archives\n"
     "- Fix config reset resetting to the last-saved value rather than the default\n"
     "- Fix a save format preview format error when playback is stopped\n"

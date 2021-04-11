@@ -6,6 +6,7 @@
 
 namespace sources
 {
+    GUID GetSaveSource();
     void SaveLyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort);
 }
 

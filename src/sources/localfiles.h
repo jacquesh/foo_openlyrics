@@ -8,8 +8,5 @@ namespace sources::localfiles
 {
     const extern GUID src_guid;
 
-    void RegisterLyricPanel(HWND panel_handle);
-    void DeregisterLyricPanel(HWND panel_handle);
-
     pfc::string8 GetLyricsDir();
 }

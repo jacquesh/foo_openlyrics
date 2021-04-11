@@ -7,9 +7,17 @@
 class LyricUpdateHandle
 {
 public:
-    LyricUpdateHandle(metadb_handle_ptr track);
+    enum class Type
+    {
+        Unknown,
+        Search,
+        Edit
+    };
+
+    LyricUpdateHandle(Type type, metadb_handle_ptr track);
     ~LyricUpdateHandle();
 
+    Type get_type();
     bool is_complete();
     bool has_result();
     LyricData get_result();
@@ -30,6 +38,7 @@ private:
     };
 
     const metadb_handle_ptr m_track;
+    const Type m_type;
 
     CRITICAL_SECTION m_mutex;
     LyricData m_lyrics;

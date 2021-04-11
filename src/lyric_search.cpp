@@ -82,8 +82,9 @@ void search_for_lyrics(LyricUpdateHandle& handle)
 }
 
 
-LyricUpdateHandle::LyricUpdateHandle(metadb_handle_ptr track) :
+LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track) :
     m_track(track),
+    m_type(type),
     m_mutex({}),
     m_lyrics(),
     m_abort(),
@@ -109,6 +110,11 @@ LyricUpdateHandle::~LyricUpdateHandle()
     }
     CloseHandle(m_complete);
     DeleteCriticalSection(&m_mutex);
+}
+
+LyricUpdateHandle::Type LyricUpdateHandle::get_type()
+{
+    return m_type;
 }
 
 bool LyricUpdateHandle::is_complete()

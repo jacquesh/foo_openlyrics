@@ -46,7 +46,6 @@ namespace {
 
     private:
         LRESULT OnLyricSavedToDisk(UINT, WPARAM, LPARAM, BOOL&);
-        LRESULT OnWindowCreate(LPCREATESTRUCT);
         void OnWindowDestroy();
         LRESULT OnTimer(WPARAM);
         void OnPaint(CDCHandle);
@@ -75,7 +74,6 @@ namespace {
 
         BEGIN_MSG_MAP_EX(LyricPanel)
             MESSAGE_HANDLER(WM_USER+1, OnLyricSavedToDisk) // TODO: Define a constant for this message
-            MSG_WM_CREATE(OnWindowCreate)
             MSG_WM_DESTROY(OnWindowDestroy)
             MSG_WM_TIMER(OnTimer)
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
@@ -157,16 +155,8 @@ namespace {
         return 0;
     }
 
-    LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*create*/)
-    {
-        sources::localfiles::RegisterLyricPanel(get_wnd());
-        return 0;
-    }
-
     void LyricPanel::OnWindowDestroy()
     {
-        sources::localfiles::DeregisterLyricPanel(get_wnd());
-
         // Cancel and clean up any pending updates
         for(LyricUpdateHandle* handle : m_update_handles)
         {
@@ -320,11 +310,24 @@ namespace {
 
                 if(!m_update_handles.empty())
                 {
-                    // TODO: Draw some progress info (be it a progress bar, or just text "63%", maybe the name of the current source being queried)
-                    const TCHAR* search_text = _T("Searching...");
-                    size_t search_text_len = _tcslen(search_text);
-                    TextOut(back_buffer, client_centre.x, current_y, search_text, search_text_len);
-                    current_y += line_height;
+                    bool is_search = false;
+                    for(LyricUpdateHandle* update : m_update_handles)
+                    {
+                        if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::Search))
+                        {
+                            is_search = true;
+                            break;
+                        }
+                    }
+
+                    if(is_search)
+                    {
+                        // TODO: Draw some progress info (be it a progress bar, or just text "63%", maybe the name of the current source being queried)
+                        const TCHAR* search_text = _T("Searching...");
+                        size_t search_text_len = _tcslen(search_text);
+                        TextOut(back_buffer, client_centre.x, current_y, search_text, search_text_len);
+                        current_y += line_height;
+                    }
                 }
 
                 delete[] title_line;
@@ -482,7 +485,7 @@ namespace {
                     if(m_now_playing == nullptr) break;
 
                     std::string text = parsers::lrc::expand_text(m_lyrics);
-                    LyricUpdateHandle* update = new LyricUpdateHandle(m_now_playing);
+                    LyricUpdateHandle* update = new LyricUpdateHandle(LyricUpdateHandle::Type::Edit, m_now_playing);
                     m_update_handles.push_back(update);
                     SpawnLyricEditor(text, *update);
                 } break;
@@ -572,7 +575,7 @@ namespace {
         LOG_INFO("Initiate lyric search");
         m_lyrics = {};
 
-        LyricUpdateHandle* update = new LyricUpdateHandle(track);
+        LyricUpdateHandle* update = new LyricUpdateHandle(LyricUpdateHandle::Type::Search, track);
         m_update_handles.push_back(update);
         search_for_lyrics(*update);
     }
@@ -588,18 +591,20 @@ namespace {
             return;
         }
 
-        LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
-        try
+        bool is_edit = (update.get_type() == LyricUpdateHandle::Type::Edit);
+        bool autosave_enabled = preferences::saving::autosave_enabled();
+        bool loaded_from_save_src = (lyrics.source_id == sources::GetSaveSource());
+        bool should_save = is_edit || (autosave_enabled && !loaded_from_save_src); // Don't save to the source we just loaded from
+        if(should_save)
         {
-            if(preferences::saving::autosave_enabled() &&
-               (source != nullptr) && !source->can_save()) // Don't save to the source we just loaded from
+            try
             {
                 sources::SaveLyrics(update.get_track(), lyrics, update.get_checked_abort());
             }
-        }
-        catch(const std::exception& e)
-        {
-            LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
+            catch(const std::exception& e)
+            {
+                LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
+            }
         }
 
         if(update.get_track() == m_now_playing)
