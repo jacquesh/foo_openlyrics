@@ -15,7 +15,7 @@ class GeniusComSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     const TCHAR* friendly_name() const final { return _T("genius.com"); }
 
-    void add_all_text_to_string(pfc::string8& output, xmlNodePtr node) const;
+    void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
@@ -47,7 +47,7 @@ static std::string remove_chars_for_url(const std::string& input)
     return output;
 }
 
-void GeniusComSource::add_all_text_to_string(pfc::string8& output, xmlNodePtr node) const
+void GeniusComSource::add_all_text_to_string(std::string& output, xmlNodePtr node) const
 {
     if((node == nullptr) || (node->type != XML_ELEMENT_NODE))
     {
@@ -60,9 +60,9 @@ void GeniusComSource::add_all_text_to_string(pfc::string8& output, xmlNodePtr no
         if(child->type == XML_TEXT_NODE)
         {
             // NOTE: libxml2 stores strings as UTF8 internally, so we don't need to do any conversion here
-            pfc::string8 node_text = trim_surrounding_whitespace((char*)child->content);
-            output.add_string(node_text);
-            output.add_string("\r\n");
+            std::string node_text = trim_surrounding_whitespace((char*)child->content);
+            output += node_text;
+            output += "\r\n";
         }
         else if(child->type == XML_ELEMENT_NODE)
         {
@@ -138,7 +138,7 @@ LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abo
             }
         }
 
-        pfc::string8 lyric_text;
+        std::string lyric_text;
         if((xpath_obj->nodesetval != nullptr) && (xpath_obj->nodesetval->nodeNr > 0))
         {
             int node_count = xpath_obj->nodesetval->nodeNr;
@@ -153,7 +153,7 @@ LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abo
         xmlXPathFreeContext(xpath_ctx);
         xmlFreeDoc(doc);
 
-        if(lyric_text.is_empty())
+        if(lyric_text.empty())
         {
             throw std::runtime_error("Failed to parse lyrics, the page format may have changed");
         }

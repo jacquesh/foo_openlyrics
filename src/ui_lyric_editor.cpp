@@ -380,7 +380,8 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     m_input_text_length = chars_copied;
 
     std::string lyrics = tchar_to_string(lyric_buffer, chars_copied);
-    LyricDataRaw data_raw = {{}, lyrics}; // TODO: Should we store/fill in the original source of the lyrics?
+    LyricDataRaw data_raw = {};
+    data_raw.text = lyrics;
     LyricData data = parsers::lrc::parse(data_raw);
     m_update.set_result(std::move(data), is_editor_closing);
 

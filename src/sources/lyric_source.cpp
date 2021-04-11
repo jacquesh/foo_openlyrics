@@ -76,18 +76,32 @@ const char* LyricSourceBase::get_title(metadb_handle_ptr track) const
     return "";
 }
 
-pfc::string8 LyricSourceBase::trim_surrounding_whitespace(const char* str) const
+std::string LyricSourceBase::trim_surrounding_whitespace(const char* str) const
 {
-    int leading_chars_to_remove = 0;
-    while((str[leading_chars_to_remove] == '\r') ||
-          (str[leading_chars_to_remove] == '\n') ||
-          (str[leading_chars_to_remove] == ' '))
+    size_t len = strlen(str);
+    size_t leading_chars_to_remove = 0;
+    while((leading_chars_to_remove < len) &&
+            ((str[leading_chars_to_remove] == '\r') ||
+             (str[leading_chars_to_remove] == '\n') ||
+             (str[leading_chars_to_remove] == ' ')))
     {
         leading_chars_to_remove++;
     }
 
-    pfc::string8 result(str + leading_chars_to_remove);
-    result.skip_trailing_chars("\r\n ");
+    size_t trailing_chars_to_remove = 0;
+    while((leading_chars_to_remove + trailing_chars_to_remove < len) &&
+            ((str[len - trailing_chars_to_remove] == '\r') ||
+             (str[len - trailing_chars_to_remove] == '\n') ||
+             (str[len - trailing_chars_to_remove] == ' ')))
+    {
+        trailing_chars_to_remove++;
+    }
+
+    size_t total_to_remove = leading_chars_to_remove + trailing_chars_to_remove;
+    assert(total_to_remove <= len);
+
+    size_t result_len = len - total_to_remove;
+    std::string result(str + leading_chars_to_remove, result_len);
     return result;
 }
 

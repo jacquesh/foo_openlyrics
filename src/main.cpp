@@ -25,6 +25,7 @@ DECLARE_COMPONENT_VERSION(
     "- Fix the release process producing incompatible *.fb2k-component archives\n"
     "- Fix config reset resetting to the last-saved value rather than the default\n"
     "- Fix a save format preview format error when playback is stopped\n"
+    "- Some internal restructuring to better support future features\n"
     "\n"
     "Version 0.3:\n"
     "- Add built-in support for synchronising lines in the lyric editor\n"

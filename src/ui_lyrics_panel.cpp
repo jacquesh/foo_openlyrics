@@ -556,7 +556,7 @@ namespace {
         if (m_timerRunning) return;
         m_timerRunning = true;
 
-        // TODO: How often do we need to re-draw? If its not that often then can we instead just use the per-second callback from play_callback_impl?
+        // TODO: How often do we need to re-draw? A quick calculation with a representative track suggests that we'd only need to redraw (untimestamped) lyrics every ~200ms to redraw once per vertical pixel moved
         // TODO: Another option is timeSetEvent (https://docs.microsoft.com/en-us/previous-versions/dd757634(v=vs.85)) instead. Should we be using that?
         UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 20, nullptr);
         if (result != PANEL_UPDATE_TIMER)
