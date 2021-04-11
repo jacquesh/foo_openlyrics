@@ -5,11 +5,11 @@
 #include "preferences.h"
 #include "winstr_util.h"
 
-static pfc::string8 GetLyricsDir()
+static std::string GetLyricsDir()
 {
-    pfc::string8 lyricDirPath(core_api::get_profile_path());
-    lyricDirPath.add_filename("lyrics");
-    return lyricDirPath;
+    std::string lyric_dir_path(core_api::get_profile_path());
+    lyric_dir_path += "\\lyrics\\";
+    return lyric_dir_path;
 }
 
 static const GUID src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
@@ -25,7 +25,7 @@ class LocalFileSource : public LyricSourceBase
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
-static bool ComputeFileTitle(metadb_handle_ptr track, pfc::string8& out_title)
+static bool ComputeFileTitle(metadb_handle_ptr track, std::string& out_title)
 {
     const char* save_format = preferences::saving::filename_format();
     titleformat_object::ptr format_script;
@@ -36,15 +36,16 @@ static bool ComputeFileTitle(metadb_handle_ptr track, pfc::string8& out_title)
     }
 
     pfc::string8 save_file_title;
-    bool format_success = track->format_title(nullptr, out_title, format_script, nullptr);
-    out_title.fix_filename_chars();
+    bool format_success = track->format_title(nullptr, save_file_title, format_script, nullptr);
+    save_file_title.fix_filename_chars();
+    out_title = std::string(save_file_title.c_str(), save_file_title.length());
 
     return format_success;
 }
 
 LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abort)
 {
-    pfc::string8 file_title;
+    std::string file_title;
     if(!ComputeFileTitle(track, file_title))
     {
         LOG_ERROR("Failed to determine query file title");
@@ -52,8 +53,8 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
     }
     LOG_INFO("Querying for lyrics in local files for %s...", file_title.c_str());
 
-    pfc::string8 lyric_path_prefix = GetLyricsDir();
-    lyric_path_prefix.add_filename(file_title);
+    std::string lyric_path_prefix = GetLyricsDir();
+    lyric_path_prefix += file_title;
 
     LyricDataRaw result = {};
     result.source_id = id();
@@ -64,8 +65,8 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
     const char* extensions[] = { ".lrc", ".txt" };
     for (const char* ext : extensions)
     {
-        pfc::string8 file_path = lyric_path_prefix;
-        file_path.add_string(ext);
+        std::string file_path = lyric_path_prefix;
+        file_path += ext;
         LOG_INFO("Querying for lyrics from %s...", file_path.c_str());
 
         try
@@ -97,23 +98,30 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
 std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
-    pfc::string8 save_file_title;
+    std::string save_file_title;
     if(!ComputeFileTitle(track, save_file_title))
     {
         throw std::exception("Failed to determine save file title");
     }
 
-    pfc::string8 output_path = GetLyricsDir();
-    output_path.add_filename(save_file_title.c_str());
+    std::string output_dir = GetLyricsDir();
+    if(!filesystem::g_exists(output_dir.c_str(), abort))
+    {
+        LOG_INFO("Lyrics directory %s does not exist. Creating it...", output_dir.c_str());
+        filesystem::g_create_directory(output_dir.c_str(), abort);
+    }
+
+    std::string output_path = output_dir;
+    output_path += save_file_title.c_str();
 
     const char* extension = is_timestamped ? ".lrc" : ".txt";
-    output_path.add_string(extension);
+    output_path += extension;
     LOG_INFO("Saving lyrics to %s...", output_path.c_str());
 
     TCHAR temp_path_str[MAX_PATH+1];
     DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
-    pfc::string8 tmp_path = tchar_to_pfcstring(temp_path_str, temp_path_str_len);
-    tmp_path.add_filename(save_file_title.c_str());
+    std::string tmp_path = tchar_to_string(temp_path_str, temp_path_str_len);
+    tmp_path += save_file_title;
 
     {
         // NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
