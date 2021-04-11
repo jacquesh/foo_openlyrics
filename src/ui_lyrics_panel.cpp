@@ -311,10 +311,12 @@ namespace {
                 if(!m_update_handles.empty())
                 {
                     bool is_search = false;
+                    std::string progress_msg;
                     for(LyricUpdateHandle* update : m_update_handles)
                     {
                         if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::Search))
                         {
+                            progress_msg = update->get_progress();
                             is_search = true;
                             break;
                         }
@@ -322,11 +324,11 @@ namespace {
 
                     if(is_search)
                     {
-                        // TODO: Draw some progress info (be it a progress bar, or just text "63%", maybe the name of the current source being queried)
-                        const TCHAR* search_text = _T("Searching...");
-                        size_t search_text_len = _tcslen(search_text);
-                        TextOut(back_buffer, client_centre.x, current_y, search_text, search_text_len);
+                        TCHAR* progress_text = nullptr;
+                        size_t progress_text_len = string_to_tchar(progress_msg, progress_text);
+                        TextOut(back_buffer, client_centre.x, current_y, progress_text, progress_text_len);
                         current_y += line_height;
+                        delete[] progress_text;
                     }
                 }
 

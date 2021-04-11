@@ -27,9 +27,8 @@ public:
     LyricUpdateHandle(Type type, metadb_handle_ptr track);
     ~LyricUpdateHandle();
 
-    // TODO: double get_progress();
-
     Type get_type();
+    std::string get_progress();
     bool is_complete();
     bool has_result();
     LyricData get_result();
@@ -37,6 +36,7 @@ public:
     abort_callback& get_checked_abort(); // Checks the abort flag (so it might throw) and returns it
     metadb_handle_ptr get_track();
 
+    void set_progress(std::string_view value);
     void set_result(LyricData&& data, bool final_result);
 
 private:
@@ -57,5 +57,6 @@ private:
     abort_callback_impl m_abort;
     HANDLE m_complete;
     Status m_status;
+    std::string m_progress;
 };
 

@@ -87,13 +87,15 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
 {
     LOG_INFO("Searching for lyrics...");
 
-    // TODO: Return a progress percentage while searching, and show "Searching: 63%" along with a visual progress bar
     LyricSourceBase* success_source = nullptr;
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::searching::active_sources())
     {
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
+
+        std::string friendly_name = tchar_to_string(source->friendly_name());
+        handle.set_progress("Searching " + friendly_name + "...");
 
         try
         {
@@ -121,6 +123,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
     ensure_windows_newlines(lyric_data_raw.text);
 
     LOG_INFO("Parsing lyrics text...");
+    handle.set_progress("Parsing...");
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw);
 
     handle.set_result(std::move(lyric_data), true);
@@ -141,7 +144,8 @@ LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track) :
     m_lyrics(),
     m_abort(),
     m_complete(nullptr),
-    m_status(Status::Running)
+    m_status(Status::Running),
+    m_progress()
 {
     InitializeCriticalSection(&m_mutex);
     m_complete = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -167,6 +171,14 @@ LyricUpdateHandle::~LyricUpdateHandle()
 LyricUpdateHandle::Type LyricUpdateHandle::get_type()
 {
     return m_type;
+}
+
+std::string LyricUpdateHandle::get_progress()
+{
+    EnterCriticalSection(&m_mutex);
+    std::string result = m_progress;
+    LeaveCriticalSection(&m_mutex);
+    return result;
 }
 
 bool LyricUpdateHandle::is_complete()
@@ -211,6 +223,13 @@ abort_callback& LyricUpdateHandle::get_checked_abort()
 metadb_handle_ptr LyricUpdateHandle::get_track()
 {
     return m_track;
+}
+
+void LyricUpdateHandle::set_progress(std::string_view value)
+{
+    EnterCriticalSection(&m_mutex);
+    m_progress = value;
+    LeaveCriticalSection(&m_mutex);
 }
 
 void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)

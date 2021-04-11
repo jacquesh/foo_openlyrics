@@ -186,8 +186,9 @@ LyricData parse(const LyricDataRaw& input)
     LOG_INFO("Parsing LRC lyric text...");
     if(input.text.empty())
     {
-        LOG_WARN("Cannot parse empty raw lyrics as LRC");
-        return {};
+        LyricData result;
+        result.source_id = input.source_id;
+        return result;
     }
 
     struct LineData
