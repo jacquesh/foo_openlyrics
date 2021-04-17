@@ -17,6 +17,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.5-dev:\n"
+    "- Add support for ColumnsUI\n"
     "\n"
     "Version 0.4:\n"
     "- Add support for saving lyrics to ID3 tags\n"

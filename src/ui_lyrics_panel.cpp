@@ -12,6 +12,7 @@
 #include "preferences.h"
 #include "sources/lyric_source.h"
 #include "ui_lyric_editor.h"
+#include "uie_shim_panel.h"
 #include "winstr_util.h"
 
 namespace {
@@ -88,7 +89,7 @@ namespace {
     GUID LyricPanel::g_get_subclass() { return ui_element_subclass_utility; }
     ui_element_config::ptr LyricPanel::g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
     void LyricPanel::g_get_name(pfc::string_base & out) { out = "OpenLyrics Panel"; }
-    const char * LyricPanel::g_get_description() { return "The OpenLyrics Lyrics Panel"; }
+    const char * LyricPanel::g_get_description() { return "Displays lyrics for the currently-playing track."; }
 
     LyricPanel::LyricPanel(ui_element_config::ptr config, ui_element_instance_callback_ptr p_callback) :
         m_config(config),
@@ -617,7 +618,8 @@ namespace {
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.
-    class ui_element_myimpl : public ui_element_impl_withpopup<LyricPanel> {};
-    static service_factory_single_t<ui_element_myimpl> g_lyric_panel_factory;
+    class LyricPanelImpl : public ui_element_impl_withpopup<LyricPanel> {};
+    FB2K_SERVICE_FACTORY(LyricPanelImpl)
+    UIE_SHIM_PANEL_FACTORY(LyricPanel)
 
 } // namespace

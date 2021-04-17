@@ -110,6 +110,9 @@
     <ClInclude Include="..\..\src\lyric_io.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\uie_shim_panel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\foo_openlyrics.rc">
