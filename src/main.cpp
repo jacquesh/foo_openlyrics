@@ -18,6 +18,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.5-dev:\n"
     "- Add support for ColumnsUI\n"
+    "- Add a preferences page for the font & colours used for the panel\n"
     "\n"
     "Version 0.4:\n"
     "- Add support for saving lyrics to ID3 tags\n"

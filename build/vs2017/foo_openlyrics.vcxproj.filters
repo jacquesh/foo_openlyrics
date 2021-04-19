@@ -25,6 +25,12 @@
     <Filter Include="3rdparty">
       <UniqueIdentifier>{63fb422d-c866-4158-b17b-d345356462c5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\config">
+      <UniqueIdentifier>{0404e0ae-b250-415a-a62f-988b3feaa72f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\config">
+      <UniqueIdentifier>{3cca10d7-c52b-4e5e-8ed4-4ae6f1f2975a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp">
@@ -75,15 +81,18 @@
     <ClCompile Include="..\..\src\lyric_io.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\config\config_font.cpp">
+      <Filter>Source Files\config</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\config\ui_preferences_display.cpp">
+      <Filter>Source Files\config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\config_auto.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\winstr_util.h">
@@ -112,6 +121,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\uie_shim_panel.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\config\config_auto.h">
+      <Filter>Header Files\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\config\config_font.h">
+      <Filter>Header Files\config</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

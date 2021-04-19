@@ -169,7 +169,7 @@ struct cfg_auto_combo_option
 };
 
 template<typename TEnum, int IOptionCount>
-struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
+struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
 {
     cfg_auto_combo(const GUID& guid, int control_id, TEnum default_value, cfg_auto_combo_option<TEnum> (&options)[IOptionCount]) :
         cfg_int_t<int>(guid, static_cast<int>(default_value)),
@@ -177,6 +177,11 @@ struct cfg_auto_combo : public cfg_int_t<int>, public cfg_auto_property
         m_options(options),
         m_default_value(default_value)
     {
+    }
+
+    TEnum get_value()
+    {
+        return (TEnum)cfg_int_t<int>::get_value();
     }
 
     void Initialise(HWND container) override
@@ -253,4 +258,71 @@ private:
     int m_control_id;
     cfg_auto_combo_option<TEnum>* m_options;
     TEnum m_default_value;
+};
+
+class auto_preferences_page_instance : public preferences_page_instance
+{
+public:
+    template<int N>
+    auto_preferences_page_instance(preferences_page_callback::ptr callback, cfg_auto_property* (&auto_props)[N]) :
+        m_callback(callback)
+    {
+        m_auto_properties.reserve(N);
+        for(cfg_auto_property* prop : auto_props)
+        {
+            m_auto_properties.push_back(prop);
+        }
+    }
+
+    void init_auto_preferences()
+    {
+        HWND handle = get_wnd();
+        for(cfg_auto_property* prop : m_auto_properties)
+        {
+            prop->Initialise(handle);
+        }
+    }
+
+    // preferences_page_instance methods (not all of them - get_wnd() is supplied by preferences_page_impl helpers)
+    t_uint32 get_state() override
+    {
+        t_uint32 state = preferences_state::resettable;
+        if (has_changed()) state |= preferences_state::changed;
+        return state;
+    }
+    void apply() override
+    {
+        for(cfg_auto_property* prop : m_auto_properties)
+        {
+            prop->Apply();
+        }
+        on_ui_interaction(); // our dialog content has not changed but the flags have - our currently shown values now match the settings so the apply button can be disabled
+    }
+    void reset() override
+    {
+        for(cfg_auto_property* prop : m_auto_properties)
+        {
+            prop->ResetToDefault();
+        }
+        on_ui_interaction();
+    }
+
+    virtual bool has_changed()
+    {
+        for(cfg_auto_property* prop : m_auto_properties)
+        {
+            if(prop->HasChanged()) return true;
+        }
+        return false;
+    }
+
+    void on_ui_interaction()
+    {
+        //tell the host that our state has changed to enable/disable the apply button appropriately.
+        m_callback->on_state_changed();
+    }
+
+private:
+    const preferences_page_callback::ptr m_callback;
+    std::vector<cfg_auto_property*> m_auto_properties;
 };

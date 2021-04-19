@@ -2,19 +2,18 @@
 
 #include "stdafx.h"
 
+extern const GUID GUID_PREFERENCES_PAGE_ROOT;
+
 // NOTE: These enums must change in a backward-compatible manner.
 //       This means that values can never be removed or re-used.
 //       If we don't do this then updates will cause weird behaviour on users that have
 //       saved settings on previous versions.
-
 enum class SaveMethod : int
 {
     None            = 0,
     ConfigDirectory = 1,
     Id3Tag          = 2
 };
-
-extern const GUID GUID_PREFERENCES_PAGE_ROOT;
 
 namespace preferences
 {
@@ -35,5 +34,13 @@ namespace preferences
         std::string_view timestamped_tag();
     }
 
-    int get_render_linegap();
+    namespace display
+    {
+        t_ui_font font();
+        std::optional<t_ui_color> foreground_colour();
+        std::optional<t_ui_color> background_colour();
+        std::optional<t_ui_color> highlight_colour();
+
+        int render_linegap();
+    }
 }

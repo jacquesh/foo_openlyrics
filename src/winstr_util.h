@@ -2,6 +2,15 @@
 
 #include "stdafx.h"
 
+namespace std
+{
+#ifdef UNICODE
+    using tstring = wstring;
+#else
+    using tstring = string;
+#endif
+}
+
 pfc::string8 tchar_to_pfcstring(const TCHAR* buffer);
 pfc::string8 tchar_to_pfcstring(const TCHAR* buffer, size_t buffer_len);
 

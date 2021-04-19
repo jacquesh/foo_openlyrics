@@ -37,7 +37,7 @@ namespace {
         static ui_element_config::ptr g_get_default_configuration();
         static const char * g_get_description();
 
-        void notify(const GUID & p_what, t_size p_param1, const void * p_param2, t_size p_param2size) override;
+        void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override;
 
         void on_playback_new_track(metadb_handle_ptr p_track) override;
         void on_playback_stop(play_control::t_stop_reason p_reason) override;
@@ -52,6 +52,10 @@ namespace {
         void OnContextMenu(CWindow window, CPoint point);
 
         void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title);
+        t_ui_font get_font();
+        t_ui_color get_fg_colour();
+        t_ui_color get_bg_colour();
+        t_ui_color get_highlight_colour();
 
         void StartTimer();
         void StopTimer();
@@ -101,7 +105,7 @@ namespace {
     {
     }
 
-    void LyricPanel::notify(const GUID & what, t_size /*param1*/, const void * /*param2*/, t_size /*param2size*/)
+    void LyricPanel::notify(const GUID& what, t_size /*param1*/, const void* /*param2*/, t_size /*param2size*/)
     {
         if ((what == ui_element_notify_colors_changed) || (what == ui_element_notify_font_changed))
         {
@@ -208,13 +212,13 @@ namespace {
         HBITMAP back_buffer_bitmap = CreateCompatibleBitmap(front_buffer, client_rect.Width(), client_rect.Height());
         SelectObject(back_buffer, back_buffer_bitmap);
 
-        HBRUSH bg_brush = CreateSolidBrush(m_callback->query_std_color(ui_color_background));
+        HBRUSH bg_brush = CreateSolidBrush(get_bg_colour());
         FillRect(back_buffer, &client_rect, bg_brush);
         DeleteObject(bg_brush);
 
         SetBkMode(back_buffer, TRANSPARENT);
-        SelectObject(back_buffer, m_callback->query_font_ex(ui_font_console));
-        COLORREF color_result = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_text));
+        SelectObject(back_buffer, get_font());
+        COLORREF color_result = SetTextColor(back_buffer, get_fg_colour());
         UINT align_result = SetTextAlign(back_buffer, TA_BASELINE | TA_CENTER);
         if(color_result == CLR_INVALID)
         {
@@ -230,7 +234,7 @@ namespace {
 
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_position = playback->playback_get_position();
-        int line_gap = preferences::get_render_linegap();
+        int line_gap = preferences::display::render_linegap();
 
         // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         if(m_lyrics.IsEmpty())
@@ -341,7 +345,7 @@ namespace {
                 BOOL draw_success = FALSE;
                 if(line_index == active_line_index)
                 {
-                    COLORREF previous_colour = SetTextColor(back_buffer, m_callback->query_std_color(ui_color_highlight));
+                    COLORREF previous_colour = SetTextColor(back_buffer, get_highlight_colour());
                     draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
                     SetTextColor(back_buffer, previous_colour);
                 }
@@ -549,6 +553,55 @@ namespace {
         else
         {
             out_title.reset();
+        }
+    }
+
+    t_ui_font LyricPanel::get_font()
+    {
+        t_ui_font result = preferences::display::font();
+        if(result == nullptr)
+        {
+            result = m_callback->query_font_ex(ui_font_console);
+        }
+        return result;
+    }
+
+    t_ui_color LyricPanel::get_fg_colour()
+    {
+        std::optional<t_ui_color> colour = preferences::display::foreground_colour();
+        if(colour.has_value())
+        {
+            return colour.value();
+        }
+        else
+        {
+            return m_callback->query_std_color(ui_color_text);
+        }
+    }
+
+    t_ui_color LyricPanel::get_bg_colour()
+    {
+        std::optional<t_ui_color> colour = preferences::display::background_colour();
+        if(colour.has_value())
+        {
+            return colour.value();
+        }
+        else
+        {
+            return m_callback->query_std_color(ui_color_background);
+        }
+    }
+
+    t_ui_color LyricPanel::get_highlight_colour()
+    {
+        std::optional<t_ui_color> colour = preferences::display::highlight_colour();
+        if(colour.has_value())
+        {
+            return colour.value();
+        }
+        else
+        {
+            return m_callback->query_std_color(ui_color_highlight);
         }
     }
 
