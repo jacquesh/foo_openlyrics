@@ -68,7 +68,7 @@ namespace {
         bool m_timerRunning;
 
         metadb_handle_ptr m_now_playing;
-        std::vector<LyricUpdateHandle*> m_update_handles;
+        std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
 
     protected:
@@ -149,10 +149,6 @@ namespace {
     void LyricPanel::OnWindowDestroy()
     {
         // Cancel and clean up any pending updates
-        for(LyricUpdateHandle* handle : m_update_handles)
-        {
-            delete handle;
-        }
         m_update_handles.clear();
     }
 
@@ -176,13 +172,7 @@ namespace {
     {
         for(auto iter=m_update_handles.begin(); iter!=m_update_handles.end(); /*omitted*/)
         {
-            LyricUpdateHandle* update = *iter;
-            assert(update != nullptr);
-            if(update == nullptr)
-            {
-                continue;
-            }
-
+            std::unique_ptr<LyricUpdateHandle>& update = *iter;
             if(update->has_result())
             {
                 ProcessAvailableLyricUpdate(*update);
@@ -190,7 +180,6 @@ namespace {
 
             if(update->is_complete())
             {
-                delete update;
                 iter = m_update_handles.erase(iter);
             }
             else
@@ -276,7 +265,7 @@ namespace {
                 {
                     bool is_search = false;
                     std::string progress_msg;
-                    for(LyricUpdateHandle* update : m_update_handles)
+                    for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
                     {
                         if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::Search))
                         {
@@ -445,9 +434,9 @@ namespace {
                     if(m_now_playing == nullptr) break;
 
                     std::tstring text = parsers::lrc::expand_text(m_lyrics);
-                    LyricUpdateHandle* update = new LyricUpdateHandle(LyricUpdateHandle::Type::Edit, m_now_playing);
-                    m_update_handles.push_back(update);
+                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing);
                     SpawnLyricEditor(text, *update);
+                    m_update_handles.push_back(std::move(update));
                 } break;
 
                 case ID_OPEN_FILE_DIR:
@@ -597,9 +586,9 @@ namespace {
         LOG_INFO("Initiate lyric search");
         m_lyrics = {};
 
-        LyricUpdateHandle* update = new LyricUpdateHandle(LyricUpdateHandle::Type::Search, track);
-        m_update_handles.push_back(update);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Search, track);
         io::search_for_lyrics(*update);
+        m_update_handles.push_back(std::move(update));
     }
 
     void LyricPanel::ProcessAvailableLyricUpdate(LyricUpdateHandle& update)
