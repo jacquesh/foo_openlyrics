@@ -8,7 +8,7 @@ static const GUID src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0
 class ID3TagLyricSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
-    const TCHAR* friendly_name() const final { return _T("ID3 Tags"); }
+    std::tstring_view friendly_name() const final { return _T("ID3 Tags"); }
     bool can_save() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;

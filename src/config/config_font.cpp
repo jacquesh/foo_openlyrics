@@ -24,7 +24,7 @@ cfg_font_t::cfg_font_t(const GUID& guid) : cfg_var(guid)
 
 void cfg_font_t::get_data_raw(stream_writer* stream, abort_callback& abort)
 {
-    std::string name = tchar_to_string(m_value.lfFaceName, LF_FACESIZE);
+    std::string name = from_tstring(std::tstring_view{m_value.lfFaceName, LF_FACESIZE});
 
     stream->write_lendian_t(m_value.lfHeight, abort);
     stream->write_lendian_t(m_value.lfWidth, abort);
@@ -61,10 +61,8 @@ void cfg_font_t::set_data_raw(stream_reader* stream, t_size /*size_hint*/, abort
     stream->read_lendian_t(m_value.lfPitchAndFamily, abort);
     stream->read_string(name, abort);
 
-    TCHAR* tname = nullptr;
-    string_to_tchar(name, tname);
-    _tcscpy_s(m_value.lfFaceName, tname);
-    delete[] tname;
+    std::tstring tname = to_tstring(name);
+    _tcscpy_s(m_value.lfFaceName, tname.c_str());
 }
 
 void cfg_font_t::set_value(const LOGFONT& value)

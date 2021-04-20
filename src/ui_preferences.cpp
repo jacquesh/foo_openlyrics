@@ -182,12 +182,13 @@ void PreferencesRoot::OnSaveNameFormatChange(UINT, int, CWindow)
     CWindow preview_item = GetDlgItem(IDC_FILE_NAME_PREVIEW);
     assert(preview_item != nullptr);
 
-    LRESULT format_text_length = SendDlgItemMessage(IDC_SAVE_FILENAME_FORMAT, WM_GETTEXTLENGTH, 0, 0);
-    if(format_text_length > 0)
+    LRESULT format_text_length_result = SendDlgItemMessage(IDC_SAVE_FILENAME_FORMAT, WM_GETTEXTLENGTH, 0, 0);
+    if(format_text_length_result > 0)
     {
+        size_t format_text_length = (size_t)format_text_length_result;
         TCHAR* format_text_buffer = new TCHAR[format_text_length+1]; // +1 for null-terminator
         GetDlgItemText(IDC_SAVE_FILENAME_FORMAT, format_text_buffer, format_text_length+1);
-        std::string format_text = tchar_to_string(format_text_buffer, format_text_length);
+        std::string format_text = from_tstring(std::tstring_view{format_text_buffer, format_text_length});
         delete[] format_text_buffer;
 
         titleformat_object::ptr format_script;
@@ -231,10 +232,8 @@ void PreferencesRoot::OnSaveNameFormatChange(UINT, int, CWindow)
                 {
                     formatted_title.fix_filename_chars();
 
-                    TCHAR* preview_buffer;
-                    /*size_t preview_len =*/ string_to_tchar(formatted_title, preview_buffer);
-                    preview_item.SetWindowText(preview_buffer);
-                    delete[] preview_buffer;
+                    std::tstring preview = to_tstring(formatted_title);
+                    preview_item.SetWindowText(preview.c_str());
                 }
                 else
                 {
@@ -480,7 +479,7 @@ void PreferencesRoot::SourceListResetFromSaved()
         }
         assert(found);
 
-        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name().data());
         LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
@@ -493,7 +492,7 @@ void PreferencesRoot::SourceListResetFromSaved()
         LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
         assert(src != nullptr);
 
-        LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name().data());
         LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
@@ -526,7 +525,7 @@ void PreferencesRoot::SourceListResetToDefault()
         }
         assert(found);
 
-        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name().data());
         LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
@@ -539,7 +538,7 @@ void PreferencesRoot::SourceListResetToDefault()
         LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
         assert(src != nullptr);
 
-        LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name());
+        LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name().data());
         LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);

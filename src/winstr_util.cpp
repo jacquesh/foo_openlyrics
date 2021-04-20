@@ -2,33 +2,32 @@
 
 #include "winstr_util.h"
 
-pfc::string8 tchar_to_pfcstring(const TCHAR* buffer)
-{
-    return tchar_to_pfcstring(buffer, _tcslen(buffer));
-}
-
-pfc::string8 tchar_to_pfcstring(const TCHAR* buffer, size_t buffer_len)
+std::tstring to_tstring(std::string_view string)
 {
 #ifdef UNICODE
-    size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(buffer, buffer_len);
-    pfc::string8 result;
-    result.prealloc(narrow_len);
-    char* narrow_buffer = result.lock_buffer(narrow_len);
-    size_t chars_converted = pfc::stringcvt::convert_wide_to_utf8(narrow_buffer, narrow_len, buffer, buffer_len);
-    result.unlock_buffer();
+    size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(string.data(), string.length());
+    wchar_t* out_buffer = new wchar_t[wide_len];
+    pfc::stringcvt::convert_utf8_to_wide(out_buffer, wide_len, string.data(), string.length());
+    std::wstring result = std::wstring(out_buffer);
+    delete[] out_buffer;
     return result;
 #else // UNICODE
     static_assert(sizeof(TCHAR) == sizeof(char), "UNICODE is defined but TCHAR is not a char");
-    return pfc::string8(buffer, buffer_len);
+    return string;
 #endif // UNICODE
 }
 
-std::string tchar_to_string(const TCHAR* buffer)
+std::tstring to_tstring(const std::string& string)
 {
-    return tchar_to_string(buffer, _tcslen(buffer));
+    return to_tstring(std::string_view{string});
 }
 
-std::string tchar_to_string(const TCHAR* buffer, size_t buffer_len)
+std::tstring to_tstring(const pfc::string8& string)
+{
+    return to_tstring(std::string_view{string.c_str(), string.length()});
+}
+
+static std::string tchar_to_string(const TCHAR* buffer, size_t buffer_len)
 {
 #ifdef UNICODE
     size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(buffer, buffer_len);
@@ -42,17 +41,32 @@ std::string tchar_to_string(const TCHAR* buffer, size_t buffer_len)
 #endif // UNICODE
 }
 
-size_t string_to_tchar(const pfc::string8& string, TCHAR*& out_buffer)
+std::string tchar_to_string(const TCHAR* buffer)
 {
-    return string_to_tchar(string.c_str(), 0, string.length(), out_buffer);
+    return tchar_to_string(buffer, _tcslen(buffer));
 }
 
-size_t string_to_tchar(const std::string& string, TCHAR*& out_buffer)
+
+std::string from_tstring(std::tstring_view string)
 {
-    return string_to_tchar(string.c_str(), 0, string.length(), out_buffer);
+#ifdef UNICODE
+    size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(string.data(), string.length());
+    std::string result(narrow_len, '\0');
+    size_t chars_converted = pfc::stringcvt::convert_wide_to_utf8(result.data(), narrow_len, string.data(), string.length());
+    result.resize(chars_converted);
+    return result;
+#else // UNICODE
+    static_assert(sizeof(TCHAR) == sizeof(char), "UNICODE is defined but TCHAR is not a char");
+    return std::string(buffer, buffer_len);
+#endif // UNICODE
 }
 
-size_t string_to_tchar(const char* cstr, size_t start_index, size_t length, TCHAR*& out_buffer)
+std::string from_tstring(const std::tstring& string)
+{
+    return from_tstring(std::tstring_view(string));
+}
+
+static size_t string_to_tchar(const char* cstr, size_t start_index, size_t length, TCHAR*& out_buffer)
 {
 #ifdef UNICODE
     size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(cstr + start_index, length);
@@ -68,3 +82,9 @@ size_t string_to_tchar(const char* cstr, size_t start_index, size_t length, TCHA
     return length+1;
 #endif // UNICODE
 }
+
+size_t string_to_tchar(const std::string& string, TCHAR*& out_buffer)
+{
+    return string_to_tchar(string.c_str(), 0, string.length(), out_buffer);
+}
+

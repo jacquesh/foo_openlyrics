@@ -3,6 +3,7 @@
 #include "stdafx.h"
 
 #include "preferences.h"
+#include "winstr_util.h"
 
 // Raw (unparsed) lyric data
 struct LyricDataRaw
@@ -15,8 +16,7 @@ struct LyricDataRaw
 // Parsed lyric data
 struct LyricDataLine
 {
-    TCHAR* text;
-    size_t text_length;
+    std::tstring text;
     double timestamp;
 };
 
@@ -34,6 +34,4 @@ struct LyricData : LyricDataRaw
 
     void operator =(const LyricData& other) = delete;
     void operator =(LyricData&& other);
-
-    ~LyricData();
 };

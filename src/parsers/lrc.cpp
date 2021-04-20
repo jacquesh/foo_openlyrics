@@ -57,7 +57,7 @@ struct LineTagParseResult
     int charsConsumed;
 };
 
-void print_6digit_timestamp(double timestamp, char (&out_timestamp)[11])
+std::string print_6digit_timestamp(double timestamp)
 {
     double total_seconds_flt = std::floor(timestamp);
     int total_seconds = static_cast<int>(total_seconds_flt);
@@ -65,7 +65,9 @@ void print_6digit_timestamp(double timestamp, char (&out_timestamp)[11])
     int time_seconds = total_seconds - (time_minutes*60);
     int time_centisec = static_cast<int>((timestamp - total_seconds_flt) * 100.0);
 
-    snprintf(out_timestamp, sizeof(out_timestamp), "[%02d:%02d.%02d]", time_minutes, time_seconds, time_centisec);
+    char temp[11];
+    snprintf(temp, sizeof(temp), "[%02d:%02d.%02d]", time_minutes, time_seconds, time_centisec);
+    return std::string(temp);
 }
 
 bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
@@ -280,44 +282,40 @@ LyricData parse(const LyricDataRaw& input)
     result.lines.reserve(lines.size());
     for(const auto& line : lines)
     {
-        TCHAR* line_text = nullptr;
-        size_t line_length = string_to_tchar(line.text, line_text);
-        assert(line_length > 0); // The given length includes a null-terminator, we don't want to count the null terminator here
-
-        result.lines.push_back({line_text, line_length-1, line.timestamp});
+        std::tstring line_text = to_tstring(line.text);
+        result.lines.push_back({std::move(line_text), line.timestamp});
     }
     return result;
 }
 
-std::string expand_text(const LyricData& data)
+std::tstring expand_text(const LyricData& data)
 {
     LOG_INFO("Expanding lyric text...");
-    std::string expanded_text;
+    std::tstring expanded_text;
     expanded_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
     for(const std::string& tag : data.tags)
     {
-        expanded_text += tag;
-        expanded_text += "\r\n";
+        expanded_text += to_tstring(tag);
+        expanded_text += _T("\r\n");
     }
-    expanded_text += "\r\n";
+    // TODO: Only do this if expanded_text is (at this point) not empty?
+    expanded_text += _T("\r\n");
     for(const LyricDataLine& line : data.lines)
     {
         if(line.timestamp != DBL_MAX)
         {
-            char timestamp[11];
-            print_6digit_timestamp(line.timestamp, timestamp);
-            expanded_text += timestamp;
+            expanded_text += to_tstring(print_6digit_timestamp(line.timestamp));
         }
 
-        if(line.text_length == 0)
+        if(line.text.empty())
         {
-            expanded_text += " ";
+            expanded_text += _T(" ");
         }
         else
         {
-            expanded_text += tchar_to_string(line.text);
+            expanded_text += line.text;
         }
-        expanded_text += "\r\n";
+        expanded_text += _T("\r\n");
     }
 
     return expanded_text;
@@ -344,7 +342,7 @@ std::string shrink_text(const LyricData& data)
     {
         if(line.timestamp == DBL_MAX) continue;
 
-        std::string linestr = tchar_to_string(line.text);
+        std::string linestr = from_tstring(line.text);
         auto iter = std::find_if(timestamp_map.begin(),
                                  timestamp_map.end(),
                                  [&linestr](const auto& entry) { return entry.first == linestr; });
@@ -365,11 +363,9 @@ std::string shrink_text(const LyricData& data)
 
     for(const auto& [line, times] : timestamp_map)
     {
-        char timestamp_str[11];
         for(double time : times)
         {
-            print_6digit_timestamp(time, timestamp_str);
-            shrunk_text += timestamp_str;
+            shrunk_text += print_6digit_timestamp(time);
         }
         shrunk_text += line;
         shrunk_text += "\r\n";
@@ -381,7 +377,7 @@ std::string shrink_text(const LyricData& data)
         bool was_expanded = ((line.text[0] == ' ') && (line.text[1] == '\0'));
         if(!was_expanded)
         {
-            shrunk_text += tchar_to_string(line.text);
+            shrunk_text += from_tstring(line.text);
         }
         shrunk_text += "\r\n";
     }

@@ -3,6 +3,7 @@
 #include "stdafx.h"
 
 #include "lyric_io.h"
+#include "winstr_util.h"
 
-void SpawnLyricEditor(const std::string& lyric_text, LyricUpdateHandle& update);
+void SpawnLyricEditor(const std::tstring& lyric_text, LyricUpdateHandle& update);
 

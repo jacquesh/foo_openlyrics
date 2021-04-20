@@ -56,7 +56,7 @@ std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, ab
         }
         catch(const std::exception& e)
         {
-            std::string source_name = tchar_to_string(source->friendly_name());
+            std::string source_name = from_tstring(source->friendly_name());
             LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
         }
     }
@@ -97,7 +97,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
 
-        std::string friendly_name = tchar_to_string(source->friendly_name());
+        std::string friendly_name = from_tstring(source->friendly_name());
         handle.set_progress("Searching " + friendly_name + "...");
 
         try
@@ -107,22 +107,20 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
 
             if(!lyric_data_raw.text.empty())
             {
-                LOG_INFO("Successfully retrieved lyrics from source: %s", tchar_to_string(source->friendly_name()).c_str());
+                LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
                 break;
             }
         }
         catch(const std::exception& e)
         {
-            LOG_ERROR("Error while searching %s: %s", tchar_to_string(source->friendly_name()).c_str(), e.what());
+            LOG_ERROR("Error while searching %s: %s", friendly_name.c_str(), e.what());
         }
         catch(...)
         {
-            std::string source_name = tchar_to_string(source->friendly_name());
-            LOG_ERROR("Error of unrecognised type while searching %s", source_name.c_str());
+            LOG_ERROR("Error of unrecognised type while searching %s", friendly_name.c_str());
         }
 
-        std::string source_name = tchar_to_string(source->friendly_name());
-        LOG_INFO("Failed to retrieve lyrics from source: %s", source_name.c_str());
+        LOG_INFO("Failed to retrieve lyrics from source: %s", friendly_name.c_str());
     }
     ensure_windows_newlines(lyric_data_raw.text);
 

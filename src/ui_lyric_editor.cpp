@@ -19,7 +19,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const std::string& text, LyricUpdateHandle& update);
+    LyricEditor(const std::tstring& text, LyricUpdateHandle& update);
     ~LyricEditor() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -61,32 +61,25 @@ private:
     void ApplyLyricEdits(bool is_editor_closing);
 
     LyricUpdateHandle& m_update;
-    TCHAR* m_input_text;
-    size_t m_input_text_length;
+    std::tstring m_input_text;
 };
 
-LyricEditor::LyricEditor(const std::string& text, LyricUpdateHandle& update) :
+LyricEditor::LyricEditor(const std::tstring& text, LyricUpdateHandle& update) :
     m_update(update),
-    m_input_text(nullptr),
-    m_input_text_length(0)
+    m_input_text(text)
 {
-    m_input_text_length = string_to_tchar(text, m_input_text) - 1; // -1 to not count the null-terminator
 }
 
 LyricEditor::~LyricEditor()
 {
-    if(m_input_text != nullptr)
-    {
-        delete[] m_input_text;
-    }
 }
 
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
-    if(m_input_text)
+    if(!m_input_text.empty())
     {
-        SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
+        SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());
 
         int select_start = 0;
         int select_end = 0;
@@ -107,7 +100,7 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
             line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
             LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
-            std::string linestr = tchar_to_string(line_buffer, chars_copied);
+            std::string linestr = from_tstring(std::tstring_view{line_buffer, (size_t)chars_copied});
             if(!parsers::lrc::is_tag_line(linestr))
             {
                 select_start = line_start;
@@ -190,7 +183,7 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
             if(line_buffer[i] == _T(']'))
             {
                 double time = 0;
-                std::string tag = tchar_to_string(&line_buffer[0], i+1); // +1 so that the length covers this current (']') character
+                std::string tag = from_tstring(std::tstring_view{line_buffer, (size_t)i+1}); // +1 so that the length covers this current (']') character
                 bool success6 = parsers::lrc::try_parse_6digit_timestamp(tag, time);
                 bool success7 = parsers::lrc::try_parse_7digit_timestamp(tag, time);
                 if(success6 || success7)
@@ -204,14 +197,11 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
 
     service_ptr_t<playback_control> playback = playback_control::get();
     double timestamp = playback->playback_get_position();
-    char timestamp_str[11] = {};
-    parsers::lrc::print_6digit_timestamp(timestamp, timestamp_str);
+    std::string timestamp_str = parsers::lrc::print_6digit_timestamp(timestamp);
+    std::tstring timestamp_tstr = to_tstring(timestamp_str);
 
-    TCHAR* new_buffer = nullptr;
-    string_to_tchar(timestamp_str, 0, sizeof(timestamp_str), new_buffer);
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, replace_start, replace_end);
-    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_REPLACESEL, TRUE, (LPARAM)new_buffer);
-    delete[] new_buffer;
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_REPLACESEL, TRUE, (LPARAM)timestamp_tstr.c_str());
 
     LRESULT next_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index+1, 0); 
     LRESULT next_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, next_line_start, 0);
@@ -228,14 +218,7 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
 
 void LyricEditor::OnEditReset(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
-    if(m_input_text)
-    {
-        SetDlgItemText(IDC_LYRIC_TEXT, m_input_text);
-    }
-    else
-    {
-        SetDlgItemText(IDC_LYRIC_TEXT, _T(""));
-    }
+    SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());
 }
 
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
@@ -329,7 +312,7 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
         *new_length = lyric_length;
     }
 
-    if(lyric_length != m_input_text_length)
+    if(lyric_length != m_input_text.size())
     {
         return true;
     }
@@ -343,7 +326,7 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
             LOG_WARN("Dialog character count mismatch. Expected %u, got %u", lyric_length, chars_copied);
         }
 
-        bool changed = (_tcscmp(lyric_buffer, m_input_text) != 0);
+        bool changed = (_tcscmp(lyric_buffer, m_input_text.c_str()) != 0);
         delete[] lyric_buffer;
 
         return changed;
@@ -371,15 +354,10 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }
 
-    // Update m_input_text (and length) so that HasContentChanged() will return the correct value after the same
-    if(m_input_text != nullptr)
-    {
-        delete[] m_input_text;
-    }
-    m_input_text = lyric_buffer;
-    m_input_text_length = chars_copied;
+    // Update m_input_text so that HasContentChanged() will return the correct value after the same
+    m_input_text = std::tstring(lyric_buffer, chars_copied);
 
-    std::string lyrics = tchar_to_string(lyric_buffer, chars_copied);
+    std::string lyrics = from_tstring(std::tstring_view{lyric_buffer, chars_copied});
     LyricDataRaw data_raw = {};
     data_raw.text = lyrics;
     LyricData data = parsers::lrc::parse(data_raw);
@@ -392,7 +370,7 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     apply_btn.EnableWindow(FALSE);
 }
 
-void SpawnLyricEditor(const std::string& lyric_text, LyricUpdateHandle& update)
+void SpawnLyricEditor(const std::tstring& lyric_text, LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning editor window...");
     try

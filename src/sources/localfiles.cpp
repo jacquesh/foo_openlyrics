@@ -17,7 +17,7 @@ static const GUID src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0
 class LocalFileSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
-    const TCHAR* friendly_name() const final { return _T("Configuration Folder Files"); }
+    std::tstring_view friendly_name() const final { return _T("Configuration Folder Files"); }
     bool can_save() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
@@ -120,7 +120,7 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
 
     TCHAR temp_path_str[MAX_PATH+1];
     DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
-    std::string tmp_path = tchar_to_string(temp_path_str, temp_path_str_len);
+    std::string tmp_path = from_tstring(std::tstring_view{temp_path_str, temp_path_str_len});
     tmp_path += save_file_title;
 
     {

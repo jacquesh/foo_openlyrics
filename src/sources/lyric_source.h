@@ -3,6 +3,7 @@
 #include "stdafx.h"
 
 #include "lyric_data.h"
+#include "winstr_util.h"
 
 // TODO: Add sources for:
 // - https://www.syair.info
@@ -16,7 +17,7 @@ public:
     virtual void on_init();
 
     virtual const GUID& id() const = 0;
-    virtual const TCHAR* friendly_name() const = 0;
+    virtual std::tstring_view friendly_name() const = 0;
     virtual bool can_save() const = 0;
     virtual LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) = 0;
     virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) = 0;

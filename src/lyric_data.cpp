@@ -28,11 +28,3 @@ void LyricData::operator =(LyricData&& other)
     other.source_id = {};
     other.text.clear();
 }
-
-LyricData::~LyricData()
-{
-    for(const LyricDataLine& line : lines)
-    {
-        delete[] line.text;
-    }
-}

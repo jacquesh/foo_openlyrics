@@ -13,7 +13,7 @@ static const GUID src_guid = { 0xb4cf497f, 0xd2c, 0x45ff, { 0xaa, 0x46, 0xf1, 0x
 class GeniusComSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
-    const TCHAR* friendly_name() const final { return _T("genius.com"); }
+    std::tstring_view friendly_name() const final { return _T("genius.com"); }
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;

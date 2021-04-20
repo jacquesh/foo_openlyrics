@@ -30,45 +30,43 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
 
     void ResetFromSaved() override
     {
-        TCHAR* saved_value;
-        /*size_t saved_value_len =*/ string_to_tchar(*this, saved_value);
-        SetDlgItemText(m_hWnd, m_control_id, saved_value);
-        delete[] saved_value;
+        std::tstring saved_value = to_tstring(*this);
+        SetDlgItemText(m_hWnd, m_control_id, saved_value.c_str());
     }
 
     void ResetToDefault() override
     {
-        TCHAR* default_value;
-        /*size_t default_value_len =*/ string_to_tchar(m_default_value, default_value);
-        SetDlgItemText(m_hWnd, m_control_id, default_value);
-        delete[] default_value;
+        std::tstring default_value = to_tstring(m_default_value);
+        SetDlgItemText(m_hWnd, m_control_id, default_value.c_str());
     }
 
     void Apply() override
     {
-        LRESULT text_length = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
-        if(text_length <= 0) return;
+        LRESULT text_length_result = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
+        if(text_length_result <= 0) return;
+        size_t text_length = (size_t)text_length_result;
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
-        pfc::string8 ui_string = tchar_to_pfcstring(text_buffer, text_length);
-        set_string(ui_string);
+        std::string ui_string = from_tstring(std::tstring_view{text_buffer, chars_copied});
+        set_string(pfc::string8(ui_string.c_str(), ui_string.length()));
 
         delete[] text_buffer;
     }
 
     bool HasChanged() override
     {
-        LRESULT text_length = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
-        if(text_length <= 0)
+        LRESULT text_length_result = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
+        if(text_length_result <= 0)
         {
-            return (*this == "");
+            return is_empty();
         }
+        size_t text_length = (size_t)text_length_result;
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
-        pfc::string8 ui_string = tchar_to_pfcstring(text_buffer, text_length);
-        bool changed = (*this != ui_string);
+        std::string ui_string = from_tstring(std::tstring_view{text_buffer, chars_copied});
+        bool changed = (ui_string != std::string_view{get_ptr(), get_length()});
 
         delete[] text_buffer;
         return changed;

@@ -11,7 +11,7 @@ static const GUID src_guid = { 0xaac13215, 0xe32e, 0x4667, { 0xac, 0xd7, 0x1f, 0
 class NetEaseLyricsSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
-    const TCHAR* friendly_name() const final { return _T("NetEase Online Music"); }
+    std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
 };

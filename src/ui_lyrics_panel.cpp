@@ -246,56 +246,29 @@ namespace {
                 pfc::string8 title;
                 GetTrackMetaIdentifiers(m_now_playing, artist, album, title);
 
-                TCHAR* artist_line = nullptr;
-                TCHAR* album_line = nullptr;
-                TCHAR* title_line = nullptr;
-                size_t artist_len = 0;
-                size_t album_len = 0;
-                size_t title_len = 0;
-
                 int line_height = font_metrics.tmHeight + line_gap;
                 int total_height = 0;
-                if(!artist.is_empty())
-                {
-                    pfc::string8 temp = "Artist: ";
-                    temp.add_string(artist);
-                    artist_len = string_to_tchar(temp, artist_line);
-
-                    total_height += line_height;
-                }
-
-                if(!album.is_empty())
-                {
-                    pfc::string8 temp = "Album: ";
-                    temp.add_string(album);
-                    album_len = string_to_tchar(temp, album_line);
-
-                    total_height += line_height;
-                }
-
-                if(!title.is_empty())
-                {
-                    pfc::string8 temp = "Title: ";
-                    temp.add_string(title);
-                    title_len = string_to_tchar(temp, title_line);
-
-                    total_height += line_height;
-                }
+                if(!artist.is_empty()) total_height += line_height;
+                if(!album.is_empty()) total_height += line_height;
+                if(!title.is_empty()) total_height += line_height;
 
                 int current_y = client_centre.y - total_height/2;
-                if(artist_line != nullptr)
+                if(!artist.is_empty())
                 {
-                    TextOut(back_buffer, client_centre.x, current_y, artist_line, artist_len);
+                    std::tstring artist_line = _T("Artist: ") + to_tstring(artist);
+                    TextOut(back_buffer, client_centre.x, current_y, artist_line.c_str(), artist_line.length());
                     current_y += line_height;
                 }
-                if(album_line != nullptr)
+                if(!album.is_empty())
                 {
-                    TextOut(back_buffer, client_centre.x, current_y, album_line, album_len);
+                    std::tstring album_line = _T("Album: ") + to_tstring(album);
+                    TextOut(back_buffer, client_centre.x, current_y, album_line.c_str(), album_line.length());
                     current_y += line_height;
                 }
-                if(title_line != nullptr)
+                if(!title.is_empty())
                 {
-                    TextOut(back_buffer, client_centre.x, current_y, title_line, title_len);
+                    std::tstring title_line = _T("Title: ") + to_tstring(title);
+                    TextOut(back_buffer, client_centre.x, current_y, title_line.c_str(), title_line.length());
                     current_y += line_height;
                 }
 
@@ -315,17 +288,11 @@ namespace {
 
                     if(is_search)
                     {
-                        TCHAR* progress_text = nullptr;
-                        size_t progress_text_len = string_to_tchar(progress_msg, progress_text);
-                        TextOut(back_buffer, client_centre.x, current_y, progress_text, progress_text_len);
+                        std::tstring progress_text = to_tstring(progress_msg);
+                        TextOut(back_buffer, client_centre.x, current_y, progress_text.c_str(), progress_text.size());
                         current_y += line_height;
-                        delete[] progress_text;
                     }
                 }
-
-                delete[] title_line;
-                delete[] album_line;
-                delete[] artist_line;
             }
         }
         else if(m_lyrics.IsTimestamped())
@@ -346,12 +313,12 @@ namespace {
                 if(line_index == active_line_index)
                 {
                     COLORREF previous_colour = SetTextColor(back_buffer, get_highlight_colour());
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text.c_str(), line.text.length());
                     SetTextColor(back_buffer, previous_colour);
                 }
                 else
                 {
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
+                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text.c_str(), line.text.length());
                 }
 
                 if(!draw_success)
@@ -373,7 +340,7 @@ namespace {
 
             for(const LyricDataLine& line : m_lyrics.lines)
             {
-                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text, line.text_length);
+                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text.c_str(), line.text.length());
                 if(!draw_success)
                 {
                     LOG_WARN("Failed to draw text: %d", GetLastError());
@@ -477,7 +444,7 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
-                    std::string text = parsers::lrc::expand_text(m_lyrics);
+                    std::tstring text = parsers::lrc::expand_text(m_lyrics);
                     LyricUpdateHandle* update = new LyricUpdateHandle(LyricUpdateHandle::Type::Edit, m_now_playing);
                     m_update_handles.push_back(update);
                     SpawnLyricEditor(text, *update);
@@ -491,25 +458,23 @@ namespace {
                     }
                     else
                     {
-                        TCHAR* buffer = nullptr;
-                        size_t buffer_len = string_to_tchar(m_lyrics.persistent_storage_path, buffer);
+                        std::tstring pathstr = to_tstring(m_lyrics.persistent_storage_path);
 
                         // Truncate the string at the last directory separator to get a directory path
-                        for(size_t i=buffer_len; i>0; i--)
+                        for(size_t i=pathstr.length(); i>0; i--)
                         {
-                            if(buffer[i] == '\\')
+                            if(pathstr[i] == _T('\\'))
                             {
-                                buffer[i] = '\0';
+                                pathstr = pathstr.substr(0, i);
                                 break;
                             }
                         }
 
-                        int exec_result = (int)ShellExecute(get_wnd(), _T("explore"), buffer, nullptr, nullptr, SW_SHOWMAXIMIZED);
+                        int exec_result = (int)ShellExecute(get_wnd(), _T("explore"), pathstr.c_str(), nullptr, nullptr, SW_SHOWMAXIMIZED);
                         if(exec_result <= 32)
                         {
                             LOG_WARN("Failed to open lyric file directory: %d", exec_result);
                         }
-                        delete[] buffer;
                     }
                 } break;
             }
