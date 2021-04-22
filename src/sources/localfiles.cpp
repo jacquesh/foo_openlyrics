@@ -5,19 +5,12 @@
 #include "preferences.h"
 #include "winstr_util.h"
 
-static std::string GetLyricsDir()
-{
-    std::string lyric_dir_path(core_api::get_profile_path());
-    lyric_dir_path += "\\lyrics\\";
-    return lyric_dir_path;
-}
-
 static const GUID src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
 
 class LocalFileSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Configuration Folder Files"); }
+    std::tstring_view friendly_name() const final { return _T("Local files"); }
     bool can_save() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
@@ -25,49 +18,28 @@ class LocalFileSource : public LyricSourceBase
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
-static bool ComputeFileTitle(metadb_handle_ptr track, std::string& out_title)
-{
-    const char* save_format = preferences::saving::filename_format();
-    titleformat_object::ptr format_script;
-    bool compile_success = titleformat_compiler::get()->compile(format_script, save_format);
-    if (!compile_success)
-    {
-        return false;
-    }
-
-    pfc::string8 save_file_title;
-    bool format_success = track->format_title(nullptr, save_file_title, format_script, nullptr);
-    save_file_title.fix_filename_chars();
-    out_title = std::string(save_file_title.c_str(), save_file_title.length());
-
-    return format_success;
-}
-
 LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abort)
 {
-    std::string file_title;
-    if(!ComputeFileTitle(track, file_title))
-    {
-        LOG_ERROR("Failed to determine query file title");
-        return {};
-    }
-    LOG_INFO("Querying for lyrics in local files for %s...", file_title.c_str());
-
-    std::string lyric_path_prefix = GetLyricsDir();
-    lyric_path_prefix += file_title;
+    std::string file_path_prefix = preferences::saving::filename(track);
 
     LyricDataRaw result = {};
     result.source_id = id();
-    result.persistent_storage_path = lyric_path_prefix;
+    result.persistent_storage_path = file_path_prefix;
+
+    if(file_path_prefix.empty())
+    {
+        LOG_ERROR("Failed to determine query file path");
+        return result;
+    }
 
     // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
     // TODO: Should these extensions be configurable?
     const char* extensions[] = { ".lrc", ".txt" };
     for (const char* ext : extensions)
     {
-        std::string file_path = lyric_path_prefix;
+        std::string file_path = file_path_prefix;
         file_path += ext;
-        LOG_INFO("Querying for lyrics from %s...", file_path.c_str());
+        LOG_INFO("Querying for lyrics in %s...", file_path.c_str());
 
         try
         {
@@ -91,28 +63,42 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
         }
     }
 
-    LOG_INFO("Failed to find lyrics in local files for %s", file_title.c_str());
+    LOG_INFO("Failed to find lyrics in local files %s", file_path_prefix.c_str());
     return result;
+}
+
+static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort)
+{
+    pfc::string parent = pfc::io::path::getParent(dir_path);
+    if(!parent.isEmpty())
+    {
+        ensure_dir_exists(parent, abort);
+    }
+
+    if(!filesystem::g_exists(dir_path.c_str(), abort))
+    {
+        LOG_INFO("Save directory '%s' does not exist. Creating it...", dir_path.c_str());
+        filesystem::g_create_directory(dir_path.c_str(), abort);
+    }
 }
 
 std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
-    std::string save_file_title;
-    if(!ComputeFileTitle(track, save_file_title))
+    std::string output_path_str = preferences::saving::filename(track);
+    if(output_path_str.empty())
     {
-        throw std::exception("Failed to determine save file title");
+        throw std::exception("Failed to determine save file path");
     }
 
-    std::string output_dir = GetLyricsDir();
-    if(!filesystem::g_exists(output_dir.c_str(), abort))
+    // TODO: Switch to std::filesystem when we update to a version of visual studio that supports it
+    pfc::string output_path(output_path_str.c_str(), output_path_str.length());
+    pfc::string output_file_name = pfc::io::path::getFileName(output_path);
+    if(output_file_name.isEmpty())
     {
-        LOG_INFO("Lyrics directory %s does not exist. Creating it...", output_dir.c_str());
-        filesystem::g_create_directory(output_dir.c_str(), abort);
+        throw std::exception("Calculated file path does not contain a file leaf node");
     }
-
-    std::string output_path = output_dir;
-    output_path += save_file_title.c_str();
+    ensure_dir_exists(pfc::io::path::getParent(output_path), abort);
 
     const char* extension = is_timestamped ? ".lrc" : ".txt";
     output_path += extension;
@@ -121,7 +107,7 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
     TCHAR temp_path_str[MAX_PATH+1];
     DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
     std::string tmp_path = from_tstring(std::tstring_view{temp_path_str, temp_path_str_len});
-    tmp_path += save_file_title;
+    tmp_path += std::string_view(output_file_name.c_str(), output_file_name.length());
 
     {
         // NOTE: Scoping to close the file and flush writes to disk (hopefully preventing "file in use" errors)
@@ -141,6 +127,6 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
         LOG_WARN("Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems", tmp_path.c_str(), output_path.c_str());
     }
 
-    return output_path;
+    return output_path_str;
 }
 

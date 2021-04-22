@@ -43,7 +43,7 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
     void Apply() override
     {
         LRESULT text_length_result = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
-        if(text_length_result <= 0) return;
+        if(text_length_result < 0) return;
         size_t text_length = (size_t)text_length_result;
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
@@ -57,9 +57,9 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
     bool HasChanged() override
     {
         LRESULT text_length_result = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
-        if(text_length_result <= 0)
+        if(text_length_result < 0)
         {
-            return is_empty();
+            return true;
         }
         size_t text_length = (size_t)text_length_result;
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator

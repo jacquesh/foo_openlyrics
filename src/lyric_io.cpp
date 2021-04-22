@@ -14,7 +14,7 @@ GUID io::get_save_source()
     const GUID id3tag_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
 
     SaveMethod method = preferences::saving::save_method();
-    if(method == SaveMethod::ConfigDirectory)
+    if(method == SaveMethod::LocalFile)
     {
         return localfiles_guid;
     }

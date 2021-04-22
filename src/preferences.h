@@ -10,9 +10,17 @@ extern const GUID GUID_PREFERENCES_PAGE_ROOT;
 //       saved settings on previous versions.
 enum class SaveMethod : int
 {
-    None            = 0,
-    ConfigDirectory = 1,
-    Id3Tag          = 2
+    None        = 0,
+    LocalFile   = 1,
+    Id3Tag      = 2
+};
+
+enum class SaveDirectoryClass : int
+{
+    None               = 0,
+    ConfigDirectory    = 1,
+    TrackFileDirectory = 2,
+    Custom             = 3
 };
 
 namespace preferences
@@ -28,7 +36,7 @@ namespace preferences
         bool autosave_enabled();
         SaveMethod save_method();
 
-        const char* filename_format();
+        std::string filename(metadb_handle_ptr track);
 
         std::string_view untimed_tag();
         std::string_view timestamped_tag();
