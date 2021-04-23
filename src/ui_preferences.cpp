@@ -221,6 +221,30 @@ void PreferencesRoot::OnSourceActivate(UINT, int, CWindow)
     assert((new_index != LB_ERR) && (new_index != LB_ERRSPACE));
     assert(set_result != LB_ERR);
 
+    // Select the appropriate adjacent item in the active list so that you can spam (de)activate.
+    LRESULT item_count = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_GETCOUNT, 0, 0);
+    assert(item_count != LB_ERR);
+    if(item_count > 0)
+    {
+        LRESULT new_inactive_index;
+        if(select_index < item_count)
+        {
+            new_inactive_index = select_index;
+        }
+        else
+        {
+            if(select_index == 0)
+            {
+                new_inactive_index = 0;
+            }
+            else
+            {
+                new_inactive_index = select_index-1;
+            }
+        }
+        SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETCURSEL, new_inactive_index, 0);
+    }
+
     on_ui_interaction();
 }
 
@@ -247,6 +271,30 @@ void PreferencesRoot::OnSourceDeactivate(UINT, int, CWindow)
     LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, select_data);
     assert((new_index != LB_ERR) && (new_index != LB_ERRSPACE));
     assert(set_result != LB_ERR);
+
+    // Select the appropriate adjacent item in the active list so that you can spam (de)activate.
+    LRESULT item_count = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCOUNT, 0, 0);
+    assert(item_count != LB_ERR);
+    if(item_count > 0)
+    {
+        LRESULT new_active_index;
+        if(select_index < item_count)
+        {
+            new_active_index = select_index;
+        }
+        else
+        {
+            if(select_index == 0)
+            {
+                new_active_index = 0;
+            }
+            else
+            {
+                new_active_index = select_index-1;
+            }
+        }
+        SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETCURSEL, new_active_index, 0);
+    }
 
     on_ui_interaction();
 }

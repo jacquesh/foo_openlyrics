@@ -20,6 +20,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add support for ColumnsUI\n"
     "- Add a preferences page for the font & colours used for the panel\n"
     "- Add a preferences page with configuration for lyric saving\n"
+    "- Fix the source list selection clearing when an item is (de)activated\n"
     "\n"
     "Version 0.4:\n"
     "- Add support for saving lyrics to ID3 tags\n"
