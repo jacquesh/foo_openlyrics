@@ -17,30 +17,54 @@ extern const GUID GUID_PREFERENCES_PAGE_ROOT = { 0x29e96cfa, 0xab67, 0x4793, { 0
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES = { 0x7d3c9b2c, 0xb87b, 0x4250, { 0x99, 0x56, 0x8d, 0xf5, 0x80, 0xc9, 0x2f, 0x39 } };
 static const GUID GUID_CFG_SEARCH_TAGS = { 0xb7332708, 0xe70b, 0x4a6e, { 0xa4, 0xd, 0x14, 0x6d, 0xe3, 0x74, 0x56, 0x65 } };
 
-static cfg_auto_string               cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCEDLYRICS;UNSYNCED LYRICS");
+// NOTE: There were copied from the relevant lyric-source source file.
+//       It should not be a problem because these GUIDs must never change anyway (since it would
+//       break everybody's config), but probably worth noting that the information is duplicated.
+static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+static const GUID id3tag_src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+
+static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid};
+
+static cfg_objList<GUID> cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
+static cfg_auto_string   cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCEDLYRICS;UNSYNCED LYRICS");
 
 static cfg_auto_property* g_root_auto_properties[] =
 {
     &cfg_search_tags,
 };
 
-// NOTE: This was copied from the localfiles source file.
-//       It should not be a problem because these GUIDs must never change anyway (since it would
-//       break everybody's config), but probably worth noting that the information is duplicated.
-static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
-
-static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid};
-static cfg_objList<GUID> cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
-
 std::vector<GUID> preferences::searching::active_sources()
 {
+    auto GetSaveMethodSourceGuid = []()
+    {
+        SaveMethod method = preferences::saving::save_method();
+        switch(method)
+        {
+            case SaveMethod::LocalFile: return localfiles_src_guid;
+            case SaveMethod::Id3Tag: return id3tag_src_guid;
+            default:
+                LOG_ERROR("Unrecognised save method: %d", (int)method);
+                assert(false);
+                return GUID{};
+        }
+    };
+    GUID save_source_guid = GetSaveMethodSourceGuid();
+    bool save_source_seen = false;
+
     size_t source_count = cfg_search_active_sources.get_size();
     std::vector<GUID> result;
-    result.reserve(source_count);
+    result.reserve(source_count+1);
     for(size_t i=0; i<source_count; i++)
     {
+        save_source_seen |= (save_source_guid == cfg_search_active_sources[i]);
         result.push_back(cfg_search_active_sources[i]);
     }
+
+    if(!save_source_seen)
+    {
+        result.push_back(save_source_guid);
+    }
+
     return result;
 }
 
