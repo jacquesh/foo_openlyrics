@@ -88,7 +88,7 @@
       <Filter>Source Files\config</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\config\ui_preferences_saving.cpp">
-      <Filter>Source Files\parsers</Filter>
+      <Filter>Source Files\config</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

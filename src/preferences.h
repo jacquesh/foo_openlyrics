@@ -10,14 +10,14 @@ extern const GUID GUID_PREFERENCES_PAGE_ROOT;
 //       saved settings on previous versions.
 enum class SaveMethod : int
 {
-    None        = 0,
-    LocalFile   = 1,
-    Id3Tag      = 2
+    DEPRECATED_None = 0,
+    LocalFile       = 1,
+    Id3Tag          = 2
 };
 
 enum class SaveDirectoryClass : int
 {
-    None               = 0,
+    DEPRECATED_None    = 0,
     ConfigDirectory    = 1,
     TrackFileDirectory = 2,
     Custom             = 3

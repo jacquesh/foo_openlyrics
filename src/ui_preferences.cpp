@@ -42,6 +42,7 @@ std::vector<GUID> preferences::searching::active_sources()
         {
             case SaveMethod::LocalFile: return localfiles_src_guid;
             case SaveMethod::Id3Tag: return id3tag_src_guid;
+            case SaveMethod::DEPRECATED_None: return GUID{};
             default:
                 LOG_ERROR("Unrecognised save method: %d", (int)method);
                 assert(false);
@@ -60,7 +61,7 @@ std::vector<GUID> preferences::searching::active_sources()
         result.push_back(cfg_search_active_sources[i]);
     }
 
-    if(!save_source_seen)
+    if(!save_source_seen && (save_source_guid != GUID{}))
     {
         result.push_back(save_source_guid);
     }

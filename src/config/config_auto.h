@@ -215,6 +215,10 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
                 return;
             }
         }
+
+        // If we get here then we've exhausted all valid options and not found the configured value
+        ResetToDefault();
+        Apply();
     }
 
     void ResetToDefault() override

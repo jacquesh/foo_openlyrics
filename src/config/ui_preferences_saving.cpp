@@ -22,7 +22,6 @@ static const GUID GUID_CFG_SAVE_PATH_CUSTOM = { 0x84ac099b, 0xa00b, 0x4713, { 0x
 
 static cfg_auto_combo_option<SaveMethod> save_method_options[] =
 {
-    {_T("Don't save"), SaveMethod::None},
     {_T("Save to file"), SaveMethod::LocalFile},
     {_T("Save to tag"), SaveMethod::Id3Tag},
 };
@@ -35,7 +34,7 @@ static cfg_auto_combo_option<SaveDirectoryClass> save_dir_class_options[] =
 };
 
 static cfg_auto_bool                         cfg_save_auto_save_enabled(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
-static cfg_auto_combo<SaveMethod, 3>         cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::LocalFile, save_method_options);
+static cfg_auto_combo<SaveMethod, 2>         cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::LocalFile, save_method_options);
 static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCEDLYRICS");
 static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "LYRICS");
 static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
@@ -131,7 +130,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
             }
         } break;
 
-        case SaveDirectoryClass::None:
+        case SaveDirectoryClass::DEPRECATED_None:
         default:
             LOG_WARN("Unrecognised save path class: %d", (int)dir_class);
             return "";
