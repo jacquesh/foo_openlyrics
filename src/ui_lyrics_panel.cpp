@@ -129,6 +129,7 @@ namespace {
     void LyricPanel::on_playback_stop(play_control::t_stop_reason /*p_reason*/)
     {
         m_now_playing = nullptr;
+        m_lyrics = {};
         StopTimer();
         Invalidate(); // Draw one more time to clear the panel
     }
