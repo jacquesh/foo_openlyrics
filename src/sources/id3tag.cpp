@@ -12,7 +12,7 @@ class ID3TagLyricSource : public LyricSourceBase
     bool can_save() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
-    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
 };
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
@@ -62,7 +62,7 @@ LyricDataRaw ID3TagLyricSource::query(metadb_handle_ptr track, abort_callback& a
     return result;
 }
 
-std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, abort_callback& /*abort*/)
+std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& /*abort*/)
 {
     LOG_INFO("Saving lyrics to an ID3 tag...");
     struct MetaCompletionLogger : public completion_notify
@@ -94,11 +94,16 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped
     LOG_INFO("Saving lyrics to ID3 tag %s...", tag_name.c_str());
 
     std::string lyrics(lyric_view);
-    auto update_meta_tag = [tag_name, lyrics](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+    auto update_meta_tag = [tag_name, lyrics, allow_overwrite](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
     {
         t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
         if(tag_index != pfc::infinite_size)
         {
+            if(!allow_overwrite)
+            {
+                LOG_INFO("Save tag already exists and overwriting is disallowed. The tag will not be modified");
+                return false;
+            }
             info.meta_remove_index(tag_index);
         }
         info.meta_add_ex(tag_name.data(), tag_name.length(), lyrics.data(), lyrics.length());

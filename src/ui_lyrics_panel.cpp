@@ -613,7 +613,8 @@ namespace {
         {
             try
             {
-                lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, update.get_checked_abort());
+                bool allow_overwrite = is_edit;
+                lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
             }
             catch(const std::exception& e)
             {

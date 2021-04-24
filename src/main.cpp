@@ -20,6 +20,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a preferences page with configuration for lyric saving\n"
     "- Add the option to only auto-save synced lyrics\n"
     "- Change search to check the save location even if not configured to do so\n"
+    "- Change save to not overwrite existing tags/files when auto-saving\n"
     "- Fix the source list selection clearing when an item is (de)activated\n"
     "- Fix the editor sometimes adding an extra blank line above the lyrics\n"
     "- Remove the option to not save any lyrics at all\n"

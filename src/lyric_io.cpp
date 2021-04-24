@@ -7,7 +7,7 @@
 #include "sources/lyric_source.h"
 #include "winstr_util.h"
 
-std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort)
+std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
     //       only happen on the main thread.
@@ -30,7 +30,7 @@ std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, ab
 
         try
         {
-            output_path = source->save(track, lyrics.IsTimestamped(), text, abort);
+            output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
         }
         catch(const std::exception& e)
         {

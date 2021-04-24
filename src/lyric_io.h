@@ -11,7 +11,7 @@ namespace io
     void search_for_lyrics(LyricUpdateHandle& handle);
 
     // Returns the path of the file on disk to which the lyrics were saved
-    std::string save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort);
+    std::string save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
 }
 
 

@@ -14,7 +14,7 @@ class LocalFileSource : public LyricSourceBase
     bool can_save() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
-    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
@@ -82,7 +82,7 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
     }
 }
 
-std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, abort_callback& abort)
+std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
     std::string output_path_str = preferences::saving::filename(track);
@@ -103,6 +103,12 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
     const char* extension = is_timestamped ? ".lrc" : ".txt";
     output_path += extension;
     LOG_INFO("Saving lyrics to %s...", output_path.c_str());
+
+    if(!allow_overwrite && filesystem::g_exists(output_path.c_str(), abort))
+    {
+        LOG_INFO("Save file already exists and overwriting is disallowed. The file will not be modified");
+        return output_path_str;
+    }
 
     TCHAR temp_path_str[MAX_PATH+1];
     DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
