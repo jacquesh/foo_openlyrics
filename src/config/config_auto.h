@@ -231,7 +231,7 @@ struct cfg_auto_combo_option
 template<typename TEnum, int IOptionCount>
 struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
 {
-    cfg_auto_combo(const GUID& guid, int control_id, TEnum default_value, cfg_auto_combo_option<TEnum> (&options)[IOptionCount]) :
+    cfg_auto_combo(const GUID& guid, int control_id, TEnum default_value, const cfg_auto_combo_option<TEnum> (&options)[IOptionCount]) :
         cfg_int_t<int>(guid, static_cast<int>(default_value)),
         m_control_id(control_id),
         m_options(options),
@@ -248,7 +248,7 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
     {
         for(int i=0; i<IOptionCount; i++)
         {
-            cfg_auto_combo_option<TEnum>& option = m_options[i];
+            const cfg_auto_combo_option<TEnum>& option = m_options[i];
             LRESULT add_result = SendDlgItemMessage(container, m_control_id, CB_ADDSTRING, 0, (LPARAM)option.display_string);
             assert(add_result != CB_ERR);
             assert(add_result != CB_ERRSPACE);
@@ -320,7 +320,7 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
 
 private:
     int m_control_id;
-    cfg_auto_combo_option<TEnum>* m_options;
+    const cfg_auto_combo_option<TEnum>* const m_options;
     TEnum m_default_value;
 };
 
