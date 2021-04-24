@@ -116,22 +116,31 @@ private:
 };
 
 typedef cfg_auto_int_t<t_int32> cfg_auto_int;
-typedef cfg_auto_int_t<t_uint32> cfg_auto_uint;
-typedef cfg_auto_int_t<float> cfg_auto_float;
 typedef cfg_auto_int_t<double> cfg_auto_double;
 
-struct cfg_auto_bool : public cfg_int_t<bool>, public cfg_auto_property
+// NOTE: We extend cfg_int_t<int> instead of cfg_int_t<bool> because it is reasonably likely that
+//       we end up wanting to extend something that was originally a flag/checkbox, into something
+//       with more than 2 options which would then need a combo.
+//       cfg_auto_combo<T> extends cfg_int_t<int> so by doing the same here, we enable ourselves
+//       to make that transition without breaking everybody's config (provided the 0 & 1 values
+//       of the combo are equivalent to the true & false values of the flag).
+struct cfg_auto_bool : private cfg_int_t<int>, public cfg_auto_property
 {
     cfg_auto_bool(const GUID& guid, int control_id, bool default_value) :
-        cfg_int_t<bool>(guid, default_value),
+        cfg_int_t<int>(guid, default_value ? 1 : 0),
         m_control_id(control_id),
         m_default_value(default_value)
     {
     }
 
+    bool get_value()
+    {
+        return (cfg_int_t<int>::get_value() == 1);
+    }
+
     void ResetFromSaved() override
     {
-        CheckDlgButton(m_hWnd, m_control_id, cfg_int_t<bool>::get_value() ? BST_CHECKED : BST_UNCHECKED);
+        CheckDlgButton(m_hWnd, m_control_id, get_value() ? BST_CHECKED : BST_UNCHECKED);
     }
 
     void ResetToDefault() override
@@ -143,14 +152,14 @@ struct cfg_auto_bool : public cfg_int_t<bool>, public cfg_auto_property
     {
         LRESULT checkResult = SendDlgItemMessage(m_hWnd, m_control_id, BM_GETCHECK, 0, 0);
         bool checked = (checkResult == BST_CHECKED);
-        cfg_int_t<bool>::operator=(checked);
+        cfg_int_t<int>::operator=(checked ? 1 : 0);
     }
 
     bool HasChanged() override
     {
         LRESULT checkResult = SendDlgItemMessage(m_hWnd, m_control_id, BM_GETCHECK, 0, 0);
         bool ui_value = (checkResult == BST_CHECKED);
-        bool stored_value = cfg_int_t<bool>::get_value();
+        bool stored_value = get_value();
         return ui_value != stored_value;
     }
 
