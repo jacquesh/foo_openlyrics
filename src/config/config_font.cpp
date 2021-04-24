@@ -18,7 +18,7 @@ cfg_font_t::cfg_font_t(const GUID& guid) : cfg_var(guid)
     default_font.lfClipPrecision = CLIP_DEFAULT_PRECIS;
     default_font.lfQuality = DEFAULT_QUALITY;
     default_font.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-    _tcprintf(default_font.lfFaceName, "Segoe UI");
+    _tcsncpy_s(default_font.lfFaceName, _T("Segoe UI"), _TRUNCATE);
     m_value = default_font;
 }
 

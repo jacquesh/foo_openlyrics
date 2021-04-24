@@ -202,6 +202,7 @@
     <ClInclude Include="..\..\src\logging.h" />
     <ClInclude Include="..\..\src\lyric_data.h" />
     <ClInclude Include="..\..\src\lyric_io.h" />
+    <ClInclude Include="..\..\src\math_util.h" />
     <ClInclude Include="..\..\src\parsers.h" />
     <ClInclude Include="..\..\src\preferences.h" />
     <ClInclude Include="..\..\src\resource.h" />

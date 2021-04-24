@@ -8,6 +8,7 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_io.h"
+#include "math_util.h"
 #include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
@@ -267,7 +268,10 @@ namespace {
     void LyricPanel::DrawTimestampedLyrics(HDC dc, CPoint centre)
     {
         service_ptr_t<playback_control> playback = playback_control::get();
-        double current_position = playback->playback_get_position();
+        double current_time = playback->playback_get_position();
+
+        t_ui_color fg_colour = get_fg_colour();
+        t_ui_color hl_colour = get_highlight_colour();
 
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
@@ -275,22 +279,39 @@ namespace {
 
         int active_line_index = -1;
         int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (current_position > m_lyrics.lines[active_line_index+1].timestamp))
+        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.lines[active_line_index+1].timestamp))
         {
             active_line_index++;
         }
 
+        double next_line_time = DBL_MAX;
+        if(active_line_index+1 < lyric_line_count)
+        {
+            next_line_time = m_lyrics.lines[active_line_index+1].timestamp;
+        }
+
+        double scroll_time = preferences::display::scroll_time_seconds();
+        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, current_time);
+
         int text_height_above_active_line = line_height * active_line_index;
-        int current_y = centre.y - text_height_above_active_line;
+        int next_line_scroll = (int)((double)line_height * next_line_scroll_factor);
+        int current_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll);
         for(int line_index=0; line_index < lyric_line_count; line_index++)
         {
             const LyricDataLine& line = m_lyrics.lines[line_index];
             BOOL draw_success = FALSE;
             if(line_index == active_line_index)
             {
-                COLORREF previous_colour = SetTextColor(dc, get_highlight_colour());
+                COLORREF colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
+                SetTextColor(dc, colour);
                 draw_success = TextOut(dc, centre.x, current_y, line.text.c_str(), line.text.length());
-                SetTextColor(dc, previous_colour);
+            }
+            else if(line_index == active_line_index+1)
+            {
+                COLORREF colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
+                SetTextColor(dc, colour);
+                draw_success = TextOut(dc, centre.x, current_y, line.text.c_str(), line.text.length());
+                SetTextColor(dc, fg_colour);
             }
             else
             {

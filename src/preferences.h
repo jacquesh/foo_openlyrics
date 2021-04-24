@@ -57,5 +57,6 @@ namespace preferences
         std::optional<t_ui_color> highlight_colour();
 
         int render_linegap();
+        double scroll_time_seconds();
     }
 }

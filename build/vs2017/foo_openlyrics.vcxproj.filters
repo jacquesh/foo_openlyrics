@@ -131,6 +131,9 @@
     <ClInclude Include="..\..\src\config\config_font.h">
       <Filter>Header Files\config</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\math_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\foo_openlyrics.rc">

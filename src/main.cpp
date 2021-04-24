@@ -19,6 +19,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a preferences page for the font & colours used for the panel\n"
     "- Add a preferences page with configuration for lyric saving\n"
     "- Add the option to only auto-save synced lyrics\n"
+    "- Add support for smoothly scrolling between lines of synced lyrics\n"
     "- Change search to check the save location even if not configured to do so\n"
     "- Change save to not overwrite existing tags/files when auto-saving\n"
     "- Fix the source list selection clearing when an item is (de)activated\n"

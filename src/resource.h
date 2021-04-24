@@ -44,6 +44,8 @@
 #define IDC_SAVE_CUSTOM_PATH_PREVIEW    1065
 #define IDC_SAVE_CUSTOM_PATH_BROWSE     1066
 #define IDC_SAVE_AUTOSAVE_TYPE          1067
+#define IDC_DISPLAY_SCROLL_TIME         1068
+#define IDC_DISPLAY_SCROLL_TIME_PREVIEW 1071
 
 // Next default values for new objects
 // 
@@ -51,7 +53,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        121
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1068
+#define _APS_NEXT_CONTROL_VALUE         1072
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

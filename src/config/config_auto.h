@@ -118,6 +118,59 @@ private:
 typedef cfg_auto_int_t<t_int32> cfg_auto_int;
 typedef cfg_auto_int_t<double> cfg_auto_double;
 
+struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
+{
+    cfg_auto_ranged_int(const GUID& guid, int control_id, int min_value, int max_value, int default_value) :
+        cfg_int_t<int>(guid, default_value),
+        m_control_id(control_id),
+        m_min_value(min_value),
+        m_max_value(max_value),
+        m_default_value(default_value)
+    {
+        assert(min_value <= default_value);
+        assert(default_value <= max_value);
+    }
+
+    void Initialise(HWND container) override
+    {
+        SendDlgItemMessage(container, m_control_id, TBM_SETRANGEMIN, FALSE, m_min_value);
+        SendDlgItemMessage(container, m_control_id, TBM_SETRANGEMAX, TRUE, m_max_value);
+        cfg_auto_property::Initialise(container);
+    }
+
+    void ResetFromSaved() override
+    {
+        int value = cfg_int_t<int>::get_value();
+        if(value < m_min_value) value = m_min_value;
+        if(value > m_max_value) value = m_max_value;
+        SendDlgItemMessage(m_hWnd, m_control_id, TBM_SETPOS, TRUE, value);
+    }
+
+    void ResetToDefault() override
+    {
+        SendDlgItemMessage(m_hWnd, m_control_id, TBM_SETPOS, TRUE, m_default_value);
+    }
+
+    void Apply() override
+    {
+        LRESULT value = SendDlgItemMessage(m_hWnd, m_control_id, TBM_GETPOS, 0, 0);
+        cfg_int_t<int>::operator=((int)value);
+    }
+
+    bool HasChanged() override
+    {
+        int ui_value = (int)SendDlgItemMessage(m_hWnd, m_control_id, TBM_GETPOS, 0, 0);
+        int stored_value = cfg_int_t<int>::get_value();
+        return ui_value != stored_value;
+    }
+
+private:
+    int m_control_id;
+    int m_min_value;
+    int m_max_value;
+    int m_default_value;
+};
+
 // NOTE: We extend cfg_int_t<int> instead of cfg_int_t<bool> because it is reasonably likely that
 //       we end up wanting to extend something that was originally a flag/checkbox, into something
 //       with more than 2 options which would then need a combo.

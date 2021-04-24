@@ -21,6 +21,7 @@ static const GUID GUID_CFG_DISPLAY_FOREGROUND_COLOUR = { 0x36724d22, 0xe51e, 0x4
 static const GUID GUID_CFG_DISPLAY_BACKGROUND_COLOUR = { 0x7eaeeae6, 0xd41d, 0x4c0d, { 0x97, 0x86, 0x20, 0xa2, 0x8f, 0x27, 0x98, 0xd4 } };
 static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR = { 0xfa16da6c, 0xb22d, 0x49cb, { 0x97, 0x53, 0x94, 0x8c, 0xec, 0xf8, 0x37, 0x35 } };
 static const GUID GUID_CFG_DISPLAY_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9, 0x35, 0x9, 0xbb, 0xfa, 0xc6, 0x40, 0x43 } };
+static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35,85,125);
 static const COLORREF cfg_display_bg_colour_default = RGB(255,255,255);
@@ -35,6 +36,7 @@ static cfg_int_t<uint32_t>           cfg_display_fg_colour(GUID_CFG_DISPLAY_FORE
 static cfg_int_t<uint32_t>           cfg_display_bg_colour(GUID_CFG_DISPLAY_BACKGROUND_COLOUR, cfg_display_bg_colour_default);
 static cfg_int_t<uint32_t>           cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
 static cfg_auto_int                  cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
+static cfg_auto_ranged_int           cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 500);
 
 static cfg_auto_property* g_display_auto_properties[] =
 {
@@ -44,6 +46,7 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_custom_hl_colour,
 
     &cfg_display_linegap,
+    &cfg_display_scroll_time,
 };
 
 //
@@ -104,6 +107,11 @@ int preferences::display::render_linegap()
     return cfg_display_linegap.get_value();
 }
 
+double preferences::display::scroll_time_seconds()
+{
+    return ((double)cfg_display_scroll_time.get_value())/1000.0;
+}
+
 //
 // Preference page UI
 //
@@ -125,6 +133,7 @@ public:
     //WTL message map
     BEGIN_MSG_MAP_EX(PreferencesDisplay)
         MSG_WM_INITDIALOG(OnInitDialog)
+        MSG_WM_HSCROLL(OnScrollTimeChange)
         COMMAND_HANDLER_EX(IDC_FONT_CUSTOM, BN_CLICKED, OnCustomToggle)
         COMMAND_HANDLER_EX(IDC_FOREGROUND_COLOUR_CUSTOM, BN_CLICKED, OnCustomToggle)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR_CUSTOM, BN_CLICKED, OnCustomToggle)
@@ -145,11 +154,13 @@ private:
     void OnHlColourChange(UINT, int, CWindow);
     void OnCustomToggle(UINT, int, CWindow);
     void OnUIChange(UINT, int, CWindow);
+    void OnScrollTimeChange(int, int, HWND);
     LRESULT ColourButtonPreDraw(UINT, WPARAM, LPARAM);
 
     void UpdateFontButtonText();
     void SelectBrushColour(HBRUSH& brush);
     void RepaintColours();
+    void UpdateScrollTimePreview();
 
     LOGFONT m_font;
     HBRUSH m_brush_foreground;
@@ -203,6 +214,7 @@ void PreferencesDisplay::reset()
     m_brush_highlight = CreateSolidBrush(cfg_display_hl_colour_default);
     auto_preferences_page_instance::reset();
 
+    UpdateScrollTimePreview();
     UpdateFontButtonText();
     RepaintColours();
 }
@@ -225,13 +237,9 @@ bool PreferencesDisplay::has_changed()
 
 BOOL PreferencesDisplay::OnInitDialog(CWindow, LPARAM)
 {
-    bool custom_font = cfg_display_custom_font.get_value();
-    CWindow font_btn = GetDlgItem(IDC_FONT);
-    assert(font_btn != nullptr);
-    font_btn.EnableWindow(custom_font);
-    UpdateFontButtonText();
-
     init_auto_preferences();
+    UpdateFontButtonText();
+    UpdateScrollTimePreview();
     RepaintColours();
     return FALSE;
 }
@@ -283,17 +291,23 @@ void PreferencesDisplay::OnHlColourChange(UINT, int, CWindow)
 
 void PreferencesDisplay::OnCustomToggle(UINT, int, CWindow)
 {
-    bool custom_font = (SendDlgItemMessage(IDC_FONT_CUSTOM, BM_GETCHECK, 0, 0) == BST_CHECKED);
-    CWindow font_btn = GetDlgItem(IDC_FONT);
-    assert(font_btn != nullptr);
-    font_btn.EnableWindow(custom_font);
-
+    UpdateFontButtonText();
     RepaintColours();
     on_ui_interaction();
 }
 
 void PreferencesDisplay::OnUIChange(UINT, int, CWindow)
 {
+    on_ui_interaction();
+}
+
+void PreferencesDisplay::OnScrollTimeChange(int /*request_type*/, int /*new_position*/, HWND source_window)
+{
+    // Docs say this handle will be the scroll bar that sent the message if any, otherwise null.
+    // Currently the only scroll bar is the setting for synced-line-scroll-time
+    if(source_window == nullptr) return;
+
+    UpdateScrollTimePreview();
     on_ui_interaction();
 }
 
@@ -332,6 +346,11 @@ LRESULT PreferencesDisplay::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
 
 void PreferencesDisplay::UpdateFontButtonText()
 {
+    bool custom_font = (SendDlgItemMessage(IDC_FONT_CUSTOM, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    CWindow font_btn = GetDlgItem(IDC_FONT);
+    assert(font_btn != nullptr);
+    font_btn.EnableWindow(custom_font);
+
     HDC dc = GetDC();
     int point_size = -MulDiv(m_font.lfHeight, 72, GetDeviceCaps(dc, LOGPIXELSY));
     ReleaseDC(dc);
@@ -352,7 +371,8 @@ void PreferencesDisplay::UpdateFontButtonText()
         font_str += _T(", Italic");
     }
 
-    SetDlgItemTextW(IDC_FONT, font_str.c_str());
+    font_btn.SetWindowText(font_str.c_str());
+    ReleaseDC(dc);
 }
 
 void PreferencesDisplay::SelectBrushColour(HBRUSH& handle)
@@ -392,6 +412,17 @@ void PreferencesDisplay::RepaintColours()
             handle.RedrawWindow(nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_UPDATENOW);
         }
     }
+}
+
+void PreferencesDisplay::UpdateScrollTimePreview()
+{
+    // We get the position specifically because the value passed in the parameter is sometimes 0
+    LRESULT value = SendDlgItemMessage(IDC_DISPLAY_SCROLL_TIME, TBM_GETPOS, 0, 0);
+
+    const int preview_length = 32;
+    TCHAR preview[preview_length];
+    _sntprintf_s(preview, preview_length, _T("%d milliseconds"), value);
+    SetDlgItemText(IDC_DISPLAY_SCROLL_TIME_PREVIEW, preview);
 }
 
 class PreferencesDisplayImpl : public preferences_page_impl<PreferencesDisplay>
