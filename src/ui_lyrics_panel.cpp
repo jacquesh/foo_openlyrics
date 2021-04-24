@@ -40,12 +40,13 @@ namespace {
 
         void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override;
 
-        void on_playback_new_track(metadb_handle_ptr p_track) override;
-        void on_playback_stop(play_control::t_stop_reason p_reason) override;
-        void on_playback_pause(bool p_state) override;
-        void on_playback_seek(double p_time) override;
+        void on_playback_new_track(metadb_handle_ptr track) override;
+        void on_playback_stop(play_control::t_stop_reason reason) override;
+        void on_playback_pause(bool state) override;
+        void on_playback_seek(double time) override;
 
     private:
+        LRESULT OnWindowCreate(LPCREATESTRUCT);
         void OnWindowDestroy();
         LRESULT OnTimer(WPARAM);
         void OnPaint(CDCHandle);
@@ -81,6 +82,7 @@ namespace {
         const ui_element_instance_callback_ptr m_callback;
 
         BEGIN_MSG_MAP_EX(LyricPanel)
+            MSG_WM_CREATE(OnWindowCreate)
             MSG_WM_DESTROY(OnWindowDestroy)
             MSG_WM_TIMER(OnTimer)
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
@@ -119,15 +121,15 @@ namespace {
         }
     }
 
-    void LyricPanel::on_playback_new_track(metadb_handle_ptr p_track)
+    void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     {
-        m_now_playing = p_track;
+        m_now_playing = track;
 
-        InitiateLyricSearch(p_track);
+        InitiateLyricSearch(track);
         StartTimer();
     }
 
-    void LyricPanel::on_playback_stop(play_control::t_stop_reason /*p_reason*/)
+    void LyricPanel::on_playback_stop(play_control::t_stop_reason /*reason*/)
     {
         m_now_playing = nullptr;
         m_lyrics = {};
@@ -135,9 +137,9 @@ namespace {
         Invalidate(); // Draw one more time to clear the panel
     }
 
-    void LyricPanel::on_playback_pause(bool p_state)
+    void LyricPanel::on_playback_pause(bool state)
     {
-        if (p_state)
+        if (state)
         {
             StopTimer();
         }
@@ -147,9 +149,20 @@ namespace {
         }
     }
 
-    void LyricPanel::on_playback_seek(double /*p_time*/)
+    void LyricPanel::on_playback_seek(double /*time*/)
     {
         Invalidate(); // Draw again to update the scroll for the new seek time
+    }
+
+    LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
+    {
+        service_ptr_t<playback_control> playback = playback_control::get();
+        metadb_handle_ptr track;
+        if(playback->get_now_playing(track))
+        {
+            on_playback_new_track(track);
+        }
+        return 0;
     }
 
     void LyricPanel::OnWindowDestroy()

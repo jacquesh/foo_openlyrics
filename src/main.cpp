@@ -25,6 +25,7 @@ DECLARE_COMPONENT_VERSION(
     "- Fix the source list selection clearing when an item is (de)activated\n"
     "- Fix the editor sometimes adding an extra blank line above the lyrics\n"
     "- Fix the panel continuing to show lyrics after playback stops\n"
+    "- Fix failing to show lyrics if the panel is created during playback\n"
     "- Remove the option to not save any lyrics at all\n"
     "\n"
     "Version 0.4 (2021-04-11):\n"
