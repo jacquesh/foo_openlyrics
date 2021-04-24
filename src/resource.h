@@ -13,7 +13,6 @@
 #define IDC_SOURCE_DEACTIVATE_BTN       1027
 #define IDC_SOURCE_MOVE_UP_BTN          1028
 #define IDC_SOURCE_MOVE_DOWN_BTN        1029
-#define IDC_AUTOSAVE_ENABLED_CHKBOX     1031
 #define IDC_SAVE_METHOD_COMBO           1032
 #define IDC_SAVE_FILENAME_FORMAT        1034
 #define IDC_FILE_NAME_PREVIEW           1035
@@ -44,6 +43,7 @@
 #define IDC_SAVE_CUSTOM_PATH            1064
 #define IDC_SAVE_CUSTOM_PATH_PREVIEW    1065
 #define IDC_SAVE_CUSTOM_PATH_BROWSE     1066
+#define IDC_SAVE_AUTOSAVE_TYPE          1067
 
 // Next default values for new objects
 // 
@@ -51,7 +51,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        121
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1067
+#define _APS_NEXT_CONTROL_VALUE         1068
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

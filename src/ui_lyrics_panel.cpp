@@ -602,10 +602,13 @@ namespace {
             return;
         }
 
+        AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
+        bool should_autosave = (autosave == AutoSaveStrategy::Always) ||
+                               ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped());
+
         bool is_edit = (update.get_type() == LyricUpdateHandle::Type::Edit);
-        bool autosave_enabled = preferences::saving::autosave_enabled();
         bool loaded_from_save_src = (lyrics.source_id == preferences::saving::save_source());
-        bool should_save = is_edit || (autosave_enabled && !loaded_from_save_src); // Don't save to the source we just loaded from
+        bool should_save = is_edit || (should_autosave && !loaded_from_save_src); // Don't save to the source we just loaded from
         if(should_save)
         {
             try

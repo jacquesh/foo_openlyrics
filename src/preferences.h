@@ -23,6 +23,13 @@ enum class SaveDirectoryClass : int
     Custom             = 3
 };
 
+enum class AutoSaveStrategy
+{
+    Never = 0,
+    Always = 1,
+    OnlySynced = 2,
+};
+
 namespace preferences
 {
     namespace searching
@@ -33,7 +40,7 @@ namespace preferences
 
     namespace saving
     {
-        bool autosave_enabled();
+        AutoSaveStrategy autosave_strategy();
         GUID save_source();
 
         std::string filename(metadb_handle_ptr track);

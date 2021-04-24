@@ -33,7 +33,13 @@ static cfg_auto_combo_option<SaveDirectoryClass> save_dir_class_options[] =
     {_T("Save to a custom directory"), SaveDirectoryClass::Custom},
 };
 
-static cfg_auto_bool                         cfg_save_auto_save_enabled(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_AUTOSAVE_ENABLED_CHKBOX, true);
+static cfg_auto_combo_option<AutoSaveStrategy> autosave_strategy_options[] =
+{
+    {_T("Always"), AutoSaveStrategy::Always},
+    {_T("Only synced lyrics"), AutoSaveStrategy::OnlySynced},
+};
+
+static cfg_auto_combo<AutoSaveStrategy, 2>   cfg_save_auto_save_strategy(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_SAVE_AUTOSAVE_TYPE, AutoSaveStrategy::Always, autosave_strategy_options);
 static cfg_auto_combo<SaveMethod, 2>         cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::LocalFile, save_method_options);
 static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCEDLYRICS");
 static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "LYRICS");
@@ -43,7 +49,7 @@ static cfg_auto_string                       cfg_save_path_custom(GUID_CFG_SAVE_
 
 static cfg_auto_property* g_saving_auto_properties[] =
 {
-    &cfg_save_auto_save_enabled,
+    &cfg_save_auto_save_strategy,
     &cfg_save_method,
     &cfg_save_filename_format,
     &cfg_save_tag_untimed,
@@ -62,9 +68,9 @@ class titleformat_filename_filter : public titleformat_text_filter
     }
 };
 
-bool preferences::saving::autosave_enabled()
+AutoSaveStrategy preferences::saving::autosave_strategy()
 {
-    return cfg_save_auto_save_enabled.get_value();
+    return cfg_save_auto_save_strategy.get_value();
 }
 
 GUID preferences::saving::save_source()
@@ -188,11 +194,11 @@ public:
     //WTL message map
     BEGIN_MSG_MAP_EX(PreferencesSaving)
         MSG_WM_INITDIALOG(OnInitDialog)
-        COMMAND_HANDLER_EX(IDC_AUTOSAVE_ENABLED_CHKBOX, BN_CLICKED, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_METHOD_COMBO, CBN_SELCHANGE, OnSaveMethodChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_AUTOSAVE_TYPE, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_TAG_SYNCED, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_TAG_UNSYNCED, EN_CHANGE, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_METHOD_COMBO, CBN_SELCHANGE, OnSaveMethodChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH_BROWSE, BN_CLICKED, OnCustomPathBrowse)
