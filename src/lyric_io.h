@@ -8,7 +8,6 @@ class LyricUpdateHandle;
 
 namespace io
 {
-    GUID get_save_source();
     void search_for_lyrics(LyricUpdateHandle& handle);
 
     // Returns the path of the file on disk to which the lyrics were saved

@@ -67,9 +67,29 @@ bool preferences::saving::autosave_enabled()
     return cfg_save_auto_save_enabled.get_value();
 }
 
-SaveMethod preferences::saving::save_method()
+GUID preferences::saving::save_source()
 {
-    return cfg_save_method.get_value();
+    // NOTE: These were copied from the relevant lyric-source source file.
+    //       It should not be a problem because these GUIDs must never change anyway (since it would
+    //       break everybody's config), but probably worth noting that the information is duplicated.
+    const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+    const GUID id3tag_src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+
+    SaveMethod method = cfg_save_method.get_value();
+    if(method == SaveMethod::LocalFile)
+    {
+        return localfiles_src_guid;
+    }
+    else if(method == SaveMethod::Id3Tag)
+    {
+        return id3tag_src_guid;
+    }
+    else
+    {
+        LOG_ERROR("Unrecognised save method: %d", (int)method);
+        assert(false);
+        return {};
+    }
 }
 
 std::string preferences::saving::filename(metadb_handle_ptr track)

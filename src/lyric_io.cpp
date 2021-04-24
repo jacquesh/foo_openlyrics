@@ -7,28 +7,6 @@
 #include "sources/lyric_source.h"
 #include "winstr_util.h"
 
-GUID io::get_save_source()
-{
-    // TODO: These are copied from their definitions in the source file. Find another way.
-    const GUID localfiles_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
-    const GUID id3tag_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
-
-    SaveMethod method = preferences::saving::save_method();
-    if(method == SaveMethod::LocalFile)
-    {
-        return localfiles_guid;
-    }
-    else if(method == SaveMethod::Id3Tag)
-    {
-        return id3tag_guid;
-    }
-    else
-    {
-        // Not configured to save at all
-        return {};
-    }
-}
-
 std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, abort_callback& abort)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
@@ -37,7 +15,7 @@ std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, ab
 
     std::string output_path;
 
-    LyricSourceBase* source = LyricSourceBase::get(get_save_source());
+    LyricSourceBase* source = LyricSourceBase::get(preferences::saving::save_source());
     if(source != nullptr)
     {
         std::string text;

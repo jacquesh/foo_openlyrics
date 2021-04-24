@@ -34,7 +34,7 @@ namespace preferences
     namespace saving
     {
         bool autosave_enabled();
-        SaveMethod save_method();
+        GUID save_source();
 
         std::string filename(metadb_handle_ptr track);
 
