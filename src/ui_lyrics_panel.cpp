@@ -60,6 +60,10 @@ namespace {
         void StartTimer();
         void StopTimer();
 
+        void DrawNoLyrics(HDC dc, CPoint centre);
+        void DrawUntimedLyrics(HDC dc, CPoint centre);
+        void DrawTimestampedLyrics(HDC dc, CPoint centre);
+
         void InitiateLyricSearch(metadb_handle_ptr track);
         void ProcessAvailableLyricUpdate(LyricUpdateHandle& update);
 
@@ -168,6 +172,141 @@ namespace {
         return TRUE;
     }
 
+    void LyricPanel::DrawNoLyrics(HDC dc, CPoint centre)
+    {
+        if(m_now_playing == nullptr)
+        {
+            return;
+        }
+
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+
+        pfc::string8 artist;
+        pfc::string8 album;
+        pfc::string8 title;
+        GetTrackMetaIdentifiers(m_now_playing, artist, album, title);
+
+        int line_height = font_metrics.tmHeight + preferences::display::render_linegap();
+        int total_height = 0;
+        if(!artist.is_empty()) total_height += line_height;
+        if(!album.is_empty()) total_height += line_height;
+        if(!title.is_empty()) total_height += line_height;
+
+        int current_y = centre.y - total_height/2;
+        if(!artist.is_empty())
+        {
+            std::tstring artist_line = _T("Artist: ") + to_tstring(artist);
+            TextOut(dc, centre.x, current_y, artist_line.c_str(), artist_line.length());
+            current_y += line_height;
+        }
+        if(!album.is_empty())
+        {
+            std::tstring album_line = _T("Album: ") + to_tstring(album);
+            TextOut(dc, centre.x, current_y, album_line.c_str(), album_line.length());
+            current_y += line_height;
+        }
+        if(!title.is_empty())
+        {
+            std::tstring title_line = _T("Title: ") + to_tstring(title);
+            TextOut(dc, centre.x, current_y, title_line.c_str(), title_line.length());
+            current_y += line_height;
+        }
+
+        if(!m_update_handles.empty())
+        {
+            bool is_search = false;
+            std::string progress_msg;
+            for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
+            {
+                if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::Search))
+                {
+                    progress_msg = update->get_progress();
+                    is_search = true;
+                    break;
+                }
+            }
+
+            if(is_search)
+            {
+                std::tstring progress_text = to_tstring(progress_msg);
+                TextOut(dc, centre.x, current_y, progress_text.c_str(), progress_text.size());
+                current_y += line_height;
+            }
+        }
+    }
+
+    void LyricPanel::DrawUntimedLyrics(HDC dc, CPoint centre)
+    {
+        service_ptr_t<playback_control> playback = playback_control::get();
+        double current_position = playback->playback_get_position();
+        double total_length = playback->playback_get_length_ex();
+        double track_fraction = current_position / total_length;
+
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        int line_height = font_metrics.tmHeight + preferences::display::render_linegap();
+
+        int lyrics_render_height = static_cast<int>(m_lyrics.lines.size()) * line_height;
+        int current_y = centre.y - (int)(track_fraction * lyrics_render_height);
+
+        for(const LyricDataLine& line : m_lyrics.lines)
+        {
+            BOOL draw_success = TextOut(dc, centre.x, current_y, line.text.c_str(), line.text.length());
+            if(!draw_success)
+            {
+                LOG_WARN("Failed to draw text: %d", GetLastError());
+                StopTimer();
+                break;
+            }
+            current_y += line_height;
+        }
+    }
+
+    void LyricPanel::DrawTimestampedLyrics(HDC dc, CPoint centre)
+    {
+        service_ptr_t<playback_control> playback = playback_control::get();
+        double current_position = playback->playback_get_position();
+
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        int line_height = font_metrics.tmHeight + preferences::display::render_linegap();
+
+        int active_line_index = -1;
+        int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
+        while((active_line_index+1 < lyric_line_count) && (current_position > m_lyrics.lines[active_line_index+1].timestamp))
+        {
+            active_line_index++;
+        }
+
+        int text_height_above_active_line = line_height * active_line_index;
+        int current_y = centre.y - text_height_above_active_line;
+        for(int line_index=0; line_index < lyric_line_count; line_index++)
+        {
+            const LyricDataLine& line = m_lyrics.lines[line_index];
+            BOOL draw_success = FALSE;
+            if(line_index == active_line_index)
+            {
+                COLORREF previous_colour = SetTextColor(dc, get_highlight_colour());
+                draw_success = TextOut(dc, centre.x, current_y, line.text.c_str(), line.text.length());
+                SetTextColor(dc, previous_colour);
+            }
+            else
+            {
+                draw_success = TextOut(dc, centre.x, current_y, line.text.c_str(), line.text.length());
+            }
+
+            if(!draw_success)
+            {
+                LOG_WARN("Failed to draw text: %d", GetLastError());
+                StopTimer();
+                break;
+            }
+
+            current_y += line_height;
+        }
+    }
+
     void LyricPanel::OnPaint(CDCHandle)
     {
         for(auto iter=m_update_handles.begin(); iter!=m_update_handles.end(); /*omitted*/)
@@ -190,7 +329,6 @@ namespace {
 
         CRect client_rect;
         WIN32_OP_D(GetClientRect(&client_rect))
-        CPoint client_centre = client_rect.CenterPoint();
 
         CPaintDC front_buffer(*this);
         HDC back_buffer = CreateCompatibleDC(front_buffer.m_hDC);
@@ -218,126 +356,20 @@ namespace {
             LOG_WARN("Failed to set text alignment: %d", GetLastError());
         }
 
-        TEXTMETRIC font_metrics = {};
-        WIN32_OP_D(GetTextMetrics(back_buffer, &font_metrics))
-
-        service_ptr_t<playback_control> playback = playback_control::get();
-        double current_position = playback->playback_get_position();
-        int line_gap = preferences::display::render_linegap();
+        CPoint client_centre = client_rect.CenterPoint();
 
         // TODO: Line-wrapping for TextOut (look into GDI's GetTextExtentPoint32)
         if(m_lyrics.IsEmpty())
         {
-            if(m_now_playing != nullptr)
-            {
-                pfc::string8 artist;
-                pfc::string8 album;
-                pfc::string8 title;
-                GetTrackMetaIdentifiers(m_now_playing, artist, album, title);
-
-                int line_height = font_metrics.tmHeight + line_gap;
-                int total_height = 0;
-                if(!artist.is_empty()) total_height += line_height;
-                if(!album.is_empty()) total_height += line_height;
-                if(!title.is_empty()) total_height += line_height;
-
-                int current_y = client_centre.y - total_height/2;
-                if(!artist.is_empty())
-                {
-                    std::tstring artist_line = _T("Artist: ") + to_tstring(artist);
-                    TextOut(back_buffer, client_centre.x, current_y, artist_line.c_str(), artist_line.length());
-                    current_y += line_height;
-                }
-                if(!album.is_empty())
-                {
-                    std::tstring album_line = _T("Album: ") + to_tstring(album);
-                    TextOut(back_buffer, client_centre.x, current_y, album_line.c_str(), album_line.length());
-                    current_y += line_height;
-                }
-                if(!title.is_empty())
-                {
-                    std::tstring title_line = _T("Title: ") + to_tstring(title);
-                    TextOut(back_buffer, client_centre.x, current_y, title_line.c_str(), title_line.length());
-                    current_y += line_height;
-                }
-
-                if(!m_update_handles.empty())
-                {
-                    bool is_search = false;
-                    std::string progress_msg;
-                    for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
-                    {
-                        if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::Search))
-                        {
-                            progress_msg = update->get_progress();
-                            is_search = true;
-                            break;
-                        }
-                    }
-
-                    if(is_search)
-                    {
-                        std::tstring progress_text = to_tstring(progress_msg);
-                        TextOut(back_buffer, client_centre.x, current_y, progress_text.c_str(), progress_text.size());
-                        current_y += line_height;
-                    }
-                }
-            }
+            DrawNoLyrics(back_buffer, client_centre);
         }
         else if(m_lyrics.IsTimestamped())
         {
-            int active_line_index = -1;
-            int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-            while((active_line_index+1 < lyric_line_count) && (current_position > m_lyrics.lines[active_line_index+1].timestamp))
-            {
-                active_line_index++;
-            }
-
-            int text_height_above_active_line = (font_metrics.tmHeight + line_gap) * active_line_index;
-            int current_y = client_rect.CenterPoint().y - text_height_above_active_line;
-            for(int line_index=0; line_index < lyric_line_count; line_index++)
-            {
-                const LyricDataLine& line = m_lyrics.lines[line_index];
-                BOOL draw_success = FALSE;
-                if(line_index == active_line_index)
-                {
-                    COLORREF previous_colour = SetTextColor(back_buffer, get_highlight_colour());
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text.c_str(), line.text.length());
-                    SetTextColor(back_buffer, previous_colour);
-                }
-                else
-                {
-                    draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text.c_str(), line.text.length());
-                }
-
-                if(!draw_success)
-                {
-                    LOG_WARN("Failed to draw text: %d", GetLastError());
-                    StopTimer();
-                    break;
-                }
-
-                current_y += font_metrics.tmHeight + line_gap;
-            }
+            DrawTimestampedLyrics(back_buffer, client_centre);
         }
         else // We have lyrics, but no timestamps
         {
-            double total_length = playback->playback_get_length_ex();
-            double track_fraction = current_position / total_length;
-            int lyrics_render_height = m_lyrics.lines.size() * (font_metrics.tmHeight + line_gap);
-            int current_y = client_rect.CenterPoint().y - (int)(track_fraction * lyrics_render_height);
-
-            for(const LyricDataLine& line : m_lyrics.lines)
-            {
-                BOOL draw_success = TextOut(back_buffer, client_centre.x, current_y, line.text.c_str(), line.text.length());
-                if(!draw_success)
-                {
-                    LOG_WARN("Failed to draw text: %d", GetLastError());
-                    StopTimer();
-                    break;
-                }
-                current_y += font_metrics.tmHeight + line_gap;
-            }
+            DrawUntimedLyrics(back_buffer, client_centre);
         }
 
         BitBlt(front_buffer, client_rect.left, client_rect.top,
