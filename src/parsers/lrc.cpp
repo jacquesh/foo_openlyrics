@@ -298,8 +298,11 @@ std::tstring expand_text(const LyricData& data)
         expanded_text += to_tstring(tag);
         expanded_text += _T("\r\n");
     }
-    // TODO: Only do this if expanded_text is (at this point) not empty?
-    expanded_text += _T("\r\n");
+    if(!expanded_text.empty())
+    {
+        expanded_text += _T("\r\n");
+    }
+
     for(const LyricDataLine& line : data.lines)
     {
         if(line.timestamp != DBL_MAX)

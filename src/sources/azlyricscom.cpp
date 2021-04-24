@@ -22,7 +22,6 @@ static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
 static std::string remove_chars_for_url(const std::string& input)
 {
-    // TODO: This almost certainly does not work for non-ASCII characters
     std::string output;
     output.reserve(input.length());
 
