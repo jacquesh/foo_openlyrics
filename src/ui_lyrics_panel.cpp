@@ -53,7 +53,7 @@ namespace {
         BOOL OnEraseBkgnd(CDCHandle);
         void OnContextMenu(CWindow window, CPoint point);
 
-        void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title);
+        void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, std::string& out_artist, std::string& out_album, std::string& out_title);
         t_ui_font get_font();
         t_ui_color get_fg_colour();
         t_ui_color get_bg_colour();
@@ -302,26 +302,26 @@ namespace {
         CPoint centre = client_rect.CenterPoint();
         int width = client_rect.Width();
 
-        pfc::string8 artist;
-        pfc::string8 album;
-        pfc::string8 title;
+        std::string artist;
+        std::string album;
+        std::string title;
         GetTrackMetaIdentifiers(m_now_playing, artist, album, title);
 
         int total_height = 0;
         std::tstring artist_line;
         std::tstring album_line;
         std::tstring title_line;
-        if(!artist.is_empty())
+        if(!artist.empty())
         {
             artist_line = _T("Artist: ") + to_tstring(artist);
             total_height += ComputeLyricLineHeight(dc, width, artist_line);
         }
-        if(!album.is_empty())
+        if(!album.empty())
         {
             album_line = _T("Album: ") + to_tstring(album);
             total_height += ComputeLyricLineHeight(dc, width, album_line);
         }
-        if(!title.is_empty())
+        if(!title.empty())
         {
             title_line = _T("Title: ") + to_tstring(title);
             total_height += ComputeLyricLineHeight(dc, width, title_line);
@@ -645,7 +645,7 @@ namespace {
         }
     }
 
-    void LyricPanel::GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, pfc::string8& out_artist, pfc::string8& out_album, pfc::string8& out_title)
+    void LyricPanel::GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, std::string& out_artist, std::string& out_album, std::string& out_title)
     {
         const metadb_info_container::ptr& track_info_container = track_handle->get_info_ref();
         const file_info& track_info = track_info_container->info();
@@ -655,29 +655,29 @@ namespace {
         size_t track_title_index = track_info.meta_find("title");
         if((track_artist_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_artist_index) > 0))
         {
-            out_artist = pfc::string8(track_info.meta_enum_value(track_artist_index, 0));
+            out_artist = std::string(track_info.meta_enum_value(track_artist_index, 0));
         }
         else
         {
-            out_artist.reset();
+            out_artist.clear();
         }
 
         if((track_album_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_album_index) > 0))
         {
-            out_album = pfc::string8(track_info.meta_enum_value(track_album_index, 0));
+            out_album = std::string(track_info.meta_enum_value(track_album_index, 0));
         }
         else
         {
-            out_album.reset();
+            out_album.clear();
         }
 
         if((track_title_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_title_index) > 0))
         {
-            out_title = pfc::string8(track_info.meta_enum_value(track_title_index, 0));
+            out_title = std::string(track_info.meta_enum_value(track_title_index, 0));
         }
         else
         {
-            out_title.reset();
+            out_title.clear();
         }
     }
 
