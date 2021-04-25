@@ -48,6 +48,7 @@ namespace {
     private:
         LRESULT OnWindowCreate(LPCREATESTRUCT);
         void OnWindowDestroy();
+        void OnWindowResize(UINT request_type, CSize new_size);
         LRESULT OnTimer(WPARAM);
         void OnPaint(CDCHandle);
         BOOL OnEraseBkgnd(CDCHandle);
@@ -77,6 +78,9 @@ namespace {
         std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
 
+        HDC m_back_buffer;
+        HBITMAP m_back_buffer_bitmap;
+
     protected:
         // this must be declared as protected for ui_element_impl_withpopup<> to work.
         const ui_element_instance_callback_ptr m_callback;
@@ -84,6 +88,7 @@ namespace {
         BEGIN_MSG_MAP_EX(LyricPanel)
             MSG_WM_CREATE(OnWindowCreate)
             MSG_WM_DESTROY(OnWindowDestroy)
+            MSG_WM_SIZE(OnWindowResize)
             MSG_WM_TIMER(OnTimer)
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
             MSG_WM_PAINT(OnPaint)
@@ -167,8 +172,33 @@ namespace {
 
     void LyricPanel::OnWindowDestroy()
     {
+        if(m_back_buffer_bitmap != nullptr) DeleteObject(m_back_buffer_bitmap);
+        if(m_back_buffer != nullptr) DeleteDC(m_back_buffer);
+
         // Cancel and clean up any pending updates
         m_update_handles.clear();
+    }
+
+    void LyricPanel::OnWindowResize(UINT /*request_type*/, CSize new_size)
+    {
+        if(m_back_buffer != nullptr) DeleteDC(m_back_buffer);
+        if(m_back_buffer_bitmap != nullptr) DeleteObject(m_back_buffer_bitmap);
+
+        CRect client_rect;
+        WIN32_OP_D(GetClientRect(&client_rect))
+
+        HDC front_buffer = GetDC();
+        m_back_buffer = CreateCompatibleDC(front_buffer);
+        m_back_buffer_bitmap = CreateCompatibleBitmap(front_buffer, new_size.cx, new_size.cy);
+        SelectObject(m_back_buffer, m_back_buffer_bitmap);
+        ReleaseDC(front_buffer);
+
+        SetBkMode(m_back_buffer, TRANSPARENT);
+        UINT align_result = SetTextAlign(m_back_buffer, TA_BASELINE | TA_CENTER);
+        if(align_result == GDI_ERROR)
+        {
+            LOG_WARN("Failed to set text alignment: %d", GetLastError());
+        }
     }
 
     LRESULT LyricPanel::OnTimer(WPARAM /*wParam*/)
@@ -187,7 +217,7 @@ namespace {
         return TRUE;
     }
 
-    int _WrapLyricsLineToWidth(HDC dc, int visible_width, const std::tstring& line, const CPoint* origin)
+    int _WrapLyricsLineToRect(HDC dc, CRect clip_rect, const std::tstring& line, const CPoint* origin)
     {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
@@ -199,7 +229,7 @@ namespace {
         }
 
         std::tstring_view text_outstanding = line;
-
+        int visible_width = clip_rect.Width();
         int total_height = 0;
         while(text_outstanding.length() > 0)
         {
@@ -250,14 +280,19 @@ namespace {
                 }
             }
 
-            bool should_draw = (origin != nullptr);
-            if(should_draw)
+            bool draw_requested = (origin != nullptr);
+            if(draw_requested)
             {
-                BOOL draw_success = TextOut(dc, origin->x, origin->y + total_height, text_outstanding.data(), chars_to_draw);
-                if(!draw_success)
+                int draw_y = origin->y + total_height;
+                bool clipped = (draw_y + font_metrics.tmDescent < clip_rect.top) || (draw_y - font_metrics.tmAscent > clip_rect.bottom);
+                if(!clipped)
                 {
-                    LOG_WARN("Failed to draw lyrics text: %d", GetLastError());
-                    return 0;
+                    BOOL draw_success = TextOut(dc, origin->x, draw_y, text_outstanding.data(), chars_to_draw);
+                    if(!draw_success)
+                    {
+                        LOG_WARN("Failed to draw lyrics text: %d", GetLastError());
+                        return 0;
+                    }
                 }
             }
 
@@ -268,23 +303,14 @@ namespace {
         return total_height;
     }
 
-    int ComputeLyricLineHeight(HDC dc, int visible_width, const std::tstring& line)
+    int ComputeLyricLineHeight(HDC dc, CRect clip_rect, const std::tstring& line)
     {
-        return _WrapLyricsLineToWidth(dc, visible_width, line, nullptr);
+        return _WrapLyricsLineToRect(dc, clip_rect, line, nullptr);
     }
 
-    int DrawLyricLine(HDC dc, int visible_width, const std::tstring& line, CPoint origin)
+    int DrawLyricLine(HDC dc, CRect clip_rect, const std::tstring& line, CPoint origin)
     {
-        return _WrapLyricsLineToWidth(dc, visible_width, line, &origin);
-    }
-
-    int ComputeTotalLyricHeight(HDC dc, int visible_width, const LyricData& lyrics)
-    {
-        return std::accumulate(lyrics.lines.begin(), lyrics.lines.end(), 0,
-                                [dc, visible_width](int x, const LyricDataLine& line)
-                                {
-                                    return x + ComputeLyricLineHeight(dc, visible_width, line.text);
-                                });
+        return _WrapLyricsLineToRect(dc, clip_rect, line, &origin);
     }
 
     void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
@@ -293,9 +319,6 @@ namespace {
         {
             return;
         }
-
-        CPoint centre = client_rect.CenterPoint();
-        int width = client_rect.Width();
 
         std::string artist;
         std::string album;
@@ -309,32 +332,33 @@ namespace {
         if(!artist.empty())
         {
             artist_line = _T("Artist: ") + to_tstring(artist);
-            total_height += ComputeLyricLineHeight(dc, width, artist_line);
+            total_height += ComputeLyricLineHeight(dc, client_rect, artist_line);
         }
         if(!album.empty())
         {
             album_line = _T("Album: ") + to_tstring(album);
-            total_height += ComputeLyricLineHeight(dc, width, album_line);
+            total_height += ComputeLyricLineHeight(dc, client_rect, album_line);
         }
         if(!title.empty())
         {
             title_line = _T("Title: ") + to_tstring(title);
-            total_height += ComputeLyricLineHeight(dc, width, title_line);
+            total_height += ComputeLyricLineHeight(dc, client_rect, title_line);
         }
 
+        CPoint centre = client_rect.CenterPoint();
         int top_y = centre.y - total_height/2;
         CPoint origin = {centre.x, top_y};
         if(!artist_line.empty())
         {
-            origin.y += DrawLyricLine(dc, width, artist_line, origin);
+            origin.y += DrawLyricLine(dc, client_rect, artist_line, origin);
         }
         if(!album_line.empty())
         {
-            origin.y += DrawLyricLine(dc, width, album_line, origin);
+            origin.y += DrawLyricLine(dc, client_rect, album_line, origin);
         }
         if(!title_line.empty())
         {
-            origin.y += DrawLyricLine(dc, width, title_line, origin);
+            origin.y += DrawLyricLine(dc, client_rect, title_line, origin);
         }
 
         if(!m_update_handles.empty())
@@ -354,7 +378,7 @@ namespace {
             if(is_search)
             {
                 std::tstring progress_text = to_tstring(progress_msg);
-                origin.y += DrawLyricLine(dc, width, progress_text, origin);
+                origin.y += DrawLyricLine(dc, client_rect, progress_text, origin);
             }
         }
     }
@@ -366,16 +390,18 @@ namespace {
         double total_length = playback->playback_get_length_ex();
         double track_fraction = current_position / total_length;
 
+        int total_height = std::accumulate(m_lyrics.lines.begin(), m_lyrics.lines.end(), 0,
+                                           [dc, client_area](int x, const LyricDataLine& line)
+                                           {
+                                               return x + ComputeLyricLineHeight(dc, client_area, line.text);
+                                           });
+
         CPoint centre = client_area.CenterPoint();
-        int width = client_area.Width();
-
-        int lyrics_render_height = ComputeTotalLyricHeight(dc, width, m_lyrics);
-        int top_y = centre.y - (int)(track_fraction * lyrics_render_height);
-
+        int top_y = centre.y - (int)(track_fraction * total_height);
         CPoint origin = {centre.x, top_y};
         for(const LyricDataLine& line : m_lyrics.lines)
         {
-            int wrapped_line_height = DrawLyricLine(dc, width, line.text, origin);
+            int wrapped_line_height = DrawLyricLine(dc, client_area, line.text, origin);
             origin.y += wrapped_line_height;
         }
     }
@@ -388,8 +414,6 @@ namespace {
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_time = playback->playback_get_position();
 
-        int width = client_area.Width();
-
         int active_line_height = 0;
         int text_height_above_active_line = 0;
         int active_line_index = -1;
@@ -398,7 +422,7 @@ namespace {
         {
             active_line_index++;
             text_height_above_active_line += active_line_height;
-            active_line_height = ComputeLyricLineHeight(dc, width, m_lyrics.lines[active_line_index].text);
+            active_line_height = ComputeLyricLineHeight(dc, client_area, m_lyrics.lines[active_line_index].text);
         }
 
         double next_line_time = DBL_MAX;
@@ -432,7 +456,7 @@ namespace {
                 SetTextColor(dc, fg_colour);
             }
 
-            int wrapped_line_height = DrawLyricLine(dc, width, line.text, origin);
+            int wrapped_line_height = DrawLyricLine(dc, client_area, line.text, origin);
             if(wrapped_line_height == 0)
             {
                 LOG_WARN("Failed to draw text: %d", GetLastError());
@@ -464,55 +488,44 @@ namespace {
             }
         }
 
-        CRect client_rect;
-        WIN32_OP_D(GetClientRect(&client_rect))
-
-        CPaintDC front_buffer(*this);
-        HDC back_buffer = CreateCompatibleDC(front_buffer.m_hDC);
         // As suggested in this article: https://docs.microsoft.com/en-us/previous-versions/ms969905(v=msdn.10)
         // We get flickering if we draw everything to the UI directly, so instead we render everything to a back buffer
         // and then blit the whole thing to the screen at the end.
+        PAINTSTRUCT paintstruct;
+        HDC front_buffer = BeginPaint(&paintstruct);
 
-        HBITMAP back_buffer_bitmap = CreateCompatibleBitmap(front_buffer, client_rect.Width(), client_rect.Height());
-        SelectObject(back_buffer, back_buffer_bitmap);
+        CRect client_rect;
+        WIN32_OP_D(GetClientRect(&client_rect))
 
         HBRUSH bg_brush = CreateSolidBrush(get_bg_colour());
-        FillRect(back_buffer, &client_rect, bg_brush);
+        FillRect(m_back_buffer, &client_rect, bg_brush);
         DeleteObject(bg_brush);
 
-        SetBkMode(back_buffer, TRANSPARENT);
-        SelectObject(back_buffer, get_font());
-        COLORREF color_result = SetTextColor(back_buffer, get_fg_colour());
-        UINT align_result = SetTextAlign(back_buffer, TA_BASELINE | TA_CENTER);
+        SelectObject(m_back_buffer, get_font());
+        COLORREF color_result = SetTextColor(m_back_buffer, get_fg_colour());
         if(color_result == CLR_INVALID)
         {
             LOG_WARN("Failed to set text colour: %d", GetLastError());
         }
-        if(align_result == GDI_ERROR)
-        {
-            LOG_WARN("Failed to set text alignment: %d", GetLastError());
-        }
 
         if(m_lyrics.IsEmpty())
         {
-            DrawNoLyrics(back_buffer, client_rect);
+            DrawNoLyrics(m_back_buffer, client_rect);
         }
         else if(m_lyrics.IsTimestamped())
         {
-            DrawTimestampedLyrics(back_buffer, client_rect);
+            DrawTimestampedLyrics(m_back_buffer, client_rect);
         }
         else // We have lyrics, but no timestamps
         {
-            DrawUntimedLyrics(back_buffer, client_rect);
+            DrawUntimedLyrics(m_back_buffer, client_rect);
         }
 
         BitBlt(front_buffer, client_rect.left, client_rect.top,
                 client_rect.Width(), client_rect.Height(),
-                back_buffer, 0, 0,
+                m_back_buffer, 0, 0,
                 SRCCOPY);
-
-        DeleteObject(back_buffer_bitmap);
-        DeleteDC(back_buffer);
+        EndPaint(&paintstruct);
     }
 
     void LyricPanel::OnContextMenu(CWindow window, CPoint point)
@@ -730,9 +743,7 @@ namespace {
         if (m_timerRunning) return;
         m_timerRunning = true;
 
-        // TODO: How often do we need to re-draw? A quick calculation with a representative track suggests that we'd only need to redraw (untimestamped) lyrics every ~200ms to redraw once per vertical pixel moved
-        // TODO: Another option is timeSetEvent (https://docs.microsoft.com/en-us/previous-versions/dd757634(v=vs.85)) instead. Should we be using that?
-        UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 20, nullptr);
+        UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 50, nullptr);
         if (result != PANEL_UPDATE_TIMER)
         {
             LOG_WARN("Unexpected timer result when starting playback timer");
