@@ -222,14 +222,24 @@ namespace {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
         int line_height = font_metrics.tmHeight + preferences::display::render_linegap();
+        int visible_width = clip_rect.Width();
 
         if(line.length() == 0)
         {
             return line_height;
         }
 
+        // This serves as an upper bound on the number of chars we draw on a single line.
+        // Used to prevent GDI from having to compute the size of very long strings.
+        size_t generous_max_chars = 256;
+        if(font_metrics.tmAveCharWidth > 0)
+        {
+            assert(visible_width >= 0);
+            size_t avg_chars_that_fit = ((size_t)visible_width/(size_t)font_metrics.tmAveCharWidth) + 1;
+            generous_max_chars = 3*avg_chars_that_fit;
+        }
+
         std::tstring_view text_outstanding = line;
-        int visible_width = clip_rect.Width();
         int total_height = 0;
         while(text_outstanding.length() > 0)
         {
@@ -244,7 +254,7 @@ namespace {
             }
 
             size_t next_line_start_index = text_outstanding.length();
-            size_t chars_to_draw = text_outstanding.length();
+            size_t chars_to_draw = min(text_outstanding.length(), generous_max_chars);
             while(true)
             {
                 SIZE line_size;
