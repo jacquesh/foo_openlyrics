@@ -200,58 +200,53 @@ namespace {
 
         std::tstring_view text_outstanding = line;
 
-        std::vector<int> char_dx;
-        char_dx.resize(text_outstanding.length());
-
         int total_height = 0;
         while(text_outstanding.length() > 0)
         {
-            int num_chars_that_fit = 0;
-            SIZE line_size = {};
-            BOOL extent_success = GetTextExtentExPoint(dc,
-                                                       text_outstanding.data(), text_outstanding.length(),
-                                                       visible_width,
-                                                       &num_chars_that_fit,
-                                                       char_dx.data(),
-                                                       &line_size);
-            if(!extent_success)
+            size_t leading_spaces = text_outstanding.find_first_not_of(_T(' '));
+            text_outstanding.remove_prefix(min(leading_spaces, text_outstanding.size()));
+
+            size_t last_not_space = text_outstanding.find_last_not_of(_T(' '));
+            if(last_not_space != std::tstring_view::npos)
             {
-                LOG_WARN("Failed to compute lyric line extents: %d", GetLastError());
-                return 0;
-            }
-            if(num_chars_that_fit < 0)
-            {
-                LOG_WARN("GDI reported a negative number of characters would fit into the available space: %d", GetLastError());
-                return 0;
+                size_t trailing_spaces = text_outstanding.length() - 1 - last_not_space;
+                text_outstanding.remove_suffix(trailing_spaces);
             }
 
             size_t next_line_start_index = text_outstanding.length();
             size_t chars_to_draw = text_outstanding.length();
-
-            if(line_size.cx > visible_width)
+            while(true)
             {
-                // Find the last space in the text that fits on a line
-                next_line_start_index = (size_t)num_chars_that_fit;
-                while((next_line_start_index > 0) &&
-                      (text_outstanding[next_line_start_index] != _T(' ')))
+                SIZE line_size;
+                BOOL extent_success = GetTextExtentPoint32(dc,
+                                                           text_outstanding.data(),
+                                                           chars_to_draw,
+                                                           &line_size);
+                if(!extent_success)
                 {
-                    next_line_start_index--;
+                    LOG_WARN("Failed to compute lyric line extents");
+                    return 0;
                 }
 
-                // Find the last visible character for us to draw on this line
-                chars_to_draw = next_line_start_index;
-                assert(text_outstanding[chars_to_draw] == _T(' '));
-                while((chars_to_draw > 0) &&
-                      (text_outstanding[chars_to_draw-1] == _T(' ')))
+                if((chars_to_draw == 0) || (line_size.cx <= visible_width))
                 {
-                    chars_to_draw--;
+                    break;
                 }
-
-                // Find the first visible character after our splitting space, to start the next line
-                while((next_line_start_index < text_outstanding.length()) &&
-                      (text_outstanding[next_line_start_index] == _T(' ')))
+                else
                 {
-                    next_line_start_index++;
+                    assert(chars_to_draw > 0);
+                    size_t previous_space_index = text_outstanding.rfind(' ', chars_to_draw-1);
+                    if(previous_space_index == std::tstring::npos)
+                    {
+                        // There is a single word that doesn't fit on the line
+                        // This should be rare so just draw it rather than trying to split words.
+                        break;
+                    }
+                    else
+                    {
+                        next_line_start_index = previous_space_index;
+                        chars_to_draw = previous_space_index;
+                    }
                 }
             }
 

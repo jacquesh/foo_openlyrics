@@ -1,8 +1,5 @@
 #include "stdafx.h"
 
-#include <algorithm>
-#include <string_view>
-
 #include "logging.h"
 #include "lyric_data.h"
 #include "winstr_util.h"
