@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "0.5"
+#define OPENLYRICS_VERSION "0.6-dev"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -14,6 +14,8 @@ DECLARE_COMPONENT_VERSION(
     "Source available at https://github.com/jacquesh/foo_openlyrics\n"
     "\n"
     "Changelog:\n"
+    "Version 0.6-dev (" __DATE__ "):\n"
+    "\n"
     "Version 0.5 (2021-04-25):\n"
     "- Add support for ColumnsUI\n"
     "- Add a preferences page for the font & colours used for the panel\n"
