@@ -11,7 +11,7 @@ class LocalFileSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Local files"); }
-    bool can_save() const final { return true; }
+    bool is_local() const final { return true; }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;

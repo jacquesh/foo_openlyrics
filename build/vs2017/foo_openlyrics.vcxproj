@@ -182,6 +182,7 @@
     <ClCompile Include="..\..\src\sources\id3tag.cpp" />
     <ClCompile Include="..\..\src\sources\lyric_source.cpp" />
     <ClCompile Include="..\..\src\sources\netease.cpp" />
+    <ClCompile Include="..\..\src\ui_contextmenu.cpp" />
     <ClCompile Include="..\..\src\ui_lyric_editor.cpp" />
     <ClCompile Include="..\..\src\ui_preferences.cpp" />
     <ClCompile Include="..\..\src\sources\geniuscom.cpp">

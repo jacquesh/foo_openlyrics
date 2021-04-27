@@ -77,6 +77,7 @@ LyricEditor::~LyricEditor()
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
+    m_update.set_started();
     if(!m_input_text.empty())
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());

@@ -623,7 +623,7 @@ namespace {
                     if(m_now_playing == nullptr) break;
 
                     std::tstring text = parsers::lrc::expand_text(m_lyrics);
-                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing);
+                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
                     SpawnLyricEditor(text, *update);
                     m_update_handles.push_back(std::move(update));
                 } break;
@@ -773,8 +773,8 @@ namespace {
         LOG_INFO("Initiate lyric search");
         m_lyrics = {};
 
-        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Search, track);
-        io::search_for_lyrics(*update);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Search, track, fb2k::noAbort);
+        io::search_for_lyrics(*update, false);
         m_update_handles.push_back(std::move(update));
     }
 

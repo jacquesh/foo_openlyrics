@@ -65,9 +65,10 @@ static void ensure_windows_newlines(std::string& str)
     }
 }
 
-static void internal_search_for_lyrics(LyricUpdateHandle& handle)
+static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
     LOG_INFO("Searching for lyrics...");
+    handle.set_started();
 
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::searching::active_sources())
@@ -76,6 +77,11 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
         assert(source != nullptr);
 
         std::string friendly_name = from_tstring(source->friendly_name());
+        if(local_only && !source->is_local())
+        {
+            LOG_INFO("Current search is only considering local sources and %s is not marked as local, skipping...", friendly_name.c_str());
+            continue;
+        }
         handle.set_progress("Searching " + friendly_name + "...");
 
         try
@@ -110,21 +116,21 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle)
     LOG_INFO("Lyric loading complete");
 }
 
-void io::search_for_lyrics(LyricUpdateHandle& handle)
+void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
-    fb2k::splitTask([&handle](){
-        internal_search_for_lyrics(handle);
+    fb2k::splitTask([&handle, local_only](){
+        internal_search_for_lyrics(handle, local_only);
     });
 }
 
-LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track) :
+LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort) :
     m_track(track),
     m_type(type),
     m_mutex({}),
     m_lyrics(),
-    m_abort(),
+    m_abort(abort),
     m_complete(nullptr),
-    m_status(Status::Running),
+    m_status(Status::Created),
     m_progress()
 {
     InitializeCriticalSection(&m_mutex);
@@ -134,15 +140,13 @@ LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track) :
 
 LyricUpdateHandle::~LyricUpdateHandle()
 {
-    if(!m_abort.is_aborting())
-    {
-        m_abort.abort();
-    }
-
     DWORD wait_result = WaitForSingleObject(m_complete, 30'000);
-    if(wait_result != WAIT_OBJECT_0)
+    while(wait_result != WAIT_OBJECT_0)
     {
         LOG_ERROR("Lyric search did not complete successfully during cleanup: %d", wait_result);
+        assert(wait_result == WAIT_OBJECT_0);
+
+        wait_result = WaitForSingleObject(m_complete, 30'000);
     }
     CloseHandle(m_complete);
     DeleteCriticalSection(&m_mutex);
@@ -167,6 +171,12 @@ bool LyricUpdateHandle::is_complete()
     bool complete = ((m_status == Status::Complete) || (m_status == Status::Closed));
     LeaveCriticalSection(&m_mutex);
     return complete;
+}
+
+bool LyricUpdateHandle::wait_for_complete(uint32_t timeout_ms)
+{
+    DWORD wait_result = WaitForSingleObject(m_complete, timeout_ms);
+    return (wait_result == WAIT_OBJECT_0);
 }
 
 bool LyricUpdateHandle::has_result()
@@ -205,9 +215,18 @@ metadb_handle_ptr LyricUpdateHandle::get_track()
     return m_track;
 }
 
+void LyricUpdateHandle::set_started()
+{
+    EnterCriticalSection(&m_mutex);
+    assert(m_status == Status::Created);
+    m_status = Status::Running;
+    LeaveCriticalSection(&m_mutex);
+}
+
 void LyricUpdateHandle::set_progress(std::string_view value)
 {
     EnterCriticalSection(&m_mutex);
+    assert(m_status == Status::Running);
     m_progress = value;
     LeaveCriticalSection(&m_mutex);
 }

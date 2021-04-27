@@ -105,7 +105,7 @@ std::string LyricSourceBase::trim_surrounding_whitespace(const char* str) const
     return result;
 }
 
-bool LyricSourceRemote::can_save() const
+bool LyricSourceRemote::is_local() const
 {
     return false;
 }
