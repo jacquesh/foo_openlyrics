@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.6-dev (" __DATE__ "):\n"
     "- Add a context menu option to view saved lyrics for a track at any time\n"
+    "- Fix the panel not updating when it should if playback is paused\n"
     "\n"
     "Version 0.5 (2021-04-25):\n"
     "- Add support for ColumnsUI\n"

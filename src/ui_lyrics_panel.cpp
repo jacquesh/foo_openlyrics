@@ -12,13 +12,16 @@
 #include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
-#include "ui_lyric_editor.h"
+#include "ui_hooks.h"
 #include "uie_shim_panel.h"
 #include "winstr_util.h"
 
 namespace {
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
     static const UINT_PTR PANEL_UPDATE_TIMER = 2304692;
+
+    class LyricPanel;
+    static std::vector<LyricPanel*> g_active_panels;
 
     class LyricPanel : public ui_element_instance, public CWindowImpl<LyricPanel>, private play_callback_impl_base
     {
@@ -131,7 +134,14 @@ namespace {
         m_now_playing = track;
 
         InitiateLyricSearch(track);
-        StartTimer();
+
+        // NOTE: If playback is paused on startup then this gets called with the paused track,
+        //       but playback is paused so we don't actually want to run the timer
+        service_ptr_t<playback_control> playback = playback_control::get();
+        if(!playback->is_paused())
+        {
+            StartTimer();
+        }
     }
 
     void LyricPanel::on_playback_stop(play_control::t_stop_reason /*reason*/)
@@ -167,6 +177,8 @@ namespace {
         {
             on_playback_new_track(track);
         }
+
+        g_active_panels.push_back(this);
         return 0;
     }
 
@@ -177,6 +189,13 @@ namespace {
 
         // Cancel and clean up any pending updates
         m_update_handles.clear();
+
+        auto panel_iter = std::find(g_active_panels.begin(), g_active_panels.end(), this);
+        assert(panel_iter != g_active_panels.end());
+        if(panel_iter != g_active_panels.end())
+        {
+            g_active_panels.erase(panel_iter);
+        }
     }
 
     void LyricPanel::OnWindowResize(UINT /*request_type*/, CSize new_size)
@@ -821,3 +840,17 @@ namespace {
     UIE_SHIM_PANEL_FACTORY(LyricPanel)
 
 } // namespace
+
+void repaint_all_lyric_panels()
+{
+    fb2k::inMainThread2([]()
+    {
+        core_api::ensure_main_thread();
+        for(LyricPanel* panel : g_active_panels)
+        {
+            assert(panel != nullptr);
+            InvalidateRect(panel->get_wnd(), nullptr, TRUE);
+        }
+    });
+}
+

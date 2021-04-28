@@ -210,6 +210,7 @@
     <ClInclude Include="..\..\src\sources\lyric_source.h" />
     <ClInclude Include="..\..\src\stdafx.h" />
     <ClInclude Include="..\..\src\uie_shim_panel.h" />
+    <ClInclude Include="..\..\src\ui_hooks.h" />
     <ClInclude Include="..\..\src\winstr_util.h" />
   </ItemGroup>
   <ItemGroup>

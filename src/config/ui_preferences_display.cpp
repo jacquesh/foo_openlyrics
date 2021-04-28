@@ -9,6 +9,7 @@
 #include "config/config_font.h"
 #include "logging.h"
 #include "preferences.h"
+#include "ui_hooks.h"
 
 static const GUID GUID_PREFERENCES_PAGE_DISPLAY = { 0xa31b1608, 0xe77f, 0x4fe5, { 0x80, 0x4b, 0xcf, 0x8c, 0xc8, 0x17, 0xd8, 0x69 } };
 
@@ -200,6 +201,7 @@ void PreferencesDisplay::apply()
     cfg_display_hl_colour = brushes[2].lbColor;
 
     auto_preferences_page_instance::apply();
+    repaint_all_lyric_panels();
 }
 
 void PreferencesDisplay::reset()

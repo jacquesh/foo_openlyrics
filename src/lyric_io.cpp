@@ -5,6 +5,7 @@
 #include "lyric_io.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
+#include "ui_hooks.h"
 #include "winstr_util.h"
 
 std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
@@ -229,6 +230,8 @@ void LyricUpdateHandle::set_progress(std::string_view value)
     assert(m_status == Status::Running);
     m_progress = value;
     LeaveCriticalSection(&m_mutex);
+
+    repaint_all_lyric_panels();
 }
 
 void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
@@ -247,7 +250,8 @@ void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
     {
         m_status = Status::ResultAvailable;
     }
-
     LeaveCriticalSection(&m_mutex);
+
+    repaint_all_lyric_panels();
 }
 
