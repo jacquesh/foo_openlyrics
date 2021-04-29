@@ -18,6 +18,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a context menu option to view saved lyrics for a track at any time\n"
     "- Add support for horizontal lyrics scrolling\n"
     "- Fix the panel not updating when it should if playback is paused\n"
+    "- Fix a degradation in scroll smoothness introduced in v0.5\n"
     "\n"
     "Version 0.5 (2021-04-25):\n"
     "- Add support for ColumnsUI\n"

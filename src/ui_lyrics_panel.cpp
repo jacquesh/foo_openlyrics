@@ -974,7 +974,7 @@ namespace {
         if (m_timerRunning) return;
         m_timerRunning = true;
 
-        UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 50, nullptr);
+        UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 16, nullptr);
         if (result != PANEL_UPDATE_TIMER)
         {
             LOG_WARN("Unexpected timer result when starting playback timer");
