@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-#include "winstr_util.h"
+#include "win32_util.h"
 
 struct cfg_auto_property
 {

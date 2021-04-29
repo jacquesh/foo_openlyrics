@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 #include "config/config_font.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 cfg_font_t::cfg_font_t(const GUID& guid) : cfg_var(guid)
 {

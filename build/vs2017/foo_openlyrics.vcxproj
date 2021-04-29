@@ -194,7 +194,7 @@
     <ClCompile Include="..\..\src\ui_lyrics_panel.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\winstr_util.cpp" />
+    <ClCompile Include="..\..\src\win32_util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rdparty\cJSON\cJSON.h" />
@@ -211,7 +211,7 @@
     <ClInclude Include="..\..\src\stdafx.h" />
     <ClInclude Include="..\..\src\uie_shim_panel.h" />
     <ClInclude Include="..\..\src\ui_hooks.h" />
-    <ClInclude Include="..\..\src\winstr_util.h" />
+    <ClInclude Include="..\..\src\win32_util.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\3rdparty\columns_ui-sdk-6.5\vc14\columns_ui-sdk.vcxproj">

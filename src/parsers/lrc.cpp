@@ -2,7 +2,7 @@
 
 #include "logging.h"
 #include "lyric_data.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 namespace parsers::lrc
 {

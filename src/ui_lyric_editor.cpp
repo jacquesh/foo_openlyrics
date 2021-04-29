@@ -8,7 +8,7 @@
 #include "logging.h"
 #include "parsers.h"
 #include "lyric_io.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 // TODO: Add a "seek to the time of the timestamp on the selected line" button
 

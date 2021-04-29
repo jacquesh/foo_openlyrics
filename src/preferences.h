@@ -30,6 +30,12 @@ enum class AutoSaveStrategy
     OnlySynced = 2,
 };
 
+enum class LineScrollType
+{
+    Vertical = 0,
+    Horizontal = 1
+};
+
 namespace preferences
 {
     namespace searching
@@ -56,7 +62,8 @@ namespace preferences
         std::optional<t_ui_color> background_colour();
         std::optional<t_ui_color> highlight_colour();
 
-        int render_linegap();
+        LineScrollType scroll_type();
         double scroll_time_seconds();
+        int linegap();
     }
 }

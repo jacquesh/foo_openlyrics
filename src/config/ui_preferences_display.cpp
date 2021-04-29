@@ -23,21 +23,29 @@ static const GUID GUID_CFG_DISPLAY_BACKGROUND_COLOUR = { 0x7eaeeae6, 0xd41d, 0x4
 static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR = { 0xfa16da6c, 0xb22d, 0x49cb, { 0x97, 0x53, 0x94, 0x8c, 0xec, 0xf8, 0x37, 0x35 } };
 static const GUID GUID_CFG_DISPLAY_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9, 0x35, 0x9, 0xbb, 0xfa, 0xc6, 0x40, 0x43 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
+static const GUID GUID_CFG_DISPLAY_SCROLL_TYPE = { 0x6b1f47ae, 0xa383, 0x434b, { 0xa7, 0xd2, 0x43, 0xbe, 0x55, 0x54, 0x2a, 0x33 } };
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35,85,125);
 static const COLORREF cfg_display_bg_colour_default = RGB(255,255,255);
 static const COLORREF cfg_display_hl_colour_default = RGB(225,65,60);
 
-static cfg_auto_bool                 cfg_display_custom_font(GUID_CFG_DISPLAY_CUSTOM_FONT, IDC_FONT_CUSTOM, false);
-static cfg_auto_bool                 cfg_display_custom_fg_colour(GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR_CUSTOM, false);
-static cfg_auto_bool                 cfg_display_custom_bg_colour(GUID_CFG_DISPLAY_CUSTOM_BACKGROUND_COLOUR, IDC_BACKGROUND_COLOUR_CUSTOM, false);
-static cfg_auto_bool                 cfg_display_custom_hl_colour(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR_CUSTOM, false);
-static cfg_font_t                    cfg_display_font(GUID_CFG_DISPLAY_FONT);
-static cfg_int_t<uint32_t>           cfg_display_fg_colour(GUID_CFG_DISPLAY_FOREGROUND_COLOUR, cfg_display_fg_colour_default);
-static cfg_int_t<uint32_t>           cfg_display_bg_colour(GUID_CFG_DISPLAY_BACKGROUND_COLOUR, cfg_display_bg_colour_default);
-static cfg_int_t<uint32_t>           cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
-static cfg_auto_int                  cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
-static cfg_auto_ranged_int           cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 500);
+static const cfg_auto_combo_option<LineScrollType> g_scroll_type_options[] =
+{
+    {_T("Vertical"), LineScrollType::Vertical},
+    {_T("Horizontal"), LineScrollType::Horizontal},
+};
+
+static cfg_auto_bool                     cfg_display_custom_font(GUID_CFG_DISPLAY_CUSTOM_FONT, IDC_FONT_CUSTOM, false);
+static cfg_auto_bool                     cfg_display_custom_fg_colour(GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR_CUSTOM, false);
+static cfg_auto_bool                     cfg_display_custom_bg_colour(GUID_CFG_DISPLAY_CUSTOM_BACKGROUND_COLOUR, IDC_BACKGROUND_COLOUR_CUSTOM, false);
+static cfg_auto_bool                     cfg_display_custom_hl_colour(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR_CUSTOM, false);
+static cfg_font_t                        cfg_display_font(GUID_CFG_DISPLAY_FONT);
+static cfg_int_t<uint32_t>               cfg_display_fg_colour(GUID_CFG_DISPLAY_FOREGROUND_COLOUR, cfg_display_fg_colour_default);
+static cfg_int_t<uint32_t>               cfg_display_bg_colour(GUID_CFG_DISPLAY_BACKGROUND_COLOUR, cfg_display_bg_colour_default);
+static cfg_int_t<uint32_t>               cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
+static cfg_auto_int                      cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
+static cfg_auto_ranged_int               cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 500);
+static cfg_auto_combo<LineScrollType, 2> cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Vertical, g_scroll_type_options);
 
 static cfg_auto_property* g_display_auto_properties[] =
 {
@@ -48,6 +56,7 @@ static cfg_auto_property* g_display_auto_properties[] =
 
     &cfg_display_linegap,
     &cfg_display_scroll_time,
+    &cfg_display_scroll_type,
 };
 
 //
@@ -103,7 +112,7 @@ std::optional<t_ui_color> preferences::display::highlight_colour()
     return {};
 }
 
-int preferences::display::render_linegap()
+int preferences::display::linegap()
 {
     return cfg_display_linegap.get_value();
 }
@@ -111,6 +120,11 @@ int preferences::display::render_linegap()
 double preferences::display::scroll_time_seconds()
 {
     return ((double)cfg_display_scroll_time.get_value())/1000.0;
+}
+
+LineScrollType preferences::display::scroll_type()
+{
+    return cfg_display_scroll_type.get_value();
 }
 
 //
@@ -144,6 +158,7 @@ public:
         COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR, BN_CLICKED, OnBgColourChange)
         COMMAND_HANDLER_EX(IDC_HIGHLIGHT_COLOUR, BN_CLICKED, OnHlColourChange)
         COMMAND_HANDLER_EX(IDC_RENDER_LINEGAP_EDIT, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
     END_MSG_MAP()
 

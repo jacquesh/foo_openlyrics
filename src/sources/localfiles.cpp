@@ -3,7 +3,7 @@
 #include "logging.h"
 #include "lyric_source.h"
 #include "preferences.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 static const GUID src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
 

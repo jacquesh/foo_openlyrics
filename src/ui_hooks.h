@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lyric_io.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 void SpawnLyricEditor(const std::tstring& lyric_text, LyricUpdateHandle& update);
 

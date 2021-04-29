@@ -20,7 +20,7 @@ std::tstring to_tstring(const pfc::string8& string);
 std::string from_tstring(std::tstring_view string);
 std::string from_tstring(const std::tstring& string);
 
-std::string tchar_to_string(const TCHAR* buffer);
+std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string); // GetTextExtentPoint32
+BOOL DrawTextOut(HDC dc, int x, int y, std::tstring_view string); // TextOut
 
-// Returns the number of bytes written (not the length of the string, which should be 1 less)
-size_t string_to_tchar(const std::string& string, TCHAR*& out_buffer);
+// TODO: operator+ for CPoint? SIZE?

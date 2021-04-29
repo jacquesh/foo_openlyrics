@@ -3,7 +3,7 @@
 #include "stdafx.h"
 
 #include "lyric_data.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 // TODO: Add sources for:
 // - https://www.syair.info

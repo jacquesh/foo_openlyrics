@@ -10,7 +10,7 @@
 #include "lyric_data.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 extern const GUID GUID_PREFERENCES_PAGE_ROOT = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
 

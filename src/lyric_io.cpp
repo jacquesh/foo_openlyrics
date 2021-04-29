@@ -6,7 +6,7 @@
 #include "parsers.h"
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {

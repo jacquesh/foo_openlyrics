@@ -14,7 +14,7 @@
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 #include "uie_shim_panel.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 namespace {
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
@@ -67,8 +67,10 @@ namespace {
         void StopTimer();
 
         void DrawNoLyrics(HDC dc, CRect client_area);
-        void DrawUntimedLyrics(HDC dc, CRect client_area);
-        void DrawTimestampedLyrics(HDC dc, CRect client_area);
+        void DrawUntimedLyricsVertical(HDC dc, CRect client_area);
+        void DrawUntimedLyricsHorizontal(HDC dc, CRect client_area);
+        void DrawTimestampedLyricsVertical(HDC dc, CRect client_area);
+        void DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area);
 
         void InitiateLyricSearch(metadb_handle_ptr track);
         void ProcessAvailableLyricUpdate(LyricUpdateHandle& update);
@@ -240,7 +242,7 @@ namespace {
     {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
-        int line_height = font_metrics.tmHeight + preferences::display::render_linegap();
+        int line_height = font_metrics.tmHeight + preferences::display::linegap();
         int visible_width = clip_rect.Width();
 
         if(line.length() == 0)
@@ -332,12 +334,12 @@ namespace {
         return total_height;
     }
 
-    int ComputeLyricLineHeight(HDC dc, CRect clip_rect, const std::tstring& line)
+    int ComputeWrappedLyricLineHeight(HDC dc, CRect clip_rect, const std::tstring& line)
     {
         return _WrapLyricsLineToRect(dc, clip_rect, line, nullptr);
     }
 
-    int DrawLyricLine(HDC dc, CRect clip_rect, const std::tstring& line, CPoint origin)
+    int DrawWrappedLyricLine(HDC dc, CRect clip_rect, const std::tstring& line, CPoint origin)
     {
         return _WrapLyricsLineToRect(dc, clip_rect, line, &origin);
     }
@@ -361,17 +363,17 @@ namespace {
         if(!artist.empty())
         {
             artist_line = _T("Artist: ") + to_tstring(artist);
-            total_height += ComputeLyricLineHeight(dc, client_rect, artist_line);
+            total_height += ComputeWrappedLyricLineHeight(dc, client_rect, artist_line);
         }
         if(!album.empty())
         {
             album_line = _T("Album: ") + to_tstring(album);
-            total_height += ComputeLyricLineHeight(dc, client_rect, album_line);
+            total_height += ComputeWrappedLyricLineHeight(dc, client_rect, album_line);
         }
         if(!title.empty())
         {
             title_line = _T("Title: ") + to_tstring(title);
-            total_height += ComputeLyricLineHeight(dc, client_rect, title_line);
+            total_height += ComputeWrappedLyricLineHeight(dc, client_rect, title_line);
         }
 
         CPoint centre = client_rect.CenterPoint();
@@ -379,15 +381,15 @@ namespace {
         CPoint origin = {centre.x, top_y};
         if(!artist_line.empty())
         {
-            origin.y += DrawLyricLine(dc, client_rect, artist_line, origin);
+            origin.y += DrawWrappedLyricLine(dc, client_rect, artist_line, origin);
         }
         if(!album_line.empty())
         {
-            origin.y += DrawLyricLine(dc, client_rect, album_line, origin);
+            origin.y += DrawWrappedLyricLine(dc, client_rect, album_line, origin);
         }
         if(!title_line.empty())
         {
-            origin.y += DrawLyricLine(dc, client_rect, title_line, origin);
+            origin.y += DrawWrappedLyricLine(dc, client_rect, title_line, origin);
         }
 
         if(!m_update_handles.empty())
@@ -407,12 +409,12 @@ namespace {
             if(is_search)
             {
                 std::tstring progress_text = to_tstring(progress_msg);
-                origin.y += DrawLyricLine(dc, client_rect, progress_text, origin);
+                origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
             }
         }
     }
 
-    void LyricPanel::DrawUntimedLyrics(HDC dc, CRect client_area)
+    void LyricPanel::DrawUntimedLyricsVertical(HDC dc, CRect client_area)
     {
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_position = playback->playback_get_position();
@@ -422,7 +424,7 @@ namespace {
         int total_height = std::accumulate(m_lyrics.lines.begin(), m_lyrics.lines.end(), 0,
                                            [dc, client_area](int x, const LyricDataLine& line)
                                            {
-                                               return x + ComputeLyricLineHeight(dc, client_area, line.text);
+                                               return x + ComputeWrappedLyricLineHeight(dc, client_area, line.text);
                                            });
 
         CPoint centre = client_area.CenterPoint();
@@ -430,12 +432,63 @@ namespace {
         CPoint origin = {centre.x, top_y};
         for(const LyricDataLine& line : m_lyrics.lines)
         {
-            int wrapped_line_height = DrawLyricLine(dc, client_area, line.text, origin);
+            int wrapped_line_height = DrawWrappedLyricLine(dc, client_area, line.text, origin);
+            if(wrapped_line_height <= 0)
+            {
+                LOG_WARN("Failed to draw unsynced text: %d", GetLastError());
+                StopTimer();
+                break;
+            }
             origin.y += wrapped_line_height;
         }
     }
 
-    void LyricPanel::DrawTimestampedLyrics(HDC dc, CRect client_area)
+    void LyricPanel::DrawUntimedLyricsHorizontal(HDC dc, CRect client_area)
+    {
+        if(m_lyrics.lines.empty()) return;
+        assert(m_lyrics.lines.size() > 0);
+
+        size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
+        std::tstring glue(linegap, _T(' '));
+
+        assert(preferences::display::scroll_type() == LineScrollType::Horizontal);
+        service_ptr_t<playback_control> playback = playback_control::get();
+        double current_position = playback->playback_get_position();
+        double total_length = playback->playback_get_length_ex();
+        double track_fraction = current_position / total_length;
+
+        std::tstring joined = m_lyrics.lines[0].text;
+        joined = std::accumulate(++m_lyrics.lines.begin(), m_lyrics.lines.end(), joined,
+                                 [&glue](const std::tstring& accum, const LyricDataLine& line)
+                                 {
+                                    return accum + glue + line.text;
+                                 });
+
+        SIZE line_size;
+        BOOL extent_success = GetTextExtentPoint32(dc,
+                                                   joined.c_str(),
+                                                   joined.length(),
+                                                   &line_size);
+        if(!extent_success)
+        {
+            LOG_ERROR("Failed to compute unsynced text width");
+            StopTimer();
+            return;
+        }
+
+        CPoint centre = client_area.CenterPoint();
+        CPoint origin = centre;
+        origin.x += (int)((0.5 - track_fraction) * (double)line_size.cx);
+        BOOL draw_success = DrawTextOut(dc, origin.x, origin.y, joined);
+        if(!draw_success)
+        {
+            LOG_ERROR("Failed to draw unsynced text");
+            StopTimer();
+        }
+    }
+
+
+    void LyricPanel::DrawTimestampedLyricsVertical(HDC dc, CRect client_area)
     {
         t_ui_color fg_colour = get_fg_colour();
         t_ui_color hl_colour = get_highlight_colour();
@@ -451,7 +504,7 @@ namespace {
         {
             active_line_index++;
             text_height_above_active_line += active_line_height;
-            active_line_height = ComputeLyricLineHeight(dc, client_area, m_lyrics.lines[active_line_index].text);
+            active_line_height = ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[active_line_index].text);
         }
 
         double next_line_time = DBL_MAX;
@@ -485,15 +538,148 @@ namespace {
                 SetTextColor(dc, fg_colour);
             }
 
-            int wrapped_line_height = DrawLyricLine(dc, client_area, line.text, origin);
+            int wrapped_line_height = DrawWrappedLyricLine(dc, client_area, line.text, origin);
             if(wrapped_line_height == 0)
             {
-                LOG_WARN("Failed to draw text: %d", GetLastError());
+                LOG_ERROR("Failed to draw synced text");
                 StopTimer();
                 break;
             }
 
             origin.y += wrapped_line_height;
+        }
+    }
+
+    void LyricPanel::DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area)
+    {
+        service_ptr_t<playback_control> playback = playback_control::get();
+        double current_time = playback->playback_get_position();
+
+        size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
+        std::tstring glue(linegap, _T(' '));
+        t_ui_color fg_colour = get_fg_colour();
+        t_ui_color hl_colour = get_highlight_colour();
+
+        int active_line_index = -1;
+        int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
+        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.lines[active_line_index+1].timestamp))
+        {
+            active_line_index++;
+        }
+        size_t next_line_index = static_cast<size_t>(active_line_index + 1);
+
+        bool has_active_text = (active_line_index >= 0);
+        bool has_preactive_text = (active_line_index > 0);
+        bool has_postactive_text = (active_line_index < static_cast<int>(m_lyrics.lines.size() - 1));
+        std::tstring active_line_text;
+        std::tstring next_line_text;
+        std::tstring pre_active_line_text;
+        std::tstring post_active_line_text;
+        if(has_active_text)
+        {
+            active_line_text = m_lyrics.lines[active_line_index].text;
+        }
+        if(has_preactive_text)
+        {
+            auto start = m_lyrics.lines.begin();
+            auto end = m_lyrics.lines.begin();
+            std::advance(end, active_line_index);
+
+            pre_active_line_text = std::accumulate(++start, end, m_lyrics.lines[0].text,
+                                                   [&glue](const std::tstring& accum, const LyricDataLine& line)
+                                                   {
+                                                      return accum + glue + line.text;
+                                                   });
+
+            if(has_active_text)
+            {
+                pre_active_line_text += glue;
+            }
+        }
+
+        if(has_postactive_text)
+        {
+            next_line_text = glue + m_lyrics.lines[next_line_index].text;
+
+            auto end = m_lyrics.lines.end();
+            auto start = m_lyrics.lines.begin();
+            std::advance(start, next_line_index + 1);
+
+            if(start != end)
+            {
+                std::tstring initial_value = glue + start->text;
+                post_active_line_text = std::accumulate(++start, end, initial_value,
+                                                        [&glue](const std::tstring& accum, const LyricDataLine& line)
+                                                        {
+                                                           return accum + glue + line.text;
+                                                        });
+            }
+        }
+
+        std::optional<SIZE> active_line_extents = GetTextExtents(dc, active_line_text);
+        std::optional<SIZE> next_line_extents = GetTextExtents(dc, next_line_text);
+        std::optional<SIZE> pre_active_extents = GetTextExtents(dc, pre_active_line_text);
+        std::optional<SIZE> post_active_extents = GetTextExtents(dc, post_active_line_text);
+        std::optional<SIZE> glue_extents = GetTextExtents(dc, glue);
+        if(!active_line_extents.has_value() ||
+                !next_line_extents.has_value() ||
+                !pre_active_extents.has_value() ||
+                !post_active_extents.has_value() ||
+                !glue_extents.has_value())
+        {
+            LOG_ERROR("Failed to compute synced text width");
+            StopTimer();
+            return;
+        }
+        int active_line_width = active_line_extents.value().cx;
+        int next_line_width = next_line_extents.value().cx;
+        int pre_active_width = pre_active_extents.value().cx;
+        int post_active_width = post_active_extents.value().cx;
+        int glue_width = glue_extents.value().cx;
+
+        double next_line_time = DBL_MAX;
+        if(next_line_index < m_lyrics.lines.size())
+        {
+            next_line_time = m_lyrics.lines[next_line_index].timestamp;
+        }
+
+        double scroll_time = preferences::display::scroll_time_seconds();
+        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, current_time);
+
+        // NOTE: We want to scroll by half of the active line and half of the next line because
+        //       the rendering origin is at the centre of the text. However the "next line"
+        //       already contains the glue string for rendering, so when we half that, we need
+        //       to add in an extra half of the glue string width.
+        int total_scroll_to_next_line = active_line_width + glue_width;
+        int next_line_scroll = (int)((double)total_scroll_to_next_line * next_line_scroll_factor);
+
+        CPoint centre = client_area.CenterPoint();
+        double active_x_alignment_factor = 0.15;
+        int active_left_x = client_area.left + (int)((double)client_area.Width() * active_x_alignment_factor);
+        int left_x = active_left_x - pre_active_width - next_line_scroll;
+        BOOL draw_success = TRUE;
+
+        SetTextColor(dc, fg_colour);
+        draw_success &= DrawTextOut(dc, left_x + pre_active_width/2, centre.y, pre_active_line_text);
+        left_x += pre_active_width;
+
+        COLORREF active_line_colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
+        SetTextColor(dc, active_line_colour);
+        draw_success &= DrawTextOut(dc, left_x + active_line_width/2, centre.y, active_line_text);
+        left_x += active_line_width;
+
+        COLORREF next_line_colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
+        SetTextColor(dc, next_line_colour);
+        draw_success &= DrawTextOut(dc, left_x + next_line_width/2, centre.y, next_line_text);
+        left_x += next_line_width;
+
+        SetTextColor(dc, fg_colour);
+        draw_success &= DrawTextOut(dc, left_x + post_active_width/2, centre.y, post_active_line_text);
+
+        if(!draw_success)
+        {
+            LOG_ERROR("Failed to draw horizontally-scrolling synced text");
+            StopTimer();
         }
     }
 
@@ -543,11 +729,27 @@ namespace {
         }
         else if(m_lyrics.IsTimestamped())
         {
-            DrawTimestampedLyrics(m_back_buffer, client_rect);
+            LineScrollType scroll = preferences::display::scroll_type();
+            switch(scroll)
+            {
+                case LineScrollType::Vertical: DrawTimestampedLyricsVertical(m_back_buffer, client_rect); break;
+                case LineScrollType::Horizontal: DrawTimestampedLyricsHorizontal(m_back_buffer, client_rect); break;
+                default:
+                    LOG_ERROR("Unsupported scroll type: %d", (int)scroll);
+                    uBugCheck();
+            }
         }
         else // We have lyrics, but no timestamps
         {
-            DrawUntimedLyrics(m_back_buffer, client_rect);
+            LineScrollType scroll = preferences::display::scroll_type();
+            switch(scroll)
+            {
+                case LineScrollType::Vertical: DrawUntimedLyricsVertical(m_back_buffer, client_rect); break;
+                case LineScrollType::Horizontal: DrawUntimedLyricsHorizontal(m_back_buffer, client_rect); break;
+                default:
+                    LOG_ERROR("Unsupported scroll type: %d", (int)scroll);
+                    uBugCheck();
+            }
         }
 
         BitBlt(front_buffer, client_rect.left, client_rect.top,

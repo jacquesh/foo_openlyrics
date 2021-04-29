@@ -3,7 +3,7 @@
 #include "stdafx.h"
 
 #include "preferences.h"
-#include "winstr_util.h"
+#include "win32_util.h"
 
 // Raw (unparsed) lyric data
 struct LyricDataRaw
