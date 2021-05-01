@@ -22,5 +22,3 @@ std::string from_tstring(const std::tstring& string);
 
 std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string); // GetTextExtentPoint32
 BOOL DrawTextOut(HDC dc, int x, int y, std::tstring_view string); // TextOut
-
-// TODO: operator+ for CPoint? SIZE?

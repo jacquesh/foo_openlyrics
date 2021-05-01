@@ -17,6 +17,7 @@ DECLARE_COMPONENT_VERSION(
     "Version 0.6-dev (" __DATE__ "):\n"
     "- Add a context menu option to view saved lyrics for a track at any time\n"
     "- Add support for horizontal lyrics scrolling\n"
+    "- Add a context menu with some very basic lyric 'auto-edits'\n"
     "- Fix the panel not updating when it should if playback is paused\n"
     "- Fix a degradation in scroll smoothness introduced in v0.5\n"
     "\n"

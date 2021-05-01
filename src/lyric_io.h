@@ -26,6 +26,8 @@ public:
     };
 
     LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort);
+    LyricUpdateHandle(const LyricUpdateHandle& other) = delete;
+    LyricUpdateHandle(LyricUpdateHandle&& other);
     ~LyricUpdateHandle();
 
     Type get_type();

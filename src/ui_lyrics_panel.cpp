@@ -6,6 +6,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "lyric_auto_edit.h"
 #include "lyric_data.h"
 #include "lyric_io.h"
 #include "math_util.h"
@@ -780,24 +781,33 @@ namespace {
 
         try
         {
-            service_ptr_t<contextmenu_manager> api = contextmenu_manager::get();
-            CMenu menu = nullptr;
-            WIN32_OP(menu.CreatePopupMenu())
+            UINT disabled_without_nowplaying = (m_now_playing == nullptr) ? MF_GRAYED : 0;
+            UINT disabled_without_lyrics = m_lyrics.IsEmpty() ? MF_GRAYED : 0;
+            UINT disabled_with_lyrics = m_lyrics.IsEmpty() ? 0 : MF_GRAYED;
             enum {
                 ID_SEARCH_LYRICS = 1,
                 ID_PREFERENCES,
                 ID_EDIT_LYRICS,
                 ID_OPEN_FILE_DIR,
+                ID_AUTO_ADD_INSTRUMENTAL,
+                ID_AUTO_REMOVE_EXTRA_SPACES,
                 ID_CMD_COUNT,
             };
 
-            UINT disabled_without_nowplaying = (m_now_playing == nullptr) ? MF_GRAYED : 0;
+            CMenu menu_edit = nullptr;
+            WIN32_OP(menu_edit.CreatePopupMenu())
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_with_lyrics, ID_AUTO_ADD_INSTRUMENTAL, _T("Mark as 'instrumental'"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
+
+            CMenu menu = nullptr;
+            WIN32_OP(menu.CreatePopupMenu())
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
-            AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
-            AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
+            AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_edit.m_hMenu, _T("Auto-edit lyrics"));
             AppendMenu(menu, MF_STRING, ID_OPEN_FILE_DIR, _T("Open file location"));
+            AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
+            AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
             // TODO: Delete lyrics (delete the currently-loaded file, maybe search again). Maybe this button actually belongs in the lyric editor window?
 
             CMenuDescriptionHybrid menudesc(get_wnd());
@@ -875,6 +885,26 @@ namespace {
                             LOG_WARN("Failed to open lyric file directory: %d", exec_result);
                         }
                     }
+                } break;
+
+                case ID_AUTO_ADD_INSTRUMENTAL:
+                {
+                    if(m_lyrics.IsEmpty())
+                    {
+                        LyricUpdateHandle update = auto_edit::CreateInstrumental(m_now_playing);
+                        ProcessAvailableLyricUpdate(update);
+                    }
+                    else
+                    {
+                        LOG_WARN("Current track already has lyrics. It will not be marked as instrumental to avoid overwriting existing lyrics");
+                    }
+
+                } break;
+
+                case ID_AUTO_REMOVE_EXTRA_SPACES:
+                {
+                    LyricUpdateHandle update = auto_edit::RemoveRepeatedSpaces(m_now_playing, m_lyrics);
+                    ProcessAvailableLyricUpdate(update);
                 } break;
             }
         }

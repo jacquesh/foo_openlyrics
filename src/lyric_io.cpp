@@ -139,6 +139,24 @@ LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_c
     assert(m_complete != nullptr);
 }
 
+LyricUpdateHandle::LyricUpdateHandle(LyricUpdateHandle&& other) :
+    m_track(other.m_track),
+    m_type(other.m_type),
+    m_mutex(),
+    m_lyrics(std::move(other.m_lyrics)),
+    m_abort(other.m_abort),
+    m_complete(nullptr),
+    m_status(other.m_status),
+    m_progress(std::move(other.m_progress))
+{
+    other.m_status = Status::Closed;
+    InitializeCriticalSection(&m_mutex);
+
+    BOOL event_set = other.is_complete();
+    m_complete = CreateEvent(nullptr, TRUE, event_set, nullptr);
+    assert(m_complete != nullptr);
+}
+
 LyricUpdateHandle::~LyricUpdateHandle()
 {
     DWORD wait_result = WaitForSingleObject(m_complete, 30'000);

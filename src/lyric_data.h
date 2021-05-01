@@ -26,7 +26,7 @@ struct LyricData : LyricDataRaw
     std::vector<LyricDataLine> lines;
 
     LyricData() = default;
-    LyricData(const LyricData& other) = delete;
+    LyricData(const LyricData& other) = default;
     LyricData(LyricData&& other);
 
     bool IsTimestamped() const;
