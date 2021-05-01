@@ -23,6 +23,7 @@ public:
 
     BEGIN_MSG_MAP_EX(LyricEditor)
         MSG_WM_INITDIALOG(OnInitDialog)
+        MSG_WM_DESTROY(OnDestroyDialog)
         MSG_WM_CLOSE(OnClose)
         COMMAND_HANDLER_EX(IDC_LYRIC_TEXT, EN_CHANGE, OnEditChange)
         COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_BACK5, BN_CLICKED, OnBackwardSeek)
@@ -37,6 +38,7 @@ public:
 
 private:
     BOOL OnInitDialog(CWindow parent, LPARAM clientData);
+    void OnDestroyDialog();
     void OnClose();
     void OnEditChange(UINT, int, CWindow);
     void OnBackwardSeek(UINT btn_id, int notify_code, CWindow btn);
@@ -122,9 +124,16 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     return TRUE;
 }
 
+void LyricEditor::OnDestroyDialog()
+{
+    if(!m_update.is_complete())
+    {
+        m_update.set_result({}, true);
+    }
+}
+
 void LyricEditor::OnClose()
 {
-    m_update.set_result({}, true);
     DestroyWindow();
 }
 
@@ -223,7 +232,6 @@ void LyricEditor::OnEditReset(UINT /*btn_id*/, int /*notification_type*/, CWindo
 
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
-    m_update.set_result({}, true);
     DestroyWindow();
 }
 
@@ -238,10 +246,6 @@ void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
     if(HasContentChanged(nullptr))
     {
         ApplyLyricEdits(true);
-    }
-    else
-    {
-        m_update.set_result({}, true);
     }
     DestroyWindow();
 }
