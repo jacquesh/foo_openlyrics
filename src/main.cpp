@@ -18,6 +18,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a context menu option to view saved lyrics for a track at any time\n"
     "- Add support for horizontal lyrics scrolling\n"
     "- Add a context menu with some very basic lyric 'auto-edits'\n"
+    "- Change 'Open file location' button to disabled when there are no lyrics\n"
     "- Fix the panel not updating when it should if playback is paused\n"
     "- Fix a degradation in scroll smoothness introduced in v0.5\n"
     "- Fix a potential crash when closing fb2k while the editor is open\n"
