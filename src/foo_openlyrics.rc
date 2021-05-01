@@ -215,7 +215,7 @@ BEGIN
     PUSHBUTTON      "Play",IDC_LYRIC_EDIT_PLAY,56,76,52,18
     PUSHBUTTON      "+5s",IDC_LYRIC_EDIT_FWD5,114,76,36,18
     PUSHBUTTON      "Reset/Undo changes",IDC_LYRIC_EDIT_RESET,30,109,94,20
-    LTEXT           "Playback time: 00:00",IDC_LYRIC_EDIT_TIME,15,65,68,8
+    LTEXT           "Playback time: 00:00",IDC_LYRIC_EDIT_TIME,15,65,133,8
     GROUPBOX        "Synchronisation",IDC_STATIC,6,3,148,44
     GROUPBOX        "Playback",IDC_STATIC,6,51,148,50
 END

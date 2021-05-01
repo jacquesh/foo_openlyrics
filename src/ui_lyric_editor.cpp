@@ -10,8 +10,6 @@
 #include "lyric_io.h"
 #include "win32_util.h"
 
-// TODO: Add a "seek to the time of the timestamp on the selected line" button
-
 class LyricEditor : public CDialogImpl<LyricEditor>, private play_callback_impl_base
 {
 public:
@@ -250,14 +248,25 @@ void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
     DestroyWindow();
 }
 
-void LyricEditor::on_playback_new_track(metadb_handle_ptr /*track*/)
+void LyricEditor::on_playback_new_track(metadb_handle_ptr track)
 {
+    bool edit_track_playing = (track == m_update.get_track());
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_SYNC), edit_track_playing);
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_BACK5), edit_track_playing);
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_FWD5), edit_track_playing);
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_PLAY), edit_track_playing);
+
     update_play_button();
     update_time_text(0);
 }
 
 void LyricEditor::on_playback_stop(play_control::t_stop_reason /*reason*/)
 {
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_SYNC), FALSE);
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_BACK5), FALSE);
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_FWD5), FALSE);
+    ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_PLAY), FALSE);
+
     update_play_button();
     update_time_text(0);
 }
@@ -284,15 +293,30 @@ void LyricEditor::update_time_text(double new_time)
     CWindow time_text = GetDlgItem(IDC_LYRIC_EDIT_TIME);
     if(time_text == nullptr) return;
 
-    int total_sec = static_cast<int>(new_time);
-    int time_min = total_sec / 60;
-    int time_sec = total_sec % 60;
+    bool edit_track_playing = false;
+    metadb_handle_ptr now_playing;
+    playback_control::ptr playback = playback_control::get();
+    if(playback->get_now_playing(now_playing))
+    {
+        edit_track_playing = (now_playing == m_update.get_track());
+    }
 
-    TCHAR buffer[64];
-    constexpr size_t buffer_len = sizeof(buffer)/sizeof(buffer[0]);
-    _sntprintf_s(buffer, buffer_len, _T("Playback time: %02d:%02d"), time_min, time_sec);
+    if(edit_track_playing)
+    {
+        int total_sec = static_cast<int>(new_time);
+        int time_min = total_sec / 60;
+        int time_sec = total_sec % 60;
 
-    time_text.SetWindowText(buffer);
+        TCHAR buffer[64];
+        constexpr size_t buffer_len = sizeof(buffer)/sizeof(buffer[0]);
+        _sntprintf_s(buffer, buffer_len, _T("Playback time: %02d:%02d"), time_min, time_sec);
+
+        time_text.SetWindowText(buffer);
+    }
+    else
+    {
+        time_text.SetWindowText(_T("This track is not playing..."));
+    }
 }
 
 void LyricEditor::update_play_button()
@@ -370,7 +394,6 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     // We know that if we ran HasContentChanged() now, it would return false.
     // So short-circuit it and just disable the apply button directly
     CWindow apply_btn = GetDlgItem(ID_LYRIC_EDIT_APPLY);
-    assert(apply_btn != nullptr);
     apply_btn.EnableWindow(FALSE);
 }
 
