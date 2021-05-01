@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "lyric_data.h"
+#include "parsers.h"
 #include "win32_util.h"
 
 namespace parsers::lrc
@@ -39,6 +40,20 @@ bool is_tag_line(std::string_view line)
     if(tag_length == 0) return false;
 
     return true;
+}
+
+double get_line_first_timestamp(std::string_view line)
+{
+    double timestamp = DBL_MAX;
+    if((line.length() >= 10) && try_parse_6digit_timestamp(line.substr(0, 10), timestamp))
+    {
+        return timestamp;
+    }
+    if((line.length() >= 11) && try_parse_7digit_timestamp(line.substr(0, 11), timestamp))
+    {
+        return timestamp;
+    }
+    return timestamp;
 }
 
 struct ParsedLineContents

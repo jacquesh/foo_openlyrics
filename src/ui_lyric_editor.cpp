@@ -76,6 +76,14 @@ LyricEditor::~LyricEditor()
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
+    service_ptr_t<playback_control> playback = playback_control::get();
+    update_time_text(playback->playback_get_position());
+    update_play_button();
+    metadb_handle_ptr now_playing = nullptr;
+    playback->get_now_playing(now_playing);
+    bool editing_now_playing = (now_playing == m_update.get_track());
+    double playback_time = playback->playback_get_position();
+
     m_update.set_started();
     if(!m_input_text.empty())
     {
@@ -101,24 +109,34 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
             line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
             LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
             std::string linestr = from_tstring(std::tstring_view{line_buffer, (size_t)chars_copied});
-            if(!parsers::lrc::is_tag_line(linestr))
+            if(parsers::lrc::is_tag_line(linestr)) continue;
+
+            double timestamp = parsers::lrc::get_line_first_timestamp(linestr);
+
+            // NOTE: We want to set the selection at least once, so that we don't open
+            //       with no selection before the first timestamp has been reached
+            bool selection_set = ((select_start != 0) || (select_end != 0));
+            if(selection_set && (timestamp != DBL_MAX) && (timestamp > playback_time))
             {
-                select_start = line_start;
-                select_end = line_start + line_length;
+                break;
+            }
+            select_start = line_start;
+            select_end = line_start + line_length;
+
+            if(!editing_now_playing || (timestamp == DBL_MAX))
+            {
                 break;
             }
         }
         free(line_buffer);
 
         SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, select_start, select_end);
-        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
     }
 
-    service_ptr_t<playback_control> playback = playback_control::get();
-    update_time_text(playback->playback_get_position());
-    update_play_button();
-
     ShowWindow(SW_SHOW);
+
+    // NOTE: This does nothing if called before ShowWindow()
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
     return TRUE;
 }
 

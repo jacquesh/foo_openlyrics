@@ -10,6 +10,7 @@ namespace parsers
 namespace lrc
 {
     bool is_tag_line(std::string_view line);
+    double get_line_first_timestamp(std::string_view line);
     std::string print_6digit_timestamp(double timestamp);
     bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp);
     bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp);
