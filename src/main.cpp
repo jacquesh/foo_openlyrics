@@ -21,6 +21,7 @@ DECLARE_COMPONENT_VERSION(
     "- Change 'Open file location' button to disabled when there are no lyrics\n"
     "- Disable editor playback controls when not playing the edited track\n"
     "- Select the current line when opening the editor with synced lyrics\n"
+    "- Trim surrounding whitespace from track metadata for searching & saving\n"
     "- Fix the panel not updating when it should if playback is paused\n"
     "- Fix a degradation in scroll smoothness introduced in v0.5\n"
     "- Fix a potential crash when closing fb2k while the editor is open\n"

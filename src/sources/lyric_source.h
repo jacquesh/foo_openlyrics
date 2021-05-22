@@ -22,12 +22,14 @@ public:
     virtual LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) = 0;
     virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
 
-protected:
-    const char* get_artist(metadb_handle_ptr track) const;
-    const char* get_album(metadb_handle_ptr track) const;
-    const char* get_title(metadb_handle_ptr track) const;
+    static std::string_view get_metadata(metadb_handle_ptr track, const char* tag);
+    static std::string_view get_artist(metadb_handle_ptr track);
+    static std::string_view get_album(metadb_handle_ptr track);
+    static std::string_view get_title(metadb_handle_ptr track);
 
-    std::string trim_surrounding_whitespace(const char* str) const;
+protected:
+    static std::string_view trim_surrounding_whitespace(std::string_view str);
+    static std::string_view trim_trailing_text_in_brackets(std::string_view str);
 };
 
 class LyricSourceRemote : public LyricSourceBase

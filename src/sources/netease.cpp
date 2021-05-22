@@ -70,11 +70,11 @@ static std::string urlencode(std::string_view input)
 }
 
 const int MAX_TAG_EDIT_DISTANCE = 3; // Arbitrarily selected
-int edit_distance(const char* strA, const char* strB)
+int edit_distance(const std::string_view strA, const std::string_view strB)
 {
     // 2-row levenshtein distance
-    int row_count = static_cast<int>(strlen(strA));
-    int row_len = static_cast<int>(strlen(strB));
+    int row_count = static_cast<int>(strA.length());
+    int row_len = static_cast<int>(strB.length());
 
     int* prev_row = new int[row_len+1];
     int* cur_row = new int[row_len+1];
@@ -114,7 +114,7 @@ int edit_distance(const char* strA, const char* strB)
     return result;
 }
 
-static int64_t parse_song_id(cJSON* json, const std::string& artist, const std::string& album, const std::string& title)
+static int64_t parse_song_id(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title)
 {
     if((json == nullptr) || (json->type != cJSON_Object))
     {
@@ -163,13 +163,13 @@ static int64_t parse_song_id(cJSON* json, const std::string& artist, const std::
                     cJSON* artist_name = cJSON_GetObjectItem(artist_item, "name");
                     if((artist_name != nullptr) && (artist_name->type == cJSON_String))
                     {
-                        int editdist = edit_distance(artist_name->valuestring, artist.c_str());
+                        int editdist = edit_distance(artist_name->valuestring, artist);
                         if(editdist > MAX_TAG_EDIT_DISTANCE)
                         {
                             LOG_INFO("Rejected NetEase search result %s/%s/%s for artist mismatch: %s",
-                                    artist.c_str(),
-                                    album.c_str(),
-                                    title.c_str(),
+                                    artist.data(),
+                                    album.data(),
+                                    title.data(),
                                     artist_name->valuestring);
                             continue;
                         }
@@ -184,13 +184,13 @@ static int64_t parse_song_id(cJSON* json, const std::string& artist, const std::
             cJSON* album_title_item = cJSON_GetObjectItem(album_item, "name");
             if((album_title_item != nullptr) && (album_title_item->type == cJSON_String))
             {
-                int editdist = edit_distance(album_title_item->valuestring, album.c_str());
+                int editdist = edit_distance(album_title_item->valuestring, album);
                 if(editdist > MAX_TAG_EDIT_DISTANCE)
                 {
                     LOG_INFO("Rejected NetEase search result %s/%s/%s for album mismatch: %s",
-                            artist.c_str(),
-                            album.c_str(),
-                            title.c_str(),
+                            artist.data(),
+                            album.data(),
+                            title.data(),
                             album_title_item->valuestring);
                     continue;
                 }
@@ -200,13 +200,13 @@ static int64_t parse_song_id(cJSON* json, const std::string& artist, const std::
         cJSON* title_item = cJSON_GetObjectItem(song_item, "name");
         if((title_item != nullptr) && (title_item->type == cJSON_String))
         {
-            int editdist = edit_distance(title_item->valuestring, title.c_str());
+            int editdist = edit_distance(title_item->valuestring, title);
             if(editdist > MAX_TAG_EDIT_DISTANCE)
             {
                 LOG_INFO("Rejected NetEase search result %s/%s/%s for title mismatch: %s",
-                        artist.c_str(),
-                        album.c_str(),
-                        title.c_str(),
+                        artist.data(),
+                        album.data(),
+                        title.data(),
                         title_item->valuestring);
                 continue;
             }
@@ -225,7 +225,7 @@ static int64_t parse_song_id(cJSON* json, const std::string& artist, const std::
     return 0;
 }
 
-static int64_t get_song_id(const std::string& artist, const std::string& album, const std::string& title, abort_callback& abort)
+static int64_t get_song_id(const std::string_view artist, const std::string_view album, const std::string_view title, abort_callback& abort)
 {
     std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(artist) + '+' + urlencode(title) + "&type=1&offset=0&sub=false&limit=5";
     LOG_INFO("Querying for song ID from %s...", url.c_str());
@@ -304,9 +304,9 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
 
 LyricDataRaw NetEaseLyricsSource::query(metadb_handle_ptr track, abort_callback& abort)
 {
-    const char* artist = get_artist(track);
-    const char* album = get_album(track);
-    const char* title = get_title(track);
+    std::string_view artist = get_artist(track);
+    std::string_view album = get_album(track);
+    std::string_view title = get_title(track);
     int64_t song_id = get_song_id(artist, album, title, abort);
     return get_song_lyrics(song_id, abort);
 }

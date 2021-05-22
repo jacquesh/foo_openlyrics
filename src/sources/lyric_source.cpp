@@ -34,74 +34,84 @@ void LyricSourceBase::on_init()
     g_lyric_sources.push_back(this);
 }
 
-const char* LyricSourceBase::get_artist(metadb_handle_ptr track) const
+std::string_view LyricSourceBase::get_metadata(metadb_handle_ptr track, const char* tag)
 {
     const metadb_info_container::ptr& track_info_container = track->get_info_ref();
     const file_info& track_info = track_info_container->info();
 
-    size_t meta_index = track_info.meta_find("artist");
+    size_t meta_index = track_info.meta_find(tag);
     if((meta_index != pfc::infinite_size) && (track_info.meta_enum_value_count(meta_index) > 0))
     {
-        return track_info.meta_enum_value(meta_index, 0);
+        std::string_view result = track_info.meta_enum_value(meta_index, 0);
+        return trim_surrounding_whitespace(result);
     }
 
     return "";
 }
 
-const char* LyricSourceBase::get_album(metadb_handle_ptr track) const
+std::string_view LyricSourceBase::get_artist(metadb_handle_ptr track)
 {
-    const metadb_info_container::ptr& track_info_container = track->get_info_ref();
-    const file_info& track_info = track_info_container->info();
-
-    size_t meta_index = track_info.meta_find("album");
-    if((meta_index != pfc::infinite_size) && (track_info.meta_enum_value_count(meta_index) > 0))
-    {
-        return track_info.meta_enum_value(meta_index, 0);
-    }
-
-    return "";
+    return get_metadata(track, "artist");
 }
 
-const char* LyricSourceBase::get_title(metadb_handle_ptr track) const
+std::string_view LyricSourceBase::get_album(metadb_handle_ptr track)
 {
-    const metadb_info_container::ptr& track_info_container = track->get_info_ref();
-    const file_info& track_info = track_info_container->info();
-
-    size_t meta_index = track_info.meta_find("title");
-    if((meta_index != pfc::infinite_size) && (track_info.meta_enum_value_count(meta_index) > 0))
-    {
-        return track_info.meta_enum_value(meta_index, 0);
-    }
-
-    return "";
+    return get_metadata(track, "album");
 }
 
-std::string LyricSourceBase::trim_surrounding_whitespace(const char* str) const
+std::string_view LyricSourceBase::get_title(metadb_handle_ptr track)
 {
-    size_t len = strlen(str);
-    size_t leading_chars_to_remove = 0;
-    while((leading_chars_to_remove < len) &&
-            ((str[leading_chars_to_remove] == '\r') ||
-             (str[leading_chars_to_remove] == '\n') ||
-             (str[leading_chars_to_remove] == ' ')))
+    return get_metadata(track, "title");
+}
+
+std::string_view LyricSourceBase::trim_surrounding_whitespace(std::string_view str)
+{
+    size_t first_non_whitespace = str.find_first_not_of("\r\n ");
+    size_t last_non_whitespace = str.find_last_not_of("\r\n ");
+
+    if(first_non_whitespace == std::string_view::npos)
     {
-        leading_chars_to_remove++;
+        return "";
+    }
+    size_t len = (last_non_whitespace+1) - first_non_whitespace;
+    return str.substr(first_non_whitespace, len);
+}
+
+std::string_view LyricSourceBase::trim_trailing_text_in_brackets(std::string_view str)
+{
+    std::string_view result = str;
+    while(true)
+    {
+        size_t open_index = result.find_last_of("([{");
+        if(open_index == std::string_view::npos)
+        {
+            break; // Nothing to trim
+        }
+
+        if(open_index == 0)
+        {
+            break; // Don't trim the entire string!
+        }
+
+        char opener = result[open_index];
+        char closer = '\0';
+        switch(opener)
+        {
+            case '[': closer = ']'; break;
+            case '(': closer = ')'; break;
+            case '{': closer = '}'; break;
+        }
+        assert(closer != '\0');
+
+        size_t close_index = result.find_first_of(closer, open_index);
+        if(close_index == std::string_view::npos)
+        {
+            break; // Unmatched open-bracket
+        }
+
+        result = result.substr(0, open_index);
     }
 
-    size_t trailing_chars_to_remove = 0;
-    while((leading_chars_to_remove + trailing_chars_to_remove < len) &&
-            ((str[len - trailing_chars_to_remove] == '\r') ||
-             (str[len - trailing_chars_to_remove] == '\n') ||
-             (str[len - trailing_chars_to_remove] == ' ')))
-    {
-        trailing_chars_to_remove++;
-    }
-
-    size_t total_to_remove = leading_chars_to_remove + trailing_chars_to_remove;
-    assert(total_to_remove <= len);
-
-    size_t result_len = len - total_to_remove;
-    std::string result(str + leading_chars_to_remove, result_len);
     return result;
 }
 

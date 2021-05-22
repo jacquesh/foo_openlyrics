@@ -20,7 +20,7 @@ class AZLyricsComSource : public LyricSourceRemote
 };
 static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
-static std::string remove_chars_for_url(const std::string& input)
+static std::string remove_chars_for_url(const std::string_view input)
 {
     std::string output;
     output.reserve(input.length());
@@ -121,7 +121,7 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
                 if(child->type == XML_TEXT_NODE)
                 {
                     // NOTE: libxml2 stores strings as UTF8 internally, so we don't need to do any conversion here
-                    std::string line_text = trim_surrounding_whitespace((char*)child->content);
+                    std::string_view line_text = trim_surrounding_whitespace((char*)child->content);
                     lyric_text += line_text;
                     lyric_text += "\r\n";
                 }

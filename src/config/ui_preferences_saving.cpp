@@ -9,6 +9,7 @@
 #include "config/config_auto.h"
 #include "logging.h"
 #include "preferences.h"
+#include "sources/lyric_source.h"
 
 static const GUID GUID_PREFERENCES_PAGE_SAVING = { 0xd5a7534, 0x9f59, 0x444c, { 0x8d, 0x6f, 0xec, 0xf3, 0x7f, 0x61, 0xfc, 0xf1 } };
 
@@ -56,6 +57,31 @@ static cfg_auto_property* g_saving_auto_properties[] =
     &cfg_save_tag_timestamped,
     &cfg_save_dir_class,
     &cfg_save_path_custom,
+};
+
+class titleformat_lyricio_hook : public titleformat_hook
+{
+    metadb_handle_ptr m_track;
+
+    bool process_field(titleformat_text_out* out,const char* name, t_size name_length, bool& found_flag) override
+    {
+        std::string_view processed_field = LyricSourceBase::get_metadata(m_track, name);
+        if(!processed_field.empty())
+        {
+            out->write(titleformat_inputtypes::meta, processed_field.data(), processed_field.length());
+            found_flag = true;
+            return true;
+        }
+        return false;
+    }
+
+    bool process_function(titleformat_text_out* /*out*/, const char* /*name*/, t_size /*name_length*/, titleformat_hook_function_params* /*params*/, bool& /*found_flag*/) override
+    {
+        return false;
+    }
+
+public:
+    titleformat_lyricio_hook(metadb_handle_ptr track) : m_track(track) {}
 };
 
 class titleformat_filename_filter : public titleformat_text_filter
@@ -109,8 +135,9 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
         return "";
     }
 
+    titleformat_lyricio_hook hook(track);
     pfc::string8 formatted_name;
-    bool format_success = track->format_title(nullptr, formatted_name, name_format_script, nullptr);
+    bool format_success = track->format_title(&hook, formatted_name, name_format_script, nullptr);
     if(!format_success)
     {
         LOG_WARN("Failed to format save file title using format: %s", name_format_str);
@@ -148,7 +175,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
             }
 
             titleformat_filename_filter filter;
-            bool dir_format_success = track->format_title(nullptr, formatted_directory, dir_format_script, &filter);
+            bool dir_format_success = track->format_title(&hook, formatted_directory, dir_format_script, &filter);
             if(!dir_format_success)
             {
                 LOG_WARN("Failed to format save path using format: %s", path_format_str);
@@ -375,8 +402,9 @@ void PreferencesSaving::UpdateFormatPreview(int edit_id, int preview_id, bool is
                     filter = &filter_impl;
                 }
 
+                titleformat_lyricio_hook hook(preview_track);
                 pfc::string8 formatted;
-                bool format_success = preview_track->format_title(nullptr, formatted, format_script, filter);
+                bool format_success = preview_track->format_title(&hook, formatted, format_script, filter);
                 if(format_success)
                 {
                     if(!is_path)

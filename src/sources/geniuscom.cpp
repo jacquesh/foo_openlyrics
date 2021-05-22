@@ -20,7 +20,7 @@ class GeniusComSource : public LyricSourceRemote
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
 
-static std::string remove_chars_for_url(const std::string& input)
+static std::string remove_chars_for_url(const std::string_view input)
 {
     std::string output;
     output.reserve(input.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
@@ -60,7 +60,7 @@ void GeniusComSource::add_all_text_to_string(std::string& output, xmlNodePtr nod
         if(child->type == XML_TEXT_NODE)
         {
             // NOTE: libxml2 stores strings as UTF8 internally, so we don't need to do any conversion here
-            std::string node_text = trim_surrounding_whitespace((char*)child->content);
+            std::string_view node_text = trim_surrounding_whitespace((char*)child->content);
             output += node_text;
             output += "\r\n";
         }
