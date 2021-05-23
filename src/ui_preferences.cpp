@@ -16,6 +16,7 @@ extern const GUID GUID_PREFERENCES_PAGE_ROOT = { 0x29e96cfa, 0xab67, 0x4793, { 0
 
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES = { 0x7d3c9b2c, 0xb87b, 0x4250, { 0x99, 0x56, 0x8d, 0xf5, 0x80, 0xc9, 0x2f, 0x39 } };
 static const GUID GUID_CFG_SEARCH_TAGS = { 0xb7332708, 0xe70b, 0x4a6e, { 0xa4, 0xd, 0x14, 0x6d, 0xe3, 0x74, 0x56, 0x65 } };
+static const GUID GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS = { 0x2cbdf6c3, 0xdb8c, 0x43d4, { 0xb5, 0x40, 0x76, 0xc0, 0x4a, 0x39, 0xa7, 0xc7 } };
 
 // NOTE: This was copied from the relevant lyric-source source file.
 //       It should not be a problem because these GUIDs must never change anyway (since it would
@@ -26,10 +27,12 @@ static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid};
 
 static cfg_objList<GUID> cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
 static cfg_auto_string   cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCEDLYRICS;UNSYNCED LYRICS");
+static cfg_auto_bool     cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
 
 static cfg_auto_property* g_root_auto_properties[] =
 {
     &cfg_search_tags,
+    &cfg_search_exclude_trailing_brackets,
 };
 
 std::vector<GUID> preferences::searching::active_sources()
@@ -78,6 +81,11 @@ std::vector<std::string> preferences::searching::tags()
     return result;
 }
 
+bool preferences::searching::exclude_trailing_brackets()
+{
+    return cfg_search_exclude_trailing_brackets.get_value();
+}
+
 const LRESULT MAX_SOURCE_NAME_LENGTH = 64;
 
 // The UI for the root element (for OpenLyrics) in the preferences UI tree
@@ -97,6 +105,7 @@ public:
     BEGIN_MSG_MAP_EX(PreferencesRoot)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_HANDLER_EX(IDC_SEARCH_TAGS, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_UP_BTN, BN_CLICKED, OnMoveUp)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_DOWN_BTN, BN_CLICKED, OnMoveDown)
         COMMAND_HANDLER_EX(IDC_SOURCE_ACTIVATE_BTN, BN_CLICKED, OnSourceActivate)

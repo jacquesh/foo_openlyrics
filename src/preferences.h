@@ -42,6 +42,7 @@ namespace preferences
     {
         std::vector<GUID> active_sources();
         std::vector<std::string> tags();
+        bool exclude_trailing_brackets();
     }
 
     namespace saving

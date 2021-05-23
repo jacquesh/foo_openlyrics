@@ -61,10 +61,12 @@ BEGIN
     PUSHBUTTON      ">>",IDC_SOURCE_DEACTIVATE_BTN,138,72,54,14,WS_DISABLED
     PUSHBUTTON      "Up",IDC_SOURCE_MOVE_UP_BTN,18,120,41,14,WS_DISABLED
     PUSHBUTTON      "Down",IDC_SOURCE_MOVE_DOWN_BTN,78,120,44,14,WS_DISABLED
-    GROUPBOX        "Searching",IDC_STATIC,0,0,330,142
+    GROUPBOX        "Searching",IDC_STATIC,0,0,330,207
     LTEXT           "Available sources:",IDC_STATIC,198,12,58,8
-    LTEXT           "Tags (semicolon-separated)",IDC_STATIC,140,124,88,8
-    EDITTEXT        IDC_SEARCH_TAGS,229,121,96,14,ES_AUTOHSCROLL
+    LTEXT           "Tags (semicolon-separated):",IDC_STATIC,7,161,90,8
+    EDITTEXT        IDC_SEARCH_TAGS,97,158,228,14,ES_AUTOHSCROLL
+    CONTROL         "Exclude text in brackets at the end of track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,188,237,10
 END
 
 IDD_PREFERENCES_SAVING DIALOGEX 0, 0, 332, 288

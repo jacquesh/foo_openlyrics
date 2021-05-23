@@ -61,7 +61,12 @@ std::string_view LyricSourceBase::get_album(metadb_handle_ptr track)
 
 std::string_view LyricSourceBase::get_title(metadb_handle_ptr track)
 {
-    return get_metadata(track, "title");
+    std::string_view result = get_metadata(track, "title");
+    if(preferences::searching::exclude_trailing_brackets())
+    {
+        result = trim_surrounding_whitespace(trim_trailing_text_in_brackets(result));
+    }
+    return result;
 }
 
 std::string_view LyricSourceBase::trim_surrounding_whitespace(std::string_view str)
