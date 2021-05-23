@@ -12,9 +12,14 @@ An open-source lyrics plugin for [foobar2000](https://www.foobar2000.org/) that 
 * ...and more!
 
 ## Screenshots
-Fonts & colours are fully configurable ![](.github/readme/lyrics_vertical_scroll.gif)
-Horizontal scrolling is also supported ![](.github/readme/lyrics_horizontal_scroll.gif)
-The editor window ![](.github/readme/editor.jpg)
+Fonts & colours are fully configurable
+![](.github/readme/lyrics_vertical_scroll.gif)
+
+Horizontal scrolling is also supported
+![](.github/readme/lyrics_horizontal_scroll.gif)
+
+The editor window
+![](.github/readme/editor.jpg)
 
 ## How to install foo_openlyrics
 1. Find the latest [release on Github](https://github.com/jacquesh/foo_openlyrics/releases).
