@@ -29,6 +29,8 @@ public:
         COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_PLAY, BN_CLICKED, OnPlaybackToggle)
         COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_SYNC, BN_CLICKED, OnLineSync)
         COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_RESET, BN_CLICKED, OnEditReset)
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_APPLY_OFFSET, BN_CLICKED, OnOffsetApply)
+        COMMAND_HANDLER_EX(IDC_LYRIC_EDIT_SYNC_OFFSET, BN_CLICKED, OnOffsetSync)
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_CANCEL, BN_CLICKED, OnCancel)
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_APPLY, BN_CLICKED, OnApply)
         COMMAND_HANDLER_EX(ID_LYRIC_EDIT_OK, BN_CLICKED, OnOK)
@@ -44,6 +46,8 @@ private:
     void OnPlaybackToggle(UINT btn_id, int notify_code, CWindow btn);
     void OnLineSync(UINT btn_id, int notify_code, CWindow btn);
     void OnEditReset(UINT btn_id, int notify_code, CWindow btn);
+    void OnOffsetApply(UINT btn_id, int notify_code, CWindow btn);
+    void OnOffsetSync(UINT btn_id, int notify_code, CWindow btn);
     void OnCancel(UINT btn_id, int notify_code, CWindow btn);
     void OnApply(UINT btn_id, int notify_code, CWindow btn);
     void OnOK(UINT btn_id, int notify_code, CWindow btn);
@@ -59,10 +63,15 @@ private:
     bool HasContentChanged(size_t* new_length);
     void ApplyLyricEdits(bool is_editor_closing);
 
+    void SelectLineWithTimestampGreaterOrEqual(double threshold_timestamp);
+    void SetEditorContents(const LyricData& lyrics);
     LyricData ParseEditorContents();
 
     LyricUpdateHandle& m_update;
     std::tstring m_input_text;
+
+    HWND m_offset_apply_tooltip;
+    HWND m_offset_sync_tooltip;
 };
 
 LyricEditor::LyricEditor(const std::tstring& text, LyricUpdateHandle& update) :
@@ -75,6 +84,37 @@ LyricEditor::~LyricEditor()
 {
 }
 
+static HWND create_tooltip(HWND parent)
+{
+    return CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
+                          WS_POPUP | TTS_ALWAYSTIP,
+                          CW_USEDEFAULT, CW_USEDEFAULT,
+                          CW_USEDEFAULT, CW_USEDEFAULT,
+                          parent, nullptr, core_api::get_my_instance(), nullptr);
+}
+
+static void add_tooltip(HWND control, HWND tooltip, TCHAR* text)
+{
+    if(tooltip == nullptr)
+    {
+        LOG_WARN("Attempt to add null tooltip control to the window");
+        return;
+    }
+    if(control == nullptr)
+    {
+        LOG_WARN("Attempt to add a tooltip to a null window control");
+        return;
+    }
+
+    TOOLINFO tool_info = {};
+    tool_info.cbSize = sizeof(tool_info);
+    tool_info.hwnd = GetParent(control);
+    tool_info.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+    tool_info.uId = (UINT_PTR)control;
+    tool_info.lpszText = text;
+    SendMessage(tooltip, TTM_ADDTOOL, 0, (LPARAM)&tool_info);
+}
+
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
@@ -83,57 +123,22 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     update_play_button();
     metadb_handle_ptr now_playing = nullptr;
     playback->get_now_playing(now_playing);
-    bool editing_now_playing = (now_playing == m_update.get_track());
-    double playback_time = playback->playback_get_position();
 
     m_update.set_started();
     if(!m_input_text.empty())
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());
 
-        int select_start = 0;
-        int select_end = 0;
-        TCHAR* line_buffer = nullptr;
-        int line_buffer_len = 0;
-        int line_count = (int)SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINECOUNT, 0, 0);
-        for(int i=0; i<line_count; i++)
-        {
-            LRESULT line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, i, 0);
-            LRESULT line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, line_start, 0);
-            if(line_length <= 0) continue;
-
-            if(line_buffer_len < line_length)
-            {
-                line_buffer = (TCHAR*)realloc(line_buffer, (line_length+1)*sizeof(TCHAR));
-                line_buffer_len = line_length;
-            }
-
-            line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
-            LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
-            std::string linestr = from_tstring(std::tstring_view{line_buffer, (size_t)chars_copied});
-            if(parsers::lrc::is_tag_line(linestr)) continue;
-
-            double timestamp = parsers::lrc::get_line_first_timestamp(linestr);
-
-            // NOTE: We want to set the selection at least once, so that we don't open
-            //       with no selection before the first timestamp has been reached
-            bool selection_set = ((select_start != 0) || (select_end != 0));
-            if(selection_set && (timestamp != DBL_MAX) && (timestamp > playback_time))
-            {
-                break;
-            }
-            select_start = line_start;
-            select_end = line_start + line_length;
-
-            if(!editing_now_playing || (timestamp == DBL_MAX))
-            {
-                break;
-            }
-        }
-        free(line_buffer);
-
-        SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, select_start, select_end);
+        bool editing_now_playing = (now_playing == m_update.get_track());
+        double playback_time = playback->playback_get_position();
+        double select_time = editing_now_playing ? playback_time : 0.0;
+        SelectLineWithTimestampGreaterOrEqual(select_time);
     }
+
+    m_offset_apply_tooltip = create_tooltip(m_hWnd);
+    m_offset_sync_tooltip = create_tooltip(m_hWnd);
+    add_tooltip(GetDlgItem(IDC_LYRIC_EDIT_APPLY_OFFSET), m_offset_apply_tooltip, _T("Remove the existing 'offset' tag and apply the offset directly to every timestamp in these lyrics"));
+    add_tooltip(GetDlgItem(IDC_LYRIC_EDIT_SYNC_OFFSET), m_offset_sync_tooltip, _T("Add an 'offset' tag that synchronises all lines instead of modifying the selected line's timestamp"));
 
     ShowWindow(SW_SHOW);
 
@@ -148,6 +153,9 @@ void LyricEditor::OnDestroyDialog()
     {
         m_update.set_result({}, true);
     }
+
+    ::DestroyWindow(m_offset_apply_tooltip);
+    ::DestroyWindow(m_offset_sync_tooltip);
 }
 
 void LyricEditor::OnClose()
@@ -196,7 +204,6 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     int replace_start = (int)curr_line_start;
     int replace_end = replace_start;
 
-    assert(curr_line_length >= 0);
     const int line_buffer_len = 32;
     TCHAR line_buffer[line_buffer_len+1] = {}; // +1 for the null-terminator
     line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
@@ -247,6 +254,125 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
 void LyricEditor::OnEditReset(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
     SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());
+}
+
+void LyricEditor::SelectLineWithTimestampGreaterOrEqual(double threshold_timestamp)
+{
+    int select_start = 0;
+    int select_end = 0;
+
+    TCHAR* line_buffer = nullptr;
+    int line_buffer_len = 0;
+    int line_count = (int)SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINECOUNT, 0, 0);
+    for(int i=0; i<line_count; i++)
+    {
+        LRESULT line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, i, 0);
+        LRESULT line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, line_start, 0);
+        if(line_length <= 0) continue;
+
+        if(line_buffer_len < line_length)
+        {
+            line_buffer = (TCHAR*)realloc(line_buffer, (line_length+1)*sizeof(TCHAR));
+            line_buffer_len = line_length;
+        }
+
+        line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
+        LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
+        std::string linestr = from_tstring(std::tstring_view{line_buffer, (size_t)chars_copied});
+        if(linestr.empty() || ((linestr.length() == 1) && (linestr[0] == ' '))) continue;
+        if(parsers::lrc::is_tag_line(linestr)) continue;
+
+        double line_timestamp = parsers::lrc::get_line_first_timestamp(linestr);
+        if(line_timestamp == DBL_MAX)
+        {
+            // NOTE: For unsynced lyrics we just select the first non-empty line
+            select_start = line_start;
+            select_end = line_start + line_length;
+            break;
+        }
+        else
+        {
+            // NOTE: We want to set the selection at least once, so that we don't open
+            //       with no selection before the first timestamp has been reached
+            bool selection_set = ((select_start != 0) || (select_end != 0));
+            if(selection_set && (line_timestamp > threshold_timestamp))
+            {
+                break;
+            }
+            select_start = line_start;
+            select_end = line_start + line_length;
+        }
+    }
+    free(line_buffer);
+
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, select_start, select_end);
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
+}
+
+void LyricEditor::SetEditorContents(const LyricData& lyrics)
+{
+    std::tstring new_contents = parsers::lrc::expand_text(lyrics);
+    SetDlgItemText(IDC_LYRIC_TEXT, new_contents.c_str());
+    SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
+}
+
+void LyricEditor::OnOffsetApply(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
+{
+    LyricData parsed = ParseEditorContents();
+    if(!parsed.IsTimestamped())
+    {
+        popup_message::g_show("Cannot apply offset tag to unsynchronised lyrics", "Synchronisation Error", popup_message::icon_error);
+        return;
+    }
+    if(parsed.timestamp_offset == 0.0)
+    {
+        popup_message::g_show("Cannot apply offset tag as there is no offset to apply", "Synchronisation Error", popup_message::icon_error);
+        return;
+    }
+
+    for(size_t i=0; i<parsed.lines.size(); i++)
+    {
+        parsed.lines[i].timestamp = parsed.LineTimestamp(i);
+    }
+    parsers::lrc::remove_offset_tag(parsed);
+
+    SetEditorContents(parsed);
+    GetDlgItem(ID_LYRIC_EDIT_APPLY).EnableWindow(true);
+}
+
+void LyricEditor::OnOffsetSync(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
+{
+    LyricData parsed = ParseEditorContents();
+
+    LOG_INFO("Synchronising editor line...");
+    // NOTE: Passing -1 will give the line index of the line containing the start of the current selection
+    LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, -1, 0);
+    LRESULT curr_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index, 0);
+    LRESULT curr_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, curr_line_start, 0);
+    assert((curr_line_length >= 0) && (curr_line_length <= INT_MAX));
+
+    const int line_buffer_len = 32;
+    TCHAR line_buffer[line_buffer_len+1] = {}; // +1 for the null-terminator
+    line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
+    LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, curr_line_index, (LPARAM)line_buffer);
+    assert(chars_copied <= line_buffer_len+1);
+    double curr_line_timestamp = parsers::lrc::get_line_first_timestamp(from_tstring(std::tstring_view{line_buffer}));
+
+    if(curr_line_timestamp == DBL_MAX)
+    {
+        popup_message::g_show("The currently-selected line does not have a timestamp", "Synchronisation Error", popup_message::icon_error);
+    }
+    else
+    {
+        service_ptr_t<playback_control> playback = playback_control::get();
+        double current_timestamp = playback->playback_get_position();
+        double required_offset_sec = curr_line_timestamp - current_timestamp;
+        parsers::lrc::set_offset_tag(parsed, required_offset_sec);
+
+        SetEditorContents(parsed);
+        SelectLineWithTimestampGreaterOrEqual(curr_line_timestamp);
+        GetDlgItem(ID_LYRIC_EDIT_APPLY).EnableWindow(true);
+    }
 }
 
 void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
@@ -431,11 +557,12 @@ LyricData LyricEditor::ParseEditorContents()
     return data;
 }
 
-void SpawnLyricEditor(const std::tstring& lyric_text, LyricUpdateHandle& update)
+void SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning editor window...");
     try
     {
+        std::tstring lyric_text = parsers::lrc::expand_text(lyrics);
         new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, update);
     }
     catch(const std::exception& e)

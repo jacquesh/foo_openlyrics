@@ -48,6 +48,8 @@
 #define IDC_DISPLAY_SCROLL_TIME_PREVIEW 1071
 #define IDC_DISPLAY_SCROLL_TYPE         1072
 #define IDC_SEARCH_EXCLUDE_BRACKETS     1073
+#define IDC_LYRIC_EDIT_SYNC_OFFSET      1074
+#define IDC_LYRIC_EDIT_APPLY_OFFSET     1075
 
 // Next default values for new objects
 // 
@@ -55,7 +57,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        121
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1074
+#define _APS_NEXT_CONTROL_VALUE         1077
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

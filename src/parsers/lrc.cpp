@@ -43,7 +43,7 @@ bool is_tag_line(std::string_view line)
 }
 
 // TODO: In theory this can be replaced by std::from_chars when we update to a compiler version that supports it
-static int64_t strtoi64(std::string_view str)
+static std::optional<int64_t> strtoi64(std::string_view str)
 {
     int64_t sign = 1;
     int64_t value = 0;
@@ -100,9 +100,47 @@ std::optional<double> try_parse_offset_tag(std::string_view line)
     std::string_view tag_val(line.data() + val_start, val_length);
 
     if(tag_key != "offset") return {};
-    int64_t offset_ms = strtoi64(tag_val);
-    double offset_sec = double(offset_ms)/1000.0;
-    return offset_sec;
+    std::optional<int64_t> maybe_offset = strtoi64(tag_val);
+    if(maybe_offset.has_value())
+    {
+        int64_t offset_ms = maybe_offset.value();
+        double offset_sec = double(offset_ms)/1000.0;
+        return offset_sec;
+    }
+    else
+    {
+        return {};
+    }
+}
+
+void set_offset_tag(LyricData& lyrics, double offset_seconds)
+{
+    std::string new_tag = "[offset:" + std::to_string(static_cast<int>(offset_seconds*1000.0)) + "]";
+    for(auto iter=lyrics.tags.begin(); iter!=lyrics.tags.end(); iter++)
+    {
+        if(try_parse_offset_tag(*iter).has_value())
+        {
+            *iter = std::move(new_tag);
+            return;
+        }
+    }
+
+    lyrics.tags.push_back(std::move(new_tag));
+}
+
+void remove_offset_tag(LyricData& lyrics)
+{
+    for(auto iter=lyrics.tags.begin(); iter!=lyrics.tags.end(); /*omitted*/)
+    {
+        if(try_parse_offset_tag(*iter).has_value())
+        {
+            iter = lyrics.tags.erase(iter);
+        }
+        else
+        {
+            iter++;
+        }
+    }
 }
 
 double get_line_first_timestamp(std::string_view line)

@@ -845,9 +845,8 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
-                    std::tstring text = parsers::lrc::expand_text(m_lyrics);
                     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
-                    SpawnLyricEditor(text, *update);
+                    SpawnLyricEditor(m_lyrics, *update);
                     m_update_handles.push_back(std::move(update));
                 } break;
 
