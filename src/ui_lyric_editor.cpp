@@ -472,7 +472,7 @@ void LyricEditor::update_play_button()
     if(btn == nullptr) return;
 
     service_ptr_t<playback_control> playback = playback_control::get();
-    const TCHAR* newText = playback->is_playing() && playback->is_paused() ? TEXT("Pause") : TEXT("Play");
+    const TCHAR* newText = playback->is_playing() && !playback->is_paused() ? TEXT("Pause") : TEXT("Play");
     btn.SetWindowText(newText);
 }
 

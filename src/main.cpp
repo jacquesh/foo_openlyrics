@@ -29,6 +29,7 @@ DECLARE_COMPONENT_VERSION(
     "- Fix the panel not updating when it should if playback is paused\n"
     "- Fix a degradation in scroll smoothness introduced in v0.5\n"
     "- Fix a potential crash when closing fb2k while the editor is open\n"
+    "- Fix the editor pause/play button showing the wrong state during playback\n"
     "\n"
     "Version 0.5 (2021-04-25):\n"
     "- Add support for ColumnsUI\n"
