@@ -42,6 +42,69 @@ bool is_tag_line(std::string_view line)
     return true;
 }
 
+// TODO: In theory this can be replaced by std::from_chars when we update to a compiler version that supports it
+static int64_t strtoi64(std::string_view str)
+{
+    int64_t sign = 1;
+    int64_t value = 0;
+    bool sign_complete = false;
+
+    for(char c : str)
+    {
+        if(c == '-')
+        {
+            if(!sign_complete)
+            {
+                sign *= -1;
+                continue;
+            }
+            else
+            {
+                return 0; // The string looks like -1-1 (with a minus in the middle somewhere)
+            }
+        }
+        else
+        {
+            sign_complete = true;
+        }
+
+        if((c >= '0') && (c <= '9'))
+        {
+            int64_t char_val = c - '0';
+            value = (value*10) + char_val;
+        }
+        else
+        {
+            return 0; // String contains illegal characters
+        }
+    }
+
+    return sign*value;
+}
+
+std::optional<double> try_parse_offset_tag(std::string_view line)
+{
+    if(line.size() <= 0) return {};
+    if(line[0] != '[') return {};
+    if(line[line.size()-1] != ']') return {};
+
+    size_t colon_index = line.find(':');
+    if(colon_index == std::string::npos) return {};
+    assert(colon_index != 0); // We've already checked that the first char is '['
+
+    std::string_view tag_key(line.data() + 1, colon_index - 1); // +-1 to avoid the leading '['
+
+    size_t val_start = colon_index + 1;
+    size_t val_end = line.length() - 1;
+    size_t val_length = val_end - val_start;
+    std::string_view tag_val(line.data() + val_start, val_length);
+
+    if(tag_key != "offset") return {};
+    int64_t offset_ms = strtoi64(tag_val);
+    double offset_sec = double(offset_ms)/1000.0;
+    return offset_sec;
+}
+
 double get_line_first_timestamp(std::string_view line)
 {
     double timestamp = DBL_MAX;
@@ -62,11 +125,11 @@ struct ParsedLineContents
     std::string line;
 };
 
-struct LineTagParseResult
+struct LineTimeParseResult
 {
     bool success;
     double timestamp;
-    int charsConsumed;
+    size_t charsConsumed;
 };
 
 std::string print_6digit_timestamp(double timestamp)
@@ -135,21 +198,16 @@ bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
     return true;
 }
 
-static LineTagParseResult parse_tag_from_line(std::string_view line)
+static LineTimeParseResult parse_time_from_line(std::string_view line)
 {
-    int line_length = static_cast<int>(line.length());
-    int index = 0;
+    size_t line_length = line.length();
+    size_t index = 0;
     while(index < line_length)
     {
         if(line[index] != '[') break;
 
-        int close_index = index;
-        while((close_index < line_length) && (line[close_index] != ']')) close_index++;
-
-        const int min_tag_length = 10; // [00:00.00]
-        const int max_tag_length = 11; // [00:00.000]
-        int tag_length = close_index - index + 1;
-
+        size_t close_index = min(line_length, line.find_first_of(']', index));
+        size_t tag_length = close_index - index + 1;
         std::string_view tag = line.substr(index, tag_length);
 
         double timestamp = -1.0;
@@ -179,7 +237,7 @@ static ParsedLineContents parse_line_times(std::string_view line)
     size_t index = 0;
     while(index <= line.size())
     {
-        LineTagParseResult parse_result = parse_tag_from_line(line.substr(index));
+        LineTimeParseResult parse_result = parse_time_from_line(line.substr(index));
         index += parse_result.charsConsumed;
 
         if(parse_result.success)
@@ -212,6 +270,8 @@ LyricData parse(const LyricDataRaw& input)
     };
     std::vector<LineData> lines;
     std::vector<std::string> tags;
+    double timestamp_offset = 0.0;
+
     const size_t text_length = input.text.length();
     size_t line_start_index = 0;
     while (line_start_index < text_length)
@@ -262,6 +322,13 @@ LyricData parse(const LyricDataRaw& input)
             if(is_tag_line(line_view))
             {
                 tags.emplace_back(line_view);
+
+                std::optional<double> maybe_offset = try_parse_offset_tag(line_view);
+                if(maybe_offset.has_value())
+                {
+                    timestamp_offset = maybe_offset.value();
+                    LOG_INFO("Found LRC offset: %dms", int(timestamp_offset*1000.0));
+                }
             }
             else
             {
@@ -292,6 +359,7 @@ LyricData parse(const LyricDataRaw& input)
     result.text = input.text;
     result.tags = std::move(tags);
     result.lines.reserve(lines.size());
+    result.timestamp_offset = timestamp_offset;
     for(const auto& line : lines)
     {
         std::tstring line_text = to_tstring(line.text);
@@ -314,6 +382,8 @@ std::tstring expand_text(const LyricData& data)
     {
         expanded_text += _T("\r\n");
     }
+    // NOTE: We specifically do *not* generate a new tag for the offset because all changes to that
+    //       must happen *in the text* (which is the default because you can change it in the editor)
 
     for(const LyricDataLine& line : data.lines)
     {

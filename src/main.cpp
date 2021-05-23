@@ -19,6 +19,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add support for horizontal lyrics scrolling\n"
     "- Add a context menu with some very basic lyric 'auto-edits'\n"
     "- Add an option to exclude trailing brackets in titles when searching\n"
+    "- Add support for the LRC 'offset' tag in timestamped lyrics\n"
     "- Change 'Open file location' button to disabled when there are no lyrics\n"
     "- Disable editor playback controls when not playing the edited track\n"
     "- Select the current line when opening the editor with synced lyrics\n"

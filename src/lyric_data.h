@@ -24,6 +24,7 @@ struct LyricData : LyricDataRaw
 {
     std::vector<std::string> tags;
     std::vector<LyricDataLine> lines;
+    double timestamp_offset;
 
     LyricData() = default;
     LyricData(const LyricData& other) = default;
@@ -31,6 +32,8 @@ struct LyricData : LyricDataRaw
 
     bool IsTimestamped() const;
     bool IsEmpty() const;
+    double LineTimestamp(int line_index) const;
+    double LineTimestamp(size_t line_index) const;
 
     void operator =(const LyricData& other) = delete;
     void operator =(LyricData&& other);

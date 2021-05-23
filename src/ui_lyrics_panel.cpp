@@ -501,19 +501,14 @@ namespace {
         int text_height_above_active_line = 0;
         int active_line_index = -1;
         int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.lines[active_line_index+1].timestamp))
+        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.LineTimestamp(active_line_index+1)))
         {
             active_line_index++;
             text_height_above_active_line += active_line_height;
             active_line_height = ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[active_line_index].text);
         }
 
-        double next_line_time = DBL_MAX;
-        if(active_line_index+1 < lyric_line_count)
-        {
-            next_line_time = m_lyrics.lines[active_line_index+1].timestamp;
-        }
-
+        double next_line_time = m_lyrics.LineTimestamp(active_line_index+1);
         double scroll_time = preferences::display::scroll_time_seconds();
         double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, current_time);
 
@@ -563,7 +558,7 @@ namespace {
 
         int active_line_index = -1;
         int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.lines[active_line_index+1].timestamp))
+        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.LineTimestamp(active_line_index+1)))
         {
             active_line_index++;
         }
@@ -638,12 +633,7 @@ namespace {
         int post_active_width = post_active_extents.value().cx;
         int glue_width = glue_extents.value().cx;
 
-        double next_line_time = DBL_MAX;
-        if(next_line_index < m_lyrics.lines.size())
-        {
-            next_line_time = m_lyrics.lines[next_line_index].timestamp;
-        }
-
+        double next_line_time = m_lyrics.LineTimestamp(next_line_index);
         double scroll_time = preferences::display::scroll_time_seconds();
         double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, current_time);
 

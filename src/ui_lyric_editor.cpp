@@ -59,6 +59,8 @@ private:
     bool HasContentChanged(size_t* new_length);
     void ApplyLyricEdits(bool is_editor_closing);
 
+    LyricData ParseEditorContents();
+
     LyricUpdateHandle& m_update;
     std::tstring m_input_text;
 };
@@ -220,8 +222,9 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
         }
     }
 
+    LyricData parsed = ParseEditorContents();
     service_ptr_t<playback_control> playback = playback_control::get();
-    double timestamp = playback->playback_get_position();
+    double timestamp = playback->playback_get_position() + parsed.timestamp_offset;
     std::string timestamp_str = parsers::lrc::print_6digit_timestamp(timestamp);
     std::tstring timestamp_tstr = to_tstring(timestamp_str);
 
@@ -386,11 +389,30 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
 void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
 {
     LOG_INFO("Saving lyrics from editor...");
-    LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
-    if(lyric_length <= 0)
+    LyricData data = ParseEditorContents();
+    if(data.IsEmpty())
     {
         m_update.set_result({}, is_editor_closing);
         return;
+    }
+
+    m_update.set_result(std::move(data), is_editor_closing);
+
+    // Update m_input_text so that HasContentChanged() will return the correct value after the same
+    m_input_text = to_tstring(data.text);
+
+    // We know that if we ran HasContentChanged() now, it would return false.
+    // So short-circuit it and just disable the apply button directly
+    CWindow apply_btn = GetDlgItem(ID_LYRIC_EDIT_APPLY);
+    apply_btn.EnableWindow(FALSE);
+}
+
+LyricData LyricEditor::ParseEditorContents()
+{
+    LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
+    if(lyric_length <= 0)
+    {
+        return {};
     }
 
     TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
@@ -400,19 +422,13 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }
 
-    // Update m_input_text so that HasContentChanged() will return the correct value after the same
-    m_input_text = std::tstring(lyric_buffer, chars_copied);
-
     std::string lyrics = from_tstring(std::tstring_view{lyric_buffer, chars_copied});
     LyricDataRaw data_raw = {};
     data_raw.text = lyrics;
     LyricData data = parsers::lrc::parse(data_raw);
-    m_update.set_result(std::move(data), is_editor_closing);
+    delete[] lyric_buffer;
 
-    // We know that if we ran HasContentChanged() now, it would return false.
-    // So short-circuit it and just disable the apply button directly
-    CWindow apply_btn = GetDlgItem(ID_LYRIC_EDIT_APPLY);
-    apply_btn.EnableWindow(FALSE);
+    return data;
 }
 
 void SpawnLyricEditor(const std::tstring& lyric_text, LyricUpdateHandle& update)

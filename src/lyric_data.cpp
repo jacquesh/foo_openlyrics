@@ -17,6 +17,18 @@ bool LyricData::IsEmpty() const
     return lines.empty();
 }
 
+double LyricData::LineTimestamp(int line_index) const
+{
+    if(line_index < 0) return 0.0;
+    return LineTimestamp(static_cast<size_t>(line_index));
+}
+
+double LyricData::LineTimestamp(size_t line_index) const
+{
+    if(line_index >= lines.size()) return DBL_MAX;
+    return lines[line_index].timestamp - timestamp_offset;
+}
+
 void LyricData::operator =(LyricData&& other)
 {
     source_id = other.source_id;
@@ -24,6 +36,7 @@ void LyricData::operator =(LyricData&& other)
     text = std::move(other.text);
     tags = std::move(other.tags);
     lines = std::move(other.lines);
+    timestamp_offset = other.timestamp_offset;
 
     other.source_id = {};
     other.text.clear();
