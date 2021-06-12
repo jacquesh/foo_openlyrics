@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.7-dev (" __DATE__ "):\n"
     "- Add a source for darklyrics.com\n"
+    "- Fix parsing LRC-tag-like lines as tags when in the middle of the text\n"
     "\n"
     "Version 0.6 (2021-05-23):\n"
     "- Add a context menu option to view saved lyrics for a track at any time\n"

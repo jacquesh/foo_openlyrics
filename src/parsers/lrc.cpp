@@ -308,6 +308,7 @@ LyricData parse(const LyricDataRaw& input)
     };
     std::vector<LineData> lines;
     std::vector<std::string> tags;
+    bool tag_section_passed = false; // We only want to count lines as "tags" if they appear at the top of the file
     double timestamp_offset = 0.0;
 
     const size_t text_length = input.text.length();
@@ -343,6 +344,7 @@ LyricData parse(const LyricDataRaw& input)
         ParsedLineContents parse_output = parse_line_times(line_view);
         if(parse_output.timestamps.size() > 0)
         {
+            tag_section_passed = true;
             for(double timestamp : parse_output.timestamps)
             {
                 lines.push_back({parse_output.line, timestamp});
@@ -357,7 +359,7 @@ LyricData parse(const LyricDataRaw& input)
             // of the system without special handling.
             // NOTE: It is important however, to note that this means we need to stable_sort
             //       below, to preserve the ordering of the "untimed" lines
-            if(is_tag_line(line_view))
+            if(!tag_section_passed && is_tag_line(line_view))
             {
                 tags.emplace_back(line_view);
 
@@ -370,6 +372,7 @@ LyricData parse(const LyricDataRaw& input)
             }
             else
             {
+                tag_section_passed |= (line_bytes > 0);
                 lines.push_back({std::string(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
             }
         }
