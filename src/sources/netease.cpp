@@ -14,6 +14,8 @@ class NetEaseLyricsSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
 
     LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+
+    LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort) const;
 };
 static const LyricSourceFactory<NetEaseLyricsSource> src_factory;
 
@@ -251,7 +253,7 @@ static int64_t get_song_id(const std::string_view artist, const std::string_view
     return song_id;
 }
 
-static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
+LyricDataRaw NetEaseLyricsSource::get_song_lyrics(int64_t song_id, abort_callback& abort) const
 {
     LyricDataRaw result = {};
     result.source_id = src_guid;
@@ -293,7 +295,7 @@ static LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort)
             cJSON* lrc_lyric = cJSON_GetObjectItem(lrc_item, "lyric");
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
-                result.text = lrc_lyric->valuestring;
+                result.text = trim_surrounding_whitespace(lrc_lyric->valuestring);
             }
         }
     }

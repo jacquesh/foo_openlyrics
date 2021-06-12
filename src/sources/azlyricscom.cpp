@@ -141,7 +141,7 @@ LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& a
         else
         {
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
-            result.text = std::move(lyric_text);
+            result.text = trim_surrounding_whitespace(lyric_text);
             return result;
         }
     }
