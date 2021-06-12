@@ -180,6 +180,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\sources\azlyricscom.cpp" />
+    <ClCompile Include="..\..\src\sources\darklyrics.cpp" />
     <ClCompile Include="..\..\src\sources\id3tag.cpp" />
     <ClCompile Include="..\..\src\sources\lyric_source.cpp" />
     <ClCompile Include="..\..\src\sources\netease.cpp" />

@@ -14,7 +14,7 @@ public:
     static LyricSourceBase* get(GUID guid);
     static std::vector<GUID> get_all_ids();
 
-    virtual void on_init();
+    void on_init() final;
 
     virtual const GUID& id() const = 0;
     virtual std::tstring_view friendly_name() const = 0;
@@ -26,6 +26,7 @@ public:
     static std::string_view get_artist(metadb_handle_ptr track);
     static std::string_view get_album(metadb_handle_ptr track);
     static std::string_view get_title(metadb_handle_ptr track);
+    static std::string_view get_tracknumber(metadb_handle_ptr track);
 
 protected:
     static std::string_view trim_surrounding_whitespace(std::string_view str);

@@ -96,6 +96,9 @@
     <ClCompile Include="..\..\src\lyric_auto_edit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\darklyrics.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">

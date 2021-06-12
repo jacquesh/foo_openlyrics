@@ -69,6 +69,11 @@ std::string_view LyricSourceBase::get_title(metadb_handle_ptr track)
     return result;
 }
 
+std::string_view LyricSourceBase::get_tracknumber(metadb_handle_ptr track)
+{
+    return get_metadata(track, "tracknumber");
+}
+
 std::string_view LyricSourceBase::trim_surrounding_whitespace(std::string_view str)
 {
     size_t first_non_whitespace = str.find_first_not_of("\r\n ");
