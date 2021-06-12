@@ -28,7 +28,7 @@ namespace {
     {
     public:
         // ATL window class declaration. Replace class name with your own when reusing code.
-        DECLARE_WND_CLASS_EX(TEXT("{32CB89E1-3EA5-4AE7-A6E6-2DEA68A04D53}"), CS_VREDRAW | CS_HREDRAW, (-1))
+        DECLARE_WND_CLASS_EX(TEXT("{32CB89E1-3EA5-4AE7-A6E6-2DEA68A04D53}"), CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS, (-1))
 
         LyricPanel(ui_element_config::ptr,ui_element_instance_callback_ptr p_callback);
         HWND get_wnd() override;
@@ -57,6 +57,7 @@ namespace {
         void OnPaint(CDCHandle);
         BOOL OnEraseBkgnd(CDCHandle);
         void OnContextMenu(CWindow window, CPoint point);
+        void OnDoubleClick(UINT virtualKeys, CPoint cursorPos);
 
         void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, std::string& out_artist, std::string& out_album, std::string& out_title);
         t_ui_font get_font();
@@ -99,6 +100,7 @@ namespace {
             MSG_WM_ERASEBKGND(OnEraseBkgnd)
             MSG_WM_PAINT(OnPaint)
             MSG_WM_CONTEXTMENU(OnContextMenu)
+            MSG_WM_LBUTTONDBLCLK(OnDoubleClick)
         END_MSG_MAP()
     };
 
@@ -917,6 +919,15 @@ namespace {
         {
             LOG_ERROR("Failed to create OpenLyrics context menu: %s", e.what());
         }
+    }
+
+    void LyricPanel::OnDoubleClick(UINT /*virtualKeys*/, CPoint /*cursorPos*/)
+    {
+        if(m_now_playing == nullptr) return;
+
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
+        SpawnLyricEditor(m_lyrics, *update);
+        m_update_handles.push_back(std::move(update));
     }
 
     void LyricPanel::GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, std::string& out_artist, std::string& out_album, std::string& out_title)
