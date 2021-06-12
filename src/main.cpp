@@ -19,6 +19,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add an auto-edit for removing duplicate blank lines\n"
     "- Auto-trim leading & trailing whitespace in lyrics from online sources\n"
     "- Fix parsing LRC-tag-like lines as tags when in the middle of the text\n"
+    "- Fix the editor's keyboard focus not starting on the actual text\n"
     "\n"
     "Version 0.6 (2021-05-23):\n"
     "- Add a context menu option to view saved lyrics for a track at any time\n"

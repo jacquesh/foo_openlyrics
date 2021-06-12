@@ -124,6 +124,8 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     metadb_handle_ptr now_playing = nullptr;
     playback->get_now_playing(now_playing);
 
+    GotoDlgCtrl(GetDlgItem(IDC_LYRIC_TEXT));
+
     m_update.set_started();
     if(!m_input_text.empty())
     {
@@ -142,9 +144,10 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
     ShowWindow(SW_SHOW);
 
-    // NOTE: This does nothing if called before ShowWindow()
+    // NOTE: Sending EM_SCROLLCARET does nothing if called before ShowWindow()
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
-    return TRUE;
+
+    return FALSE; // Tell Windows that we've set the keyboard focus already
 }
 
 void LyricEditor::OnDestroyDialog()
