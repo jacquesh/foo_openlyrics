@@ -19,6 +19,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add an auto-edit for removing duplicate blank lines\n"
     "- Open the lyric editor when the panel is double-clicked\n"
     "- Auto-trim leading & trailing whitespace in lyrics from online sources\n"
+    "- Rename the 'Save to file' option to 'Save to text file' for clarity\n"
     "- Fix parsing LRC-tag-like lines as tags when in the middle of the text\n"
     "- Fix the editor's keyboard focus not starting on the actual text\n"
     "\n"

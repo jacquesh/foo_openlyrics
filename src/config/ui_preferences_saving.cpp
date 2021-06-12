@@ -23,7 +23,7 @@ static const GUID GUID_CFG_SAVE_PATH_CUSTOM = { 0x84ac099b, 0xa00b, 0x4713, { 0x
 
 static cfg_auto_combo_option<SaveMethod> save_method_options[] =
 {
-    {_T("Save to file"), SaveMethod::LocalFile},
+    {_T("Save to text file"), SaveMethod::LocalFile},
     {_T("Save to tag"), SaveMethod::Id3Tag},
 };
 
