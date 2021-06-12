@@ -781,7 +781,8 @@ namespace {
                 ID_OPEN_FILE_DIR,
                 ID_AUTO_ADD_INSTRUMENTAL,
                 ID_AUTO_REMOVE_EXTRA_SPACES,
-                ID_AUTO_REMOVE_BLANK_LINES,
+                ID_AUTO_REMOVE_EXTRA_BLANK_LINES,
+                ID_AUTO_REMOVE_ALL_BLANK_LINES,
                 ID_CMD_COUNT,
             };
 
@@ -789,7 +790,8 @@ namespace {
             WIN32_OP(menu_edit.CreatePopupMenu())
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_with_lyrics, ID_AUTO_ADD_INSTRUMENTAL, _T("Mark as 'instrumental'"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
-            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_BLANK_LINES, _T("Remove blank lines"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
 
             CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
@@ -898,9 +900,15 @@ namespace {
                     ProcessAvailableLyricUpdate(update);
                 } break;
 
-                case ID_AUTO_REMOVE_BLANK_LINES:
+                case ID_AUTO_REMOVE_EXTRA_BLANK_LINES:
                 {
-                    LyricUpdateHandle update = auto_edit::RemoveBlankLines(m_now_playing, m_lyrics);
+                    LyricUpdateHandle update = auto_edit::RemoveRepeatedBlankLines(m_now_playing, m_lyrics);
+                    ProcessAvailableLyricUpdate(update);
+                } break;
+
+                case ID_AUTO_REMOVE_ALL_BLANK_LINES:
+                {
+                    LyricUpdateHandle update = auto_edit::RemoveAllBlankLines(m_now_playing, m_lyrics);
                     ProcessAvailableLyricUpdate(update);
                 } break;
             }

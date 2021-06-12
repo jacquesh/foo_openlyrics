@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.7-dev (" __DATE__ "):\n"
     "- Add a source for darklyrics.com\n"
+    "- Add an auto-edit for removing duplicate blank lines\n"
     "- Auto-trim leading & trailing whitespace in lyrics from online sources\n"
     "- Fix parsing LRC-tag-like lines as tags when in the middle of the text\n"
     "\n"

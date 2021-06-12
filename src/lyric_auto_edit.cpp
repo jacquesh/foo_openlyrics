@@ -64,25 +64,50 @@ LyricUpdateHandle auto_edit::RemoveRepeatedSpaces(metadb_handle_ptr track, const
     return result;
 }
 
-LyricUpdateHandle auto_edit::RemoveBlankLines(metadb_handle_ptr track, const LyricData& lyrics)
+LyricUpdateHandle auto_edit::RemoveRepeatedBlankLines(metadb_handle_ptr track, const LyricData& lyrics)
 {
     size_t lines_removed = 0;
+    bool previous_blank = true;
     LyricData new_lyrics = lyrics;
-    for(size_t index=0; index<new_lyrics.lines.size(); index++)
+    for(auto iter=new_lyrics.lines.begin(); iter != new_lyrics.lines.end(); /*Omitted*/)
     {
-        LyricDataLine& line = new_lyrics.lines[index];
-        size_t first_non_space = line.text.find_first_not_of(' ');
+        size_t first_non_space = iter->text.find_first_not_of(' ');
         bool is_blank = (first_non_space == std::tstring::npos);
-        if(is_blank)
+        if(is_blank && previous_blank)
         {
-            auto line_iter = new_lyrics.lines.begin();
-            std::advance(line_iter, index);
-            new_lyrics.lines.erase(line_iter);
-            index--;
+            iter = new_lyrics.lines.erase(iter);
             lines_removed++;
         }
+        else
+        {
+            iter++;
+        }
+        previous_blank = is_blank;
     }
     LOG_INFO("Auto-removal removed %u blank lines", lines_removed);
+
+    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
+    result.set_started();
+    if(lines_removed > 0)
+    {
+        new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
+        result.set_result(std::move(new_lyrics), true);
+    }
+    else
+    {
+        result.set_result({}, true);
+    }
+    return result;
+}
+
+LyricUpdateHandle auto_edit::RemoveAllBlankLines(metadb_handle_ptr track, const LyricData& lyrics)
+{
+    LyricData new_lyrics = lyrics;
+    auto line_is_empty = [](const LyricDataLine& line) { return line.text.find_first_not_of(' ') == std::tstring::npos; };
+    auto new_end = std::remove_if(new_lyrics.lines.begin(), new_lyrics.lines.end(), line_is_empty);
+    int lines_removed = std::distance(new_end, new_lyrics.lines.end());
+    new_lyrics.lines.erase(new_end, new_lyrics.lines.end());
+    LOG_INFO("Auto-removal removed %d blank lines", lines_removed);
 
     LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
     result.set_started();
