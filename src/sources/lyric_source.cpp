@@ -74,6 +74,46 @@ std::string_view LyricSourceBase::get_tracknumber(metadb_handle_ptr track)
     return get_metadata(track, "tracknumber");
 }
 
+std::string LyricSourceBase::urlencode(std::string_view input)
+{
+    size_t inlen = input.length();
+    std::string result;
+    result.reserve(inlen * 3);
+
+    for(size_t i=0; i<inlen; i++)
+    {
+        if(pfc::char_is_ascii_alphanumeric(input[i]) ||
+            (input[i] == '-') ||
+            (input[i] == '_') ||
+            (input[i] == '.') ||
+            (input[i] == '~'))
+        {
+            result += input[i];
+        }
+        else if(input[i] == ' ')
+        {
+            result += '+';
+        }
+        else
+        {
+            const auto nibble_to_hex = [](char c)
+            {
+                static char hex[] = "0123456789ABCDEF";
+                return hex[c & 0xF];
+            };
+
+            char hi_nibble = ((input[i] >> 4) & 0xF);
+            char lo_nibble = ((input[i] >> 0) & 0xF);
+
+            result += '%';
+            result += nibble_to_hex(hi_nibble);
+            result += nibble_to_hex(lo_nibble);
+        }
+    }
+
+    return result;
+}
+
 std::string_view LyricSourceBase::trim_surrounding_whitespace(std::string_view str)
 {
     size_t first_non_whitespace = str.find_first_not_of("\r\n ");
@@ -122,6 +162,50 @@ std::string_view LyricSourceBase::trim_trailing_text_in_brackets(std::string_vie
         result = result.substr(0, open_index);
     }
 
+    return result;
+}
+
+int LyricSourceBase::compute_edit_distance(const std::string_view strA, const std::string_view strB)
+{
+    // 2-row levenshtein distance
+    int row_count = static_cast<int>(strA.length());
+    int row_len = static_cast<int>(strB.length());
+
+    int* prev_row = new int[row_len+1];
+    int* cur_row = new int[row_len+1];
+    for(int i=0; i<row_len+1; i++)
+    {
+        prev_row[i] = i;
+    }
+
+    for(int row=0; row<row_count; row++)
+    {
+        cur_row[0] = row + 1;
+        for(int i=0; i<row_len; i++)
+        {
+            int delete_cost = prev_row[i+1] + 1;
+            int insert_cost = cur_row[i] + 1;
+            int subst_cost;
+            if(strA[row] == strB[i]) // TODO: Make this comparison case-insensitive
+            {
+                subst_cost = prev_row[i];
+            }
+            else
+            {
+                subst_cost = prev_row[i] + 1;
+            }
+
+            cur_row[i+1] = min(min(delete_cost, insert_cost), subst_cost);
+        }
+
+        int* tmp = cur_row;
+        cur_row = prev_row;
+        prev_row = tmp;
+    }
+
+    int result = prev_row[row_len];
+    delete[] prev_row;
+    delete[] cur_row;
     return result;
 }
 

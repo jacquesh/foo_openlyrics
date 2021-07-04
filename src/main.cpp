@@ -15,6 +15,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.7-dev (" __DATE__ "):\n"
+    "- Add a source for QQ Music\n"
     "- Add a source for darklyrics.com\n"
     "- Add an auto-edit for removing duplicate blank lines\n"
     "- Open the lyric editor when the panel is double-clicked\n"
