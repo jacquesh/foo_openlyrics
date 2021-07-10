@@ -15,7 +15,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.8-dev (" __DATE__ "):\n"
-    "- TODO\n"
+    "- Add an auto-edit to fix HTML-encoded characters (e.g &gt; to >)\n"
     "Version 0.7 (2021-07-04):\n"
     "- Add a source for QQ Music\n"
     "- Add a source for darklyrics.com\n"

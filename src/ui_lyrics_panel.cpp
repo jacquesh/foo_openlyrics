@@ -785,12 +785,14 @@ namespace {
                 ID_AUTO_REMOVE_EXTRA_SPACES,
                 ID_AUTO_REMOVE_EXTRA_BLANK_LINES,
                 ID_AUTO_REMOVE_ALL_BLANK_LINES,
+                ID_AUTO_REPLACE_XML_CHARS,
                 ID_CMD_COUNT,
             };
 
             CMenu menu_edit = nullptr;
             WIN32_OP(menu_edit.CreatePopupMenu())
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_with_lyrics, ID_AUTO_ADD_INSTRUMENTAL, _T("Mark as 'instrumental'"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REPLACE_XML_CHARS, _T("Replace &&-named HTML characters"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
@@ -811,6 +813,11 @@ namespace {
             menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
             menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
             menudesc.Set(ID_OPEN_FILE_DIR, "Open explorer to the location of the lyrics file");
+            menudesc.Set(ID_AUTO_ADD_INSTRUMENTAL, "Add lyrics containing just the text '[Instrumental]'");
+            menudesc.Set(ID_AUTO_REPLACE_XML_CHARS, "Replace &-encoded named HTML characters (e.g &lt;) with the characters they represent (e.g <)");
+            menudesc.Set(ID_AUTO_REMOVE_EXTRA_SPACES, "Replace sequences of multiple whitespace characters with a single space");
+            menudesc.Set(ID_AUTO_REMOVE_EXTRA_BLANK_LINES, "Replace sequences of multiple empty lines with just a single empty line");
+            menudesc.Set(ID_AUTO_REMOVE_ALL_BLANK_LINES, "Remove all empty lines");
 
             // TODO: We should add a submenu for selecting from all of the lyrics that we found, dynamically populated by the search for this track.
             //       For example we could have:
@@ -913,6 +920,13 @@ namespace {
                     LyricUpdateHandle update = auto_edit::RemoveAllBlankLines(m_now_playing, m_lyrics);
                     ProcessAvailableLyricUpdate(update);
                 } break;
+
+                case ID_AUTO_REPLACE_XML_CHARS:
+                {
+                    LyricUpdateHandle update = auto_edit::ReplaceHtmlEscapedChars(m_now_playing, m_lyrics);
+                    ProcessAvailableLyricUpdate(update);
+                } break;
+                
             }
         }
         catch(std::exception const & e)

@@ -17,6 +17,48 @@ LyricUpdateHandle auto_edit::CreateInstrumental(metadb_handle_ptr track)
     return result;
 }
 
+LyricUpdateHandle auto_edit::ReplaceHtmlEscapedChars(metadb_handle_ptr track, const LyricData& lyrics)
+{
+    LyricDataRaw new_raw = lyrics;
+    std::pair<std::string_view, char> replacements[] =
+    {
+        {"&amp;", '&'},
+        {"&lt;", '<'},
+        {"&gt;", '>'},
+        {"&quot;", '"'},
+        {"&apos;", '\''},
+    };
+
+    size_t replace_count = 0;
+    for(auto [escaped, replacement] : replacements)
+    {
+        size_t current_index = 0;
+        while(current_index < new_raw.text.length())
+        {
+            size_t next_index = new_raw.text.find(escaped, current_index);
+            if(next_index == std::string::npos) break;
+
+            new_raw.text.replace(next_index, escaped.length(), 1, replacement);
+            current_index = next_index + 1;
+            replace_count++;
+        }
+    }
+    LOG_INFO("Auto-edit replaced %u named HTML-encoded characters", replace_count);
+
+    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
+    result.set_started();
+    if(replace_count > 0)
+    {
+        LyricData new_lyrics = parsers::lrc::parse(new_raw);
+        result.set_result(std::move(new_lyrics), true);
+    }
+    else
+    {
+        result.set_result({}, true);
+    }
+    return result;
+}
+
 LyricUpdateHandle auto_edit::RemoveRepeatedSpaces(metadb_handle_ptr track, const LyricData& lyrics)
 {
     size_t spaces_erased = 0;
