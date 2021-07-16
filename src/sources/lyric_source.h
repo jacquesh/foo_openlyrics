@@ -32,7 +32,7 @@ protected:
     static std::string urlencode(std::string_view input);
     static std::string_view trim_surrounding_whitespace(std::string_view str);
     static std::string_view trim_trailing_text_in_brackets(std::string_view str);
-    static int compute_edit_distance(const std::string_view strA, const std::string_view strB);
+    static bool tag_values_match(std::string_view tagA, std::string_view tagB);
 };
 
 class LyricSourceRemote : public LyricSourceBase

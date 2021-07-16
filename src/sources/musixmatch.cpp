@@ -43,7 +43,7 @@ bool MusixmatchLyricsSource::json_string_matches(const char* field_name, cJSON* 
         return false;
     }
 
-    if(compute_edit_distance(json->valuestring, comparison) > 3)
+    if(!tag_values_match(json->valuestring, comparison))
     {
         LOG_INFO("Ignoring musixmatch result due to %s mismatch: %s vs %s", field_name, json->valuestring, comparison.data());
         return false;

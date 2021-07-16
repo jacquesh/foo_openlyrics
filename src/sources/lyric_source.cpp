@@ -51,12 +51,22 @@ std::string_view LyricSourceBase::get_metadata(metadb_handle_ptr track, const ch
 
 std::string_view LyricSourceBase::get_artist(metadb_handle_ptr track)
 {
-    return get_metadata(track, "artist");
+    std::string_view result = get_metadata(track, "artist");
+    if(preferences::searching::exclude_trailing_brackets())
+    {
+        result = trim_surrounding_whitespace(trim_trailing_text_in_brackets(result));
+    }
+    return result;
 }
 
 std::string_view LyricSourceBase::get_album(metadb_handle_ptr track)
 {
-    return get_metadata(track, "album");
+    std::string_view result = get_metadata(track, "album");
+    if(preferences::searching::exclude_trailing_brackets())
+    {
+        result = trim_surrounding_whitespace(trim_trailing_text_in_brackets(result));
+    }
+    return result;
 }
 
 std::string_view LyricSourceBase::get_title(metadb_handle_ptr track)
@@ -165,7 +175,7 @@ std::string_view LyricSourceBase::trim_trailing_text_in_brackets(std::string_vie
     return result;
 }
 
-int LyricSourceBase::compute_edit_distance(const std::string_view strA, const std::string_view strB)
+static int compute_edit_distance(const std::string_view strA, const std::string_view strB)
 {
     // 2-row levenshtein distance
     int row_count = static_cast<int>(strA.length());
@@ -207,6 +217,18 @@ int LyricSourceBase::compute_edit_distance(const std::string_view strA, const st
     delete[] prev_row;
     delete[] cur_row;
     return result;
+}
+
+bool LyricSourceBase::tag_values_match(std::string_view tagA, std::string_view tagB)
+{
+    if(preferences::searching::exclude_trailing_brackets())
+    {
+        tagA = trim_surrounding_whitespace(trim_trailing_text_in_brackets(tagA));
+        tagB = trim_surrounding_whitespace(trim_trailing_text_in_brackets(tagB));
+    }
+
+    const int MAX_TAG_EDIT_DISTANCE = 3; // Arbitrarily selected
+    return (compute_edit_distance(tagA, tagB) <= MAX_TAG_EDIT_DISTANCE);
 }
 
 bool LyricSourceRemote::is_local() const

@@ -65,8 +65,8 @@ BEGIN
     LTEXT           "Available sources:",IDC_STATIC,198,12,58,8
     LTEXT           "ID3 Tag to search & save to (semicolon-separated):",IDC_STATIC,7,185,158,8
     EDITTEXT        IDC_SEARCH_TAGS,7,194,318,14,ES_AUTOHSCROLL
-    CONTROL         "Exclude text in brackets at the end of track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,146,237,10
+    CONTROL         "Exclude text in brackets at the end of artist/album names and track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,146,313,10
     GROUPBOX        "Source-specific options",IDC_STATIC,0,170,331,88
     LTEXT           "Musixmatch Authentication Token:",IDC_STATIC,7,222,110,8
     EDITTEXT        IDC_SEARCH_MUSIXMATCH_TOKEN,7,234,318,14,ES_AUTOHSCROLL

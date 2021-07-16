@@ -72,7 +72,6 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
             continue;
         }
 
-        const int MAX_TAG_EDIT_DISTANCE = 3; // Arbitrarily selected
         cJSON* artist_list_item = cJSON_GetObjectItem(song_item, "artists");
         if((artist_list_item != nullptr) && (artist_list_item->type == cJSON_Array))
         {
@@ -85,8 +84,7 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
                     cJSON* artist_name = cJSON_GetObjectItem(artist_item, "name");
                     if((artist_name != nullptr) && (artist_name->type == cJSON_String))
                     {
-                        int editdist = compute_edit_distance(artist_name->valuestring, artist);
-                        if(editdist > MAX_TAG_EDIT_DISTANCE)
+                        if(!tag_values_match(artist_name->valuestring, artist))
                         {
                             LOG_INFO("Rejected NetEase search result %s/%s/%s for artist mismatch: %s",
                                     artist.data(),
@@ -106,8 +104,7 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
             cJSON* album_title_item = cJSON_GetObjectItem(album_item, "name");
             if((album_title_item != nullptr) && (album_title_item->type == cJSON_String))
             {
-                int editdist = compute_edit_distance(album_title_item->valuestring, album);
-                if(editdist > MAX_TAG_EDIT_DISTANCE)
+                if(!tag_values_match(album_title_item->valuestring, album))
                 {
                     LOG_INFO("Rejected NetEase search result %s/%s/%s for album mismatch: %s",
                             artist.data(),
@@ -122,8 +119,7 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
         cJSON* title_item = cJSON_GetObjectItem(song_item, "name");
         if((title_item != nullptr) && (title_item->type == cJSON_String))
         {
-            int editdist = compute_edit_distance(title_item->valuestring, title);
-            if(editdist > MAX_TAG_EDIT_DISTANCE)
+            if(!tag_values_match(title_item->valuestring, title))
             {
                 LOG_INFO("Rejected NetEase search result %s/%s/%s for title mismatch: %s",
                         artist.data(),
