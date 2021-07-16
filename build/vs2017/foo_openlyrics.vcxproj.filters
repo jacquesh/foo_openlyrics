@@ -102,6 +102,9 @@
     <ClCompile Include="..\..\src\sources\qqmusic.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\sources\musixmatch.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">

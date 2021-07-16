@@ -43,6 +43,8 @@ namespace preferences
         std::vector<GUID> active_sources();
         std::vector<std::string> tags();
         bool exclude_trailing_brackets();
+
+        std::string musixmatch_api_key();
     }
 
     namespace saving

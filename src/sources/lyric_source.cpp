@@ -92,7 +92,7 @@ std::string LyricSourceBase::urlencode(std::string_view input)
         }
         else if(input[i] == ' ')
         {
-            result += '+';
+            result += "%20";
         }
         else
         {

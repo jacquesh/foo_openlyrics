@@ -183,6 +183,7 @@
     <ClCompile Include="..\..\src\sources\darklyrics.cpp" />
     <ClCompile Include="..\..\src\sources\id3tag.cpp" />
     <ClCompile Include="..\..\src\sources\lyric_source.cpp" />
+    <ClCompile Include="..\..\src\sources\musixmatch.cpp" />
     <ClCompile Include="..\..\src\sources\netease.cpp" />
     <ClCompile Include="..\..\src\sources\qqmusic.cpp" />
     <ClCompile Include="..\..\src\ui_contextmenu.cpp" />
