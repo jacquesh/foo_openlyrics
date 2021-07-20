@@ -1099,7 +1099,7 @@ namespace {
 
         bool is_edit = (update.get_type() == LyricUpdateHandle::Type::Edit);
         bool loaded_from_save_src = (lyrics.source_id == preferences::saving::save_source());
-        bool should_save = is_edit || (should_autosave && !loaded_from_save_src); // Don't save to the source we just loaded from
+        bool should_save = should_autosave && (is_edit || !loaded_from_save_src); // Don't save to the source we just loaded from
         if(should_save)
         {
             try
