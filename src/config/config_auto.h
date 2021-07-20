@@ -239,6 +239,11 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
     {
     }
 
+    int get_option_count() const
+    {
+        return IOptionCount;
+    }
+
     TEnum get_value()
     {
         return (TEnum)cfg_int_t<int>::get_value();

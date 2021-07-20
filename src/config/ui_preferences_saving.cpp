@@ -38,9 +38,10 @@ static cfg_auto_combo_option<AutoSaveStrategy> autosave_strategy_options[] =
 {
     {_T("Always"), AutoSaveStrategy::Always},
     {_T("Only synced lyrics"), AutoSaveStrategy::OnlySynced},
+    {_T("Never"), AutoSaveStrategy::Never}
 };
 
-static cfg_auto_combo<AutoSaveStrategy, 2>   cfg_save_auto_save_strategy(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_SAVE_AUTOSAVE_TYPE, AutoSaveStrategy::Always, autosave_strategy_options);
+static cfg_auto_combo<AutoSaveStrategy, 3>   cfg_save_auto_save_strategy(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_SAVE_AUTOSAVE_TYPE, AutoSaveStrategy::Always, autosave_strategy_options);
 static cfg_auto_combo<SaveMethod, 2>         cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::LocalFile, save_method_options);
 static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCEDLYRICS");
 static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "LYRICS");
@@ -196,7 +197,7 @@ public:
     BEGIN_MSG_MAP_EX(PreferencesSaving)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_HANDLER_EX(IDC_SAVE_METHOD_COMBO, CBN_SELCHANGE, OnSaveMethodChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_AUTOSAVE_TYPE, CBN_SELCHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_AUTOSAVE_TYPE, CBN_SELCHANGE, OnAutoSaveChange)
         COMMAND_HANDLER_EX(IDC_SAVE_TAG_SYNCED, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_TAG_UNSYNCED, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
@@ -211,6 +212,7 @@ private:
     BOOL OnInitDialog(CWindow, LPARAM);
     void OnUIChange(UINT, int, CWindow);
     void OnSaveNameFormatChange(UINT, int, CWindow);
+    void OnAutoSaveChange(UINT, int, CWindow);
     void OnSaveMethodChange(UINT, int, CWindow);
     void OnDirectoryClassChange(UINT, int, CWindow);
     void OnCustomPathFormatChange(UINT, int, CWindow);
@@ -219,6 +221,8 @@ private:
     void UpdateFormatPreview(int edit_id, int preview_id, bool is_path);
     void SetMethodFieldsEnabled();
     void SetCustomPathEnabled();
+
+    AutoSaveStrategy m_last_select_autosave_strategy;
 };
 
 void PreferencesSaving::on_playback_new_track(metadb_handle_ptr /*track*/)
@@ -231,6 +235,7 @@ BOOL PreferencesSaving::OnInitDialog(CWindow, LPARAM)
 {
     init_auto_preferences();
     SetMethodFieldsEnabled();
+    m_last_select_autosave_strategy = cfg_save_auto_save_strategy.get_value();
     return FALSE;
 }
 
@@ -242,6 +247,51 @@ void PreferencesSaving::OnUIChange(UINT, int, CWindow)
 void PreferencesSaving::OnSaveNameFormatChange(UINT, int, CWindow)
 {
     UpdateFormatPreview(IDC_SAVE_FILENAME_FORMAT, IDC_SAVE_FILE_NAME_PREVIEW, false);
+    on_ui_interaction();
+}
+
+void PreferencesSaving::OnAutoSaveChange(UINT, int, CWindow)
+{
+    // NOTE: the auto-combo config sets item-data to the integral representation of that option's enum value
+    LRESULT ui_index = SendDlgItemMessage(IDC_SAVE_AUTOSAVE_TYPE, CB_GETCURSEL, 0, 0);
+    LRESULT logical_value = SendDlgItemMessage(IDC_SAVE_AUTOSAVE_TYPE, CB_GETITEMDATA, ui_index, 0);
+    assert(logical_value != CB_ERR);
+
+    bool reverted = false;
+    const AutoSaveStrategy strategy = static_cast<AutoSaveStrategy>(logical_value);
+    if((strategy == AutoSaveStrategy::Never) && (m_last_select_autosave_strategy != AutoSaveStrategy::Never))
+    {
+        popup_message_v3::query_t query = {};
+        query.title = "Autosave warning";
+        query.msg = "You have selected the 'never autosave' option, which will prevent OpenLyrics from ever saving lyrics unless you explicitly ask it to. This will cause lyric searches to always take significantly longer than if lyrics were saved and is not what most users want.\r\n\r\nAre you sure you want to disable autosave completely?";
+        query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
+        query.defButton = popup_message_v3::buttonNo;
+        query.icon = popup_message_v3::iconWarning;
+        uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
+        if(popup_result == popup_message_v3::buttonNo)
+        {
+            for(int i=0; i<cfg_save_auto_save_strategy.get_option_count(); i++)
+            {
+                LRESULT item_logical_value = SendDlgItemMessage(IDC_SAVE_AUTOSAVE_TYPE, CB_GETITEMDATA, i, 0);
+                assert(item_logical_value != CB_ERR);
+                AutoSaveStrategy item_strategy = static_cast<AutoSaveStrategy>(item_logical_value);
+
+                if(item_strategy == m_last_select_autosave_strategy)
+                {
+                    LRESULT set_cur_result = SendDlgItemMessage(IDC_SAVE_AUTOSAVE_TYPE, CB_SETCURSEL, i, 0);
+                    assert(set_cur_result != CB_ERR);
+                    reverted = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if(!reverted)
+    {
+        m_last_select_autosave_strategy = strategy;
+    }
+
     on_ui_interaction();
 }
 
