@@ -18,6 +18,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a source for Musixmatch\n"
     "- Add an auto-edit to fix HTML-encoded characters (e.g &gt; to >)\n"
     "- Add an option to entirely disable auto-saving downloaded lyrics\n"
+    "- Add a manual save button to the lyric panel context menu\n"
     "- Change trailing bracket removal to also apply to artists & albums\n"
     "Version 0.7 (2021-07-04):\n"
     "- Add a source for QQ Music\n"

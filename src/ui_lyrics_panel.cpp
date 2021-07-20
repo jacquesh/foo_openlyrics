@@ -778,6 +778,7 @@ namespace {
             UINT disabled_with_lyrics = m_lyrics.IsEmpty() ? 0 : MF_GRAYED;
             enum {
                 ID_SEARCH_LYRICS = 1,
+                ID_SAVE_LYRICS,
                 ID_PREFERENCES,
                 ID_EDIT_LYRICS,
                 ID_OPEN_FILE_DIR,
@@ -800,6 +801,7 @@ namespace {
             CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
+            AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_SAVE_LYRICS, _T("Save lyrics"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
             AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_edit.m_hMenu, _T("Auto-edit lyrics"));
@@ -810,6 +812,7 @@ namespace {
 
             CMenuDescriptionHybrid menudesc(get_wnd());
             menudesc.Set(ID_SEARCH_LYRICS, "Start a completely new search for lyrics");
+            menudesc.Set(ID_SAVE_LYRICS, "Save the current lyrics, even if they would not be auto-saved");
             menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
             menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
             menudesc.Set(ID_OPEN_FILE_DIR, "Open explorer to the location of the lyrics file");
@@ -844,6 +847,26 @@ namespace {
                     if(m_now_playing != nullptr)
                     {
                         InitiateLyricSearch(m_now_playing);
+                    }
+                } break;
+
+                case ID_SAVE_LYRICS:
+                {
+                    if((m_now_playing == nullptr) || m_lyrics.IsEmpty())
+                    {
+                        LOG_INFO("Attempt to manually save empty lyrics, ignoring...");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            bool allow_overwrite = true;
+                            m_lyrics.persistent_storage_path = io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, fb2k::noAbort);
+                        }
+                        catch(const std::exception& e)
+                        {
+                            LOG_ERROR("Failed to complete manually requested lyric save: %s", e.what());
+                        }
                     }
                 } break;
 
