@@ -16,7 +16,7 @@ class DarkLyricsSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("darklyrics.com"); }
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
 };
 static const LyricSourceFactory<DarkLyricsSource> src_factory;
 
@@ -68,13 +68,13 @@ void DarkLyricsSource::add_all_text_to_string(std::string& output, xmlNodePtr no
     }
 }
 
-LyricDataRaw DarkLyricsSource::query(metadb_handle_ptr track, abort_callback& abort)
+LyricDataRaw DarkLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
 
-    std::string url_artist = remove_chars_for_url(get_artist(track));
-    std::string url_album = remove_chars_for_url(get_album(track));
-    std::string url_title = remove_chars_for_url(get_title(track));
+    std::string url_artist = remove_chars_for_url(artist);
+    std::string url_album = remove_chars_for_url(album);
+    std::string url_title = remove_chars_for_url(title);
     std::string url = "http://darklyrics.com/lyrics/" + url_artist + "/" + url_album + ".html";;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
@@ -128,7 +128,7 @@ LyricDataRaw DarkLyricsSource::query(metadb_handle_ptr track, abort_callback& ab
 
                     title_text.remove_prefix(title_dot_index + 1); // +1 to include the '.' that we found
                     title_text = trim_surrounding_whitespace(title_text);
-                    if(!tag_values_match(title_text, get_title(track)))
+                    if(!tag_values_match(title_text, title))
                     {
                         continue;
                     }

@@ -34,51 +34,6 @@ void LyricSourceBase::on_init()
     g_lyric_sources.push_back(this);
 }
 
-std::string_view LyricSourceBase::get_metadata(metadb_handle_ptr track, const char* tag)
-{
-    const metadb_info_container::ptr& track_info_container = track->get_info_ref();
-    const file_info& track_info = track_info_container->info();
-
-    size_t meta_index = track_info.meta_find(tag);
-    if((meta_index != pfc::infinite_size) && (track_info.meta_enum_value_count(meta_index) > 0))
-    {
-        std::string_view result = track_info.meta_enum_value(meta_index, 0);
-        return trim_surrounding_whitespace(result);
-    }
-
-    return "";
-}
-
-std::string_view LyricSourceBase::get_artist(metadb_handle_ptr track)
-{
-    std::string_view result = get_metadata(track, "artist");
-    if(preferences::searching::exclude_trailing_brackets())
-    {
-        result = trim_surrounding_whitespace(trim_trailing_text_in_brackets(result));
-    }
-    return result;
-}
-
-std::string_view LyricSourceBase::get_album(metadb_handle_ptr track)
-{
-    std::string_view result = get_metadata(track, "album");
-    if(preferences::searching::exclude_trailing_brackets())
-    {
-        result = trim_surrounding_whitespace(trim_trailing_text_in_brackets(result));
-    }
-    return result;
-}
-
-std::string_view LyricSourceBase::get_title(metadb_handle_ptr track)
-{
-    std::string_view result = get_metadata(track, "title");
-    if(preferences::searching::exclude_trailing_brackets())
-    {
-        result = trim_surrounding_whitespace(trim_trailing_text_in_brackets(result));
-    }
-    return result;
-}
-
 std::string LyricSourceBase::urlencode(std::string_view input)
 {
     size_t inlen = input.length();
@@ -229,6 +184,30 @@ bool LyricSourceBase::tag_values_match(std::string_view tagA, std::string_view t
 bool LyricSourceRemote::is_local() const
 {
     return false;
+}
+
+
+LyricDataRaw LyricSourceRemote::query(metadb_handle_ptr track, abort_callback& abort)
+{
+    const auto get_metadata = [](metadb_handle_ptr track, const char* tag)
+    {
+        const metadb_info_container::ptr& track_info_container = track->get_info_ref();
+        const file_info& track_info = track_info_container->info();
+
+        size_t meta_index = track_info.meta_find(tag);
+        if((meta_index != pfc::infinite_size) && (track_info.meta_enum_value_count(meta_index) > 0))
+        {
+            std::string_view result = track_info.meta_enum_value(meta_index, 0);
+            return result;
+        }
+
+        return std::string_view{};
+    };
+
+    std::string_view artist = get_metadata(track, "artist");
+    std::string_view album = get_metadata(track, "album");
+    std::string_view title = get_metadata(track, "title");
+    return query(artist, album, title, abort);
 }
 
 std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, bool /*allow_ovewrite*/, abort_callback& /*abort*/)

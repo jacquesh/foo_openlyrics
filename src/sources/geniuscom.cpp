@@ -16,7 +16,7 @@ class GeniusComSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("genius.com"); }
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
 
@@ -73,15 +73,15 @@ void GeniusComSource::add_all_text_to_string(std::string& output, xmlNodePtr nod
     }
 }
 
-LyricDataRaw GeniusComSource::query(metadb_handle_ptr track, abort_callback& abort)
+LyricDataRaw GeniusComSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     abort_callback_dummy noAbort;
     auto request = http_client::get()->create_request("GET");
 
     std::string url = "https://genius.com/";
-    url += remove_chars_for_url(get_artist(track));
+    url += remove_chars_for_url(artist);
     url += '-';
-    url += remove_chars_for_url(get_title(track));
+    url += remove_chars_for_url(title);
     url += "-lyrics";
 
     LyricDataRaw result = {};

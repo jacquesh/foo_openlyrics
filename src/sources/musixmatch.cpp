@@ -20,7 +20,7 @@ class MusixmatchLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Musixmatch"); }
 
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
 
 private:
     SongSearchResult get_song_id(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const;
@@ -271,7 +271,7 @@ LyricDataRaw MusixmatchLyricsSource::get_synced_lyrics(int64_t track_id, abort_c
     return get_lyrics(track_id, abort, "track.subtitle.get", "subtitle", "subtitle_body");
 }
 
-LyricDataRaw MusixmatchLyricsSource::query(metadb_handle_ptr track, abort_callback& abort)
+LyricDataRaw MusixmatchLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     if(preferences::searching::musixmatch_api_key().empty())
     {
@@ -281,10 +281,6 @@ LyricDataRaw MusixmatchLyricsSource::query(metadb_handle_ptr track, abort_callba
     }
     else
     {
-        std::string_view artist = get_artist(track);
-        std::string_view album = get_album(track);
-        std::string_view title = get_title(track);
-
         SongSearchResult search = get_song_id(artist, album, title, abort);
         if(search.track_id >= 0)
         {

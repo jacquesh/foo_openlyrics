@@ -16,7 +16,7 @@ class AZLyricsComSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("azlyrics.com"); }
 
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
 };
 static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
@@ -36,13 +36,13 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
-LyricDataRaw AZLyricsComSource::query(metadb_handle_ptr track, abort_callback& abort)
+LyricDataRaw AZLyricsComSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
     request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
 
-    std::string url_artist = remove_chars_for_url(get_artist(track));
-    std::string url_title = remove_chars_for_url(get_title(track));
+    std::string url_artist = remove_chars_for_url(artist);
+    std::string url_title = remove_chars_for_url(title);
     std::string url = "https://www.azlyrics.com/lyrics/" + url_artist + "/" + url_title + ".html";;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 

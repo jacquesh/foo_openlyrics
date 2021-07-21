@@ -13,7 +13,7 @@ class QQMusicLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("QQ Music"); }
 
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
 
 private:
     LyricDataRaw get_song_lyrics(std::string song_id, abort_callback& abort) const;
@@ -216,11 +216,8 @@ LyricDataRaw QQMusicLyricsSource::get_song_lyrics(std::string song_id, abort_cal
     return result;
 }
 
-LyricDataRaw QQMusicLyricsSource::query(metadb_handle_ptr track, abort_callback& abort)
+LyricDataRaw QQMusicLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
-    std::string_view artist = get_artist(track);
-    std::string_view album = get_album(track);
-    std::string_view title = get_title(track);
     std::string song_id = get_song_id(artist, album, title, abort);
     return get_song_lyrics(std::move(song_id), abort);
 }

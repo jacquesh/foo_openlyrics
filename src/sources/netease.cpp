@@ -13,7 +13,7 @@ class NetEaseLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
 
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
 
 private:
     LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort) const;
@@ -220,11 +220,8 @@ LyricDataRaw NetEaseLyricsSource::get_song_lyrics(int64_t song_id, abort_callbac
     return result;
 }
 
-LyricDataRaw NetEaseLyricsSource::query(metadb_handle_ptr track, abort_callback& abort)
+LyricDataRaw NetEaseLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
-    std::string_view artist = get_artist(track);
-    std::string_view album = get_album(track);
-    std::string_view title = get_title(track);
     int64_t song_id = get_song_id(artist, album, title, abort);
     return get_song_lyrics(song_id, abort);
 }
