@@ -26,7 +26,6 @@ public:
     static std::string_view get_artist(metadb_handle_ptr track);
     static std::string_view get_album(metadb_handle_ptr track);
     static std::string_view get_title(metadb_handle_ptr track);
-    static std::string_view get_tracknumber(metadb_handle_ptr track);
 
 protected:
     static std::string urlencode(std::string_view input);

@@ -21,6 +21,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a manual save button to the lyric panel context menu\n"
     "- Change trailing bracket removal to also apply to artists & albums\n"
     "- Change edits to only auto-save if allowed by the auto-save config\n"
+    "- Change the darklyrics search to check the track name not number\n"
     "\n"
     "Version 0.7 (2021-07-04):\n"
     "- Add a source for QQ Music\n"

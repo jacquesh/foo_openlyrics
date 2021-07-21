@@ -79,11 +79,6 @@ std::string_view LyricSourceBase::get_title(metadb_handle_ptr track)
     return result;
 }
 
-std::string_view LyricSourceBase::get_tracknumber(metadb_handle_ptr track)
-{
-    return get_metadata(track, "tracknumber");
-}
-
 std::string LyricSourceBase::urlencode(std::string_view input)
 {
     size_t inlen = input.length();

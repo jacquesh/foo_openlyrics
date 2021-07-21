@@ -106,10 +106,9 @@ LyricDataRaw DarkLyricsSource::query(metadb_handle_ptr track, abort_callback& ab
         }
 
         std::string lyric_text;
-        std::string_view track_number = get_tracknumber(track);
 
         char xpath_query[64] = {};
-        snprintf(xpath_query, sizeof(xpath_query), "//div[@class='lyrics']/h3/a[@name=%s]", track_number.data());
+        snprintf(xpath_query, sizeof(xpath_query), "//div[@class='lyrics']/h3/a[@name]");
         xmlXPathObjectPtr xpath_obj = xmlXPathEvalExpression(BAD_CAST xpath_query, xpath_ctx);
         if(xpath_obj != nullptr)
         {
@@ -118,6 +117,22 @@ LyricDataRaw DarkLyricsSource::query(metadb_handle_ptr track, abort_callback& ab
                 for(int i=0; i<xpath_obj->nodesetval->nodeNr; i++)
                 {
                     xmlNodePtr node = xpath_obj->nodesetval->nodeTab[i];
+                    if(node->type != XML_ELEMENT_NODE) continue;
+                    if(node->children == nullptr) continue;
+                    if(node->children->type != XML_TEXT_NODE) continue;
+
+                    std::string_view title_text = (const char*)node->children->content;
+                    size_t title_dot_index = title_text.find('.');
+
+                    if(title_dot_index == std::string_view::npos) continue;
+
+                    title_text.remove_prefix(title_dot_index + 1); // +1 to include the '.' that we found
+                    title_text = trim_surrounding_whitespace(title_text);
+                    if(!tag_values_match(title_text, get_title(track)))
+                    {
+                        continue;
+                    }
+
                     if(node->parent != nullptr)
                     {
                         add_all_text_to_string(lyric_text, node->parent->next);
