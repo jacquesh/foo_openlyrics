@@ -34,6 +34,27 @@ void LyricSourceBase::on_init()
     g_lyric_sources.push_back(this);
 }
 
+std::string LyricSourceBase::track_metadata(metadb_handle_ptr track, std::string_view key)
+{
+    const metadb_info_container::ptr& track_info_container = track->get_info_ref();
+    const file_info& track_info = track_info_container->info();
+
+    size_t value_index = track_info.meta_find_ex(key.data(), key.length());
+    if(value_index == pfc::infinite_size)
+    {
+        return "";
+    }
+
+    std::string result;
+    size_t value_count = track_info.meta_enum_value_count(value_index);
+    for(size_t i=0; i<value_count; i++)
+    {
+        const char* value = track_info.meta_enum_value(value_index, i);
+        result += value;
+    }
+    return result;
+}
+
 std::string LyricSourceBase::urlencode(std::string_view input)
 {
     size_t inlen = input.length();
@@ -186,12 +207,11 @@ bool LyricSourceRemote::is_local() const
     return false;
 }
 
-
-LyricDataRaw LyricSourceRemote::query(metadb_handle_ptr track, abort_callback& abort)
+std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr track, abort_callback& abort)
 {
-    const auto get_metadata = [](metadb_handle_ptr track, const char* tag)
+    const auto get_metadata = [](metadb_handle_ptr meta_track, const char* tag)
     {
-        const metadb_info_container::ptr& track_info_container = track->get_info_ref();
+        const metadb_info_container::ptr& track_info_container = meta_track->get_info_ref();
         const file_info& track_info = track_info_container->info();
 
         size_t meta_index = track_info.meta_find(tag);
@@ -207,7 +227,7 @@ LyricDataRaw LyricSourceRemote::query(metadb_handle_ptr track, abort_callback& a
     std::string_view artist = get_metadata(track, "artist");
     std::string_view album = get_metadata(track, "album");
     std::string_view title = get_metadata(track, "title");
-    return query(artist, album, title, abort);
+    return search(artist, album, title, abort);
 }
 
 std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, bool /*allow_ovewrite*/, abort_callback& /*abort*/)

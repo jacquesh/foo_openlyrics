@@ -10,7 +10,7 @@ static const GUID src_guid = { 0xf94ba31a, 0x7b33, 0x49e4, { 0x81, 0x9b, 0x0, 0x
 
 struct SongSearchResult
 {
-    int track_id;
+    int64_t track_id;
     bool has_synced_lyrics;
     bool has_unsynced_lyrics;
 };
@@ -20,10 +20,11 @@ class MusixmatchLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Musixmatch"); }
 
-    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
 
 private:
-    SongSearchResult get_song_id(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const;
+    std::vector<LyricDataRaw> get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const;
     LyricDataRaw get_lyrics(int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const;
     LyricDataRaw get_unsynced_lyrics(int64_t track_id, abort_callback& abort) const;
     LyricDataRaw get_synced_lyrics(int64_t track_id, abort_callback& abort) const;
@@ -34,6 +35,37 @@ static const LyricSourceFactory<MusixmatchLyricsSource> src_factory;
 
 static const char* g_api_url = "https://apic-desktop.musixmatch.com/ws/1.1/";
 static const char* g_common_params = "user_language=en&app_id=web-desktop-app-v1.0";
+
+static std::string EncodeSearchResult(SongSearchResult search_result)
+{
+    std::string output;
+    output += (search_result.has_unsynced_lyrics ? '1' : '0');
+    output += (search_result.has_synced_lyrics ? '1' : '0');
+    output += std::to_string(search_result.track_id);
+    return output;
+}
+
+static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
+{
+    if(str.length() < 3)
+    {
+        return {};
+    }
+    if((str[0] != '0') && (str[0] != '1'))
+    {
+        return {};
+    }
+    if((str[1] != '0') && (str[1] != '1'))
+    {
+        return {};
+    }
+
+    SongSearchResult result = {};
+    result.has_unsynced_lyrics = (str[0] == '1');
+    result.has_synced_lyrics = (str[1] == '1');
+    result.track_id = strtoll(&str[2], nullptr, 10);
+    return result;
+}
 
 bool MusixmatchLyricsSource::json_string_matches(const char* field_name, cJSON* json, std::string_view comparison) const
 {
@@ -52,7 +84,7 @@ bool MusixmatchLyricsSource::json_string_matches(const char* field_name, cJSON* 
     return true;
 }
 
-SongSearchResult MusixmatchLyricsSource::get_song_id(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const
+std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const
 {
     std::string apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + "track.search?" + g_common_params + "&subtitle_format=lrc&usertoken=" + apikey;
@@ -117,7 +149,7 @@ SongSearchResult MusixmatchLyricsSource::get_song_id(std::string_view artist, st
         return {};
     }
 
-    SongSearchResult result = {};
+    std::vector<LyricDataRaw> results;
     cJSON* json_track = nullptr;
     cJSON_ArrayForEach(json_track, json_tracklist)
     {
@@ -173,31 +205,33 @@ SongSearchResult MusixmatchLyricsSource::get_song_id(std::string_view artist, st
             break;
         }
 
-        result.track_id = json_trackid->valueint;
-        result.has_unsynced_lyrics = (json_haslyrics->valueint != 0);
-        result.has_synced_lyrics = (json_hassubtitles->valueint != 0);
-        break;
+        SongSearchResult search_result = {};
+        search_result.track_id = json_trackid->valueint;
+        search_result.has_unsynced_lyrics = (json_haslyrics->valueint != 0);
+        search_result.has_synced_lyrics = (json_hassubtitles->valueint != 0);
+
+        LyricDataRaw data = {};
+        data.source_id = id();
+        data.artist = json_artist->valuestring;
+        data.album = json_album->valuestring;
+        data.title = json_title->valuestring;
+        data.lookup_id = EncodeSearchResult(search_result);
+        results.push_back(std::move(data));
     }
 
     cJSON_Delete(json);
-    return result;
+    return results;
 }
-
 
 LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const
 {
     LyricDataRaw result = {};
     result.source_id = src_guid;
 
-    if(track_id <= 0)
-    {
-        return result;
-    }
-
     std::string apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&usertoken=" + apikey + "&commontrack_id=" + std::to_string(track_id);
     result.persistent_storage_path = url;
-    LOG_INFO("Querying for lyrics from %s...", url.c_str());
+    LOG_INFO("Get Musixmatch lyrics lyrics from %s...", url.c_str());
 
     pfc::string8 content;
     try
@@ -222,7 +256,6 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
         cJSON_Delete(json);
         return result;
     }
-
 
     cJSON* json_message = cJSON_GetObjectItem(json, "message");
     if((json_message == nullptr) || (json_message->type != cJSON_Object))
@@ -271,32 +304,41 @@ LyricDataRaw MusixmatchLyricsSource::get_synced_lyrics(int64_t track_id, abort_c
     return get_lyrics(track_id, abort, "track.subtitle.get", "subtitle", "subtitle_body");
 }
 
-LyricDataRaw MusixmatchLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> MusixmatchLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     if(preferences::searching::musixmatch_api_key().empty())
     {
         // An API key is required.
         // Skip the search if we don't have one so we don't accidentally spam their servers with obviously-bad requests.
         LOG_INFO("Skipping request to the Musixmatch source because no API key is available");
-    }
-    else
-    {
-        SongSearchResult search = get_song_id(artist, album, title, abort);
-        if(search.track_id >= 0)
-        {
-            if(search.has_synced_lyrics)
-            {
-                return get_synced_lyrics(search.track_id, abort);
-            }
-            else if(search.has_unsynced_lyrics)
-            {
-                return get_unsynced_lyrics(search.track_id, abort);
-            }
-        }
+        return {};
     }
 
-    LyricDataRaw result = {};
-    result.source_id = src_guid;
-    return result;
+    return get_song_ids(artist, album, title, abort);
 }
 
+LyricDataRaw MusixmatchLyricsSource::lookup(std::string_view lookup_id, abort_callback& abort)
+{
+    std::optional<SongSearchResult> maybe_search_result = DecodeSearchResult(lookup_id);
+    if(!maybe_search_result.has_value())
+    {
+        return {};
+    }
+
+    const SongSearchResult& search_result = maybe_search_result.value();
+    if(search_result.track_id == 0)
+    {
+        return {};
+    }
+
+    if(search_result.has_synced_lyrics)
+    {
+        return get_synced_lyrics(search_result.track_id, abort);
+    }
+    else if(search_result.has_unsynced_lyrics)
+    {
+        return get_unsynced_lyrics(search_result.track_id, abort);
+    }
+
+    return {};
+}

@@ -16,7 +16,8 @@ class AZLyricsComSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("azlyrics.com"); }
 
-    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
 };
 static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
@@ -36,7 +37,7 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
-LyricDataRaw AZLyricsComSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
     request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
@@ -45,10 +46,6 @@ LyricDataRaw AZLyricsComSource::query(std::string_view artist, std::string_view 
     std::string url_title = remove_chars_for_url(title);
     std::string url = "https://www.azlyrics.com/lyrics/" + url_artist + "/" + url_title + ".html";;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
-
-    LyricDataRaw result = {};
-    result.source_id = id();
-    result.persistent_storage_path = url;
 
     pfc::string8 content;
     try
@@ -60,7 +57,7 @@ LyricDataRaw AZLyricsComSource::query(std::string_view artist, std::string_view 
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download azlyrics.com page %s: %s", url.c_str(), e.what());
-        return result;
+        return {};
     }
 
     htmlDocPtr doc = htmlReadMemory(content.c_str(), content.length(), url.c_str(), nullptr, 0);
@@ -141,10 +138,23 @@ LyricDataRaw AZLyricsComSource::query(std::string_view artist, std::string_view 
         else
         {
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
+
+            LyricDataRaw result = {};
+            result.source_id = id();
+            result.persistent_storage_path = url;
+            result.artist = artist;
+            result.title = title;
             result.text = trim_surrounding_whitespace(lyric_text);
-            return result;
+            return {std::move(result)};
         }
     }
 
-    return result;
+    return {};
+}
+
+LyricDataRaw AZLyricsComSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+{
+    LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
+    assert(false);
+    return {};
 }

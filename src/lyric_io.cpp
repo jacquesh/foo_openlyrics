@@ -87,13 +87,31 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
 
         try
         {
-            lyric_data_raw = source->query(handle.get_track(), handle.get_checked_abort());
-            assert(lyric_data_raw.source_id == source_id);
-
-            if(!lyric_data_raw.text.empty())
+            std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_checked_abort());
+            for(LyricDataRaw& result : search_results)
             {
-                LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
-                break;
+                assert(result.source_id == source_id);
+                if(result.lookup_id.empty())
+                {
+                    assert(!result.text.empty());
+                    lyric_data_raw = std::move(result);
+                    LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
+                    break;
+                }
+                else
+                {
+                    LyricDataRaw lyrics = source->lookup(result.lookup_id, handle.get_checked_abort());
+                    if(!lyrics.text.empty())
+                    {
+                        lyric_data_raw = std::move(lyrics);
+                        LOG_INFO("Successfully looked-up lyrics from source: %s", friendly_name.c_str());
+                        break;
+                    }
+                    else
+                    {
+                        LOG_INFO("Look up for lyrics from source %s returned an empty result, ignoring...", friendly_name.c_str());
+                    }
+                }
             }
         }
         catch(const std::exception& e)
@@ -105,6 +123,10 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
             LOG_ERROR("Error of unrecognised type while searching %s", friendly_name.c_str());
         }
 
+        if(!lyric_data_raw.text.empty())
+        {
+            break;
+        }
         LOG_INFO("Failed to retrieve lyrics from source: %s", friendly_name.c_str());
     }
     ensure_windows_newlines(lyric_data_raw.text);
@@ -201,21 +223,18 @@ bool LyricUpdateHandle::wait_for_complete(uint32_t timeout_ms)
 bool LyricUpdateHandle::has_result()
 {
     EnterCriticalSection(&m_mutex);
-    bool complete = ((m_status == Status::ResultAvailable) || (m_status == Status::Complete));
+    bool output = !m_lyrics.empty();
     LeaveCriticalSection(&m_mutex);
-    return complete;
+    return output;
 }
 
 LyricData LyricUpdateHandle::get_result()
 {
-    assert(has_result());
     EnterCriticalSection(&m_mutex);
-    LyricData result = std::move(m_lyrics);
-    if(m_status == Status::ResultAvailable)
-    {
-        m_status = Status::Running;
-    }
-    else
+    assert(!m_lyrics.empty());
+    LyricData result = std::move(m_lyrics.front());
+    m_lyrics.erase(m_lyrics.begin());
+    if(m_lyrics.empty())
     {
         m_status = Status::Closed;
     }
@@ -256,17 +275,13 @@ void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Running);
-    m_lyrics = std::move(data);
+    m_lyrics.push_back(std::move(data));
 
     if(final_result)
     {
         m_status = Status::Complete;
         BOOL complete_success = SetEvent(m_complete);
         assert(complete_success);
-    }
-    else
-    {
-        m_status = Status::ResultAvailable;
     }
     LeaveCriticalSection(&m_mutex);
 

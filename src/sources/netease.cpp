@@ -13,12 +13,11 @@ class NetEaseLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
 
-    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view song_id, abort_callback& abort) final;
 
 private:
-    LyricDataRaw get_song_lyrics(int64_t song_id, abort_callback& abort) const;
-    int64_t parse_song_id(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title);
-    int64_t get_song_id(const std::string_view artist, const std::string_view album, const std::string_view title, abort_callback& abort);
+    std::vector<LyricDataRaw> parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title);
 };
 static const LyricSourceFactory<NetEaseLyricsSource> src_factory;
 
@@ -34,35 +33,35 @@ static http_request::ptr make_post_request()
     return request;
 }
 
-
-int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title)
+std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title)
 {
     if((json == nullptr) || (json->type != cJSON_Object))
     {
         LOG_INFO("Root object is null or not an object");
-        return 0;
+        return {};
     }
 
     cJSON* result_obj = cJSON_GetObjectItem(json, "result");
     if((result_obj == nullptr) || (result_obj->type != cJSON_Object))
     {
         LOG_INFO("No valid 'result' property available");
-        return 0;
+        return {};
     }
     cJSON* song_arr = cJSON_GetObjectItem(result_obj, "songs");
     if((song_arr == nullptr) || (song_arr->type != cJSON_Array))
     {
         LOG_INFO("No valid 'songs' property available");
-        return 0;
+        return {};
     }
 
     int song_arr_len = cJSON_GetArraySize(song_arr);
     if(song_arr_len <= 0)
     {
         LOG_INFO("Songs array has no items available");
-        return 0;
+        return {};
     }
 
+    std::vector<LyricDataRaw> output;
     for(int song_index=0; song_index<song_arr_len; song_index++)
     {
         cJSON* song_item = cJSON_GetArrayItem(song_arr, song_index);
@@ -71,6 +70,10 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
             LOG_INFO("Song array entry %d not available or invalid", song_index);
             continue;
         }
+
+        const char* result_artist = nullptr;
+        const char* result_album = nullptr;
+        const char* result_title = nullptr;
 
         cJSON* artist_list_item = cJSON_GetObjectItem(song_item, "artists");
         if((artist_list_item != nullptr) && (artist_list_item->type == cJSON_Array))
@@ -93,6 +96,7 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
                                     artist_name->valuestring);
                             continue;
                         }
+                        result_artist = artist_name->valuestring;
                     }
                 }
             }
@@ -113,6 +117,7 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
                             album_title_item->valuestring);
                     continue;
                 }
+                result_album = album_title_item->valuestring;
             }
         }
 
@@ -128,22 +133,29 @@ int64_t NetEaseLyricsSource::parse_song_id(cJSON* json, const std::string_view a
                         title_item->valuestring);
                 continue;
             }
+            result_title = title_item->valuestring;
         }
 
         cJSON* song_id_item = cJSON_GetObjectItem(song_item, "id");
         if((song_id_item == nullptr) || (song_id_item->type != cJSON_Number))
         {
             LOG_INFO("Song item ID field is not available or invalid");
-            return 0;
+            continue;
         }
 
-        return (int64_t)song_id_item->valuedouble;
+        LyricDataRaw data = {};
+        data.source_id = src_guid;
+        data.artist = result_artist;
+        data.album = result_album;
+        data.title = result_title;
+        data.lookup_id = std::to_string((int64_t)song_id_item->valuedouble);
+        output.push_back(std::move(data));
     }
 
-    return 0;
+    return output;
 }
 
-int64_t NetEaseLyricsSource::get_song_id(const std::string_view artist, const std::string_view album, const std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> NetEaseLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(artist) + '+' + urlencode(title) + "&type=1&offset=0&sub=false&limit=5";
     LOG_INFO("Querying for song ID from %s...", url.c_str());
@@ -159,33 +171,30 @@ int64_t NetEaseLyricsSource::get_song_id(const std::string_view artist, const st
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download netease page %s: %s", url.c_str(), e.what());
-        return 0;
+        return {};
     }
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
-    int64_t song_id = parse_song_id(json, artist, album, title);
+    std::vector<LyricDataRaw> song_ids = parse_song_ids(json, artist, album, title);
     cJSON_Delete(json);
 
-    return song_id;
+    return song_ids;
 }
 
-LyricDataRaw NetEaseLyricsSource::get_song_lyrics(int64_t song_id, abort_callback& abort) const
+LyricDataRaw NetEaseLyricsSource::lookup(std::string_view song_id, abort_callback& abort)
 {
     LyricDataRaw result = {};
     result.source_id = src_guid;
 
-    if(song_id == 0)
+    if(song_id.empty())
     {
         return result;
     }
 
-    LOG_INFO("Get NetEase lyrics for song id %d", song_id);
-    char id_buffer[16];
-    snprintf(id_buffer, sizeof(id_buffer), "%lld", song_id);
-
-    std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=" + id_buffer;
+    std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=";
+    url += song_id;
     result.persistent_storage_path = url;
-    LOG_INFO("Querying for lyrics from %s...", url.c_str());
+    LOG_INFO("Get NetEase lyrics for song ID %s from %s...", song_id.data(), url.c_str());
 
     pfc::string8 content;
     try
@@ -219,10 +228,3 @@ LyricDataRaw NetEaseLyricsSource::get_song_lyrics(int64_t song_id, abort_callbac
 
     return result;
 }
-
-LyricDataRaw NetEaseLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
-{
-    int64_t song_id = get_song_id(artist, album, title, abort);
-    return get_song_lyrics(song_id, abort);
-}
-

@@ -33,6 +33,9 @@ void LyricData::operator =(LyricData&& other)
 {
     source_id = other.source_id;
     persistent_storage_path = std::move(other.persistent_storage_path);
+    artist = std::move(other.artist);
+    album = std::move(other.album);
+    title = std::move(other.title);
     text = std::move(other.text);
     tags = std::move(other.tags);
     lines = std::move(other.lines);

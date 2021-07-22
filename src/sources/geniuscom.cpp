@@ -16,7 +16,8 @@ class GeniusComSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("genius.com"); }
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
-    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
 
@@ -73,7 +74,7 @@ void GeniusComSource::add_all_text_to_string(std::string& output, xmlNodePtr nod
     }
 }
 
-LyricDataRaw GeniusComSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     abort_callback_dummy noAbort;
     auto request = http_client::get()->create_request("GET");
@@ -83,10 +84,6 @@ LyricDataRaw GeniusComSource::query(std::string_view artist, std::string_view al
     url += '-';
     url += remove_chars_for_url(title);
     url += "-lyrics";
-
-    LyricDataRaw result = {};
-    result.source_id = id();
-    result.persistent_storage_path = url;
 
     pfc::string8 content;
     try
@@ -98,7 +95,7 @@ LyricDataRaw GeniusComSource::query(std::string_view artist, std::string_view al
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download genius.com page %s: %s", url.c_str(), e.what());
-        return result;
+        return {};
     }
 
     LOG_INFO("Page %s retrieved", url.c_str());
@@ -160,8 +157,13 @@ LyricDataRaw GeniusComSource::query(std::string_view artist, std::string_view al
         else
         {
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
+            LyricDataRaw result = {};
+            result.source_id = id();
+            result.persistent_storage_path = url;
+            result.artist = artist;
+            result.title = title;
             result.text = trim_surrounding_whitespace(lyric_text);
-            return result;
+            return {std::move(result)};
         }
     }
     else
@@ -169,5 +171,12 @@ LyricDataRaw GeniusComSource::query(std::string_view artist, std::string_view al
         LOG_WARN("Failed to parse HTML response from %s", url.c_str());
     }
 
-    return result;
+    return {};
+}
+
+LyricDataRaw GeniusComSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+{
+    LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
+    assert(false);
+    return {};
 }

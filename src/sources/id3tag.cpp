@@ -11,55 +11,59 @@ class ID3TagLyricSource : public LyricSourceBase
     std::tstring_view friendly_name() const final { return _T("ID3 tags"); }
     bool is_local() const final { return true; }
 
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
 };
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-static std::string GetTrackMetaString(const file_info& track_info, std::string_view key)
+std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abort_callback& abort)
 {
-    size_t value_index = track_info.meta_find_ex(key.data(), key.length());
-    if(value_index != pfc::infinite_size)
-    {
-        std::string result;
-        size_t value_count = track_info.meta_enum_value_count(value_index);
-        for(size_t i=0; i<value_count; i++)
-        {
-            const char* value = track_info.meta_enum_value(value_index, i);
-            result += value;
-        }
-        return result;
-    }
-    else
-    {
-        return "";
-    }
-}
-
-LyricDataRaw ID3TagLyricSource::query(metadb_handle_ptr track, abort_callback& abort)
-{
-    const metadb_info_container::ptr& track_info_container = track->get_full_info_ref(abort);
-    const file_info& track_info = track_info_container->info();
-
     LyricDataRaw result = {};
     result.source_id = src_guid;
     result.persistent_storage_path = track->get_path();
+    result.artist = track_metadata(track, "artist");
+    result.album = track_metadata(track, "album");
+    result.title = track_metadata(track, "title");
+
+    // NOTE: We can't use track_metadata() for this because we need the *full* info.
+    //       Lyric tags are not usually available in the data that is loaded by default.
+    const metadb_info_container::ptr& track_info_container = track->get_full_info_ref(abort);
+    const file_info& track_info = track_info_container->info();
 
     for(const std::string& tag : preferences::searching::tags())
     {
         LOG_INFO("Searching for lyrics in tag: %s", tag.c_str());
+        size_t lyric_value_index = track_info.meta_find_ex(tag.c_str(), tag.length());
+        if(lyric_value_index == pfc::infinite_size)
+        {
+            continue;
+        }
 
-        std::string text = GetTrackMetaString(track_info, tag);
-        if(!text.empty())
+        size_t value_count = track_info.meta_enum_value_count(lyric_value_index);
+        for(size_t i=0; i<value_count; i++)
+        {
+            const char* value = track_info.meta_enum_value(lyric_value_index, i);
+            result.text += value;
+        }
+
+        if(!result.text.empty())
         {
             LOG_INFO("Found lyrics in tag: %s", tag.c_str());
-            result.text = text;
             break;
         }
     }
 
-    return result;
+    return {std::move(result)};
+}
+
+LyricDataRaw ID3TagLyricSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+{
+    LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
+    assert(false);
+    return {};
 }
 
 std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& /*abort*/)

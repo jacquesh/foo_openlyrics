@@ -10,6 +10,11 @@ struct LyricDataRaw
 {
     GUID source_id;
     std::string persistent_storage_path;
+
+    std::string artist;
+    std::string album;
+    std::string title;
+    std::string lookup_id;
     std::string text;
 };
 

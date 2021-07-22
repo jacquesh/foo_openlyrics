@@ -16,7 +16,8 @@ class DarkLyricsSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("darklyrics.com"); }
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
-    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
 };
 static const LyricSourceFactory<DarkLyricsSource> src_factory;
 
@@ -68,7 +69,7 @@ void DarkLyricsSource::add_all_text_to_string(std::string& output, xmlNodePtr no
     }
 }
 
-LyricDataRaw DarkLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
 
@@ -77,10 +78,6 @@ LyricDataRaw DarkLyricsSource::query(std::string_view artist, std::string_view a
     std::string url_title = remove_chars_for_url(title);
     std::string url = "http://darklyrics.com/lyrics/" + url_artist + "/" + url_album + ".html";;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
-
-    LyricDataRaw result = {};
-    result.source_id = id();
-    result.persistent_storage_path = url;
 
     pfc::string8 content;
     try
@@ -92,7 +89,7 @@ LyricDataRaw DarkLyricsSource::query(std::string_view artist, std::string_view a
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download darklyrics.com page %s: %s", url.c_str(), e.what());
-        return result;
+        return {};
     }
 
     htmlDocPtr doc = htmlReadMemory(content.c_str(), content.length(), url.c_str(), nullptr, 0);
@@ -154,10 +151,24 @@ LyricDataRaw DarkLyricsSource::query(std::string_view artist, std::string_view a
         else
         {
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
+
+            LyricDataRaw result = {};
+            result.source_id = id();
+            result.persistent_storage_path = url;
+            result.artist = artist;
+            result.album = album;
+            result.title = title;
             result.text = trim_surrounding_whitespace(lyric_text);
-            return result;
+            return {std::move(result)};
         }
     }
 
-    return result;
+    return {};
+}
+
+LyricDataRaw DarkLyricsSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+{
+    LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
+    assert(false);
+    return {};
 }

@@ -50,7 +50,6 @@ private:
         Unknown,
         Created,
         Running,
-        ResultAvailable,
         Complete,
         Closed
     };
@@ -59,7 +58,7 @@ private:
     const Type m_type;
 
     CRITICAL_SECTION m_mutex;
-    LyricData m_lyrics;
+    std::vector<LyricData> m_lyrics;
     abort_callback& m_abort;
     HANDLE m_complete;
     Status m_status;

@@ -13,12 +13,11 @@ class QQMusicLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("QQ Music"); }
 
-    LyricDataRaw query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
 
 private:
-    LyricDataRaw get_song_lyrics(std::string song_id, abort_callback& abort) const;
-    std::string parse_song_id(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title) const;
-    std::string get_song_id(const std::string_view artist, const std::string_view album, const std::string_view title, abort_callback& abort) const;
+    std::vector<LyricDataRaw> parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title) const;
 };
 static const LyricSourceFactory<QQMusicLyricsSource> src_factory;
 
@@ -29,41 +28,42 @@ static http_request::ptr make_get_request()
     return request;
 }
 
-std::string QQMusicLyricsSource::parse_song_id(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title) const
+std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title) const
 {
     if((json == nullptr) || (json->type != cJSON_Object))
     {
         LOG_INFO("Root object is null or not an object");
-        return "";
+        return {};
     }
 
     cJSON* result_obj = cJSON_GetObjectItem(json, "data");
     if((result_obj == nullptr) || (result_obj->type != cJSON_Object))
     {
         LOG_INFO("No valid 'data' property available");
-        return ""; 
+        return {}; 
     }
     cJSON* song_obj = cJSON_GetObjectItem(result_obj, "song");
     if((song_obj == nullptr) || (song_obj->type != cJSON_Object))
     {
         LOG_INFO("No valid 'song' property available");
-        return "";
+        return {};
     }
 
     cJSON* song_arr = cJSON_GetObjectItem(song_obj, "list");
     if((song_arr == nullptr) || (song_arr->type != cJSON_Array))
     {
         LOG_INFO("No valid 'list' property available");
-        return "";
+        return {};
     }
 
     int song_arr_len = cJSON_GetArraySize(song_arr);
     if(song_arr_len <= 0)
     {
         LOG_INFO("Songs array has no items available");
-        return "";
+        return {};
     }
 
+    std::vector<LyricDataRaw> output;
     for(int song_index=0; song_index<song_arr_len; song_index++)
     {
         cJSON* song_item = cJSON_GetArrayItem(song_arr, song_index);
@@ -72,6 +72,10 @@ std::string QQMusicLyricsSource::parse_song_id(cJSON* json, const std::string_vi
             LOG_INFO("Song array entry %d not available or invalid", song_index);
             continue;
         }
+
+        const char* result_artist = nullptr;
+        const char* result_album = nullptr;
+        const char* result_title = nullptr;
 
         cJSON* artist_list_item = cJSON_GetObjectItem(song_item, "singer");
         if((artist_list_item != nullptr) && (artist_list_item->type == cJSON_Array))
@@ -94,6 +98,7 @@ std::string QQMusicLyricsSource::parse_song_id(cJSON* json, const std::string_vi
                                     artist_name->valuestring);
                             continue;
                         }
+                        result_artist = artist_name->valuestring;
                     }
                 }
             }
@@ -114,6 +119,7 @@ std::string QQMusicLyricsSource::parse_song_id(cJSON* json, const std::string_vi
                             album_title_item->valuestring);
                     continue;
                 }
+                result_album = album_title_item->valuestring;
             }
         }
 
@@ -129,22 +135,29 @@ std::string QQMusicLyricsSource::parse_song_id(cJSON* json, const std::string_vi
                         title_item->valuestring);
                 continue;
             }
+            result_title = title_item->valuestring;
         }
 
         cJSON* song_id_item = cJSON_GetObjectItem(song_item, "mid");
         if((song_id_item == nullptr) || (song_id_item->type != cJSON_String))
         {
             LOG_INFO("Song item ID field is not available or invalid");
-            return "";
+            continue;
         }
 
-        return song_id_item->valuestring;
+        LyricDataRaw data = {};
+        data.source_id = src_guid;
+        data.artist = result_artist;
+        data.album = result_album;
+        data.title = result_title;
+        data.lookup_id = song_id_item->valuestring;
+        output.push_back(std::move(data));
     }
 
-    return "";
+    return output;
 }
 
-std::string QQMusicLyricsSource::get_song_id(const std::string_view artist, const std::string_view album, const std::string_view title, abort_callback& abort) const
+std::vector<LyricDataRaw> QQMusicLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     std::string url = "http://c.y.qq.com/soso/fcgi-bin/client_search_cp?p=1&n=30&new_json=1&cr=1&format=json&inCharset=utf-8&outCharset=utf-8&w=" + urlencode(artist) + '+' + urlencode(album) + '+' + urlencode(title);
     LOG_INFO("Querying for song ID from %s...", url.c_str());
@@ -160,17 +173,17 @@ std::string QQMusicLyricsSource::get_song_id(const std::string_view artist, cons
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download QQMusic page %s: %s", url.c_str(), e.what());
-        return 0;
+        return {};
     }
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
-    std::string song_id = parse_song_id(json, artist, album, title);
+    std::vector<LyricDataRaw> song_ids = parse_song_ids(json, artist, album, title);
     cJSON_Delete(json);
 
-    return song_id;
+    return song_ids;
 }
 
-LyricDataRaw QQMusicLyricsSource::get_song_lyrics(std::string song_id, abort_callback& abort) const
+LyricDataRaw QQMusicLyricsSource::lookup(std::string_view song_id, abort_callback& abort)
 {
     LyricDataRaw result = {};
     result.source_id = src_guid;
@@ -180,10 +193,10 @@ LyricDataRaw QQMusicLyricsSource::get_song_lyrics(std::string song_id, abort_cal
         return result;
     }
 
-    LOG_INFO("Get QQMusic lyrics for song id %d", song_id);
-    std::string url = "http://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&inCharset=utf-8&outCharset=utf-8&songmid=" + song_id;
+    std::string url = "http://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&inCharset=utf-8&outCharset=utf-8&songmid=";
+    url += song_id;
     result.persistent_storage_path = url;
-    LOG_INFO("Querying for lyrics from %s...", url.c_str());
+    LOG_INFO("Get QQMusic lyrics for song ID %s from %s...", song_id.data(), url.c_str());
 
     pfc::string8 content;
     try
@@ -214,11 +227,5 @@ LyricDataRaw QQMusicLyricsSource::get_song_lyrics(std::string song_id, abort_cal
     cJSON_Delete(json);
 
     return result;
-}
-
-LyricDataRaw QQMusicLyricsSource::query(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
-{
-    std::string song_id = get_song_id(artist, album, title, abort);
-    return get_song_lyrics(std::move(song_id), abort);
 }
 

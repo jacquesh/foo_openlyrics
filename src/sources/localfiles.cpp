@@ -13,27 +13,23 @@ class LocalFileSource : public LyricSourceBase
     std::tstring_view friendly_name() const final { return _T("Local files"); }
     bool is_local() const final { return true; }
 
-    LyricDataRaw query(metadb_handle_ptr track, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
+    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
-LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abort)
+std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort_callback& abort)
 {
     std::string file_path_prefix = preferences::saving::filename(track);
-
-    LyricDataRaw result = {};
-    result.source_id = id();
-    result.persistent_storage_path = file_path_prefix;
 
     if(file_path_prefix.empty())
     {
         LOG_ERROR("Failed to determine query file path");
-        return result;
+        return {};
     }
 
-    // TODO: LyricShow3 has a "Choose Lyrics" and "Next Lyrics" option...if we have .txt and .lrc we should possibly communicate that?
-    // TODO: Should these extensions be configurable?
     const char* extensions[] = { ".lrc", ".txt" };
     for (const char* ext : extensions)
     {
@@ -50,11 +46,17 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
 
                 pfc::string8 file_contents;
                 file->read_string_raw(file_contents, abort);
-
-                result.persistent_storage_path = file_path;
-                result.text = file_contents;
                 LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
-                return result;
+
+                LyricDataRaw result = {};
+                result.source_id = id();
+                result.persistent_storage_path = file_path;
+                result.artist = track_metadata(track, "artist");
+                result.album = track_metadata(track, "album");
+                result.title = track_metadata(track, "title");
+                result.text = file_contents;
+
+                return {std::move(result)};
             }
         }
         catch(const std::exception& e)
@@ -64,7 +66,14 @@ LyricDataRaw LocalFileSource::query(metadb_handle_ptr track, abort_callback& abo
     }
 
     LOG_INFO("Failed to find lyrics in local files %s", file_path_prefix.c_str());
-    return result;
+    return {};
+}
+
+LyricDataRaw LocalFileSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+{
+    LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
+    assert(false);
+    return {};
 }
 
 static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort)
