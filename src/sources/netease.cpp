@@ -14,7 +14,7 @@ class NetEaseLyricsSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
 
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
-    LyricDataRaw lookup(std::string_view song_id, abort_callback& abort) final;
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
     std::vector<LyricDataRaw> parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title);
@@ -181,20 +181,17 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::search(std::string_view artist, s
     return song_ids;
 }
 
-LyricDataRaw NetEaseLyricsSource::lookup(std::string_view song_id, abort_callback& abort)
+bool NetEaseLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
 {
-    LyricDataRaw result = {};
-    result.source_id = src_guid;
-
-    if(song_id.empty())
+    assert(data.source_id == id());
+    if(data.lookup_id.empty())
     {
-        return result;
+        return false;
     }
 
-    std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=";
-    url += song_id;
-    result.persistent_storage_path = url;
-    LOG_INFO("Get NetEase lyrics for song ID %s from %s...", song_id.data(), url.c_str());
+    std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=" + data.lookup_id;
+    data.persistent_storage_path = url;
+    LOG_INFO("Get NetEase lyrics for song ID %s from %s...", data.lookup_id.c_str(), url.c_str());
 
     pfc::string8 content;
     try
@@ -207,10 +204,10 @@ LyricDataRaw NetEaseLyricsSource::lookup(std::string_view song_id, abort_callbac
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to download NetEase page %s: %s", url.c_str(), e.what());
-        return result;
+        return false;
     }
 
-
+    bool success = false;
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
     if((json != nullptr) && (json->type == cJSON_Object))
     {
@@ -220,11 +217,12 @@ LyricDataRaw NetEaseLyricsSource::lookup(std::string_view song_id, abort_callbac
             cJSON* lrc_lyric = cJSON_GetObjectItem(lrc_item, "lyric");
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
-                result.text = trim_surrounding_whitespace(lrc_lyric->valuestring);
+                data.text = trim_surrounding_whitespace(lrc_lyric->valuestring);
+                success = true;
             }
         }
     }
     cJSON_Delete(json);
 
-    return result;
+    return success;
 }

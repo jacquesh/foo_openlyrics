@@ -12,7 +12,7 @@ class ID3TagLyricSource : public LyricSourceBase
     bool is_local() const final { return true; }
 
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
-    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
 };
@@ -21,12 +21,7 @@ static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
 std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abort_callback& abort)
 {
-    LyricDataRaw result = {};
-    result.source_id = src_guid;
-    result.persistent_storage_path = track->get_path();
-    result.artist = track_metadata(track, "artist");
-    result.album = track_metadata(track, "album");
-    result.title = track_metadata(track, "title");
+    std::vector<LyricDataRaw> result;
 
     // NOTE: We can't use track_metadata() for this because we need the *full* info.
     //       Lyric tags are not usually available in the data that is loaded by default.
@@ -42,28 +37,35 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abo
             continue;
         }
 
+        LyricDataRaw lyric = {};
+        lyric.source_id = src_guid;
+        lyric.persistent_storage_path = track->get_path();
+        lyric.artist = track_metadata(track, "artist");
+        lyric.album = track_metadata(track, "album");
+        lyric.title = track_metadata(track, "title");
+
         size_t value_count = track_info.meta_enum_value_count(lyric_value_index);
         for(size_t i=0; i<value_count; i++)
         {
             const char* value = track_info.meta_enum_value(lyric_value_index, i);
-            result.text += value;
+            lyric.text += value;
         }
 
-        if(!result.text.empty())
+        if(!lyric.text.empty())
         {
             LOG_INFO("Found lyrics in tag: %s", tag.c_str());
-            break;
+            result.push_back(std::move(lyric));
         }
     }
 
-    return {std::move(result)};
+    return result;
 }
 
-LyricDataRaw ID3TagLyricSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+bool ID3TagLyricSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 {
     LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
     assert(false);
-    return {};
+    return false;
 }
 
 std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& /*abort*/)

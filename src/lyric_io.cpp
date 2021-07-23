@@ -100,10 +100,11 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
                 }
                 else
                 {
-                    LyricDataRaw lyrics = source->lookup(result.lookup_id, handle.get_checked_abort());
-                    if(!lyrics.text.empty())
+                    bool lyrics_found = source->lookup(result, handle.get_checked_abort());
+                    if(lyrics_found)
                     {
-                        lyric_data_raw = std::move(lyrics);
+                        assert(!result.text.empty());
+                        lyric_data_raw = std::move(result);
                         LOG_INFO("Successfully looked-up lyrics from source: %s", friendly_name.c_str());
                         break;
                     }

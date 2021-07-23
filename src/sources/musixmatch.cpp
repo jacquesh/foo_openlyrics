@@ -21,13 +21,13 @@ class MusixmatchLyricsSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("Musixmatch"); }
 
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
-    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
     std::vector<LyricDataRaw> get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const;
-    LyricDataRaw get_lyrics(int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const;
-    LyricDataRaw get_unsynced_lyrics(int64_t track_id, abort_callback& abort) const;
-    LyricDataRaw get_synced_lyrics(int64_t track_id, abort_callback& abort) const;
+    bool get_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const;
+    bool get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
+    bool get_synced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
 
     bool json_string_matches(const char* field_name, cJSON* json, std::string_view comparison) const;
 };
@@ -223,14 +223,13 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view 
     return results;
 }
 
-LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const
+bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const
 {
-    LyricDataRaw result = {};
-    result.source_id = src_guid;
+    assert(data.source_id == id());
 
     std::string apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&usertoken=" + apikey + "&commontrack_id=" + std::to_string(track_id);
-    result.persistent_storage_path = url;
+    data.persistent_storage_path = url;
     LOG_INFO("Get Musixmatch lyrics lyrics from %s...", url.c_str());
 
     pfc::string8 content;
@@ -246,7 +245,7 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
     catch(const std::exception& e)
     {
         LOG_WARN("Failed to make Musixmatch %s request to %s: %s", method, url.c_str(), e.what());
-        return result;
+        return false;
     }
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
@@ -254,7 +253,7 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
     {
         LOG_INFO("Received musixmatch %s response but root was malformed: %s", method, content.c_str());
         cJSON_Delete(json);
-        return result;
+        return false;
     }
 
     cJSON* json_message = cJSON_GetObjectItem(json, "message");
@@ -262,7 +261,7 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
     {
         LOG_INFO("Received musixmatch %s response but message was malformed: %s", method, content.c_str());
         cJSON_Delete(json);
-        return result;
+        return false;
     }
 
     cJSON* json_body = cJSON_GetObjectItem(json_message, "body");
@@ -270,7 +269,7 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
     {
         LOG_INFO("Received musixmatch %s response but body was malformed: %s", method, content.c_str());
         cJSON_Delete(json);
-        return result;
+        return false;
     }
 
     cJSON* json_lyrics = cJSON_GetObjectItem(json_body, body_entry_name);
@@ -278,7 +277,7 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
     {
         LOG_INFO("Received musixmatch %s response but %s was malformed: %s", method, body_entry_name, content.c_str());
         cJSON_Delete(json);
-        return {};
+        return false;
     }
 
     cJSON* json_lyricstext = cJSON_GetObjectItem(json_lyrics, text_entry_name);
@@ -286,22 +285,22 @@ LyricDataRaw MusixmatchLyricsSource::get_lyrics(int64_t track_id, abort_callback
     {
         LOG_INFO("Received musixmatch %s response but %s was malformed: %s", method, text_entry_name, content.c_str());
         cJSON_Delete(json);
-        return {};
+        return false;
     }
 
-    result.text = json_lyricstext->valuestring;
+    data.text = json_lyricstext->valuestring;
     cJSON_Delete(json);
-    return result;
+    return true;
 }
 
-LyricDataRaw MusixmatchLyricsSource::get_unsynced_lyrics(int64_t track_id, abort_callback& abort) const
+bool MusixmatchLyricsSource::get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const
 {
-    return get_lyrics(track_id, abort, "track.lyrics.get", "lyrics", "lyrics_body");
+    return get_lyrics(data, track_id, abort, "track.lyrics.get", "lyrics", "lyrics_body");
 }
 
-LyricDataRaw MusixmatchLyricsSource::get_synced_lyrics(int64_t track_id, abort_callback& abort) const
+bool MusixmatchLyricsSource::get_synced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const
 {
-    return get_lyrics(track_id, abort, "track.subtitle.get", "subtitle", "subtitle_body");
+    return get_lyrics(data, track_id, abort, "track.subtitle.get", "subtitle", "subtitle_body");
 }
 
 std::vector<LyricDataRaw> MusixmatchLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
@@ -317,28 +316,32 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::search(std::string_view artist
     return get_song_ids(artist, album, title, abort);
 }
 
-LyricDataRaw MusixmatchLyricsSource::lookup(std::string_view lookup_id, abort_callback& abort)
+bool MusixmatchLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
 {
-    std::optional<SongSearchResult> maybe_search_result = DecodeSearchResult(lookup_id);
+    std::optional<SongSearchResult> maybe_search_result = DecodeSearchResult(data.lookup_id);
     if(!maybe_search_result.has_value())
     {
-        return {};
+        LOG_WARN("Attempt to lookup musixmatch lyrics with invalid lookup ID: %s", data.lookup_id.c_str());
+        return false;
     }
 
     const SongSearchResult& search_result = maybe_search_result.value();
     if(search_result.track_id == 0)
     {
-        return {};
+        LOG_WARN("Attempt to lookup musixmatch lyrics with null lookup track ID: %s", data.lookup_id.c_str());
+        return false;
     }
 
     if(search_result.has_synced_lyrics)
     {
-        return get_synced_lyrics(search_result.track_id, abort);
+        return get_synced_lyrics(data, search_result.track_id, abort);
     }
     else if(search_result.has_unsynced_lyrics)
     {
-        return get_unsynced_lyrics(search_result.track_id, abort);
+        return get_unsynced_lyrics(data, search_result.track_id, abort);
     }
-
-    return {};
+    else
+    {
+        return false;
+    }
 }

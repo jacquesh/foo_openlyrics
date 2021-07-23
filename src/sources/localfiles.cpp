@@ -14,7 +14,7 @@ class LocalFileSource : public LyricSourceBase
     bool is_local() const final { return true; }
 
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
-    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
 };
@@ -69,11 +69,11 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort
     return {};
 }
 
-LyricDataRaw LocalFileSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+bool LocalFileSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 {
     LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
     assert(false);
-    return {};
+    return false;
 }
 
 static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort)

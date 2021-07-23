@@ -21,7 +21,7 @@ public:
     virtual bool is_local() const = 0;
 
     virtual std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) = 0;
-    virtual LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) = 0;
+    virtual bool lookup(LyricDataRaw& data, abort_callback& abort) = 0;
 
     virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
 

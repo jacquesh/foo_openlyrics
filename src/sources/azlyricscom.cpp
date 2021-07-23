@@ -17,7 +17,7 @@ class AZLyricsComSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("azlyrics.com"); }
 
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
-    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
 static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
@@ -152,9 +152,9 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std
     return {};
 }
 
-LyricDataRaw AZLyricsComSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+bool AZLyricsComSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 {
     LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
     assert(false);
-    return {};
+    return false;
 }

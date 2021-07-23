@@ -17,7 +17,7 @@ class GeniusComSource : public LyricSourceRemote
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
-    LyricDataRaw lookup(std::string_view lookup_id, abort_callback& abort) final;
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
 
@@ -174,9 +174,9 @@ std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::
     return {};
 }
 
-LyricDataRaw GeniusComSource::lookup(std::string_view /*lookup_id*/, abort_callback& /*abort*/)
+bool GeniusComSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 {
     LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
     assert(false);
-    return {};
+    return false;
 }
