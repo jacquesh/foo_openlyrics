@@ -54,7 +54,7 @@ LyricUpdateHandle auto_edit::ReplaceHtmlEscapedChars(metadb_handle_ptr track, co
     }
     else
     {
-        result.set_result({}, true);
+        result.set_complete();
     }
     return result;
 }
@@ -101,7 +101,7 @@ LyricUpdateHandle auto_edit::RemoveRepeatedSpaces(metadb_handle_ptr track, const
     }
     else
     {
-        result.set_result({}, true);
+        result.set_complete();
     }
     return result;
 }
@@ -137,7 +137,7 @@ LyricUpdateHandle auto_edit::RemoveRepeatedBlankLines(metadb_handle_ptr track, c
     }
     else
     {
-        result.set_result({}, true);
+        result.set_complete();
     }
     return result;
 }
@@ -160,7 +160,7 @@ LyricUpdateHandle auto_edit::RemoveAllBlankLines(metadb_handle_ptr track, const 
     }
     else
     {
-        result.set_result({}, true);
+        result.set_complete();
     }
     return result;
 }

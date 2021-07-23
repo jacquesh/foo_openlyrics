@@ -234,7 +234,7 @@ LyricData LyricUpdateHandle::get_result()
     assert(!m_lyrics.empty());
     LyricData result = std::move(m_lyrics.front());
     m_lyrics.erase(m_lyrics.begin());
-    if(m_lyrics.empty())
+    if(m_lyrics.empty() && (m_status == Status::Complete))
     {
         m_status = Status::Closed;
     }
@@ -286,5 +286,21 @@ void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
     LeaveCriticalSection(&m_mutex);
 
     repaint_all_lyric_panels();
+}
+
+void LyricUpdateHandle::set_complete()
+{
+    EnterCriticalSection(&m_mutex);
+    assert(m_status == Status::Running);
+
+    if(m_lyrics.empty())
+    {
+        m_status = Status::Closed;
+    }
+    else
+    {
+        m_status = Status::Complete;
+    }
+    LeaveCriticalSection(&m_mutex);
 }
 

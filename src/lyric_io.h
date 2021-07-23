@@ -43,6 +43,7 @@ public:
     void set_started();
     void set_progress(std::string_view value);
     void set_result(LyricData&& data, bool final_result);
+    void set_complete();
 
 private:
     enum class Status

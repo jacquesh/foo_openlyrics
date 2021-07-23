@@ -154,7 +154,7 @@ void LyricEditor::OnDestroyDialog()
 {
     if(!m_update.is_complete())
     {
-        m_update.set_result({}, true);
+        m_update.set_complete();
     }
 
     ::DestroyWindow(m_offset_apply_tooltip);
@@ -521,7 +521,10 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     LyricData data = ParseEditorContents();
     if(data.IsEmpty())
     {
-        m_update.set_result({}, is_editor_closing);
+        if(is_editor_closing)
+        {
+            m_update.set_complete();
+        }
         return;
     }
 
