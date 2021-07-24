@@ -28,8 +28,6 @@ private:
     bool get_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const;
     bool get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
     bool get_synced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
-
-    bool json_string_matches(const char* field_name, cJSON* json, std::string_view comparison) const;
 };
 static const LyricSourceFactory<MusixmatchLyricsSource> src_factory;
 
@@ -65,23 +63,6 @@ static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
     result.has_synced_lyrics = (str[1] == '1');
     result.track_id = strtoll(&str[2], nullptr, 10);
     return result;
-}
-
-bool MusixmatchLyricsSource::json_string_matches(const char* field_name, cJSON* json, std::string_view comparison) const
-{
-    if((json == nullptr) || (json->type != cJSON_String))
-    {
-        LOG_INFO("Ignoring musixmatch search result because %s was malformed", field_name);
-        return false;
-    }
-
-    if(!tag_values_match(json->valuestring, comparison))
-    {
-        LOG_INFO("Ignoring musixmatch result due to %s mismatch: %s vs %s", field_name, json->valuestring, comparison.data());
-        return false;
-    }
-
-    return true;
 }
 
 std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const
@@ -167,21 +148,24 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view 
         }
 
         cJSON* json_artist = cJSON_GetObjectItem(json_tracktrack, "artist_name");
-        if(!json_string_matches("artist", json_artist, artist))
+        if((json_artist == nullptr) || (json_artist->type != cJSON_String))
         {
-            continue;
+            LOG_INFO("Received musixmatch search result but artist_name was malformed");
+            break;
         }
 
         cJSON* json_album = cJSON_GetObjectItem(json_tracktrack, "album_name");
-        if(!json_string_matches("album", json_album, album))
+        if((json_album == nullptr) || (json_album->type != cJSON_String))
         {
-            continue;
+            LOG_INFO("Received musixmatch search result but album_name was malformed");
+            break;
         }
 
         cJSON* json_title = cJSON_GetObjectItem(json_tracktrack, "track_name");
-        if(!json_string_matches("title", json_title, title))
+        if((json_title == nullptr) || (json_title->type != cJSON_String))
         {
-            continue;
+            LOG_INFO("Received musixmatch search result but track_name was malformed");
+            break;
         }
 
         cJSON* json_haslyrics = cJSON_GetObjectItem(json_tracktrack, "has_lyrics");

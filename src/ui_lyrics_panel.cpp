@@ -59,7 +59,6 @@ namespace {
         void OnContextMenu(CWindow window, CPoint point);
         void OnDoubleClick(UINT virtualKeys, CPoint cursorPos);
 
-        void GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, std::string& out_artist, std::string& out_album, std::string& out_title);
         t_ui_font get_font();
         t_ui_color get_fg_colour();
         t_ui_color get_bg_colour();
@@ -354,10 +353,9 @@ namespace {
             return;
         }
 
-        std::string artist;
-        std::string album;
-        std::string title;
-        GetTrackMetaIdentifiers(m_now_playing, artist, album, title);
+        std::string artist = track_metadata(m_now_playing, "artist");
+        std::string album = track_metadata(m_now_playing, "album");
+        std::string title = track_metadata(m_now_playing, "title");
 
         int total_height = 0;
         std::tstring artist_line;
@@ -778,6 +776,7 @@ namespace {
             UINT disabled_with_lyrics = m_lyrics.IsEmpty() ? 0 : MF_GRAYED;
             enum {
                 ID_SEARCH_LYRICS = 1,
+                ID_SEARCH_LYRICS_MANUAL,
                 ID_SAVE_LYRICS,
                 ID_PREFERENCES,
                 ID_EDIT_LYRICS,
@@ -801,6 +800,7 @@ namespace {
             CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
+            AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS_MANUAL, _T("Search for lyrics (manually)"));
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_SAVE_LYRICS, _T("Save lyrics"));
             AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
@@ -812,6 +812,7 @@ namespace {
 
             CMenuDescriptionHybrid menudesc(get_wnd());
             menudesc.Set(ID_SEARCH_LYRICS, "Start a completely new search for lyrics");
+            menudesc.Set(ID_SEARCH_LYRICS_MANUAL, "Start a new search for lyrics with customisable search terms and multiple results");
             menudesc.Set(ID_SAVE_LYRICS, "Save the current lyrics, even if they would not be auto-saved");
             menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
             menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
@@ -822,23 +823,6 @@ namespace {
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_BLANK_LINES, "Replace sequences of multiple empty lines with just a single empty line");
             menudesc.Set(ID_AUTO_REMOVE_ALL_BLANK_LINES, "Remove all empty lines");
 
-            // TODO: We should add a submenu for selecting from all of the lyrics that we found, dynamically populated by the search for this track.
-            //       For example we could have:
-            //
-            //       -------------------
-            //      |Search Lyrics      |
-            //      |Preferences        |
-            //      |Edit Lyrics        |
-            //      |Open File Location |  --------------------------------
-            //      |Choose Lyrics      ->|(Local) filename1.txt           |
-            //       -------------------  |(Local) filename2.lrc           |
-            //                            |(AZLyrics) Artist - Title       |
-            //                            |(Genius) Artist - Album - Title |
-            //                             --------------------------------
-            //
-            //       We might need to have a menu option to populate this list though, because it seems silly
-            //       to keep searching all sources by default once we've already found one (say, on disk locally)
-
             int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
             switch(cmd)
             {
@@ -847,6 +831,17 @@ namespace {
                     if(m_now_playing != nullptr)
                     {
                         InitiateLyricSearch(m_now_playing);
+                    }
+                } break;
+
+                case ID_SEARCH_LYRICS_MANUAL:
+                {
+                    if(m_now_playing != nullptr)
+                    {
+                        LOG_INFO("Initiate manual lyric search");
+                        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
+                        SpawnManualLyricSearch(*update);
+                        m_update_handles.push_back(std::move(update));
                     }
                 } break;
 
@@ -965,42 +960,6 @@ namespace {
         auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
         SpawnLyricEditor(m_lyrics, *update);
         m_update_handles.push_back(std::move(update));
-    }
-
-    void LyricPanel::GetTrackMetaIdentifiers(metadb_handle_ptr track_handle, std::string& out_artist, std::string& out_album, std::string& out_title)
-    {
-        const metadb_info_container::ptr& track_info_container = track_handle->get_info_ref();
-        const file_info& track_info = track_info_container->info();
-
-        size_t track_artist_index = track_info.meta_find("artist");
-        size_t track_album_index = track_info.meta_find("album");
-        size_t track_title_index = track_info.meta_find("title");
-        if((track_artist_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_artist_index) > 0))
-        {
-            out_artist = std::string(track_info.meta_enum_value(track_artist_index, 0));
-        }
-        else
-        {
-            out_artist.clear();
-        }
-
-        if((track_album_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_album_index) > 0))
-        {
-            out_album = std::string(track_info.meta_enum_value(track_album_index, 0));
-        }
-        else
-        {
-            out_album.clear();
-        }
-
-        if((track_title_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_title_index) > 0))
-        {
-            out_title = std::string(track_info.meta_enum_value(track_title_index, 0));
-        }
-        else
-        {
-            out_title.clear();
-        }
     }
 
     t_ui_font LyricPanel::get_font()

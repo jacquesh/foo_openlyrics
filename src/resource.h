@@ -4,6 +4,7 @@
 //
 #define IDI_SCROLL                      109
 #define IDD_LYRIC_EDIT                  113
+#define IDD_MANUAL_SEARCH               121
 #define IDD_PREFERENCES_ROOT            148
 #define IDD_PREFERENCES_SAVING          149
 #define IDD_PREFERENCES_DISPLAY         150
@@ -17,6 +18,7 @@
 #define IDC_SAVE_FILENAME_FORMAT        1034
 #define IDC_FILE_NAME_PREVIEW           1035
 #define IDC_SAVE_FILE_NAME_PREVIEW      1035
+#define IDC_MANUALSEARCH_PREVIEW        1035
 #define ID_LYRIC_EDIT_APPLY             1037
 #define ID_LYRIC_EDIT_OK                1038
 #define ID_LYRIC_EDIT_CANCEL            1039
@@ -51,14 +53,22 @@
 #define IDC_LYRIC_EDIT_SYNC_OFFSET      1074
 #define IDC_LYRIC_EDIT_APPLY_OFFSET     1075
 #define IDC_SEARCH_MUSIXMATCH_TOKEN     1077
+#define IDC_MANUALSEARCH_ARTIST         1078
+#define IDC_MANUALSEARCH_ALBUM          1079
+#define IDC_MANUALSEARCH_TITLE          1080
+#define IDC_MANUALSEARCH_PROGRESS       1081
+#define IDC_MANUALSEARCH_RESULTLIST     1082
+#define IDC_MANUALSEARCH_OK             1084
+#define IDC_MANUALSEARCH_CANCEL         1085
+#define IDC_MANUALSEARCH_SEARCH         1086
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        121
+#define _APS_NEXT_RESOURCE_VALUE        123
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1078
+#define _APS_NEXT_CONTROL_VALUE         1087
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

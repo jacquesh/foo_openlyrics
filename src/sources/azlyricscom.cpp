@@ -8,6 +8,7 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_source.h"
+#include "tag_util.h"
 
 static const GUID src_guid = { 0xadf3a1ba, 0x7e88, 0x4539, { 0xaf, 0x9e, 0xa8, 0xc4, 0xbc, 0x62, 0x98, 0xf1 } };
 

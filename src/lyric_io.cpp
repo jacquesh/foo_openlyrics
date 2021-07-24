@@ -88,8 +88,28 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
         try
         {
             std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_checked_abort());
+
+            std::string tag_artist = track_metadata(handle.get_track(), "artist");
+            std::string tag_album = track_metadata(handle.get_track(), "album");
+            std::string tag_title = track_metadata(handle.get_track(), "title");
             for(LyricDataRaw& result : search_results)
             {
+                bool tag_match = tag_values_match(tag_artist, result.artist) &&
+                                 tag_values_match(tag_album, result.album) &&
+                                 tag_values_match(tag_title, result.title);
+                if(!tag_match)
+                {
+                    LOG_INFO("Rejected %s search result %s/%s/%s due to tag mismatch: %s/%s/%s",
+                            source->friendly_name().data(),
+                            tag_artist.c_str(),
+                            tag_album.c_str(),
+                            tag_title.c_str(),
+                            result.artist.c_str(),
+                            result.album.c_str(),
+                            result.title.c_str());
+                    continue;
+                }
+
                 assert(result.source_id == source_id);
                 if(result.lookup_id.empty())
                 {
@@ -144,6 +164,90 @@ void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
     fb2k::splitTask([&handle, local_only](){
         internal_search_for_lyrics(handle, local_only);
+    });
+}
+
+static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title)
+{
+    LOG_INFO("Searching for lyrics using custom parameters...");
+    handle.set_started();
+
+    std::vector<LyricDataRaw> results_raw;
+    for(GUID source_id : LyricSourceBase::get_all_ids())
+    {
+        LyricSourceBase* source = LyricSourceBase::get(source_id);
+        assert(source != nullptr);
+
+        std::string friendly_name = from_tstring(source->friendly_name());
+        handle.set_progress("Searching " + friendly_name + "...");
+
+        try
+        {
+            std::vector<LyricDataRaw> search_results;
+            if(source->is_local())
+            {
+                search_results = source->search(handle.get_track(), handle.get_checked_abort());
+            }
+            else
+            {
+                LyricSourceRemote* remote_source = dynamic_cast<LyricSourceRemote*>(source);
+                assert(remote_source != nullptr);
+                if(remote_source == nullptr)
+                {
+                    LOG_ERROR("Bad LyricSourceRemote cast for: %s", friendly_name.c_str());
+                    continue;
+                }
+
+                search_results = remote_source->search(artist, album, title, handle.get_checked_abort());
+            }
+
+            for(LyricDataRaw& result : search_results)
+            {
+                assert(result.source_id == source_id);
+
+                std::optional<LyricDataRaw> lyric;
+                if(result.lookup_id.empty())
+                {
+                    assert(!result.text.empty());
+                    lyric = std::move(result);
+                }
+                else
+                {
+                    bool lyrics_found = source->lookup(result, handle.get_checked_abort());
+                    if(lyrics_found)
+                    {
+                        assert(!result.text.empty());
+                        lyric = std::move(result);
+                    }
+                }
+
+                if(lyric.has_value())
+                {
+                    ensure_windows_newlines(lyric.value().text);
+
+                    LyricData parsed_lyrics = parsers::lrc::parse(lyric.value());
+                    handle.set_result(std::move(parsed_lyrics), false);
+                }
+            }
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR("Error while searching %s: %s", friendly_name.c_str(), e.what());
+        }
+        catch(...)
+        {
+            LOG_ERROR("Error of unrecognised type while searching %s", friendly_name.c_str());
+        }
+    }
+
+    handle.set_complete();
+    LOG_INFO("Finished loading lyrics from a custom search");
+}
+
+void io::search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title)
+{
+    fb2k::splitTask([&handle, artist, album, title](){
+        internal_search_for_all_lyrics(handle, artist, album, title);
     });
 }
 
@@ -302,6 +406,9 @@ void LyricUpdateHandle::set_complete()
     {
         m_status = Status::Complete;
     }
+    BOOL complete_success = SetEvent(m_complete);
+    assert(complete_success);
+
     LeaveCriticalSection(&m_mutex);
 }
 

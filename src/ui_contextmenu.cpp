@@ -10,10 +10,10 @@ static contextmenu_group_factory g_openlyrics_ctx_group(GUID_OPENLYRICS_CTX_GROU
 class OpenLyricsContextItem : public contextmenu_item_simple
 {
 public:
-    GUID get_parent() { return GUID_OPENLYRICS_CTX_GROUP; }
-    unsigned get_num_items() { return cmd_total; }
+    GUID get_parent() override { return GUID_OPENLYRICS_CTX_GROUP; }
+    unsigned get_num_items() override { return cmd_total; }
 
-    void get_item_name(unsigned int index, pfc::string_base& out)
+    void get_item_name(unsigned int index, pfc::string_base& out) override
     {
         switch(index)
         {
@@ -22,7 +22,7 @@ public:
         }
     }
 
-    void context_command(unsigned int index, metadb_handle_list_cref data, const GUID& /*caller*/)
+    void context_command(unsigned int index, metadb_handle_list_cref data, const GUID& /*caller*/) override
     {
         switch(index)
         {
@@ -35,12 +35,12 @@ public:
                 const auto async_search = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
                     std::string dialog_title = "Track lyrics";
-                    const metadb_info_container::ptr& track_info_container = track->get_info_ref();
-                    const file_info& track_info = track_info_container->info();
-                    size_t track_title_index = track_info.meta_find("title");
-                    if((track_title_index != pfc::infinite_size) && (track_info.meta_enum_value_count(track_title_index) > 0))
+                    std::string track_title = track_metadata(track, "title");
+                    if(!track_title.empty())
                     {
-                        dialog_title = '\'' + std::string(track_info.meta_enum_value(track_title_index, 0)) + "' lyrics";
+                        dialog_title = '\'';
+                        dialog_title += track_title;
+                        dialog_title += "' lyrics";
                     }
 
                     LyricUpdateHandle update(LyricUpdateHandle::Type::Search, track, abort);
@@ -77,7 +77,7 @@ public:
         }
     }
 
-    GUID get_item_guid(unsigned int index)
+    GUID get_item_guid(unsigned int index) override
     {
         static const GUID GUID_ITEM_SHOW_LYRICS = { 0xff674f8, 0x8536, 0x4edc, { 0xb1, 0xd7, 0xf7, 0xad, 0x72, 0x87, 0x84, 0x3c } };
 
@@ -88,7 +88,7 @@ public:
         }
     }
 
-    bool get_item_description(unsigned int index, pfc::string_base& out)
+    bool get_item_description(unsigned int index, pfc::string_base& out) override
     {
         switch(index)
         {

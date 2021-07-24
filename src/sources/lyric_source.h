@@ -26,11 +26,7 @@ public:
     virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
 
 protected:
-    static std::string track_metadata(metadb_handle_ptr track, std::string_view key);
     static std::string urlencode(std::string_view input);
-    static std::string_view trim_surrounding_whitespace(std::string_view str);
-    static std::string_view trim_trailing_text_in_brackets(std::string_view str);
-    static bool tag_values_match(std::string_view tagA, std::string_view tagB);
 };
 
 class LyricSourceRemote : public LyricSourceBase

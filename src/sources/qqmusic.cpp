@@ -89,15 +89,6 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
                     cJSON* artist_name = cJSON_GetObjectItem(artist_item, "name");
                     if((artist_name != nullptr) && (artist_name->type == cJSON_String))
                     {
-                        if(!tag_values_match(artist_name->valuestring, artist))
-                        {
-                            LOG_INFO("Rejected QQMusic search result %s/%s/%s for artist mismatch: %s",
-                                    artist.data(),
-                                    album.data(),
-                                    title.data(),
-                                    artist_name->valuestring);
-                            continue;
-                        }
                         result_artist = artist_name->valuestring;
                     }
                 }
@@ -110,15 +101,6 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
             cJSON* album_title_item = cJSON_GetObjectItem(album_item, "name");
             if((album_title_item != nullptr) && (album_title_item->type == cJSON_String))
             {
-                if(!tag_values_match(album_title_item->valuestring, album))
-                {
-                    LOG_INFO("Rejected QQMusic search result %s/%s/%s for album mismatch: %s",
-                            artist.data(),
-                            album.data(),
-                            title.data(),
-                            album_title_item->valuestring);
-                    continue;
-                }
                 result_album = album_title_item->valuestring;
             }
         }
@@ -126,15 +108,6 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
         cJSON* title_item = cJSON_GetObjectItem(song_item, "name");
         if((title_item != nullptr) && (title_item->type == cJSON_String))
         {
-            if(!tag_values_match(title_item->valuestring, title))
-            {
-                LOG_INFO("Rejected QQMusic search result %s/%s/%s for title mismatch: %s",
-                        artist.data(),
-                        album.data(),
-                        title.data(),
-                        title_item->valuestring);
-                continue;
-            }
             result_title = title_item->valuestring;
         }
 
@@ -147,9 +120,9 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
 
         LyricDataRaw data = {};
         data.source_id = src_guid;
-        data.artist = result_artist;
-        data.album = result_album;
-        data.title = result_title;
+        if(result_artist != nullptr) data.artist = result_artist;
+        if(result_album != nullptr) data.album = result_album;
+        if(result_title != nullptr) data.title = result_title;
         data.lookup_id = song_id_item->valuestring;
         output.push_back(std::move(data));
     }

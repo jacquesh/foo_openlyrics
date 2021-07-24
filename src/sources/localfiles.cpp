@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "lyric_source.h"
 #include "preferences.h"
+#include "tag_util.h"
 #include "win32_util.h"
 
 static const GUID src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
@@ -30,6 +31,7 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort
         return {};
     }
 
+    std::vector<LyricDataRaw> output;
     const char* extensions[] = { ".lrc", ".txt" };
     for (const char* ext : extensions)
     {
@@ -41,22 +43,14 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort
         {
             if (filesystem::g_exists(file_path.c_str(), abort))
             {
-                file_ptr file;
-                filesystem::g_open_read(file, file_path.c_str(), abort);
-
-                pfc::string8 file_contents;
-                file->read_string_raw(file_contents, abort);
-                LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
-
                 LyricDataRaw result = {};
                 result.source_id = id();
                 result.persistent_storage_path = file_path;
                 result.artist = track_metadata(track, "artist");
                 result.album = track_metadata(track, "album");
                 result.title = track_metadata(track, "title");
-                result.text = file_contents;
-
-                return {std::move(result)};
+                result.lookup_id = file_path;
+                output.push_back(std::move(result));
             }
         }
         catch(const std::exception& e)
@@ -65,15 +59,32 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort
         }
     }
 
-    LOG_INFO("Failed to find lyrics in local files %s", file_path_prefix.c_str());
-    return {};
+    LOG_INFO("Found %d lyrics in local files: %s", output.size(), file_path_prefix.c_str());
+    return output;
 }
 
-bool LocalFileSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
+bool LocalFileSource::lookup(LyricDataRaw& data, abort_callback& abort)
 {
-    LOG_ERROR("We should never need to do a lookup of the %s source", friendly_name().data());
-    assert(false);
-    return false;
+    std::string& file_path = data.lookup_id;
+    LOG_INFO("Lookup local-file %s for lyrics...", file_path.c_str());
+
+    try
+    {
+        file_ptr file;
+        filesystem::g_open_read(file, file_path.c_str(), abort);
+
+        pfc::string8 file_contents;
+        file->read_string_raw(file_contents, abort);
+        LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
+
+        data.text = file_contents;
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        LOG_WARN("Failed to open lyrics file %s: %s", file_path.c_str(), e.what());
+        return false;
+    }
 }
 
 static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort)
