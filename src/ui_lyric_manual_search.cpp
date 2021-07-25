@@ -45,6 +45,7 @@ private:
 
     LyricUpdateHandle& m_parent_update;
     std::optional<LyricUpdateHandle> m_child_update;
+    abort_callback_impl m_child_abort;
     std::list<LyricData> m_all_lyrics;
 };
 
@@ -148,6 +149,7 @@ void ManualLyricSearch::OnDestroyDialog()
 
 void ManualLyricSearch::OnClose()
 {
+    m_child_abort.abort();
     DestroyWindow();
 }
 
@@ -198,7 +200,7 @@ void ManualLyricSearch::start_search()
     assert(!m_child_update.has_value());
     try
     {
-        m_child_update.emplace(m_parent_update.get_type(), now_playing, m_parent_update.get_checked_abort());
+        m_child_update.emplace(m_parent_update.get_type(), now_playing, m_child_abort);
     }
     catch(const std::exception& e)
     {
@@ -228,6 +230,7 @@ void ManualLyricSearch::start_search()
 
 void ManualLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
+    m_child_abort.abort();
     DestroyWindow();
 }
 
@@ -259,6 +262,7 @@ void ManualLyricSearch::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn
         }
     }
 
+    m_child_abort.abort();
     DestroyWindow();
 }
 
