@@ -122,6 +122,7 @@ public:
         COMMAND_HANDLER_EX(IDC_SOURCE_DEACTIVATE_BTN, BN_CLICKED, OnSourceDeactivate)
         COMMAND_HANDLER_EX(IDC_ACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnActiveSourceSelect)
         COMMAND_HANDLER_EX(IDC_INACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnInactiveSourceSelect)
+        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_HELP, LBN_SELCHANGE, OnMusixmatchHelp)
     END_MSG_MAP()
 
 private:
@@ -133,6 +134,7 @@ private:
     void OnSourceDeactivate(UINT, int, CWindow);
     void OnActiveSourceSelect(UINT, int, CWindow);
     void OnInactiveSourceSelect(UINT, int, CWindow);
+    void OnMusixmatchHelp(UINT, int, CWindow);
 
     void SourceListInitialise();
     void SourceListResetFromSaved();
@@ -369,6 +371,11 @@ void PreferencesRoot::OnInactiveSourceSelect(UINT, int, CWindow)
     assert(move_down_btn != nullptr);
     move_up_btn.EnableWindow(FALSE);
     move_down_btn.EnableWindow(FALSE);
+}
+
+void PreferencesRoot::OnMusixmatchHelp(UINT, int, CWindow)
+{
+    popup_message::g_show("The Musixmatch source requires an authentication token to work. Without one it will not find any lyrics.\r\n\r\nSteps to get a token can be found here:\r\nhttps://github.com/khanhas/genius-spicetify#musicxmatch", "Warning");
 }
 
 void PreferencesRoot::reset()
