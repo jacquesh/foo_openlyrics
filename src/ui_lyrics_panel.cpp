@@ -1180,6 +1180,12 @@ namespace {
 
     void LyricPanel::ProcessAvailableLyricUpdate(LyricUpdateHandle& update)
     {
+        if(!update.has_result())
+        {
+            LOG_INFO("Received lyric update with no results, ignoring...");
+            return;
+        }
+
         assert(update.has_result());
         LyricData lyrics = update.get_result();
 
