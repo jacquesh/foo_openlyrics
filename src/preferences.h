@@ -30,10 +30,16 @@ enum class AutoSaveStrategy
     OnlySynced = 2,
 };
 
-enum class LineScrollType
+enum class LineScrollDirection
 {
     Vertical = 0,
     Horizontal = 1
+};
+
+enum class LineScrollType
+{
+    Automatic = 0,
+    Manual = 1,
 };
 
 namespace preferences
@@ -65,6 +71,7 @@ namespace preferences
         std::optional<t_ui_color> background_colour();
         std::optional<t_ui_color> highlight_colour();
 
+        LineScrollDirection scroll_direction();
         LineScrollType scroll_type();
         double scroll_time_seconds();
         int linegap();

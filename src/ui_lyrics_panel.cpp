@@ -50,6 +50,21 @@ namespace {
         void on_playback_seek(double time) override;
 
     private:
+        BEGIN_MSG_MAP_EX(LyricPanel)
+            MSG_WM_CREATE(OnWindowCreate)
+            MSG_WM_DESTROY(OnWindowDestroy)
+            MSG_WM_SIZE(OnWindowResize)
+            MSG_WM_TIMER(OnTimer)
+            MSG_WM_ERASEBKGND(OnEraseBkgnd)
+            MSG_WM_PAINT(OnPaint)
+            MSG_WM_CONTEXTMENU(OnContextMenu)
+            MSG_WM_LBUTTONDBLCLK(OnDoubleClick)
+            MSG_WM_MOUSEWHEEL(OnMouseWheel)
+            MSG_WM_MOUSEMOVE(OnMouseMove)
+            MSG_WM_LBUTTONDOWN(OnLMBDown)
+            MSG_WM_LBUTTONUP(OnLMBUp)
+        END_MSG_MAP()
+
         LRESULT OnWindowCreate(LPCREATESTRUCT);
         void OnWindowDestroy();
         void OnWindowResize(UINT request_type, CSize new_size);
@@ -58,6 +73,10 @@ namespace {
         BOOL OnEraseBkgnd(CDCHandle);
         void OnContextMenu(CWindow window, CPoint point);
         void OnDoubleClick(UINT virtualKeys, CPoint cursorPos);
+        LRESULT OnMouseWheel(UINT virtualKeys, short rotation, CPoint point);
+        void OnMouseMove(UINT virtualKeys, CPoint point);
+        void OnLMBDown(UINT virtualKeys, CPoint point);
+        void OnLMBUp(UINT virtualKeys, CPoint point);
 
         t_ui_font get_font();
         t_ui_color get_fg_colour();
@@ -87,20 +106,12 @@ namespace {
         HDC m_back_buffer;
         HBITMAP m_back_buffer_bitmap;
 
+        std::optional<CPoint> m_manual_scroll_start;
+        int m_manual_scroll_distance;
+
     protected:
         // this must be declared as protected for ui_element_impl_withpopup<> to work.
         const ui_element_instance_callback_ptr m_callback;
-
-        BEGIN_MSG_MAP_EX(LyricPanel)
-            MSG_WM_CREATE(OnWindowCreate)
-            MSG_WM_DESTROY(OnWindowDestroy)
-            MSG_WM_SIZE(OnWindowResize)
-            MSG_WM_TIMER(OnTimer)
-            MSG_WM_ERASEBKGND(OnEraseBkgnd)
-            MSG_WM_PAINT(OnPaint)
-            MSG_WM_CONTEXTMENU(OnContextMenu)
-            MSG_WM_LBUTTONDBLCLK(OnDoubleClick)
-        END_MSG_MAP()
     };
 
     HWND LyricPanel::get_wnd() { return *this; }
@@ -136,6 +147,7 @@ namespace {
     void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     {
         m_now_playing = track;
+        m_manual_scroll_distance = 0;
 
         InitiateLyricSearch(track);
 
@@ -245,12 +257,13 @@ namespace {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
         int line_height = font_metrics.tmHeight + preferences::display::linegap();
-        int visible_width = clip_rect.Width();
 
         if(line.length() == 0)
         {
             return line_height;
         }
+
+        int visible_width = clip_rect.Width();
 
         // This serves as an upper bound on the number of chars we draw on a single line.
         // Used to prevent GDI from having to compute the size of very long strings.
@@ -429,7 +442,28 @@ namespace {
                                            });
 
         CPoint centre = client_area.CenterPoint();
-        int top_y = centre.y - (int)(track_fraction * total_height);
+        int top_y = 0;
+        if(preferences::display::scroll_type() == LineScrollType::Manual)
+        {
+            // Shift the 'top' Y down by a single line so we can see the first line of text,
+            // because the 'top y' is actually used as the *baseline*
+            int one_line_height = ComputeWrappedLyricLineHeight(dc, client_area, _T(""));
+            int half_height = client_area.Height()/2;
+            if(m_manual_scroll_distance > half_height)
+            {
+                m_manual_scroll_distance = half_height;
+            }
+            if(m_manual_scroll_distance < -total_height + half_height)
+            {
+                m_manual_scroll_distance = -total_height + half_height;
+            }
+            top_y = m_manual_scroll_distance + one_line_height;
+        }
+        else
+        {
+            top_y = centre.y - (int)(track_fraction * total_height);
+        }
+
         CPoint origin = {centre.x, top_y};
         for(const LyricDataLine& line : m_lyrics.lines)
         {
@@ -452,7 +486,7 @@ namespace {
         size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
         std::tstring glue(linegap, _T(' '));
 
-        assert(preferences::display::scroll_type() == LineScrollType::Horizontal);
+        assert(preferences::display::scroll_direction() == LineScrollDirection::Horizontal);
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_position = playback->playback_get_position();
         double total_length = playback->playback_get_length_ex();
@@ -479,7 +513,24 @@ namespace {
 
         CPoint centre = client_area.CenterPoint();
         CPoint origin = centre;
-        origin.x += (int)((0.5 - track_fraction) * (double)line_size.cx);
+        if(preferences::display::scroll_type() == LineScrollType::Manual)
+        {
+            int half_width = client_area.Width()/2;
+            if(m_manual_scroll_distance > half_width)
+            {
+                m_manual_scroll_distance = half_width;
+            }
+            if(m_manual_scroll_distance < -line_size.cx + half_width)
+            {
+                m_manual_scroll_distance = -line_size.cx + half_width;
+            }
+            origin.x += (line_size.cx - client_area.Width())/2 + m_manual_scroll_distance;
+        }
+        else
+        {
+            origin.x += (int)((0.5 - track_fraction) * (double)line_size.cx);
+        }
+
         BOOL draw_success = DrawTextOut(dc, origin.x, origin.y, joined);
         if(!draw_success)
         {
@@ -718,27 +769,28 @@ namespace {
         {
             DrawNoLyrics(m_back_buffer, client_rect);
         }
-        else if(m_lyrics.IsTimestamped())
+        else if(m_lyrics.IsTimestamped() &&
+                (preferences::display::scroll_type() == LineScrollType::Automatic))
         {
-            LineScrollType scroll = preferences::display::scroll_type();
-            switch(scroll)
+            LineScrollDirection dir = preferences::display::scroll_direction();
+            switch(dir)
             {
-                case LineScrollType::Vertical: DrawTimestampedLyricsVertical(m_back_buffer, client_rect); break;
-                case LineScrollType::Horizontal: DrawTimestampedLyricsHorizontal(m_back_buffer, client_rect); break;
+                case LineScrollDirection::Vertical: DrawTimestampedLyricsVertical(m_back_buffer, client_rect); break;
+                case LineScrollDirection::Horizontal: DrawTimestampedLyricsHorizontal(m_back_buffer, client_rect); break;
                 default:
-                    LOG_ERROR("Unsupported scroll type: %d", (int)scroll);
+                    LOG_ERROR("Unsupported scroll direction: %d", (int)dir);
                     uBugCheck();
             }
         }
         else // We have lyrics, but no timestamps
         {
-            LineScrollType scroll = preferences::display::scroll_type();
-            switch(scroll)
+            LineScrollDirection dir = preferences::display::scroll_direction();
+            switch(dir)
             {
-                case LineScrollType::Vertical: DrawUntimedLyricsVertical(m_back_buffer, client_rect); break;
-                case LineScrollType::Horizontal: DrawUntimedLyricsHorizontal(m_back_buffer, client_rect); break;
+                case LineScrollDirection::Vertical: DrawUntimedLyricsVertical(m_back_buffer, client_rect); break;
+                case LineScrollDirection::Horizontal: DrawUntimedLyricsHorizontal(m_back_buffer, client_rect); break;
                 default:
-                    LOG_ERROR("Unsupported scroll type: %d", (int)scroll);
+                    LOG_ERROR("Unsupported scroll direction: %d", (int)dir);
                     uBugCheck();
             }
         }
@@ -960,6 +1012,91 @@ namespace {
         auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
         SpawnLyricEditor(m_lyrics, *update);
         m_update_handles.push_back(std::move(update));
+    }
+
+    LRESULT LyricPanel::OnMouseWheel(UINT /*virtualKeys*/, short rotation, CPoint /*point*/)
+    {
+        if(preferences::display::scroll_type() == LineScrollType::Automatic)
+        {
+            return 0;
+        }
+
+        // NOTE: WHEEL_DELTA is defined to be 120
+        // rotation > 0 (usually 120) means we scrolled up
+        // rotation < 0 (usually -120) means we scrolled down
+        double scroll_ticks = double(rotation)/double(WHEEL_DELTA);
+
+        switch(preferences::display::scroll_direction())
+        {
+            case LineScrollDirection::Horizontal:
+            {
+                // NOTE: It's not clear how far we should scroll here so we just use the height
+                //       of an empty line as a reasonable first approximation.
+                RECT fake_client_area = {};
+                int one_line_height = ComputeWrappedLyricLineHeight(m_back_buffer, fake_client_area, _T(""));
+                m_manual_scroll_distance += int(scroll_ticks * one_line_height);
+            } break;
+
+            case LineScrollDirection::Vertical:
+            {
+                RECT fake_client_area = {};
+                int one_line_height = ComputeWrappedLyricLineHeight(m_back_buffer, fake_client_area, _T(""));
+                m_manual_scroll_distance += int(scroll_ticks * one_line_height);
+            } break;
+
+            default:
+                LOG_ERROR("Unexpected scroll direction setting: %d", int(preferences::display::scroll_direction()));
+                assert(false);
+                break;
+        }
+
+        Invalidate();
+        return 0;
+    }
+
+    void LyricPanel::OnMouseMove(UINT /*virtualKeys*/, CPoint point)
+    {
+        if(m_manual_scroll_start.has_value())
+        {
+            int scroll_delta = 0;
+            switch(preferences::display::scroll_direction())
+            {
+                case LineScrollDirection::Horizontal:
+                    scroll_delta = point.x - m_manual_scroll_start.value().x;
+                    break;
+
+                case LineScrollDirection::Vertical:
+                    scroll_delta = point.y - m_manual_scroll_start.value().y;
+                    break;
+
+                default:
+                    LOG_ERROR("Unexpected scroll direction setting: %d", int(preferences::display::scroll_direction()));
+                    assert(false);
+                    break;
+            }
+
+            m_manual_scroll_distance += scroll_delta;
+            m_manual_scroll_start = point;
+            Invalidate();
+        }
+    }
+
+    void LyricPanel::OnLMBDown(UINT /*virtualKeys*/, CPoint point)
+    {
+        if(preferences::display::scroll_type() == LineScrollType::Manual)
+        {
+            m_manual_scroll_start = point;
+            SetCapture();
+        }
+    }
+
+    void LyricPanel::OnLMBUp(UINT /*virtualKeys*/, CPoint /*point*/)
+    {
+        if(m_manual_scroll_start.has_value())
+        {
+            m_manual_scroll_start.reset();
+            ReleaseCapture();
+        }
     }
 
     t_ui_font LyricPanel::get_font()

@@ -20,6 +20,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add an option to entirely disable auto-saving downloaded lyrics\n"
     "- Add a manual save button to the lyric panel context menu\n"
     "- Add a manual/custom lyric search dialog which searches all sources\n"
+    "- Add the option to disable automatic scroll and drag/mousewheel instead\n"
     "- Change trailing bracket removal to also apply to artists & albums\n"
     "- Change edits to only auto-save if allowed by the auto-save config\n"
     "- Change the darklyrics search to check the track name not number\n"
