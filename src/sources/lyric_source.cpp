@@ -85,6 +85,14 @@ std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr track, abo
     std::string artist = track_metadata(track, "artist");
     std::string album = track_metadata(track, "album");
     std::string title = track_metadata(track, "title");
+
+    if(preferences::searching::exclude_trailing_brackets())
+    {
+        artist = trim_surrounding_whitespace(trim_trailing_text_in_brackets(artist));
+        album = trim_surrounding_whitespace(trim_trailing_text_in_brackets(album));
+        title = trim_surrounding_whitespace(trim_trailing_text_in_brackets(title));
+    }
+
     return search(artist, album, title, abort);
 }
 
