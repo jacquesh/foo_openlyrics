@@ -24,6 +24,7 @@ DECLARE_COMPONENT_VERSION(
     "- Change edits to only auto-save if allowed by the auto-save config\n"
     "- Change the darklyrics search to check the track name not number\n"
     "- Fix search sometimes ignoring the 'exclude trailing brackets' setting\n"
+    "- Fix hiding the first lines of lyrics when they look like '[text:text]'\n"
     "\n"
     "Version 0.7 (2021-07-04):\n"
     "- Add a source for QQ Music\n"

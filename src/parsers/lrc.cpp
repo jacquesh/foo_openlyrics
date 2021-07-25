@@ -39,6 +39,19 @@ bool is_tag_line(std::string_view line)
     size_t tag_length = colon_index - 1; // Tag lines have the form [tag:value] so we -1 to count from the 't' to the ':'
     if(tag_length == 0) return false;
 
+    std::string_view tag = line.substr(1, colon_index-1);
+    if((tag != "ar") && // Artist
+       (tag != "al") && // Album
+       (tag != "ti") && // Title
+       (tag != "by") && // Lyric 'author' (person who made the lrc)
+       (tag != "id") && // LRC file ID
+       (tag != "offset") && // The offset to add to the given line timestamps
+       (tag != "length") && // Track length (e.g ''03:40')
+       (tag != "t_time")) // Track length (e.g '(2:57)')
+    {
+        return false;
+    }
+
     return true;
 }
 
