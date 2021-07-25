@@ -33,7 +33,7 @@ struct LyricData : LyricDataRaw
 
     LyricData() = default;
     LyricData(const LyricData& other) = default;
-    LyricData(LyricData&& other);
+    LyricData(LyricData&& other) = default;
 
     bool IsTimestamped() const;
     bool IsEmpty() const;
@@ -41,5 +41,5 @@ struct LyricData : LyricDataRaw
     double LineTimestamp(size_t line_index) const;
 
     void operator =(const LyricData& other) = delete;
-    void operator =(LyricData&& other);
+    LyricData& operator =(LyricData&& other) = default;
 };
