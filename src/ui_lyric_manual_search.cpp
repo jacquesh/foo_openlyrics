@@ -323,21 +323,24 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_album.iItem = item_index;
         subitem_album.iSubItem = 1;
         subitem_album.pszText = const_cast<TCHAR*>(ui_album.c_str());
-        assert(SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_album));
+        LRESULT album_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_album);
+        assert(album_success);
 
         LVITEM subitem_artist = {};
         subitem_artist.mask = LVIF_TEXT;
         subitem_artist.iItem = item_index;
         subitem_artist.iSubItem = 2;
         subitem_artist.pszText = const_cast<TCHAR*>(ui_artist.c_str());
-        assert(SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_artist));
+        LRESULT artist_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_artist);
+        assert(artist_success);
 
         LVITEM subitem_source = {};
         subitem_source.mask = LVIF_TEXT;
         subitem_source.iItem = item_index;
         subitem_source.iSubItem = 3;
         subitem_source.pszText = const_cast<TCHAR*>(source_name.c_str());
-        assert(SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_source));
+        LRESULT source_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_source);
+        assert(source_success);
     }
     return 0;
 }
