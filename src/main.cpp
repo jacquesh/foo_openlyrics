@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "0.8-dev"
+#define OPENLYRICS_VERSION "0.8"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -12,9 +12,10 @@ DECLARE_COMPONENT_VERSION(
     "foo_openlyrics " OPENLYRICS_VERSION "\n"
     "Open-source lyrics retrieval and display\n"
     "Source available at https://github.com/jacquesh/foo_openlyrics\n"
+    "You can support development at https://www.buymeacoffee.com/jacquesheunis\n"
     "\n"
     "Changelog:\n"
-    "Version 0.8-dev (" __DATE__ "):\n"
+    "Version 0.8 (2021-07-25):\n"
     "- Add a source for Musixmatch\n"
     "- Add an auto-edit to fix HTML-encoded characters (e.g &gt; to >)\n"
     "- Add an option to entirely disable auto-saving downloaded lyrics\n"
