@@ -24,6 +24,7 @@ DECLARE_COMPONENT_VERSION(
     "- Change trailing bracket removal to also apply to artists & albums\n"
     "- Change edits to only auto-save if allowed by the auto-save config\n"
     "- Change the darklyrics search to check the track name not number\n"
+    "- Change the default enabled sources to include QQMusic and NetEase\n"
     "- Fix search sometimes ignoring the 'exclude trailing brackets' setting\n"
     "- Fix hiding the first lines of lyrics when they look like '[text:text]'\n"
     "\n"
