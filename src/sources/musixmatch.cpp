@@ -329,3 +329,61 @@ bool MusixmatchLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
         return false;
     }
 }
+
+std::string musixmatch_get_token(abort_callback& abort)
+{
+    std::string url = std::string(g_api_url) + "token.get?" + g_common_params;
+    LOG_INFO("Attempting to get Musixmatch token from %s...", url.c_str());
+
+    pfc::string8 content;
+    try
+    {
+        http_request::ptr request = http_client::get()->create_request("GET");
+        request->add_header("cookie", "AWSELBCORS=0; AWSELB=0"); // NOTE: See the comment on the cookie in the track ID query
+
+        file_ptr response_file = request->run(url.c_str(), abort);
+
+        response_file->read_string_raw(content, abort);
+    }
+    catch(const std::exception& e)
+    {
+        LOG_WARN("Failed to get Musixmatch token from %s: %s", url.c_str(), e.what());
+        return "";
+    }
+
+    cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
+    if((json == nullptr) || (json->type != cJSON_Object))
+    {
+        LOG_INFO("Received musixmatch token response but root was malformed: %s", content.c_str());
+        cJSON_Delete(json);
+        return "";
+    }
+
+    cJSON* json_message = cJSON_GetObjectItem(json, "message");
+    if((json_message == nullptr) || (json_message->type != cJSON_Object))
+    {
+        LOG_INFO("Received musixmatch token response but message was malformed: %s", content.c_str());
+        cJSON_Delete(json);
+        return "";
+    }
+
+    cJSON* json_body = cJSON_GetObjectItem(json_message, "body");
+    if((json_body == nullptr) || (json_body->type != cJSON_Object))
+    {
+        LOG_INFO("Received musixmatch token response but body was malformed: %s", content.c_str());
+        cJSON_Delete(json);
+        return "";
+    }
+
+    cJSON* json_token = cJSON_GetObjectItem(json_body, "user_token");
+    if((json_token == nullptr) || (json_token->type != cJSON_String))
+    {
+        LOG_INFO("Received musixmatch token response but user_token was malformed: %s", content.c_str());
+        cJSON_Delete(json);
+        return "";
+    }
+
+    std::string result = json_token->valuestring;
+    cJSON_Delete(json);
+    return result;
+}

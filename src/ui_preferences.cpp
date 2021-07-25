@@ -124,7 +124,7 @@ public:
         COMMAND_HANDLER_EX(IDC_SOURCE_DEACTIVATE_BTN, BN_CLICKED, OnSourceDeactivate)
         COMMAND_HANDLER_EX(IDC_ACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnActiveSourceSelect)
         COMMAND_HANDLER_EX(IDC_INACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnInactiveSourceSelect)
-        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_HELP, LBN_SELCHANGE, OnMusixmatchHelp)
+        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_HELP, BN_CLICKED, OnMusixmatchHelp)
     END_MSG_MAP()
 
 private:
@@ -377,7 +377,41 @@ void PreferencesRoot::OnInactiveSourceSelect(UINT, int, CWindow)
 
 void PreferencesRoot::OnMusixmatchHelp(UINT, int, CWindow)
 {
-    popup_message::g_show("The Musixmatch source requires an authentication token to work. Without one it will not find any lyrics.\r\n\r\nSteps to get a token can be found here:\r\nhttps://github.com/khanhas/genius-spicetify#musicxmatch", "Warning");
+    popup_message_v3::query_t query = {};
+    query.title = "Musixmatch Help";
+    query.msg = "The Musixmatch source requires an authentication token to work. Without one it will not find any lyrics.\r\n\r\nWould you like OpenLyrics to attempt to get a token automatically for you now?";
+    query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
+    query.defButton = popup_message_v3::buttonNo;
+    query.icon = popup_message_v3::iconInformation;
+    uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
+    if(popup_result == popup_message_v3::buttonYes)
+    {
+        std::string output_token;
+        const auto async_search = [&output_token](threaded_process_status& /*status*/, abort_callback& abort)
+        {
+            output_token = musixmatch_get_token(abort);
+        };
+        bool success = threaded_process::g_run_modal(threaded_process_callback_lambda::create(async_search),
+                                                     threaded_process::flag_show_abort,
+                                                     m_hWnd,
+                                                     "Attempting to get Musixmatch token...");
+
+        if(!success || output_token.empty())
+        {
+            popup_message_v3::query_t failed_query = {};
+            failed_query.title = "Musixmatch Help";
+            failed_query.msg = "Failed to automatically get a Musixmatch token.\r\n\r\nYou could try to get a token manually, using the instructions found here:\r\nhttps://github.com/khanhas/genius-spicetify#musicxmatch";
+            failed_query.buttons = popup_message_v3::buttonOK;
+            failed_query.defButton = popup_message_v3::buttonOK;
+            failed_query.icon = popup_message_v3::iconWarning;
+            popup_message_v3::get()->show_query_modal(failed_query);
+        }
+        else
+        {
+            std::tstring ui_token = to_tstring(output_token);
+            SetDlgItemText(IDC_SEARCH_MUSIXMATCH_TOKEN, ui_token.c_str());
+        }
+    }
 }
 
 void PreferencesRoot::reset()
@@ -406,7 +440,13 @@ void PreferencesRoot::apply()
 
     if(musixmatch_enabled && !has_musixmatch_token)
     {
-        popup_message::g_show("You have enabled the 'Musixmatch' source for the OpenLyrics component, but have not provided a token. Without a token the Musixmatch source will not work.\r\n\r\nSteps to get a token can be found here:\r\nhttps://github.com/khanhas/genius-spicetify#musicxmatch", "Warning");
+        popup_message_v3::query_t query = {};
+        query.title = "Musixmatch Warning";
+        query.msg = "You have enabled the 'Musixmatch' source for the OpenLyrics component, but have not provided a token. Without a token the Musixmatch source will not work.\r\n\r\nYou can click on the '?' button for more information on how to get a token.";
+        query.buttons = popup_message_v3::buttonOK;
+        query.defButton = popup_message_v3::buttonOK;
+        query.icon = popup_message_v3::iconWarning;
+        popup_message_v3::get()->show_query_modal(query);
     }
 }
 

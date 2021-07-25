@@ -41,3 +41,8 @@ public:
 
 template<typename T>
 class LyricSourceFactory : public initquit_factory_t<T> {};
+
+
+// NOTE: We need access to this one function from outside the normal lyric-source interaction flow
+std::string musixmatch_get_token(abort_callback& abort);
+
