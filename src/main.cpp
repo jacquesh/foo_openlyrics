@@ -16,7 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.9-dev (" __DATE__ "):\n"
-    "- TODO\n"
+    "- Revert edit behaviour back to always auto-save (regardless of config)\n"
     "\n"
     "Version 0.8 (2021-07-25):\n"
     "- Add a source for Musixmatch\n"

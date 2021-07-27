@@ -263,7 +263,7 @@ void PreferencesSaving::OnAutoSaveChange(UINT, int, CWindow)
     {
         popup_message_v3::query_t query = {};
         query.title = "Autosave warning";
-        query.msg = "You have selected the 'never autosave' option, which will prevent OpenLyrics from ever saving lyrics unless you explicitly ask it to. This means that any edits you make in the editor or with the auto-edit menu will not be saved automatically. This will also cause lyric searches to always take significantly longer than if lyrics were saved and is not what most users want.\r\n\r\nAre you sure you want to disable autosave completely?";
+        query.msg = "You have selected the 'never autosave' option, which will prevent OpenLyrics from auto-saving lyrics unless you explicitly ask it to. Edits you make in the editor and with the auto-edit menu will still be saved automatically though. This could cause lyric searches to take significantly longer than if lyrics were saved and is not what most users want.\r\n\r\nAre you sure you want to disable autosave completely?";
         query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
         query.defButton = popup_message_v3::buttonNo;
         query.icon = popup_message_v3::iconWarning;

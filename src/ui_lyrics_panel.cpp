@@ -1201,7 +1201,15 @@ namespace {
 
         bool is_edit = (update.get_type() == LyricUpdateHandle::Type::Edit);
         bool loaded_from_save_src = (lyrics.source_id == preferences::saving::save_source());
-        bool should_save = should_autosave && (is_edit || !loaded_from_save_src); // Don't save to the source we just loaded from
+
+        // NOTE: We previously changed this to:
+        //       `should_autosave && (is_edit || !loaded_from_save_src)`
+        //       This makes all the behaviour consistent in the sense that the *only* time it will
+        //       save if you set auto-save to "never" is when you explicitly click the "Save" button
+        //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
+        //       this doesn't really make sense. If you make an edit then you almost certainly want
+        //       to save your edits (and if you just made them then you can always undo them).
+        bool should_save = is_edit || (should_autosave && !loaded_from_save_src); // Don't save to the source we just loaded from
         if(should_save)
         {
             try
