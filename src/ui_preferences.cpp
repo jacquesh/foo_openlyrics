@@ -379,7 +379,7 @@ void PreferencesRoot::OnMusixmatchHelp(UINT, int, CWindow)
 {
     popup_message_v3::query_t query = {};
     query.title = "Musixmatch Help";
-    query.msg = "The Musixmatch source requires an authentication token to work. Without one it will not find any lyrics.\r\n\r\nWould you like OpenLyrics to attempt to get a token automatically for you now?";
+    query.msg = "The Musixmatch source requires an authentication token to work. Without one it will not find any lyrics.\r\n\r\nAn authentication token is roughly like a randomly-generated password that musixmatch uses to differentiate between different users.\r\n\r\nWould you like OpenLyrics to attempt to get a token automatically for you now?";
     query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
     query.defButton = popup_message_v3::buttonNo;
     query.icon = popup_message_v3::iconInformation;
