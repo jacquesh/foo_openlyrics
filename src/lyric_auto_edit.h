@@ -9,4 +9,5 @@ namespace auto_edit
     LyricUpdateHandle RemoveRepeatedSpaces(metadb_handle_ptr track, const LyricData& lyrics);
     LyricUpdateHandle RemoveRepeatedBlankLines(metadb_handle_ptr track, const LyricData& lyrics);
     LyricUpdateHandle RemoveAllBlankLines(metadb_handle_ptr track, const LyricData& lyrics);
+    LyricUpdateHandle ResetCapitalisation(metadb_handle_ptr track, const LyricData& lyrics);
 }

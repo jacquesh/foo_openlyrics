@@ -164,3 +164,55 @@ LyricUpdateHandle auto_edit::RemoveAllBlankLines(metadb_handle_ptr track, const 
     }
     return result;
 }
+
+LyricUpdateHandle auto_edit::ResetCapitalisation(metadb_handle_ptr track, const LyricData& lyrics)
+{
+    LyricData new_lyrics = lyrics;
+
+    size_t edit_count = 0;
+    for(LyricDataLine& line : new_lyrics.lines)
+    {
+        if(line.text.empty()) continue;
+
+        bool edited = false;
+        if(line.text[0] <= 255)
+        {
+            if(_istlower(line.text[0]))
+            {
+                line.text[0] = _totupper(static_cast<unsigned char>(line.text[0]));
+                edited = true;
+            }
+        }
+
+        for(size_t i=1; i<line.text.length(); i++)
+        {
+            if(line.text[i] <= 255)
+            {
+                if(_istupper(line.text[i]))
+                {
+                    line.text[i] = _totlower(static_cast<unsigned char>(line.text[i]));
+                    edited = true;
+                }
+            }
+        }
+
+        if(edited)
+        {
+            edit_count++;
+        }
+    }
+    LOG_INFO("Auto-edit changed the capitalisation of %u lines", edit_count);
+
+    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
+    result.set_started();
+    if(edit_count > 0)
+    {
+        new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
+        result.set_result(std::move(new_lyrics), true);
+    }
+    else
+    {
+        result.set_complete();
+    }
+    return result;
+}

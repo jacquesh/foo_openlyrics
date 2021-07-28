@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.9-dev (" __DATE__ "):\n"
+    "- Add an auto-edit to 'fix' the capitalisation of each lyric line\n"
     "- Revert edit behaviour back to always auto-save (regardless of config)\n"
     "\n"
     "Version 0.8 (2021-07-25):\n"

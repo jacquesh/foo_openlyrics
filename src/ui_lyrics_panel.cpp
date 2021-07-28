@@ -838,6 +838,7 @@ namespace {
                 ID_AUTO_REMOVE_EXTRA_BLANK_LINES,
                 ID_AUTO_REMOVE_ALL_BLANK_LINES,
                 ID_AUTO_REPLACE_XML_CHARS,
+                ID_AUTO_RESET_CAPITALISATION,
                 ID_CMD_COUNT,
             };
 
@@ -848,6 +849,7 @@ namespace {
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_RESET_CAPITALISATION, _T("Reset capitalisation"));
 
             CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
@@ -874,6 +876,7 @@ namespace {
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_SPACES, "Replace sequences of multiple whitespace characters with a single space");
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_BLANK_LINES, "Replace sequences of multiple empty lines with just a single empty line");
             menudesc.Set(ID_AUTO_REMOVE_ALL_BLANK_LINES, "Remove all empty lines");
+            menudesc.Set(ID_AUTO_RESET_CAPITALISATION, "Reset capitalisation of each line so that only the first character is upper case");
 
             int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
             switch(cmd)
@@ -994,6 +997,12 @@ namespace {
                 case ID_AUTO_REPLACE_XML_CHARS:
                 {
                     LyricUpdateHandle update = auto_edit::ReplaceHtmlEscapedChars(m_now_playing, m_lyrics);
+                    ProcessAvailableLyricUpdate(update);
+                } break;
+
+                case ID_AUTO_RESET_CAPITALISATION:
+                {
+                    LyricUpdateHandle update = auto_edit::ResetCapitalisation(m_now_playing, m_lyrics);
                     ProcessAvailableLyricUpdate(update);
                 } break;
                 
