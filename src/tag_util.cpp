@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "preferences.h"
 #include "tag_util.h"
 
@@ -122,13 +123,44 @@ std::string track_metadata(metadb_handle_ptr track, std::string_view key)
         return "";
     }
 
-    std::string result;
     size_t value_count = track_info.meta_enum_value_count(value_index);
-    for(size_t i=0; i<value_count; i++)
+    if(value_count == 0)
     {
-        const char* value = track_info.meta_enum_value(value_index, i);
-        result += value;
+        return "";
     }
-    return result;
+
+    // NOTE: Previously we would concatenate the strings from every value of this tag.
+    //       The motivation for this was mostly "well why not".
+    //       This causes problems though because for example some tracks will list several
+    //       artists, one in each instance of the "artist" tag. The search then tries to find
+    //       tracks matching "artistAartistBartistC", which it is very unlikely to find.
+    //       Now instead it will just search for "artistA" and maybe some results will
+    //       include artists B & C as well, but thats probably an easier thing for the web
+    //       searches to deal with.
+    //       For a bug report about this on GitHub, see https://github.com/jacquesh/foo_openlyrics/issues/38
+    if(value_count > 0)
+    {
+        std::string err_msg;
+        err_msg += "ID3 tag ";
+        err_msg += key;
+        err_msg += " appears multiple times for ";
+        const char* const err_tags[] = {"artist", "album", "title"};
+        for(const char* err_tag : err_tags)
+        {
+            err_msg += "/";
+            size_t err_index = track_info.meta_find(err_tag);
+            if(err_index == pfc::infinite_size) continue;
+
+            size_t err_tag_count = track_info.meta_enum_value_count(err_index);
+            if(err_tag_count == 0) continue;
+
+            const char* err_tag_value = track_info.meta_enum_value(err_index, 0);
+            err_msg += err_tag_value;
+        }
+        err_msg += ". Only the first value will be used";
+        LOG_INFO("%s", err_msg.c_str());
+    }
+
+    return track_info.meta_enum_value(value_index, 0);
 }
 
