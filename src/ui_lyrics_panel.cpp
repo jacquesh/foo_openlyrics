@@ -448,16 +448,31 @@ namespace {
             // Shift the 'top' Y down by a single line so we can see the first line of text,
             // because the 'top y' is actually used as the *baseline*
             int one_line_height = ComputeWrappedLyricLineHeight(dc, client_area, _T(""));
-            int half_height = client_area.Height()/2;
-            if(m_manual_scroll_distance > half_height)
+
+            int default_top_y = one_line_height;
+            if(total_height < client_area.Height())
             {
-                m_manual_scroll_distance = half_height;
+                int centre_y = client_area.Height()/2;
+                default_top_y = centre_y + one_line_height - total_height/2;
             }
-            if(m_manual_scroll_distance < -total_height + half_height)
-            {
-                m_manual_scroll_distance = -total_height + half_height;
-            }
-            top_y = m_manual_scroll_distance + one_line_height;
+
+            // We want:
+            // 1) bottom_y >= one_line_height
+            //    top_y + total_height >= one_line_height
+            //    top_y >= one_line_height - total_height
+            //    default_top_y - one_line_height + m_manual_scroll_distance >= one_line_height - total_height
+            //    m_manual_scroll_distance >= one_line_height - total_height - default_top_y + one_line_height
+            // 2) top_y <= panel_height
+            //    default_top_y + m_manual_scroll_distance <= panel_height
+            //    m_manual_scroll_distance <= panel_height - default_top_y
+            // So:
+            //    (one_line_height - total_height - default_top_y + one_line_height) <= m_manual_scroll_distance <= (panel_height - default_top_y)
+            int min_scroll = one_line_height - total_height - default_top_y + one_line_height;
+            int max_scroll = client_area.Height() - default_top_y;
+            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
+            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
+
+            top_y = default_top_y + m_manual_scroll_distance;
         }
         else
         {
