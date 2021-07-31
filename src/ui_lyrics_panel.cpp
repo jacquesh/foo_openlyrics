@@ -893,6 +893,7 @@ namespace {
             menudesc.Set(ID_AUTO_REMOVE_ALL_BLANK_LINES, "Remove all empty lines");
             menudesc.Set(ID_AUTO_RESET_CAPITALISATION, "Reset capitalisation of each line so that only the first character is upper case");
 
+            std::optional<LyricData> updated_lyrics;
             int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
             switch(cmd)
             {
@@ -993,34 +994,36 @@ namespace {
 
                 case ID_AUTO_REMOVE_EXTRA_SPACES:
                 {
-                    LyricUpdateHandle update = auto_edit::RemoveRepeatedSpaces(m_now_playing, m_lyrics);
-                    ProcessAvailableLyricUpdate(update);
+                    updated_lyrics = auto_edit::RemoveRepeatedSpaces(m_lyrics);
                 } break;
 
                 case ID_AUTO_REMOVE_EXTRA_BLANK_LINES:
                 {
-                    LyricUpdateHandle update = auto_edit::RemoveRepeatedBlankLines(m_now_playing, m_lyrics);
-                    ProcessAvailableLyricUpdate(update);
+                    updated_lyrics = auto_edit::RemoveRepeatedBlankLines(m_lyrics);
                 } break;
 
                 case ID_AUTO_REMOVE_ALL_BLANK_LINES:
                 {
-                    LyricUpdateHandle update = auto_edit::RemoveAllBlankLines(m_now_playing, m_lyrics);
-                    ProcessAvailableLyricUpdate(update);
+                    updated_lyrics = auto_edit::RemoveAllBlankLines(m_lyrics);
                 } break;
 
                 case ID_AUTO_REPLACE_XML_CHARS:
                 {
-                    LyricUpdateHandle update = auto_edit::ReplaceHtmlEscapedChars(m_now_playing, m_lyrics);
-                    ProcessAvailableLyricUpdate(update);
+                    updated_lyrics = auto_edit::ReplaceHtmlEscapedChars(m_lyrics);
                 } break;
 
                 case ID_AUTO_RESET_CAPITALISATION:
                 {
-                    LyricUpdateHandle update = auto_edit::ResetCapitalisation(m_now_playing, m_lyrics);
-                    ProcessAvailableLyricUpdate(update);
+                    updated_lyrics = auto_edit::ResetCapitalisation(m_lyrics);
                 } break;
-                
+            }
+
+            if(updated_lyrics.has_value())
+            {
+                LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
+                update.set_started();
+                update.set_result(std::move(updated_lyrics.value()), true);
+                ProcessAvailableLyricUpdate(update);
             }
         }
         catch(std::exception const & e)

@@ -5,19 +5,34 @@
 #include "lyric_auto_edit.h"
 #include "lyric_io.h"
 
-LyricUpdateHandle auto_edit::CreateInstrumental(metadb_handle_ptr track)
+std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics)
+{
+    switch(type)
+    {
+        case AutoEditType::CreateInstrumental: return CreateInstrumental(lyrics);
+        case AutoEditType::ReplaceHtmlEscapedChars: return ReplaceHtmlEscapedChars(lyrics);
+        case AutoEditType::RemoveRepeatedSpaces: return RemoveRepeatedSpaces(lyrics);
+        case AutoEditType::RemoveRepeatedBlankLines: return RemoveRepeatedBlankLines(lyrics);
+        case AutoEditType::RemoveAllBlankLines: return RemoveAllBlankLines(lyrics);
+        case AutoEditType::ResetCapitalisation: return ResetCapitalisation(lyrics);
+
+        case AutoEditType::Unknown:
+        default:
+            LOG_ERROR("Unexpected auto-edit type: %d", int(type));
+            assert(false);
+            return {};
+    }
+}
+
+std::optional<LyricData> auto_edit::CreateInstrumental(const LyricData& /*lyrics*/)
 {
     LyricData lyrics;
     lyrics.lines.push_back({_T("[Instrumental]"), DBL_MAX});
     lyrics.text = "[Instrumental]";
-
-    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
-    result.set_started();
-    result.set_result(std::move(lyrics), true);
-    return result;
+    return {std::move(lyrics)};
 }
 
-LyricUpdateHandle auto_edit::ReplaceHtmlEscapedChars(metadb_handle_ptr track, const LyricData& lyrics)
+std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyrics)
 {
     LyricDataRaw new_raw = lyrics;
     std::pair<std::string_view, char> replacements[] =
@@ -45,21 +60,18 @@ LyricUpdateHandle auto_edit::ReplaceHtmlEscapedChars(metadb_handle_ptr track, co
     }
     LOG_INFO("Auto-edit replaced %u named HTML-encoded characters", replace_count);
 
-    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
-    result.set_started();
     if(replace_count > 0)
     {
         LyricData new_lyrics = parsers::lrc::parse(new_raw);
-        result.set_result(std::move(new_lyrics), true);
+        return {std::move(new_lyrics)};
     }
     else
     {
-        result.set_complete();
+        return {};
     }
-    return result;
 }
 
-LyricUpdateHandle auto_edit::RemoveRepeatedSpaces(metadb_handle_ptr track, const LyricData& lyrics)
+std::optional<LyricData> auto_edit::RemoveRepeatedSpaces(const LyricData& lyrics)
 {
     size_t spaces_erased = 0;
     LyricData new_lyrics = lyrics;
@@ -92,21 +104,18 @@ LyricUpdateHandle auto_edit::RemoveRepeatedSpaces(metadb_handle_ptr track, const
     }
     LOG_INFO("Auto-removal removed %u unnecessary spaces", spaces_erased);
 
-    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
-    result.set_started();
     if(spaces_erased > 0)
     {
         new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
-        result.set_result(std::move(new_lyrics), true);
+        return {std::move(new_lyrics)};
     }
     else
     {
-        result.set_complete();
+        return {};
     }
-    return result;
 }
 
-LyricUpdateHandle auto_edit::RemoveRepeatedBlankLines(metadb_handle_ptr track, const LyricData& lyrics)
+std::optional<LyricData> auto_edit::RemoveRepeatedBlankLines(const LyricData& lyrics)
 {
     size_t lines_removed = 0;
     bool previous_blank = true;
@@ -128,21 +137,18 @@ LyricUpdateHandle auto_edit::RemoveRepeatedBlankLines(metadb_handle_ptr track, c
     }
     LOG_INFO("Auto-removal removed %u blank lines", lines_removed);
 
-    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
-    result.set_started();
     if(lines_removed > 0)
     {
         new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
-        result.set_result(std::move(new_lyrics), true);
+        return {std::move(new_lyrics)};
     }
     else
     {
-        result.set_complete();
+        return {};
     }
-    return result;
 }
 
-LyricUpdateHandle auto_edit::RemoveAllBlankLines(metadb_handle_ptr track, const LyricData& lyrics)
+std::optional<LyricData> auto_edit::RemoveAllBlankLines(const LyricData& lyrics)
 {
     LyricData new_lyrics = lyrics;
     auto line_is_empty = [](const LyricDataLine& line) { return line.text.find_first_not_of(' ') == std::tstring::npos; };
@@ -151,21 +157,18 @@ LyricUpdateHandle auto_edit::RemoveAllBlankLines(metadb_handle_ptr track, const 
     new_lyrics.lines.erase(new_end, new_lyrics.lines.end());
     LOG_INFO("Auto-removal removed %d blank lines", lines_removed);
 
-    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
-    result.set_started();
     if(lines_removed > 0)
     {
         new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
-        result.set_result(std::move(new_lyrics), true);
+        return {std::move(new_lyrics)};
     }
     else
     {
-        result.set_complete();
+        return {};
     }
-    return result;
 }
 
-LyricUpdateHandle auto_edit::ResetCapitalisation(metadb_handle_ptr track, const LyricData& lyrics)
+std::optional<LyricData> auto_edit::ResetCapitalisation(const LyricData& lyrics)
 {
     LyricData new_lyrics = lyrics;
 
@@ -203,16 +206,13 @@ LyricUpdateHandle auto_edit::ResetCapitalisation(metadb_handle_ptr track, const 
     }
     LOG_INFO("Auto-edit changed the capitalisation of %u lines", edit_count);
 
-    LyricUpdateHandle result(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
-    result.set_started();
     if(edit_count > 0)
     {
         new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
-        result.set_result(std::move(new_lyrics), true);
+        return {std::move(new_lyrics)};
     }
     else
     {
-        result.set_complete();
+        return {};
     }
-    return result;
 }

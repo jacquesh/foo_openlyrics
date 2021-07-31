@@ -1,13 +1,15 @@
 #pragma once
 
+#include "stdafx.h"
+
 #include "lyric_io.h"
 
 namespace auto_edit
 {
-    LyricUpdateHandle CreateInstrumental(metadb_handle_ptr track);
-    LyricUpdateHandle ReplaceHtmlEscapedChars(metadb_handle_ptr track, const LyricData& lyrics);
-    LyricUpdateHandle RemoveRepeatedSpaces(metadb_handle_ptr track, const LyricData& lyrics);
-    LyricUpdateHandle RemoveRepeatedBlankLines(metadb_handle_ptr track, const LyricData& lyrics);
-    LyricUpdateHandle RemoveAllBlankLines(metadb_handle_ptr track, const LyricData& lyrics);
-    LyricUpdateHandle ResetCapitalisation(metadb_handle_ptr track, const LyricData& lyrics);
+    std::optional<LyricData> CreateInstrumental(const LyricData& lyrics);
+    std::optional<LyricData> ReplaceHtmlEscapedChars(const LyricData& lyrics);
+    std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics);
+    std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics);
+    std::optional<LyricData> RemoveAllBlankLines(const LyricData& lyrics);
+    std::optional<LyricData> ResetCapitalisation(const LyricData& lyrics);
 }
