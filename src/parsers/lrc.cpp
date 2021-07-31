@@ -159,11 +159,7 @@ void remove_offset_tag(LyricData& lyrics)
 double get_line_first_timestamp(std::string_view line)
 {
     double timestamp = DBL_MAX;
-    if((line.length() >= 10) && try_parse_6digit_timestamp(line.substr(0, 10), timestamp))
-    {
-        return timestamp;
-    }
-    if((line.length() >= 11) && try_parse_7digit_timestamp(line.substr(0, 11), timestamp))
+    if((line.length() >= 10) && try_parse_timestamp(line.substr(0, 10), timestamp))
     {
         return timestamp;
     }
@@ -196,7 +192,7 @@ std::string print_6digit_timestamp(double timestamp)
     return std::string(temp);
 }
 
-bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
+bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
 {
     if((tag.length() != 10) ||
        (tag[0] != '[') ||
@@ -222,33 +218,6 @@ bool try_parse_6digit_timestamp(std::string_view tag, double& out_timestamp)
     return true;
 }
 
-bool try_parse_7digit_timestamp(std::string_view tag, double& out_timestamp)
-{
-    if((tag.length() != 11) ||
-       (tag[0] != '[') ||
-       !is_digit(tag[1]) ||
-       !is_digit(tag[2]) ||
-       (tag[3] != ':') ||
-       !is_digit(tag[4]) ||
-       !is_digit(tag[5]) ||
-       (tag[6] != '.') ||
-       !is_digit(tag[7]) ||
-       !is_digit(tag[8]) ||
-       !is_digit(tag[9]) ||
-       (tag[10] != ']'))
-    {
-        // We do not have a well-formed timestamp
-        return false;
-    }
-
-    int minute = str_to_int(tag.substr(1, 2));
-    int second = str_to_int(tag.substr(4,2));
-    int millisec = str_to_int(tag.substr(7,3));
-    double timestamp = (double)(minute*60) + (double)second + ((double)millisec * 0.001);
-    out_timestamp = timestamp;
-    return true;
-}
-
 static LineTimeParseResult parse_time_from_line(std::string_view line)
 {
     size_t line_length = line.length();
@@ -262,8 +231,7 @@ static LineTimeParseResult parse_time_from_line(std::string_view line)
         std::string_view tag = line.substr(index, tag_length);
 
         double timestamp = -1.0;
-        if(try_parse_6digit_timestamp(tag, timestamp) ||
-           try_parse_7digit_timestamp(tag, timestamp))
+        if(try_parse_timestamp(tag, timestamp))
         {
             return {true, timestamp, index + tag_length};
         }

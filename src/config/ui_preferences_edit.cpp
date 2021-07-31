@@ -24,6 +24,7 @@ static const std::pair<AutoEditType, const TCHAR*> g_autoedit_options[] =
     {AutoEditType::RemoveRepeatedBlankLines, _T("Remove repeated blank lines")},
     {AutoEditType::RemoveAllBlankLines, _T("Remove all blank lines")},
     {AutoEditType::ResetCapitalisation, _T("Reset capitalisation")},
+    {AutoEditType::FixMalformedTimestamps, _T("Fix malformed timestamps")},
 };
 
 std::vector<AutoEditType> preferences::editing::automated_auto_edits()

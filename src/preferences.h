@@ -42,7 +42,7 @@ enum class LineScrollType : int
     Manual    = 1,
 };
 
-enum class AutoEditType
+enum class AutoEditType : int
 {
     Unknown                  = 0,
     CreateInstrumental       = 1,
@@ -51,6 +51,7 @@ enum class AutoEditType
     RemoveRepeatedBlankLines = 4,
     RemoveAllBlankLines      = 5,
     ResetCapitalisation      = 6,
+    FixMalformedTimestamps   = 7,
 };
 
 namespace preferences

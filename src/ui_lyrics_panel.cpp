@@ -854,6 +854,7 @@ namespace {
                 ID_AUTO_REMOVE_ALL_BLANK_LINES,
                 ID_AUTO_REPLACE_XML_CHARS,
                 ID_AUTO_RESET_CAPITALISATION,
+                ID_FIX_MALFORMED_TIMESTAMPS,
                 ID_CMD_COUNT,
             };
 
@@ -865,6 +866,7 @@ namespace {
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_RESET_CAPITALISATION, _T("Reset capitalisation"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_FIX_MALFORMED_TIMESTAMPS, _T("Fix malformed timestamps"));
 
             CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
@@ -892,6 +894,7 @@ namespace {
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_BLANK_LINES, "Replace sequences of multiple empty lines with just a single empty line");
             menudesc.Set(ID_AUTO_REMOVE_ALL_BLANK_LINES, "Remove all empty lines");
             menudesc.Set(ID_AUTO_RESET_CAPITALISATION, "Reset capitalisation of each line so that only the first character is upper case");
+            menudesc.Set(ID_FIX_MALFORMED_TIMESTAMPS, "Fix timestamps that are slightly malformed so that they're recognised as timestamps and not shown in the text");
 
             std::optional<LyricData> updated_lyrics;
             int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
@@ -1014,6 +1017,11 @@ namespace {
                 case ID_AUTO_RESET_CAPITALISATION:
                 {
                     updated_lyrics = auto_edit::ResetCapitalisation(m_lyrics);
+                } break;
+
+                case ID_FIX_MALFORMED_TIMESTAMPS:
+                {
+                    updated_lyrics = auto_edit::FixMalformedTimestamps(m_lyrics);
                 } break;
             }
 

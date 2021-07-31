@@ -15,4 +15,5 @@ namespace auto_edit
     std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics);
     std::optional<LyricData> RemoveAllBlankLines(const LyricData& lyrics);
     std::optional<LyricData> ResetCapitalisation(const LyricData& lyrics);
+    std::optional<LyricData> FixMalformedTimestamps(const LyricData& lyrics);
 }

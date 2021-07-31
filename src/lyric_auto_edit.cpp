@@ -15,6 +15,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
         case AutoEditType::RemoveRepeatedBlankLines: return RemoveRepeatedBlankLines(lyrics);
         case AutoEditType::RemoveAllBlankLines: return RemoveAllBlankLines(lyrics);
         case AutoEditType::ResetCapitalisation: return ResetCapitalisation(lyrics);
+        case AutoEditType::FixMalformedTimestamps: return FixMalformedTimestamps(lyrics);
 
         case AutoEditType::Unknown:
         default:
@@ -210,6 +211,96 @@ std::optional<LyricData> auto_edit::ResetCapitalisation(const LyricData& lyrics)
     {
         new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
         return {std::move(new_lyrics)};
+    }
+    else
+    {
+        return {};
+    }
+}
+
+std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyrics)
+{
+    const auto is_digit = [](char c)
+    {
+        return ((c >= '0') && (c <= '9'));
+    };
+
+    const auto fix_too_many_decimal_places = [&is_digit](std::string& line, size_t start)
+    {
+        if((line.length() <= start + 10) ||
+           (line[start+0] != '[') ||
+           !is_digit(line[start+1]) ||
+           !is_digit(line[start+2]) ||
+           (line[start+3] != ':') ||
+           !is_digit(line[start+4]) ||
+           !is_digit(line[start+5]) ||
+           (line[start+6] != '.') ||
+           !is_digit(line[start+7]) ||
+           !is_digit(line[start+8]))
+        {
+            return false;
+        }
+
+        size_t erase_start = start + 9;
+        size_t tag_end_index = line.find(']', erase_start);
+        if(tag_end_index == std::tstring::npos)
+        {
+            // Unclosed timestamp tag, not what we're fixing here
+            return false;
+        }
+
+        assert(tag_end_index >= erase_start);
+        size_t erase_count = tag_end_index - erase_start;
+        if(erase_count == 0)
+        {
+            return false;
+        }
+
+        line.erase(erase_start, erase_count);
+        return true;
+    };
+
+    const auto fix_decimal_separator = [&is_digit](std::string& line, size_t start)
+    {
+        if((line.length() < start + 10) ||
+           (line[start+0] != '[') ||
+           !is_digit(line[start+1]) ||
+           !is_digit(line[start+2]) ||
+           (line[start+3] != ':') ||
+           !is_digit(line[start+4]) ||
+           !is_digit(line[start+5]) ||
+           (line[start+6] == '.') || // Already correct
+           !is_digit(line[start+7]) ||
+           !is_digit(line[start+8]) ||
+           (line.find(']', start+9) == std::tstring::npos)) // Unclosed timestamp tag, not what we're fixing here
+        {
+            return false;
+        }
+
+        line[start+6] = '.';
+        return true;
+    };
+
+    LyricDataRaw new_lyrics = lyrics;
+
+    int change_count = 0;
+    size_t current_index = new_lyrics.text.find('[');
+    while(current_index != std::string::npos)
+    {
+        bool changed = false;
+        changed |= fix_decimal_separator(new_lyrics.text, current_index);
+        changed |= fix_too_many_decimal_places(new_lyrics.text, current_index);
+
+        if(changed)
+        {
+            change_count++;
+        }
+        current_index = new_lyrics.text.find('[', current_index+1);
+    }
+
+    if(change_count > 0)
+    {
+        return {parsers::lrc::parse(new_lyrics)};
     }
     else
     {

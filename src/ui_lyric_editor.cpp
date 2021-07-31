@@ -221,9 +221,8 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
             {
                 double time = 0;
                 std::string tag = from_tstring(std::tstring_view{line_buffer, (size_t)i+1}); // +1 so that the length covers this current (']') character
-                bool success6 = parsers::lrc::try_parse_6digit_timestamp(tag, time);
-                bool success7 = parsers::lrc::try_parse_7digit_timestamp(tag, time);
-                if(success6 || success7)
+                bool success = parsers::lrc::try_parse_timestamp(tag, time);
+                if(success)
                 {
                     replace_end = replace_start + i + 1;
                 }
