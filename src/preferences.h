@@ -23,23 +23,34 @@ enum class SaveDirectoryClass : int
     Custom             = 3
 };
 
-enum class AutoSaveStrategy
+enum class AutoSaveStrategy : int
 {
-    Never = 0,
-    Always = 1,
+    Never      = 0,
+    Always     = 1,
     OnlySynced = 2,
 };
 
-enum class LineScrollDirection
+enum class LineScrollDirection : int
 {
-    Vertical = 0,
+    Vertical   = 0,
     Horizontal = 1
 };
 
-enum class LineScrollType
+enum class LineScrollType : int
 {
     Automatic = 0,
-    Manual = 1,
+    Manual    = 1,
+};
+
+enum class AutoEditType
+{
+    Unknown                  = 0,
+    CreateInstrumental       = 1,
+    ReplaceHtmlEscapedChars  = 2,
+    RemoveRepeatedSpaces     = 3,
+    RemoveRepeatedBlankLines = 4,
+    RemoveAllBlankLines      = 5,
+    ResetCapitalisation      = 6,
 };
 
 namespace preferences
@@ -51,6 +62,11 @@ namespace preferences
         bool exclude_trailing_brackets();
 
         std::string musixmatch_api_key();
+    }
+
+    namespace editing
+    {
+        std::vector<AutoEditType> automated_auto_edits();
     }
 
     namespace saving

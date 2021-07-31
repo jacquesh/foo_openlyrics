@@ -165,6 +165,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\config\config_font.cpp" />
+    <ClCompile Include="..\..\src\config\ui_preferences_edit.cpp" />
     <ClCompile Include="..\..\src\config\ui_preferences_display.cpp" />
     <ClCompile Include="..\..\src\config\ui_preferences_saving.cpp" />
     <ClCompile Include="..\..\src\lyric_auto_edit.cpp" />

@@ -127,6 +127,15 @@ BEGIN
     LTEXT           "Scroll type:",IDC_STATIC,7,137,36,8
 END
 
+IDD_PREFERENCES_EDIT DIALOGEX 0, 0, 332, 288
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_EDIT_AUTOEDITS_AUTOMATED,"SysListView32",LVS_LIST | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,27,318,74
+    LTEXT           "Auto-edits to run automatically when saving lyrics from remote sources:",IDC_STATIC,7,15,222,8
+    GROUPBOX        "Auto-edits",IDC_STATIC,0,0,331,121
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -159,6 +168,14 @@ BEGIN
         TOPMARGIN, 4
         BOTTOMMARGIN, 280
     END
+
+    IDD_PREFERENCES_EDIT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 325
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 281
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -179,6 +196,11 @@ BEGIN
 END
 
 IDD_PREFERENCES_DISPLAY AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PREFERENCES_EDIT AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

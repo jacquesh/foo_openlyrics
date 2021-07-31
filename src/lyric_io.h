@@ -23,8 +23,9 @@ public:
     enum class Type
     {
         Unknown,
-        Search,
-        Edit
+        AutoSearch,
+        ManualSearch,
+        Edit,
     };
 
     LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort);

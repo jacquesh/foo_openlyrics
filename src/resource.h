@@ -8,6 +8,7 @@
 #define IDD_PREFERENCES_ROOT            148
 #define IDD_PREFERENCES_SAVING          149
 #define IDD_PREFERENCES_DISPLAY         150
+#define IDD_PREFERENCES_EDIT            151
 #define IDC_ACTIVE_SOURCE_LIST          1021
 #define IDC_INACTIVE_SOURCE_LIST        1025
 #define IDC_SOURCE_ACTIVATE_BTN         1026
@@ -63,14 +64,15 @@
 #define IDC_MANUALSEARCH_SEARCH         1086
 #define IDC_SEARCH_MUSIXMATCH_HELP      1087
 #define IDC_DISPLAY_SCROLL_TYPE         1088
+#define IDC_EDIT_AUTOEDITS_AUTOMATED    1089
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        123
+#define _APS_NEXT_RESOURCE_VALUE        125
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1089
+#define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

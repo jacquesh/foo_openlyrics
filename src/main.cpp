@@ -17,6 +17,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.9-dev (" __DATE__ "):\n"
     "- Add an auto-edit to 'fix' the capitalisation of each lyric line\n"
+    "- Add config to apply some auto-edits to lyrics from the internet\n"
     "- Change search to consider only the first instance of duplicate tags\n"
     "- Revert edit behaviour back to always auto-save (regardless of config)\n"
     "- Add slightly more information to the musixmatch token help dialog\n"

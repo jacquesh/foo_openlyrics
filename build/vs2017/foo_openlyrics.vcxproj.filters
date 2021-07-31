@@ -111,6 +111,9 @@
     <ClCompile Include="..\..\src\tag_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\config\ui_preferences_edit.cpp">
+      <Filter>Source Files\config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">

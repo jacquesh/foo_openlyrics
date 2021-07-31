@@ -412,7 +412,7 @@ namespace {
             std::string progress_msg;
             for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
             {
-                if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::Search))
+                if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::AutoSearch))
                 {
                     progress_msg = update->get_progress();
                     is_search = true;
@@ -910,7 +910,7 @@ namespace {
                     if(m_now_playing != nullptr)
                     {
                         LOG_INFO("Initiate manual lyric search");
-                        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
+                        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, fb2k::noAbort);
                         SpawnManualLyricSearch(*update);
                         m_update_handles.push_back(std::move(update));
                     }
@@ -982,8 +982,7 @@ namespace {
                 {
                     if(m_lyrics.IsEmpty())
                     {
-                        LyricUpdateHandle update = auto_edit::CreateInstrumental(m_now_playing);
-                        ProcessAvailableLyricUpdate(update);
+                        updated_lyrics = auto_edit::CreateInstrumental(m_lyrics);
                     }
                     else
                     {
@@ -1200,7 +1199,7 @@ namespace {
         LOG_INFO("Initiate lyric search");
         m_lyrics = {};
 
-        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Search, track, fb2k::noAbort);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, track, fb2k::noAbort);
         io::search_for_lyrics(*update, false);
         m_update_handles.push_back(std::move(update));
     }
@@ -1226,7 +1225,7 @@ namespace {
         bool should_autosave = (autosave == AutoSaveStrategy::Always) ||
                                ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped());
 
-        bool is_edit = (update.get_type() == LyricUpdateHandle::Type::Edit);
+        bool user_requested = (update.get_type() == LyricUpdateHandle::Type::Edit) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
         bool loaded_from_save_src = (lyrics.source_id == preferences::saving::save_source());
 
         // NOTE: We previously changed this to:
@@ -1236,12 +1235,26 @@ namespace {
         //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
         //       this doesn't really make sense. If you make an edit then you almost certainly want
         //       to save your edits (and if you just made them then you can always undo them).
-        bool should_save = is_edit || (should_autosave && !loaded_from_save_src); // Don't save to the source we just loaded from
+        const bool should_save = user_requested || (should_autosave && !loaded_from_save_src); // Don't save to the source we just loaded from
         if(should_save)
         {
             try
             {
-                bool allow_overwrite = is_edit;
+                LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
+                bool was_search = (update.get_type() == LyricUpdateHandle::Type::AutoSearch) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
+                if(was_search && (source != nullptr) && !source->is_local())
+                {
+                    for(AutoEditType type : preferences::editing::automated_auto_edits())
+                    {
+                        std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics);
+                        if(maybe_lyrics.has_value())
+                        {
+                            lyrics = std::move(maybe_lyrics.value());
+                        }
+                    }
+                }
+
+                const bool allow_overwrite = user_requested;
                 lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
             }
             catch(const std::exception& e)

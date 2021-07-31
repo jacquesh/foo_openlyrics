@@ -43,7 +43,7 @@ public:
                         dialog_title += "' lyrics";
                     }
 
-                    LyricUpdateHandle update(LyricUpdateHandle::Type::Search, track, abort);
+                    LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, abort);
                     io::search_for_lyrics(update, true);
                     bool success = update.wait_for_complete(30'000);
                     if(success)

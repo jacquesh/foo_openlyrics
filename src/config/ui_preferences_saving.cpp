@@ -511,9 +511,9 @@ void PreferencesSaving::SetMethodFieldsEnabled()
 class PreferencesSavingImpl : public preferences_page_impl<PreferencesSaving>
 {
 public:
-    const char* get_name() { return "Saving"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_SAVING; }
-    GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
+    const char* get_name() final { return "Saving"; }
+    GUID get_guid() final { return GUID_PREFERENCES_PAGE_SAVING; }
+    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_ROOT; }
 };
 static preferences_page_factory_t<PreferencesSavingImpl> g_preferences_page_saving_factory;
 

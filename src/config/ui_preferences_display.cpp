@@ -460,8 +460,8 @@ void PreferencesDisplay::UpdateScrollTimePreview()
 class PreferencesDisplayImpl : public preferences_page_impl<PreferencesDisplay>
 {
 public:
-    const char* get_name() { return "Display"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_DISPLAY; }
-    GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
+    const char* get_name() final { return "Display"; }
+    GUID get_guid() final { return GUID_PREFERENCES_PAGE_DISPLAY; }
+    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_ROOT; }
 };
 static preferences_page_factory_t<PreferencesDisplayImpl> g_preferences_page_display_factory;
