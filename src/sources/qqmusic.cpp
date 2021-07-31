@@ -132,7 +132,7 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
 
 std::vector<LyricDataRaw> QQMusicLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
-    std::string url = "http://c.y.qq.com/soso/fcgi-bin/client_search_cp?p=1&n=30&new_json=1&cr=1&format=json&inCharset=utf-8&outCharset=utf-8&w=" + urlencode(artist) + '+' + urlencode(album) + '+' + urlencode(title);
+    std::string url = "http://c.y.qq.com/soso/fcgi-bin/client_search_cp?p=1&n=10&new_json=1&cr=1&format=json&inCharset=utf-8&outCharset=utf-8&w=" + urlencode(artist) + '+' + urlencode(album) + '+' + urlencode(title);
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;
