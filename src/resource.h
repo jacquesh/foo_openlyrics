@@ -65,6 +65,7 @@
 #define IDC_SEARCH_MUSIXMATCH_HELP      1087
 #define IDC_DISPLAY_SCROLL_TYPE         1088
 #define IDC_EDIT_AUTOEDITS_AUTOMATED    1089
+#define IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES 1091
 
 // Next default values for new objects
 // 
@@ -72,7 +73,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        125
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1091
+#define _APS_NEXT_CONTROL_VALUE         1092
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

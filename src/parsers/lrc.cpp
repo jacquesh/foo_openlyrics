@@ -456,7 +456,7 @@ std::string shrink_text(const LyricData& data)
         auto iter = std::find_if(timestamp_map.begin(),
                                  timestamp_map.end(),
                                  [&linestr](const auto& entry) { return entry.first == linestr; });
-        if(iter == timestamp_map.end())
+        if((iter == timestamp_map.end()) || !preferences::saving::merge_equivalent_lrc_lines())
         {
             std::string_view line_to_insert("");
             if(linestr != " ")

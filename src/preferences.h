@@ -79,6 +79,8 @@ namespace preferences
 
         std::string_view untimed_tag();
         std::string_view timestamped_tag();
+
+        bool merge_equivalent_lrc_lines();
     }
 
     namespace display

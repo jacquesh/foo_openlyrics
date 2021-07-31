@@ -20,6 +20,7 @@ static const GUID GUID_CFG_SAVE_TAG_UNTIMED = { 0x39b0bc08, 0x5c3a, 0x4359, { 0x
 static const GUID GUID_CFG_SAVE_TAG_TIMESTAMPED = { 0x337d0d40, 0xe9da, 0x4531, { 0xb0, 0x82, 0x13, 0x24, 0x56, 0xe5, 0xc4, 0x2 } };
 static const GUID GUID_CFG_SAVE_DIR_CLASS = { 0xcf49878d, 0xe2ea, 0x4682, { 0x98, 0xb, 0x8f, 0xc1, 0xf3, 0x80, 0x46, 0x7b } };
 static const GUID GUID_CFG_SAVE_PATH_CUSTOM = { 0x84ac099b, 0xa00b, 0x4713, { 0x8f, 0x1c, 0x30, 0x7e, 0x31, 0xc0, 0xa1, 0xdf } };
+static const GUID GUID_CFG_SAVE_MERGE_LRC_LINES = { 0x97229606, 0x8fd5, 0x441a, { 0xa6, 0x84, 0x9f, 0x3d, 0x87, 0xc8, 0x27, 0x18 } };
 
 static cfg_auto_combo_option<SaveMethod> save_method_options[] =
 {
@@ -48,6 +49,7 @@ static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_S
 static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
 static cfg_auto_combo<SaveDirectoryClass, 3> cfg_save_dir_class(GUID_CFG_SAVE_DIR_CLASS, IDC_SAVE_DIRECTORY_CLASS, SaveDirectoryClass::ConfigDirectory, save_dir_class_options);
 static cfg_auto_string                       cfg_save_path_custom(GUID_CFG_SAVE_PATH_CUSTOM, IDC_SAVE_CUSTOM_PATH, "C:\\Lyrics\\%artist%");
+static cfg_auto_bool                         cfg_save_merge_lrc_lines(GUID_CFG_SAVE_MERGE_LRC_LINES, IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES, true);
 
 static cfg_auto_property* g_saving_auto_properties[] =
 {
@@ -58,6 +60,7 @@ static cfg_auto_property* g_saving_auto_properties[] =
     &cfg_save_tag_timestamped,
     &cfg_save_dir_class,
     &cfg_save_path_custom,
+    &cfg_save_merge_lrc_lines,
 };
 
 class titleformat_filename_filter : public titleformat_text_filter
@@ -185,6 +188,11 @@ std::string_view preferences::saving::timestamped_tag()
     return {cfg_save_tag_timestamped.get_ptr(), cfg_save_tag_timestamped.get_length()};
 }
 
+bool preferences::saving::merge_equivalent_lrc_lines()
+{
+    return cfg_save_merge_lrc_lines.get_value();
+}
+
 class PreferencesSaving : public CDialogImpl<PreferencesSaving>, public auto_preferences_page_instance, private play_callback_impl_base
 {
 public:
@@ -200,6 +208,7 @@ public:
         COMMAND_HANDLER_EX(IDC_SAVE_AUTOSAVE_TYPE, CBN_SELCHANGE, OnAutoSaveChange)
         COMMAND_HANDLER_EX(IDC_SAVE_TAG_SYNCED, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_TAG_UNSYNCED, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
