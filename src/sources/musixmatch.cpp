@@ -272,9 +272,15 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
         return false;
     }
 
+    if(strlen(json_lyricstext->valuestring) == 0)
+    {
+        cJSON_Delete(json);
+        return false;
+    }
+
     data.text = json_lyricstext->valuestring;
     cJSON_Delete(json);
-    return true;
+    return !data.text.empty();
 }
 
 bool MusixmatchLyricsSource::get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const

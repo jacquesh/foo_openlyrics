@@ -26,6 +26,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add slightly more information to the musixmatch token help dialog\n"
     "- Stop silently fixing & loading slightly-malformed timestamps\n"
     "- Fix the text alignment bounds when using manual scrolling\n"
+    "- Fix Musixmatch sometimes erroneously returning empty lyrics\n"
     "\n"
     "Version 0.8 (2021-07-25):\n"
     "- Add a source for Musixmatch\n"
