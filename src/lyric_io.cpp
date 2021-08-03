@@ -123,7 +123,13 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
                     bool lyrics_found = source->lookup(result, handle.get_checked_abort());
                     if(lyrics_found)
                     {
-                        assert(!result.text.empty());
+                        if(result.text.empty())
+                        {
+                            LOG_WARN("Received illegal empty success result from source: %s", friendly_name.c_str());
+                            assert(!result.text.empty());
+                            continue;
+                        }
+
                         lyric_data_raw = std::move(result);
                         LOG_INFO("Successfully looked-up lyrics from source: %s", friendly_name.c_str());
                         break;

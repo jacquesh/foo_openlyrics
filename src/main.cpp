@@ -27,6 +27,7 @@ DECLARE_COMPONENT_VERSION(
     "- Stop silently fixing & loading slightly-malformed timestamps\n"
     "- Fix the text alignment bounds when using manual scrolling\n"
     "- Fix Musixmatch sometimes erroneously returning empty lyrics\n"
+    "- Fix accepting (and displaying) empty lyrics from local files\n"
     "\n"
     "Version 0.8 (2021-07-25):\n"
     "- Add a source for Musixmatch\n"
