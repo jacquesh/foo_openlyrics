@@ -138,7 +138,7 @@ std::string track_metadata(metadb_handle_ptr track, std::string_view key)
     //       include artists B & C as well, but thats probably an easier thing for the web
     //       searches to deal with.
     //       For a bug report about this on GitHub, see https://github.com/jacquesh/foo_openlyrics/issues/38
-    if(value_count > 0)
+    if(value_count > 1)
     {
         std::string err_msg;
         err_msg += "ID3 tag ";
@@ -157,7 +157,15 @@ std::string track_metadata(metadb_handle_ptr track, std::string_view key)
             const char* err_tag_value = track_info.meta_enum_value(err_index, 0);
             err_msg += err_tag_value;
         }
-        err_msg += ". Only the first value will be used";
+        err_msg += ". Only the first value will be used of: ";
+
+        for(size_t i=0; i<value_count; i++)
+        {
+            err_msg += "/";
+            err_msg += track_info.meta_enum_value(value_index, i);
+        }
+        err_msg += ".";
+
         LOG_INFO("%s", err_msg.c_str());
     }
 
