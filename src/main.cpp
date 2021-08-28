@@ -26,6 +26,7 @@ DECLARE_COMPONENT_VERSION(
     "- Reduce the number of results requested when searching QQMusic\n"
     "- Add slightly more information to the musixmatch token help dialog\n"
     "- Stop silently fixing & loading slightly-malformed timestamps\n"
+    "- Auto-search can now find lyrics when the source provides no album\n"
     "- Fix the text alignment bounds when using manual scrolling\n"
     "- Fix Musixmatch sometimes erroneously returning empty lyrics\n"
     "- Fix accepting (and displaying) empty lyrics from local files\n"

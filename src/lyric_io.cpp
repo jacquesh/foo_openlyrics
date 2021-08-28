@@ -94,13 +94,14 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
             std::string tag_title = track_metadata(handle.get_track(), "title");
             for(LyricDataRaw& result : search_results)
             {
-                bool tag_match = tag_values_match(tag_artist, result.artist) &&
-                                 tag_values_match(tag_album, result.album) &&
+                // NOTE: Some sources don't return an album so we ignore album data if the source didn't give us any
+                bool tag_match = (result.album.empty() || tag_values_match(tag_album, result.album)) &&
+                                 tag_values_match(tag_artist, result.artist) &&
                                  tag_values_match(tag_title, result.title);
                 if(!tag_match)
                 {
                     LOG_INFO("Rejected %s search result %s/%s/%s due to tag mismatch: %s/%s/%s",
-                            source->friendly_name().data(),
+                            friendly_name.c_str(),
                             tag_artist.c_str(),
                             tag_album.c_str(),
                             tag_title.c_str(),
