@@ -25,9 +25,10 @@ enum class SaveDirectoryClass : int
 
 enum class AutoSaveStrategy : int
 {
-    Never      = 0,
-    Always     = 1,
-    OnlySynced = 2,
+    Never        = 0,
+    Always       = 1,
+    OnlySynced   = 2,
+    OnlyUnsynced = 3,
 };
 
 enum class LineScrollDirection : int

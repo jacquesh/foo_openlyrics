@@ -39,10 +39,11 @@ static cfg_auto_combo_option<AutoSaveStrategy> autosave_strategy_options[] =
 {
     {_T("Always"), AutoSaveStrategy::Always},
     {_T("Only synced lyrics"), AutoSaveStrategy::OnlySynced},
+    {_T("Only unsynced lyrics"), AutoSaveStrategy::OnlyUnsynced},
     {_T("Never"), AutoSaveStrategy::Never}
 };
 
-static cfg_auto_combo<AutoSaveStrategy, 3>   cfg_save_auto_save_strategy(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_SAVE_AUTOSAVE_TYPE, AutoSaveStrategy::Always, autosave_strategy_options);
+static cfg_auto_combo<AutoSaveStrategy, 4>   cfg_save_auto_save_strategy(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_SAVE_AUTOSAVE_TYPE, AutoSaveStrategy::Always, autosave_strategy_options);
 static cfg_auto_combo<SaveMethod, 2>         cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::LocalFile, save_method_options);
 static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCEDLYRICS");
 static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "LYRICS");

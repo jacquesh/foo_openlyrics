@@ -20,6 +20,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add config to apply some auto-edits to lyrics from the internet\n"
     "- Add an auto-edit to fix slightly-malformed LRC timestamps\n"
     "- Add an option to disable collapsing of duplicate timestamped lines\n"
+    "- Add an option to only save unsynced lyrics\n"
     "- Change search to consider only the first instance of duplicate tags\n"
     "- Revert edit behaviour back to always auto-save (regardless of config)\n"
     "- Reduce the number of results requested when searching QQMusic\n"

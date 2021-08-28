@@ -1231,7 +1231,8 @@ namespace {
 
         AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
         bool should_autosave = (autosave == AutoSaveStrategy::Always) ||
-                               ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped());
+                               ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped()) ||
+                               ((autosave == AutoSaveStrategy::OnlyUnsynced) && !lyrics.IsTimestamped());
 
         bool user_requested = (update.get_type() == LyricUpdateHandle::Type::Edit) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
         bool loaded_from_save_src = (lyrics.source_id == preferences::saving::save_source());
