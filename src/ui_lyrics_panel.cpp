@@ -1235,21 +1235,22 @@ namespace {
                                ((autosave == AutoSaveStrategy::OnlyUnsynced) && !lyrics.IsTimestamped());
 
         bool user_requested = (update.get_type() == LyricUpdateHandle::Type::Edit) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
-        bool loaded_from_save_src = (lyrics.source_id == preferences::saving::save_source());
+
+        LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
+        bool loaded_from_local_src = ((source != nullptr) && source->is_local());
 
         // NOTE: We previously changed this to:
-        //       `should_autosave && (is_edit || !loaded_from_save_src)`
+        //       `should_autosave && (is_edit || !loaded_from_local_src)`
         //       This makes all the behaviour consistent in the sense that the *only* time it will
         //       save if you set auto-save to "never" is when you explicitly click the "Save" button
         //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
         //       this doesn't really make sense. If you make an edit then you almost certainly want
         //       to save your edits (and if you just made them then you can always undo them).
-        const bool should_save = user_requested || (should_autosave && !loaded_from_save_src); // Don't save to the source we just loaded from
+        const bool should_save = user_requested || (should_autosave && !loaded_from_local_src); // Don't save to the source we just loaded from
         if(should_save)
         {
             try
             {
-                LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
                 bool was_search = (update.get_type() == LyricUpdateHandle::Type::AutoSearch) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
                 if(was_search && (source != nullptr) && !source->is_local())
                 {
