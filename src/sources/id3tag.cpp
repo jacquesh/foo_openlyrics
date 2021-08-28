@@ -69,7 +69,7 @@ bool ID3TagLyricSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/
     return false;
 }
 
-std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& /*abort*/)
+std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to an ID3 tag...");
     struct MetaCompletionLogger : public completion_notify
@@ -104,18 +104,18 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped
     auto update_meta_tag = [tag_name, lyrics, allow_overwrite](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
     {
         t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
-        if(tag_index != pfc::infinite_size)
+        if(!allow_overwrite && (tag_index != pfc::infinite_size))
         {
-            if(!allow_overwrite)
-            {
-                LOG_INFO("Save tag already exists and overwriting is disallowed. The tag will not be modified");
-                return false;
-            }
-            info.meta_remove_index(tag_index);
+            LOG_INFO("Save tag already exists and overwriting is disallowed. The tag will not be modified");
+            return false;
         }
-        info.meta_add_ex(tag_name.data(), tag_name.length(), lyrics.data(), lyrics.length());
+        info.meta_set_ex(tag_name.data(), tag_name.length(), lyrics.data(), lyrics.length());
         return true;
     };
+
+    // NOTE: I'm actually not 100% sure this is necessary but lets ensure we've loaded the full tag data
+    //       before we save it so that we don't accidentally overwrite some esoteric tag that wasn't loaded.
+    track->get_full_info_ref(abort);
 
     service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
     service_ptr_t<MetaCompletionLogger> completion = fb2k::service_new<MetaCompletionLogger>(tag_name);
@@ -123,7 +123,7 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped
     meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
                                updater,
                                core_api::get_main_window(),
-                               metadb_io_v2::op_flag_no_errors | metadb_io_v2::op_flag_delay_ui,
+                               metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
                                completion);
     LOG_INFO("Successfully wrote lyrics to ID3 tag %s", tag_name.c_str());
     return track->get_path();
