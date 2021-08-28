@@ -341,6 +341,12 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_source.pszText = const_cast<TCHAR*>(source_name.c_str());
         LRESULT source_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_source);
         assert(source_success);
+
+        bool is_first_entry = (m_all_lyrics.size() == 1);
+        if(is_first_entry)
+        {
+            ListView_SetItemState(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), item_index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+        }
     }
     return 0;
 }
