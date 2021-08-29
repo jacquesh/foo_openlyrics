@@ -226,6 +226,8 @@ void ManualLyricSearch::start_search()
     {
         LOG_WARN("Unexpected timer result when starting search update timer");
     }
+
+    SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Searching..."));
 }
 
 void ManualLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
@@ -290,9 +292,6 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         WIN32_OP(KillTimer(SEARCH_UPDATE_TIMER))
         return 0;
     }
-
-    std::tstring progress_str = to_tstring(child_update.get_progress());
-    SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, progress_str.c_str());
 
     while(child_update.has_result())
     {

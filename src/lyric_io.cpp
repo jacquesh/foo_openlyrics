@@ -174,76 +174,117 @@ void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
     });
 }
 
+static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle, LyricSourceBase* source, std::string artist, std::string album, std::string title)
+{
+    std::string friendly_name = from_tstring(source->friendly_name());
+    handle.set_started();
+
+    try
+    {
+        std::vector<LyricDataRaw> search_results;
+        if(source->is_local())
+        {
+            search_results = source->search(handle.get_track(), handle.get_checked_abort());
+        }
+        else
+        {
+            LyricSourceRemote* remote_source = dynamic_cast<LyricSourceRemote*>(source);
+            assert(remote_source != nullptr);
+            if(remote_source == nullptr)
+            {
+                LOG_ERROR("Bad LyricSourceRemote cast for: %s", friendly_name.c_str());
+                handle.set_complete();
+                return;
+            }
+
+            search_results = remote_source->search(artist, album, title, handle.get_checked_abort());
+        }
+
+        for(LyricDataRaw& result : search_results)
+        {
+            assert(result.source_id == source->id());
+
+            std::optional<LyricDataRaw> lyric;
+            if(result.lookup_id.empty())
+            {
+                assert(!result.text.empty());
+                lyric = std::move(result);
+            }
+            else
+            {
+                bool lyrics_found = source->lookup(result, handle.get_checked_abort());
+                if(lyrics_found)
+                {
+                    assert(!result.text.empty());
+                    lyric = std::move(result);
+                }
+            }
+
+            if(lyric.has_value())
+            {
+                ensure_windows_newlines(lyric.value().text);
+
+                LyricData parsed_lyrics = parsers::lrc::parse(lyric.value());
+                handle.set_result(std::move(parsed_lyrics), false);
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("Error while searching %s: %s", friendly_name.c_str(), e.what());
+    }
+    catch(...)
+    {
+        LOG_ERROR("Error of unrecognised type while searching %s", friendly_name.c_str());
+    }
+
+    handle.set_complete();
+}
+
 static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title)
 {
     LOG_INFO("Searching for lyrics using custom parameters...");
     handle.set_started();
 
-    std::vector<LyricDataRaw> results_raw;
-    for(GUID source_id : LyricSourceBase::get_all_ids())
+    // NOTE: It is crucial that this is a std::list so that inserting new items or removing old ones
+    //       does not re-allocate the entire list and invalidate earlier pointers. We pass references
+    //       to these handles into the search task and so they need to remain valid for the task's
+    //       entire lifetime or we'll get weird random-memory bugs.
+    std::list<LyricUpdateHandle> source_handles;
+
+    std::vector<GUID> all_source_ids = LyricSourceBase::get_all_ids();
+    for(GUID source_id : all_source_ids)
     {
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
 
-        std::string friendly_name = from_tstring(source->friendly_name());
-        handle.set_progress("Searching " + friendly_name + "...");
+        source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_checked_abort());
+        LyricUpdateHandle& src_handle = source_handles.back();
 
-        try
+        fb2k::splitTask([&src_handle, source, artist, album, title](){
+            internal_search_for_all_lyrics_from_source(src_handle, source, artist, album, title);
+        });
+    }
+
+    while(!source_handles.empty())
+    {
+        for(auto iter=source_handles.begin(); iter!=source_handles.end(); /*omitted*/)
         {
-            std::vector<LyricDataRaw> search_results;
-            if(source->is_local())
+            LyricUpdateHandle& src_handle = *iter;
+            while(src_handle.has_result())
             {
-                search_results = source->search(handle.get_track(), handle.get_checked_abort());
+                handle.set_result(src_handle.get_result(), false);
+            }
+
+            bool is_complete = src_handle.wait_for_complete(100);
+            if(is_complete)
+            {
+                iter = source_handles.erase(iter);
             }
             else
             {
-                LyricSourceRemote* remote_source = dynamic_cast<LyricSourceRemote*>(source);
-                assert(remote_source != nullptr);
-                if(remote_source == nullptr)
-                {
-                    LOG_ERROR("Bad LyricSourceRemote cast for: %s", friendly_name.c_str());
-                    continue;
-                }
-
-                search_results = remote_source->search(artist, album, title, handle.get_checked_abort());
+                iter++;
             }
-
-            for(LyricDataRaw& result : search_results)
-            {
-                assert(result.source_id == source_id);
-
-                std::optional<LyricDataRaw> lyric;
-                if(result.lookup_id.empty())
-                {
-                    assert(!result.text.empty());
-                    lyric = std::move(result);
-                }
-                else
-                {
-                    bool lyrics_found = source->lookup(result, handle.get_checked_abort());
-                    if(lyrics_found)
-                    {
-                        assert(!result.text.empty());
-                        lyric = std::move(result);
-                    }
-                }
-
-                if(lyric.has_value())
-                {
-                    ensure_windows_newlines(lyric.value().text);
-
-                    LyricData parsed_lyrics = parsers::lrc::parse(lyric.value());
-                    handle.set_result(std::move(parsed_lyrics), false);
-                }
-            }
-        }
-        catch(const std::exception& e)
-        {
-            LOG_ERROR("Error while searching %s: %s", friendly_name.c_str(), e.what());
-        }
-        catch(...)
-        {
-            LOG_ERROR("Error of unrecognised type while searching %s", friendly_name.c_str());
         }
     }
 

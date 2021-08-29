@@ -28,6 +28,7 @@ DECLARE_COMPONENT_VERSION(
     "- Stop silently fixing & loading slightly-malformed timestamps\n"
     "- Auto-search can now find lyrics when the source provides no album\n"
     "- Automatically highlight the first manual search result\n"
+    "- Manual searches now query sources in parallel\n"
     "- Fix the text alignment bounds when using manual scrolling\n"
     "- Fix Musixmatch sometimes erroneously returning empty lyrics\n"
     "- Fix accepting (and displaying) empty lyrics from local files\n"
