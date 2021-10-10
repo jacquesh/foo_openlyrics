@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.10-dev (" __DATE__ "):\n"
+    "- Fix ColumnsUI config export complaints of corrupted file\n"
     "\n"
     "Version 0.9 (2021-08-30):\n"
     "- Add an auto-edit to 'fix' the capitalisation of each lyric line\n"

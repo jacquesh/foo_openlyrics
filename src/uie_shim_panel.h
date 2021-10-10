@@ -163,16 +163,16 @@ public:
         TPanel::g_get_name(out);
     }
 
-	void set_config(stream_reader* reader, t_size size, abort_callback& abort) override
+    void set_config(stream_reader* reader, t_size size, abort_callback& abort) override
     {
-        config = ui_element_config::g_create(reader, size, abort);
+        config = ui_element_config::g_create(TPanel::g_get_guid(), reader, size, abort);
     }
 
-	void get_config(stream_writer* writer, abort_callback& abort) const override
+    void get_config(stream_writer* writer, abort_callback& abort) const override
     {
         if(config != nullptr)
         {
-		    writer->write(config->get_data(), config->get_data_size(), abort);
+            writer->write(config->get_data(), config->get_data_size(), abort);
         }
     }
 
