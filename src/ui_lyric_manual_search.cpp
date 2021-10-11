@@ -11,6 +11,17 @@
 #include "sources/lyric_source.h"
 #include "win32_util.h"
 
+
+static const GUID GUID_CFG_TITLE_COLUMN_WIDTH = { 0x18d967fe, 0xad07, 0x464c, { 0x82, 0xf8, 0xbc, 0xeb, 0x1d, 0x67, 0xa5, 0x84 } };
+static const GUID GUID_CFG_ALBUM_COLUMN_WIDTH = { 0x7ac61807, 0x57a2, 0x4880, { 0xba, 0x6d, 0xb2, 0x35, 0xf9, 0x88, 0x5a, 0x60 } };
+static const GUID GUID_CFG_ARTIST_COLUMN_WIDTH = { 0xdebf2d4e, 0xfb93, 0x4a3f, { 0xb6, 0x3e, 0x84, 0x3f, 0x89, 0xa9, 0x86, 0xba } };
+static const GUID GUID_CFG_SOURCE_COLUMN_WIDTH = { 0x44350ccb, 0xf62a, 0x4d47, { 0x9a, 0xeb, 0x5a, 0x7a, 0xc4, 0xce, 0x75, 0xa1 } };
+
+static cfg_int_t<int> cfg_title_column_width(GUID_CFG_TITLE_COLUMN_WIDTH, 160);
+static cfg_int_t<int> cfg_album_column_width(GUID_CFG_ALBUM_COLUMN_WIDTH, 160);
+static cfg_int_t<int> cfg_artist_column_width(GUID_CFG_ARTIST_COLUMN_WIDTH, 128);
+static cfg_int_t<int> cfg_source_column_width(GUID_CFG_SOURCE_COLUMN_WIDTH, 96);
+
 class ManualLyricSearch : public CDialogImpl<ManualLyricSearch>
 {
 public:
@@ -75,7 +86,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     title_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     title_column.fmt = LVCFMT_LEFT;
     title_column.pszText = _T("Title");
-    title_column.cx = 160;
+    title_column.cx = cfg_title_column_width;
     LRESULT title_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 0, (LPARAM)&title_column);
     assert(title_index >= 0);
 
@@ -83,7 +94,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     album_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     album_column.fmt = LVCFMT_LEFT;
     album_column.pszText = _T("Album");
-    album_column.cx = 160;
+    album_column.cx = cfg_album_column_width;
     LRESULT album_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 1, (LPARAM)&album_column);
     assert(album_index >= 0);
 
@@ -91,7 +102,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     artist_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     artist_column.fmt = LVCFMT_LEFT;
     artist_column.pszText = _T("Artist");
-    artist_column.cx = 128;
+    artist_column.cx = cfg_artist_column_width;
     LRESULT artist_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 2, (LPARAM)&artist_column);
     assert(artist_index >= 0);
 
@@ -99,7 +110,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     source_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     source_column.fmt = LVCFMT_LEFT;
     source_column.pszText = _T("Source");
-    source_column.cx = 96;
+    source_column.cx = cfg_source_column_width;
     LRESULT source_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 3, (LPARAM)&source_column);
     assert(source_index >= 0);
 
@@ -138,6 +149,28 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
 void ManualLyricSearch::OnDestroyDialog()
 {
+    TCHAR title_buffer[64] = {};
+    LVCOLUMN column_data = {};
+    column_data.mask = LVCF_TEXT | LVCF_WIDTH;
+    column_data.pszText = title_buffer;
+    column_data.cchTextMax = sizeof(title_buffer)/sizeof(title_buffer[0]);
+
+    ListView_GetColumn(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), 0, &column_data);
+    assert(std::tstring_view(column_data.pszText) == _T("Title"));
+    cfg_title_column_width = column_data.cx;
+
+    ListView_GetColumn(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), 1, &column_data);
+    assert(std::tstring_view(column_data.pszText) == _T("Album"));
+    cfg_album_column_width = column_data.cx;
+
+    ListView_GetColumn(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), 2, &column_data);
+    assert(std::tstring_view(column_data.pszText) == _T("Artist"));
+    cfg_artist_column_width = column_data.cx;
+
+    ListView_GetColumn(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), 3, &column_data);
+    assert(std::tstring_view(column_data.pszText) == _T("Source"));
+    cfg_source_column_width = column_data.cx;
+
     if(m_child_update.has_value())
     {
         bool completed = m_child_update.value().wait_for_complete(10'000);
