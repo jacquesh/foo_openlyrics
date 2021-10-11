@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.10-dev (" __DATE__ "):\n"
+    "- Make auto-searches case-insensitive when matching track metadata\n"
     "- Fix ColumnsUI config export complaints of corrupted file\n"
     "\n"
     "Version 0.9 (2021-08-30):\n"

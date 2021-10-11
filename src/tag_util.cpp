@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <cctype>
 
 #include "logging.h"
 #include "preferences.h"
@@ -76,8 +77,10 @@ static int compute_edit_distance(const std::string_view strA, const std::string_
             int delete_cost = prev_row[i+1] + 1;
             int insert_cost = cur_row[i] + 1;
             int subst_cost;
-            // TODO: Make this comparison case-insensitive
-            if(strA[row] == strB[i])
+
+            int a_lower = std::tolower(static_cast<unsigned char>(strA[row]));
+            int b_lower = std::tolower(static_cast<unsigned char>(strB[i]));
+            if(a_lower == b_lower)
             {
                 subst_cost = prev_row[i];
             }
