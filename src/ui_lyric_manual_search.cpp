@@ -29,6 +29,7 @@ public:
         COMMAND_HANDLER_EX(IDC_MANUALSEARCH_SEARCH, BN_CLICKED, OnSearchRequested)
         COMMAND_HANDLER_EX(IDC_MANUALSEARCH_CANCEL, BN_CLICKED, OnCancel)
         COMMAND_HANDLER_EX(IDC_MANUALSEARCH_OK, BN_CLICKED, OnOK)
+        COMMAND_HANDLER_EX(IDC_MANUALSEARCH_APPLY, BN_CLICKED, OnApply)
     END_MSG_MAP()
 
 private:
@@ -39,9 +40,11 @@ private:
     LRESULT OnNotify(int idCtrl, LPNMHDR pnmh);
     void OnCancel(UINT btn_id, int notify_code, CWindow btn);
     void OnOK(UINT btn_id, int notify_code, CWindow btn);
+    void OnApply(UINT btn_id, int notify_code, CWindow btn);
     void OnSearchRequested(UINT btn_id, int notify_code, CWindow btn);
 
     void start_search();
+    void save_selected_item();
 
     LyricUpdateHandle& m_parent_update;
     std::optional<LyricUpdateHandle> m_child_update;
@@ -309,21 +312,11 @@ void ManualLyricSearch::start_search()
     SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Searching..."));
 }
 
-void ManualLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
-{
-    m_child_abort.abort();
-    DestroyWindow();
-}
-
-void ManualLyricSearch::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
+void ManualLyricSearch::save_selected_item()
 {
     assert(SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_GETSELECTEDCOUNT, 0, 0) <= 1);
     LRESULT list_selection = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_GETSELECTIONMARK, 0, 0);
-    if(list_selection == -1)
-    {
-        m_parent_update.set_complete();
-    }
-    else
+    if(list_selection >= 0)
     {
         assert((list_selection >= 0) && (list_selection <= INT_MAX));
         LVITEM selected = {};
@@ -335,16 +328,36 @@ void ManualLyricSearch::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn
             LyricData* selected_lyrics = (LyricData*)selected.lParam;
             assert(selected_lyrics != nullptr);
 
-            m_parent_update.set_result(std::move(*selected_lyrics), true);
+            // NOTE: We need to take a copy here because otherwise if we click "Apply" then the
+            //       preview for the applied lyrics will be empty (and so will the applied lyrics)
+            //       if you click "Apply" again.
+            LyricData lyrics_copy = *selected_lyrics;
+            m_parent_update.set_result(std::move(lyrics_copy), false);
         }
         else
         {
             LOG_WARN("Failed to get selected search result list entry");
         }
     }
+}
+
+void ManualLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    m_child_abort.abort();
+    DestroyWindow();
+}
+
+void ManualLyricSearch::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
+{
+    save_selected_item();
 
     m_child_abort.abort();
     DestroyWindow();
+}
+
+void ManualLyricSearch::OnApply(UINT btn_id, int notify_code, CWindow btn)
+{
+    save_selected_item();
 }
 
 void ManualLyricSearch::OnSearchRequested(UINT btn_id, int notify_code, CWindow btn)
