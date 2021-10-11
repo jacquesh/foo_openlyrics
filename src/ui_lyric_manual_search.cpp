@@ -155,28 +155,46 @@ void ManualLyricSearch::OnClose()
 
 LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
 {
-    if((notify->idFrom != IDC_MANUALSEARCH_RESULTLIST) ||
-        (notify->code != LVN_ITEMCHANGED))
+    if(notify->idFrom != IDC_MANUALSEARCH_RESULTLIST)
     {
         SetMsgHandled(FALSE);
         return 0;
     }
 
-    NMLISTVIEW* change = (NMLISTVIEW*)notify;
-    assert(change != nullptr);
-
-    bool now_selected = ((change->uNewState & LVIS_SELECTED) != 0);
-    if(now_selected)
+    switch(notify->code)
     {
-        LyricData* item_lyrics = (LyricData*)change->lParam;
-        assert(item_lyrics != nullptr);
+        case LVN_ITEMCHANGED:
+        {
+            NMLISTVIEW* change = (NMLISTVIEW*)notify;
+            assert(change != nullptr);
 
-        std::tstring lyrics_tstr = to_tstring(item_lyrics->text);
-        SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, lyrics_tstr.c_str());
-    }
-    else
-    {
-        SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, _T(""));
+            bool now_selected = ((change->uNewState & LVIS_SELECTED) != 0);
+            if(now_selected)
+            {
+                LyricData* item_lyrics = (LyricData*)change->lParam;
+                assert(item_lyrics != nullptr);
+
+                std::tstring lyrics_tstr = to_tstring(item_lyrics->text);
+                SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, lyrics_tstr.c_str());
+            }
+            else
+            {
+                SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, _T(""));
+            }
+        } break;
+
+        case NM_DBLCLK:
+        {
+            // The currently-selected item has already been selected (on the first click)
+            // so this will just apply it as the "accepted" option
+            OnOK(0, 0, nullptr);
+        } break;
+
+        default:
+        {
+            SetMsgHandled(FALSE);
+            return 0;
+        } break;
     }
 
     return 0;
