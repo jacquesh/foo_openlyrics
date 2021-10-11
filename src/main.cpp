@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.10-dev (" __DATE__ "):\n"
+    "- Allow sorting the manual search result list by any column\n"
     "- Support applying a manual search result by double-clicking it\n"
     "- Make auto-searches case-insensitive when matching track metadata\n"
     "- Fix ColumnsUI config export complaints of corrupted file\n"

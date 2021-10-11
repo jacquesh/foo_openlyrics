@@ -15,7 +15,7 @@ static const GUID src_guid = { 0xadf3a1ba, 0x7e88, 0x4539, { 0xaf, 0x9e, 0xa8, 0
 class AZLyricsComSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("azlyrics.com"); }
+    std::tstring_view friendly_name() const final { return _T("AZLyrics.com"); }
 
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;

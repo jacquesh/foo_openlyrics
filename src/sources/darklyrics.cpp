@@ -14,7 +14,7 @@ static const GUID src_guid = { 0x5901c128, 0xc67f, 0x4eec, { 0x8f, 0x10, 0x47, 0
 class DarkLyricsSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("darklyrics.com"); }
+    std::tstring_view friendly_name() const final { return _T("DarkLyrics.com"); }
 
     void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;

@@ -47,6 +47,9 @@ private:
     std::optional<LyricUpdateHandle> m_child_update;
     abort_callback_impl m_child_abort;
     std::list<LyricData> m_all_lyrics;
+
+    int m_sort_column_index;
+    bool m_sort_ascending;
 };
 
 static const UINT_PTR SEARCH_UPDATE_TIMER = 7917213;
@@ -63,6 +66,7 @@ ManualLyricSearch::~ManualLyricSearch()
 BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing manual search window...");
+    m_sort_column_index = -1;
 
     LVCOLUMN title_column = {};
     title_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
@@ -153,6 +157,46 @@ void ManualLyricSearch::OnClose()
     DestroyWindow();
 }
 
+static int CALLBACK column_sort_fn(LPARAM lparam1, LPARAM lparam2, LPARAM sort_data)
+{
+    LyricData* item1 = (LyricData*)lparam1;
+    LyricData* item2 = (LyricData*)lparam2;
+    if((item1 == nullptr) || (item2 == nullptr))
+    {
+        LOG_ERROR("Attempt to sort column with invalid item");
+        return -1;
+    }
+
+    int sort_column_index = sort_data & 0xFF;
+    bool sort_ascending = (((sort_data & 0x1FF) >> 8) != 0);
+    int order_factor = sort_ascending ? 1 : -1;
+
+    switch(sort_column_index)
+    {
+        case 0: return order_factor * item1->title.compare(item2->title);
+        case 1: return order_factor * item1->album.compare(item2->album);
+        case 2: return order_factor * item1->artist.compare(item2->artist);
+        case 3:
+        {
+            LyricSourceBase* source1 = LyricSourceBase::get(item1->source_id);
+            LyricSourceBase* source2 = LyricSourceBase::get(item2->source_id);
+            if((source1 != nullptr) && (source2 != nullptr))
+            {
+                return order_factor * source1->friendly_name().compare(source2->friendly_name());
+            }
+            else
+            {
+                LOG_ERROR("No source available for search result");
+                return -1;
+            }
+        } break;
+
+        default:
+            LOG_ERROR("Unexpected sort column index %d", sort_column_index);
+            return 0;
+    }
+}
+
 LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
 {
     if(notify->idFrom != IDC_MANUALSEARCH_RESULTLIST)
@@ -163,6 +207,23 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
 
     switch(notify->code)
     {
+        case LVN_COLUMNCLICK:
+        {
+            NMLISTVIEW* list = (NMLISTVIEW*)notify;
+            int selected_column_index = list->iSubItem;
+            if(selected_column_index == m_sort_column_index)
+            {
+                m_sort_ascending = !m_sort_ascending;
+            }
+            else
+            {
+                m_sort_column_index = selected_column_index;
+                m_sort_ascending = true;
+            }
+            int sort_data = (m_sort_column_index & 0xFF) | ((m_sort_ascending ? 1 : 0) << 8);
+            SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_SORTITEMS, sort_data, (LPARAM)column_sort_fn);
+        } break;
+
         case LVN_ITEMCHANGED:
         {
             NMLISTVIEW* change = (NMLISTVIEW*)notify;
