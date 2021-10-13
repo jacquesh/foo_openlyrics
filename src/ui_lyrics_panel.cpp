@@ -93,7 +93,6 @@ namespace {
         void DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area);
 
         void InitiateLyricSearch(metadb_handle_ptr track);
-        void ProcessAvailableLyricUpdate(LyricUpdateHandle& update);
 
         ui_element_config::ptr m_config;
 
@@ -747,7 +746,12 @@ namespace {
             std::unique_ptr<LyricUpdateHandle>& update = *iter;
             if(update->has_result())
             {
-                ProcessAvailableLyricUpdate(*update);
+                std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(*update);
+
+                if((maybe_lyrics.has_value()) && (update->get_track() == m_now_playing))
+                {
+                    m_lyrics = std::move(maybe_lyrics.value());
+                }
             }
 
             if(update->is_complete())
@@ -1030,7 +1034,10 @@ namespace {
                 LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
                 update.set_started();
                 update.set_result(std::move(updated_lyrics.value()), true);
-                ProcessAvailableLyricUpdate(update);
+
+                std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(update);
+                assert(maybe_lyrics.has_value()); // Round-trip through the processing to avoid copies
+                m_lyrics = std::move(maybe_lyrics.value());
             }
         }
         catch(std::exception const & e)
@@ -1210,73 +1217,6 @@ namespace {
         auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, track, fb2k::noAbort);
         io::search_for_lyrics(*update, false);
         m_update_handles.push_back(std::move(update));
-    }
-
-    void LyricPanel::ProcessAvailableLyricUpdate(LyricUpdateHandle& update)
-    {
-        if(!update.has_result())
-        {
-            LOG_INFO("Received lyric update with no results, ignoring...");
-            return;
-        }
-
-        assert(update.has_result());
-        LyricData lyrics = update.get_result();
-
-        if(lyrics.IsEmpty())
-        {
-            LOG_INFO("Received empty lyric update, ignoring...");
-            return;
-        }
-
-        AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
-        bool should_autosave = (autosave == AutoSaveStrategy::Always) ||
-                               ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped()) ||
-                               ((autosave == AutoSaveStrategy::OnlyUnsynced) && !lyrics.IsTimestamped());
-
-        bool user_requested = (update.get_type() == LyricUpdateHandle::Type::Edit) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
-
-        LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
-        bool loaded_from_local_src = ((source != nullptr) && source->is_local());
-
-        // NOTE: We previously changed this to:
-        //       `should_autosave && (is_edit || !loaded_from_local_src)`
-        //       This makes all the behaviour consistent in the sense that the *only* time it will
-        //       save if you set auto-save to "never" is when you explicitly click the "Save" button
-        //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
-        //       this doesn't really make sense. If you make an edit then you almost certainly want
-        //       to save your edits (and if you just made them then you can always undo them).
-        const bool should_save = user_requested || (should_autosave && !loaded_from_local_src); // Don't save to the source we just loaded from
-        if(should_save)
-        {
-            try
-            {
-                bool was_search = (update.get_type() == LyricUpdateHandle::Type::AutoSearch) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
-                if(was_search && (source != nullptr) && !source->is_local())
-                {
-                    for(AutoEditType type : preferences::editing::automated_auto_edits())
-                    {
-                        std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics);
-                        if(maybe_lyrics.has_value())
-                        {
-                            lyrics = std::move(maybe_lyrics.value());
-                        }
-                    }
-                }
-
-                const bool allow_overwrite = user_requested;
-                lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
-            }
-            catch(const std::exception& e)
-            {
-                LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
-            }
-        }
-
-        if(update.get_track() == m_now_playing)
-        {
-            m_lyrics = std::move(lyrics);
-        }
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.

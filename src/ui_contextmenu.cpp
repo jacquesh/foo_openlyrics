@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "lyric_io.h"
 #include "parsers.h"
+#include "ui_hooks.h"
 
 static const GUID GUID_OPENLYRICS_CTX_GROUP = { 0x99cb0828, 0x6b73, 0x404f, { 0x95, 0xcd, 0x29, 0xca, 0x63, 0x50, 0x4c, 0xea } };
 static contextmenu_group_factory g_openlyrics_ctx_group(GUID_OPENLYRICS_CTX_GROUP, contextmenu_groups::root, 0);
@@ -18,6 +19,7 @@ public:
         switch(index)
         {
             case cmd_show_lyrics: out = "Show lyrics"; break;
+            case cmd_bulksearch_lyrics: out = "Search for lyrics"; break;
             default: uBugCheck();
         }
     }
@@ -72,6 +74,17 @@ public:
                                                  "Retrieving saved lyrics...");
             } break;
 
+            case cmd_bulksearch_lyrics:
+            {
+                std::vector<metadb_handle_ptr> tracks;
+                tracks.reserve(data.get_count());
+                for(size_t i=0; i<data.get_count(); i++)
+                {
+                    tracks.push_back(data.get_item(i));
+                }
+                SpawnBulkLyricSearch(tracks);
+            } break;
+
             default:
                 uBugCheck();
         }
@@ -80,10 +93,12 @@ public:
     GUID get_item_guid(unsigned int index) override
     {
         static const GUID GUID_ITEM_SHOW_LYRICS = { 0xff674f8, 0x8536, 0x4edc, { 0xb1, 0xd7, 0xf7, 0xad, 0x72, 0x87, 0x84, 0x3c } };
+        static const GUID GUID_ITEM_BULKSEARCH_LYRICS = { 0x16d008, 0x83ec, 0x4d0a, { 0x9a, 0x1a, 0x9e, 0xae, 0xc8, 0x24, 0x2, 0x5d } };
 
         switch(index)
         {
             case cmd_show_lyrics: return GUID_ITEM_SHOW_LYRICS;
+            case cmd_bulksearch_lyrics: return GUID_ITEM_BULKSEARCH_LYRICS;
             default: uBugCheck();
         }
     }
@@ -95,6 +110,9 @@ public:
             case cmd_show_lyrics:
                 out = "Show saved lyrics (if any) for this track";
                 return true;
+            case cmd_bulksearch_lyrics:
+                out = "Search for lyrics for all selected tracks (as if you played them one after the other)";
+                return true;
             default:
                 uBugCheck();
         }
@@ -104,6 +122,7 @@ private:
     enum
     {
         cmd_show_lyrics = 0,
+        cmd_bulksearch_lyrics,
         cmd_total
     };
 };

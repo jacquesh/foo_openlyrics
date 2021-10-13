@@ -5,6 +5,7 @@
 #define IDI_SCROLL                      109
 #define IDD_LYRIC_EDIT                  113
 #define IDD_MANUAL_SEARCH               121
+#define IDD_BULK_SEARCH                 125
 #define IDD_PREFERENCES_ROOT            148
 #define IDD_PREFERENCES_SAVING          149
 #define IDD_PREFERENCES_DISPLAY         150
@@ -67,14 +68,18 @@
 #define IDC_EDIT_AUTOEDITS_AUTOMATED    1089
 #define IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES 1091
 #define IDC_MANUALSEARCH_APPLY          1092
+#define IDC_BULKSEARCH_CLOSE            1093
+#define IDC_BULKSEARCH_PROGRESS         1094
+#define IDC_BULKSEARCH_LIST             1095
+#define IDC_BULKSEARCH_STATUS           1096
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        125
+#define _APS_NEXT_RESOURCE_VALUE        127
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1093
+#define _APS_NEXT_CONTROL_VALUE         1097
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

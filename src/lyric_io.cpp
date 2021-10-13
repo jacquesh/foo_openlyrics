@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "logging.h"
+#include "lyric_auto_edit.h"
 #include "lyric_data.h"
 #include "lyric_io.h"
 #include "parsers.h"
@@ -297,6 +298,70 @@ void io::search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, st
     fb2k::splitTask([&handle, artist, album, title](){
         internal_search_for_all_lyrics(handle, artist, album, title);
     });
+}
+
+std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& update)
+{
+    if(!update.has_result())
+    {
+        LOG_INFO("Received lyric update with no results, ignoring...");
+        return {};
+    }
+
+    assert(update.has_result());
+    LyricData lyrics = update.get_result();
+
+    if(lyrics.IsEmpty())
+    {
+        LOG_INFO("Received empty lyric update, ignoring...");
+        return {};
+    }
+
+    AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
+    bool should_autosave = (autosave == AutoSaveStrategy::Always) ||
+                           ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped()) ||
+                           ((autosave == AutoSaveStrategy::OnlyUnsynced) && !lyrics.IsTimestamped());
+
+    bool user_requested = (update.get_type() == LyricUpdateHandle::Type::Edit) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
+
+    LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
+    bool loaded_from_local_src = ((source != nullptr) && source->is_local());
+
+    // NOTE: We previously changed this to:
+    //       `should_autosave && (is_edit || !loaded_from_local_src)`
+    //       This makes all the behaviour consistent in the sense that the *only* time it will
+    //       save if you set auto-save to "never" is when you explicitly click the "Save" button
+    //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
+    //       this doesn't really make sense. If you make an edit then you almost certainly want
+    //       to save your edits (and if you just made them then you can always undo them).
+    const bool should_save = user_requested || (should_autosave && !loaded_from_local_src); // Don't save to the source we just loaded from
+    if(should_save)
+    {
+        try
+        {
+            bool was_search = (update.get_type() == LyricUpdateHandle::Type::AutoSearch) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
+            if(was_search && (source != nullptr) && !source->is_local())
+            {
+                for(AutoEditType type : preferences::editing::automated_auto_edits())
+                {
+                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics);
+                    if(maybe_lyrics.has_value())
+                    {
+                        lyrics = std::move(maybe_lyrics.value());
+                    }
+                }
+            }
+
+            const bool allow_overwrite = user_requested;
+            lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
+        }
+    }
+
+    return {std::move(lyrics)};
 }
 
 LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort) :

@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.10-dev (" __DATE__ "):\n"
+    "- Add a bulk search option to the playlist context menu\n"
     "- Allow sorting the manual search result list by any column\n"
     "- Allow applying lyrics from manual search without closing the dialog\n"
     "- Support applying a manual search result by double-clicking it\n"

@@ -189,6 +189,7 @@
     <ClCompile Include="..\..\src\sources\qqmusic.cpp" />
     <ClCompile Include="..\..\src\tag_util.cpp" />
     <ClCompile Include="..\..\src\ui_contextmenu.cpp" />
+    <ClCompile Include="..\..\src\ui_lyric_bulk_search.cpp" />
     <ClCompile Include="..\..\src\ui_lyric_editor.cpp" />
     <ClCompile Include="..\..\src\ui_lyric_manual_search.cpp" />
     <ClCompile Include="..\..\src\ui_preferences.cpp" />

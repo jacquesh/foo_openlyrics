@@ -66,7 +66,7 @@ private:
     bool m_sort_ascending;
 };
 
-static const UINT_PTR SEARCH_UPDATE_TIMER = 7917213;
+static const UINT_PTR MANUAL_SEARCH_UPDATE_TIMER = 7917213;
 
 ManualLyricSearch::ManualLyricSearch(LyricUpdateHandle& update) :
     m_parent_update(update)
@@ -180,7 +180,7 @@ void ManualLyricSearch::OnDestroyDialog()
         }
     }
 
-    KillTimer(SEARCH_UPDATE_TIMER);
+    KillTimer(MANUAL_SEARCH_UPDATE_TIMER);
     if(!m_parent_update.is_complete())
     {
         m_parent_update.set_complete();
@@ -336,10 +336,10 @@ void ManualLyricSearch::start_search()
     io::search_for_all_lyrics(m_child_update.value(), artist, album, title);
 
     GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(false);
-    UINT_PTR result = SetTimer(SEARCH_UPDATE_TIMER, 16, nullptr);
-    if (result != SEARCH_UPDATE_TIMER)
+    UINT_PTR result = SetTimer(MANUAL_SEARCH_UPDATE_TIMER, 16, nullptr);
+    if (result != MANUAL_SEARCH_UPDATE_TIMER)
     {
-        LOG_WARN("Unexpected timer result when starting search update timer");
+        LOG_WARN("Unexpected timer result when starting manual search update timer");
     }
 
     SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Searching..."));
@@ -403,7 +403,7 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
     if(!m_child_update.has_value())
     {
         GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(true);
-        WIN32_OP(KillTimer(SEARCH_UPDATE_TIMER))
+        WIN32_OP(KillTimer(MANUAL_SEARCH_UPDATE_TIMER))
         return 0;
     }
 
@@ -414,7 +414,7 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(true);
         m_child_update.reset();
         SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Search complete"));
-        WIN32_OP(KillTimer(SEARCH_UPDATE_TIMER))
+        WIN32_OP(KillTimer(MANUAL_SEARCH_UPDATE_TIMER))
         return 0;
     }
 

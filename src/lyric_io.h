@@ -12,6 +12,8 @@ namespace io
     void search_for_lyrics(LyricUpdateHandle& handle, bool local_only);
     void search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title);
 
+    std::optional<LyricData> process_available_lyric_update(LyricUpdateHandle& update);
+
     // Returns the path of the file on disk to which the lyrics were saved
     std::string save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
 }
