@@ -111,7 +111,6 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
         throw std::exception("Failed to determine save file path");
     }
 
-    // TODO: Switch to std::filesystem when we update to a version of visual studio that supports it
     pfc::string output_path(output_path_str.c_str(), output_path_str.length());
     pfc::string output_file_name = pfc::io::path::getFileName(output_path);
     if(output_file_name.isEmpty())
