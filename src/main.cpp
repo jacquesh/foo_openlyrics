@@ -19,6 +19,7 @@ DECLARE_COMPONENT_VERSION(
     "- Add a bulk search option to the playlist context menu\n"
     "- Allow sorting the manual search result list by any column\n"
     "- Allow applying lyrics from manual search without closing the dialog\n"
+    "- Avoid auto-searching a track after a while if it keeps failing\n"
     "- Support applying a manual search result by double-clicking it\n"
     "- Remember modified column widths in the manual search table UI\n"
     "- Make auto-searches case-insensitive when matching track metadata\n"

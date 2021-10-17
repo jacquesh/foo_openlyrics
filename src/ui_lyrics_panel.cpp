@@ -10,6 +10,7 @@
 #include "lyric_data.h"
 #include "lyric_io.h"
 #include "math_util.h"
+#include "metadb_index_search_avoidance.h"
 #include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
@@ -101,6 +102,7 @@ namespace {
         metadb_handle_ptr m_now_playing;
         std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
+        bool m_auto_search_avoided;
 
         HDC m_back_buffer;
         HBITMAP m_back_buffer_bitmap;
@@ -130,7 +132,8 @@ namespace {
         m_now_playing(nullptr),
         m_update_handles(),
         m_lyrics(),
-        m_callback(p_callback)
+        m_callback(p_callback),
+        m_auto_search_avoided(false)
     {
     }
 
@@ -148,7 +151,23 @@ namespace {
         m_now_playing = track;
         m_manual_scroll_distance = 0;
 
-        InitiateLyricSearch(track);
+        // NOTE: We also track a generation counter that increments every time you change the search config
+        //       so that if you don't find lyrics with some active sources and then add more, it'll search
+        //       again at least once, possibly finding something if there are new active sources.
+        lyric_search_avoidance avoidance = load_search_avoidance(track);
+        const bool expected_to_fail = (avoidance.failed_searches > 3);
+        const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
+        const bool same_generation = (avoidance.search_config_generation == preferences::searching::source_config_generation());
+        if(!same_generation || !expected_to_fail || !trial_period_expired)
+        {
+            InitiateLyricSearch(track);
+        }
+        else
+        {
+            LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
+            m_lyrics = {};
+            m_auto_search_avoided = true;
+        }
 
         // NOTE: If playback is paused on startup then this gets called with the paused track,
         //       but playback is paused so we don't actually want to run the timer
@@ -163,6 +182,7 @@ namespace {
     {
         m_now_playing = nullptr;
         m_lyrics = {};
+        m_auto_search_avoided = false;
         StopTimer();
         Invalidate(); // Draw one more time to clear the panel
     }
@@ -251,7 +271,7 @@ namespace {
         return TRUE;
     }
 
-    int _WrapLyricsLineToRect(HDC dc, CRect clip_rect, const std::tstring& line, const CPoint* origin)
+    int _WrapLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, const CPoint* origin)
     {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
@@ -353,7 +373,7 @@ namespace {
         return _WrapLyricsLineToRect(dc, clip_rect, line, nullptr);
     }
 
-    int DrawWrappedLyricLine(HDC dc, CRect clip_rect, const std::tstring& line, CPoint origin)
+    int DrawWrappedLyricLine(HDC dc, CRect clip_rect, const std::tstring_view line, CPoint origin)
     {
         return _WrapLyricsLineToRect(dc, clip_rect, line, &origin);
     }
@@ -364,6 +384,11 @@ namespace {
         {
             return;
         }
+
+        // TODO: If we make this text configurable in future and we want to also show some text
+        //       telling you that it didn't search because nothing was found, look into:
+        //       metadb.h (in foo_SDK) -> metadb_display_field_provider
+        //       which exists to let you hook into the title format process and add new fields.
 
         std::string artist = track_metadata(m_now_playing, "artist");
         std::string album = track_metadata(m_now_playing, "album");
@@ -423,6 +448,18 @@ namespace {
             {
                 std::tstring progress_text = to_tstring(progress_msg);
                 origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
+            }
+        }
+        else if(m_auto_search_avoided)
+        {
+            service_ptr_t<playback_control> playback = playback_control::get();
+            const double current_position = playback->playback_get_position();
+            const double search_avoided_msg_seconds = 15.0;
+            if(current_position < search_avoided_msg_seconds)
+            {
+                origin.y += DrawWrappedLyricLine(dc, client_rect, _T(""), origin);
+                origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped because it failed too many times."), origin);
+                origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Manually request a lyrics search to try again."), origin);
             }
         }
     }
@@ -751,6 +788,7 @@ namespace {
                 if((maybe_lyrics.has_value()) && (update->get_track() == m_now_playing))
                 {
                     m_lyrics = std::move(maybe_lyrics.value());
+                    m_auto_search_avoided = false;
                 }
             }
 
@@ -1038,6 +1076,7 @@ namespace {
                 std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(update);
                 assert(maybe_lyrics.has_value()); // Round-trip through the processing to avoid copies
                 m_lyrics = std::move(maybe_lyrics.value());
+                m_auto_search_avoided = false;
             }
         }
         catch(std::exception const & e)
@@ -1213,6 +1252,7 @@ namespace {
     {
         LOG_INFO("Initiate lyric search");
         m_lyrics = {};
+        m_auto_search_avoided = false;
 
         auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, track, fb2k::noAbort);
         io::search_for_lyrics(*update, false);

@@ -59,6 +59,7 @@ namespace preferences
 {
     namespace searching
     {
+        uint64_t source_config_generation();
         std::vector<GUID> active_sources();
         std::vector<std::string> tags();
         bool exclude_trailing_brackets();

@@ -119,7 +119,11 @@ std::string track_metadata(metadb_handle_ptr track, std::string_view key)
 {
     const metadb_info_container::ptr& track_info_container = track->get_info_ref();
     const file_info& track_info = track_info_container->info();
+    return track_metadata(track_info, key);
+}
 
+std::string track_metadata(const file_info& track_info, std::string_view key)
+{
     size_t value_index = track_info.meta_find_ex(key.data(), key.length());
     if(value_index == pfc::infinite_size)
     {

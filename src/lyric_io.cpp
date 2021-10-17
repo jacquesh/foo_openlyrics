@@ -4,6 +4,7 @@
 #include "lyric_auto_edit.h"
 #include "lyric_data.h"
 #include "lyric_io.h"
+#include "metadb_index_search_avoidance.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
@@ -163,6 +164,21 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     LOG_INFO("Parsing lyrics text...");
     handle.set_progress("Parsing...");
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw);
+
+    if(lyric_data.IsEmpty())
+    {
+        lyric_search_avoidance avoidance = load_search_avoidance(handle.get_track());
+        avoidance.search_config_generation = preferences::searching::source_config_generation();
+        if(avoidance.first_fail_time == 0)
+        {
+            avoidance.first_fail_time = filetimestamp_from_system_timer();
+        }
+        if(avoidance.failed_searches < INT_MAX)
+        {
+            avoidance.failed_searches++;
+        }
+        save_search_avoidance(handle.get_track(), avoidance);
+    }
 
     handle.set_result(std::move(lyric_data), true);
     LOG_INFO("Lyric loading complete");

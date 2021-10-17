@@ -174,6 +174,7 @@
     <ClCompile Include="..\..\src\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\src\metadb_index_search_avoidance.cpp" />
     <ClCompile Include="..\..\src\parsers\lrc.cpp" />
     <ClCompile Include="..\..\src\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -213,6 +214,7 @@
     <ClInclude Include="..\..\src\lyric_data.h" />
     <ClInclude Include="..\..\src\lyric_io.h" />
     <ClInclude Include="..\..\src\math_util.h" />
+    <ClInclude Include="..\..\src\metadb_index_search_avoidance.h" />
     <ClInclude Include="..\..\src\parsers.h" />
     <ClInclude Include="..\..\src\preferences.h" />
     <ClInclude Include="..\..\src\resource.h" />

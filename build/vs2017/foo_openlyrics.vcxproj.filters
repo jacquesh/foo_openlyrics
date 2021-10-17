@@ -117,6 +117,9 @@
     <ClCompile Include="..\..\src\ui_lyric_bulk_search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\metadb_index_search_avoidance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\resource.h">
@@ -168,6 +171,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\tag_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\metadb_index_search_avoidance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
