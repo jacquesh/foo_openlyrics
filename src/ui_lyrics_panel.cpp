@@ -103,6 +103,7 @@ namespace {
         std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
         bool m_auto_search_avoided;
+        uint64_t m_auto_search_avoided_timestamp;
 
         HDC m_back_buffer;
         HBITMAP m_back_buffer_bitmap;
@@ -133,7 +134,8 @@ namespace {
         m_update_handles(),
         m_lyrics(),
         m_callback(p_callback),
-        m_auto_search_avoided(false)
+        m_auto_search_avoided(false),
+        m_auto_search_avoided_timestamp(0)
     {
     }
 
@@ -167,6 +169,7 @@ namespace {
             LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
             m_lyrics = {};
             m_auto_search_avoided = true;
+            m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
         }
 
         // NOTE: If playback is paused on startup then this gets called with the paused track,
@@ -436,7 +439,9 @@ namespace {
             std::string progress_msg;
             for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
             {
-                if((update != nullptr) && (update->get_type() == LyricUpdateHandle::Type::AutoSearch))
+                if((update != nullptr) &&
+                    (update->get_type() == LyricUpdateHandle::Type::AutoSearch) &&
+                    (update->get_track() == m_now_playing))
                 {
                     progress_msg = update->get_progress();
                     is_search = true;
@@ -450,12 +455,13 @@ namespace {
                 origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
             }
         }
-        else if(m_auto_search_avoided)
+
+        if(m_auto_search_avoided)
         {
-            service_ptr_t<playback_control> playback = playback_control::get();
-            const double current_position = playback->playback_get_position();
             const double search_avoided_msg_seconds = 15.0;
-            if(current_position < search_avoided_msg_seconds)
+            uint64_t search_avoided_msg_ticks = static_cast<uint64_t>(search_avoided_msg_seconds * 10'000'000); // A "tick" here means "100-nanoseconds"
+            uint64_t ticks_since_search_avoided = filetimestamp_from_system_timer() - m_auto_search_avoided_timestamp;
+            if(ticks_since_search_avoided < search_avoided_msg_ticks)
             {
                 origin.y += DrawWrappedLyricLine(dc, client_rect, _T(""), origin);
                 origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped because it failed too many times."), origin);
