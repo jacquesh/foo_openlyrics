@@ -70,14 +70,14 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;$(SolutionDir)/../../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../3rdparty/libiconv-1.16/include;$(SolutionDir)/../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)/../../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -96,7 +96,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;$(SolutionDir)/../../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../3rdparty/libiconv-1.16/include;$(SolutionDir)/../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -106,7 +106,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(SolutionDir)/../../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
@@ -117,7 +117,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../src;$(SolutionDir)/../../3rdparty/foo_SDK;$(SolutionDir)/../../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../../3rdparty/libiconv-1.16/include;$(SolutionDir)/../../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../3rdparty/libiconv-1.16/include;$(SolutionDir)/../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -127,7 +127,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(SolutionDir)/../../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -159,100 +159,100 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\3rdparty\cJSON\cJSON.c">
+    <ClCompile Include="..\3rdparty\cJSON\cJSON.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\config\config_font.cpp" />
-    <ClCompile Include="..\..\src\config\ui_preferences_edit.cpp" />
-    <ClCompile Include="..\..\src\config\ui_preferences_display.cpp" />
-    <ClCompile Include="..\..\src\config\ui_preferences_saving.cpp" />
-    <ClCompile Include="..\..\src\lyric_auto_edit.cpp" />
-    <ClCompile Include="..\..\src\lyric_data.cpp" />
-    <ClCompile Include="..\..\src\lyric_io.cpp" />
-    <ClCompile Include="..\..\src\main.cpp">
+    <ClCompile Include="..\src\config\config_font.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_edit.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_display.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_saving.cpp" />
+    <ClCompile Include="..\src\lyric_auto_edit.cpp" />
+    <ClCompile Include="..\src\lyric_data.cpp" />
+    <ClCompile Include="..\src\lyric_io.cpp" />
+    <ClCompile Include="..\src\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\metadb_index_search_avoidance.cpp" />
-    <ClCompile Include="..\..\src\parsers\lrc.cpp" />
-    <ClCompile Include="..\..\src\PCH.cpp">
+    <ClCompile Include="..\src\metadb_index_search_avoidance.cpp" />
+    <ClCompile Include="..\src\parsers\lrc.cpp" />
+    <ClCompile Include="..\src\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\azlyricscom.cpp" />
-    <ClCompile Include="..\..\src\sources\darklyrics.cpp" />
-    <ClCompile Include="..\..\src\sources\id3tag.cpp" />
-    <ClCompile Include="..\..\src\sources\lyric_source.cpp" />
-    <ClCompile Include="..\..\src\sources\musixmatch.cpp" />
-    <ClCompile Include="..\..\src\sources\netease.cpp" />
-    <ClCompile Include="..\..\src\sources\qqmusic.cpp" />
-    <ClCompile Include="..\..\src\tag_util.cpp" />
-    <ClCompile Include="..\..\src\ui_contextmenu.cpp" />
-    <ClCompile Include="..\..\src\ui_lyric_bulk_search.cpp" />
-    <ClCompile Include="..\..\src\ui_lyric_editor.cpp" />
-    <ClCompile Include="..\..\src\ui_lyric_manual_search.cpp" />
-    <ClCompile Include="..\..\src\ui_preferences.cpp" />
-    <ClCompile Include="..\..\src\sources\geniuscom.cpp">
+    <ClCompile Include="..\src\sources\azlyricscom.cpp" />
+    <ClCompile Include="..\src\sources\darklyrics.cpp" />
+    <ClCompile Include="..\src\sources\id3tag.cpp" />
+    <ClCompile Include="..\src\sources\lyric_source.cpp" />
+    <ClCompile Include="..\src\sources\musixmatch.cpp" />
+    <ClCompile Include="..\src\sources\netease.cpp" />
+    <ClCompile Include="..\src\sources\qqmusic.cpp" />
+    <ClCompile Include="..\src\tag_util.cpp" />
+    <ClCompile Include="..\src\ui_contextmenu.cpp" />
+    <ClCompile Include="..\src\ui_lyric_bulk_search.cpp" />
+    <ClCompile Include="..\src\ui_lyric_editor.cpp" />
+    <ClCompile Include="..\src\ui_lyric_manual_search.cpp" />
+    <ClCompile Include="..\src\ui_preferences.cpp" />
+    <ClCompile Include="..\src\sources\geniuscom.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\localfiles.cpp">
+    <ClCompile Include="..\src\sources\localfiles.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_lyrics_panel.cpp">
+    <ClCompile Include="..\src\ui_lyrics_panel.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\win32_util.cpp" />
+    <ClCompile Include="..\src\win32_util.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\3rdparty\cJSON\cJSON.h" />
-    <ClInclude Include="..\..\src\config\config_auto.h" />
-    <ClInclude Include="..\..\src\config\config_font.h" />
-    <ClInclude Include="..\..\src\logging.h" />
-    <ClInclude Include="..\..\src\lyric_auto_edit.h" />
-    <ClInclude Include="..\..\src\lyric_data.h" />
-    <ClInclude Include="..\..\src\lyric_io.h" />
-    <ClInclude Include="..\..\src\math_util.h" />
-    <ClInclude Include="..\..\src\metadb_index_search_avoidance.h" />
-    <ClInclude Include="..\..\src\parsers.h" />
-    <ClInclude Include="..\..\src\preferences.h" />
-    <ClInclude Include="..\..\src\resource.h" />
-    <ClInclude Include="..\..\src\sources\lyric_source.h" />
-    <ClInclude Include="..\..\src\stdafx.h" />
-    <ClInclude Include="..\..\src\tag_util.h" />
-    <ClInclude Include="..\..\src\uie_shim_panel.h" />
-    <ClInclude Include="..\..\src\ui_hooks.h" />
-    <ClInclude Include="..\..\src\win32_util.h" />
+    <ClInclude Include="..\3rdparty\cJSON\cJSON.h" />
+    <ClInclude Include="..\src\config\config_auto.h" />
+    <ClInclude Include="..\src\config\config_font.h" />
+    <ClInclude Include="..\src\logging.h" />
+    <ClInclude Include="..\src\lyric_auto_edit.h" />
+    <ClInclude Include="..\src\lyric_data.h" />
+    <ClInclude Include="..\src\lyric_io.h" />
+    <ClInclude Include="..\src\math_util.h" />
+    <ClInclude Include="..\src\metadb_index_search_avoidance.h" />
+    <ClInclude Include="..\src\parsers.h" />
+    <ClInclude Include="..\src\preferences.h" />
+    <ClInclude Include="..\src\resource.h" />
+    <ClInclude Include="..\src\sources\lyric_source.h" />
+    <ClInclude Include="..\src\stdafx.h" />
+    <ClInclude Include="..\src\tag_util.h" />
+    <ClInclude Include="..\src\uie_shim_panel.h" />
+    <ClInclude Include="..\src\ui_hooks.h" />
+    <ClInclude Include="..\src\win32_util.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\3rdparty\columns_ui-sdk-6.5\vc14\columns_ui-sdk.vcxproj">
+    <ProjectReference Include="..\3rdparty\columns_ui-sdk-6.5\vc14\columns_ui-sdk.vcxproj">
       <Project>{93ec0ede-01cd-4fb0-b8e8-4f2a027e026e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdparty\foo_SDK\foobar2000\foobar2000_component_client\foobar2000_component_client.vcxproj">
+    <ProjectReference Include="..\3rdparty\foo_SDK\foobar2000\foobar2000_component_client\foobar2000_component_client.vcxproj">
       <Project>{71ad2674-065b-48f5-b8b0-e1f9d3892081}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdparty\foo_SDK\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj">
+    <ProjectReference Include="..\3rdparty\foo_SDK\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj">
       <Project>{ee47764e-a202-4f85-a767-abdab4aff35f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdparty\foo_SDK\foobar2000\SDK\foobar2000_SDK.vcxproj">
+    <ProjectReference Include="..\3rdparty\foo_SDK\foobar2000\SDK\foobar2000_SDK.vcxproj">
       <Project>{e8091321-d79d-4575-86ef-064ea1a4a20d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdparty\foo_SDK\libPPUI\libPPUI.vcxproj">
+    <ProjectReference Include="..\3rdparty\foo_SDK\libPPUI\libPPUI.vcxproj">
       <Project>{7729eb82-4069-4414-964b-ad399091a03f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdparty\foo_SDK\pfc\pfc.vcxproj">
+    <ProjectReference Include="..\3rdparty\foo_SDK\pfc\pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\3rdparty\libxml2-2.9.10\win32\VC10\libxml2.vcxproj">
+    <ProjectReference Include="..\3rdparty\libxml2-2.9.10\win32\VC10\libxml2.vcxproj">
       <Project>{1d6039f6-5078-416f-a3af-a36efc7e6a1c}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\src\foo_openlyrics.rc" />
+    <ResourceCompile Include="..\src\foo_openlyrics.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\3rdparty\foo_SDK\libPPUI\IDI_SCROLL.ico" />
+    <Image Include="..\3rdparty\foo_SDK\libPPUI\IDI_SCROLL.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

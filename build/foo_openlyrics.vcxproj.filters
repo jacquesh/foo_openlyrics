@@ -33,157 +33,157 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\main.cpp">
+    <ClCompile Include="..\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\PCH.cpp">
+    <ClCompile Include="..\src\PCH.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_lyrics_panel.cpp">
+    <ClCompile Include="..\src\ui_lyrics_panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\localfiles.cpp">
+    <ClCompile Include="..\src\sources\localfiles.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\geniuscom.cpp">
+    <ClCompile Include="..\src\sources\geniuscom.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_preferences.cpp">
+    <ClCompile Include="..\src\ui_preferences.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_lyric_editor.cpp">
+    <ClCompile Include="..\src\ui_lyric_editor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\parsers\lrc.cpp">
+    <ClCompile Include="..\src\parsers\lrc.cpp">
       <Filter>Source Files\parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\azlyricscom.cpp">
+    <ClCompile Include="..\src\sources\azlyricscom.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\lyric_data.cpp">
+    <ClCompile Include="..\src\lyric_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\netease.cpp">
+    <ClCompile Include="..\src\sources\netease.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\lyric_source.cpp">
+    <ClCompile Include="..\src\sources\lyric_source.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\3rdparty\cJSON\cJSON.c">
+    <ClCompile Include="..\3rdparty\cJSON\cJSON.c">
       <Filter>3rdparty</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\id3tag.cpp">
+    <ClCompile Include="..\src\sources\id3tag.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\lyric_io.cpp">
+    <ClCompile Include="..\src\lyric_io.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\config\config_font.cpp">
+    <ClCompile Include="..\src\config\config_font.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\config\ui_preferences_display.cpp">
+    <ClCompile Include="..\src\config\ui_preferences_display.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\config\ui_preferences_saving.cpp">
+    <ClCompile Include="..\src\config\ui_preferences_saving.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_contextmenu.cpp">
+    <ClCompile Include="..\src\ui_contextmenu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\win32_util.cpp">
+    <ClCompile Include="..\src\win32_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\lyric_auto_edit.cpp">
+    <ClCompile Include="..\src\lyric_auto_edit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\darklyrics.cpp">
+    <ClCompile Include="..\src\sources\darklyrics.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\qqmusic.cpp">
+    <ClCompile Include="..\src\sources\qqmusic.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\sources\musixmatch.cpp">
+    <ClCompile Include="..\src\sources\musixmatch.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_lyric_manual_search.cpp">
+    <ClCompile Include="..\src\ui_lyric_manual_search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\tag_util.cpp">
+    <ClCompile Include="..\src\tag_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\config\ui_preferences_edit.cpp">
+    <ClCompile Include="..\src\config\ui_preferences_edit.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ui_lyric_bulk_search.cpp">
+    <ClCompile Include="..\src\ui_lyric_bulk_search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\metadb_index_search_avoidance.cpp">
+    <ClCompile Include="..\src\metadb_index_search_avoidance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\resource.h">
+    <ClInclude Include="..\src\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\stdafx.h">
+    <ClInclude Include="..\src\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\lyric_data.h">
+    <ClInclude Include="..\src\lyric_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\logging.h">
+    <ClInclude Include="..\src\logging.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\preferences.h">
+    <ClInclude Include="..\src\preferences.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\sources\lyric_source.h">
+    <ClInclude Include="..\src\sources\lyric_source.h">
       <Filter>Header Files\sources</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\3rdparty\cJSON\cJSON.h">
+    <ClInclude Include="..\3rdparty\cJSON\cJSON.h">
       <Filter>3rdparty</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\parsers.h">
+    <ClInclude Include="..\src\parsers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\lyric_io.h">
+    <ClInclude Include="..\src\lyric_io.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\uie_shim_panel.h">
+    <ClInclude Include="..\src\uie_shim_panel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\config\config_auto.h">
+    <ClInclude Include="..\src\config\config_auto.h">
       <Filter>Header Files\config</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\config\config_font.h">
+    <ClInclude Include="..\src\config\config_font.h">
       <Filter>Header Files\config</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\math_util.h">
+    <ClInclude Include="..\src\math_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ui_hooks.h">
+    <ClInclude Include="..\src\ui_hooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\win32_util.h">
+    <ClInclude Include="..\src\win32_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\lyric_auto_edit.h">
+    <ClInclude Include="..\src\lyric_auto_edit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\tag_util.h">
+    <ClInclude Include="..\src\tag_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\metadb_index_search_avoidance.h">
+    <ClInclude Include="..\src\metadb_index_search_avoidance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\src\foo_openlyrics.rc">
+    <ResourceCompile Include="..\src\foo_openlyrics.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\3rdparty\foo_SDK\libPPUI\IDI_SCROLL.ico">
+    <Image Include="..\3rdparty\foo_SDK\libPPUI\IDI_SCROLL.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
