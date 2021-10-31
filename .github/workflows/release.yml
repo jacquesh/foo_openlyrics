@@ -27,7 +27,7 @@ jobs:
       run: 3rdparty\libxml2-2.9.10\win32\configure.bat
 
     - name: Build binary
-      run: msbuild /m /p:Configuration=Release /p:Platform=x86 build\vs2017\foo_openlyrics.sln
+      run: msbuild /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
 
     - name: Pack binary into archive
       shell: bash
@@ -35,8 +35,8 @@ jobs:
         release_version="${GITHUB_REF#refs/tags/}"
         release_name="foo_openlyrics-${release_version}"
         echo "Release version ${release_version}"
-        7z a -tzip "${release_name}.fb2k-component" ".\build\vs2017\Release\foo_openlyrics.dll"
-        7z a "${release_name}-with_debug_symbols.zip" ".\build\vs2017\Release\foo_openlyrics.dll" ".\build\vs2017\Release\foo_openlyrics.pdb"
+        7z a -tzip "${release_name}.fb2k-component" ".\build\Release\foo_openlyrics.dll"
+        7z a "${release_name}-with_debug_symbols.zip" ".\build\Release\foo_openlyrics.dll" ".\build\Release\foo_openlyrics.pdb"
         echo "RELEASE_VERSION=${release_version}" >> $GITHUB_ENV
         echo "RELEASE_NAME=${release_name}" >> $GITHUB_ENV
 
