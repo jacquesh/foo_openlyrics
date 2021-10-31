@@ -417,8 +417,14 @@ namespace {
             total_height += ComputeWrappedLyricLineHeight(dc, client_rect, title_line);
         }
 
+        // NOTE: Since our calculation is for the *top* of the rendered text, we need to
+        //       shift down by the font's ascent so that we get to the baseline (which
+        //       is what is used as the rendering origin).
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+
         CPoint centre = client_rect.CenterPoint();
-        int top_y = centre.y - total_height/2;
+        int top_y = centre.y - total_height/2 + font_metrics.tmAscent;
         CPoint origin = {centre.x, top_y};
         if(!artist_line.empty())
         {
@@ -518,7 +524,13 @@ namespace {
         }
         else
         {
-            top_y = centre.y - (int)(track_fraction * total_height);
+            // NOTE: Since our calculation is for the *top* of the rendered text, we need to
+            //       shift down by the font's ascent so that we get to the baseline (which
+            //       is what is used as the rendering origin).
+            TEXTMETRIC font_metrics = {};
+            WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+
+            top_y = centre.y - (int)(track_fraction * total_height) + font_metrics.tmAscent;
         }
 
         CPoint origin = {centre.x, top_y};
@@ -568,6 +580,13 @@ namespace {
             return;
         }
 
+        // NOTE: The drawing call uses the glyph baseline as the origin.
+        //       We want our text to be perfectly vertically centered, so we need to offset it
+        //       but the difference between the baseline and the vertical centre of the font.
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
+
         CPoint centre = client_area.CenterPoint();
         CPoint origin = centre;
         if(preferences::display::scroll_type() == LineScrollType::Manual)
@@ -587,6 +606,7 @@ namespace {
         {
             origin.x += (int)((0.5 - track_fraction) * (double)line_size.cx);
         }
+        origin.y += baseline_centre_correction;
 
         BOOL draw_success = DrawTextOut(dc, origin.x, origin.y, joined);
         if(!draw_success)
@@ -599,6 +619,13 @@ namespace {
 
     void LyricPanel::DrawTimestampedLyricsVertical(HDC dc, CRect client_area)
     {
+        // NOTE: The drawing call uses the glyph baseline as the origin.
+        //       We want our text to be perfectly vertically centered, so we need to offset it
+        //       but the difference between the baseline and the vertical centre of the font.
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
+
         t_ui_color fg_colour = get_fg_colour();
         t_ui_color hl_colour = get_highlight_colour();
 
@@ -622,7 +649,7 @@ namespace {
 
         CPoint centre = client_area.CenterPoint();
         int next_line_scroll = (int)((double)active_line_height * next_line_scroll_factor);
-        int top_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll);
+        int top_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll + baseline_centre_correction);
         CPoint origin = {centre.x, top_y};
         for(int line_index=0; line_index < lyric_line_count; line_index++)
         {
@@ -656,6 +683,13 @@ namespace {
 
     void LyricPanel::DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area)
     {
+        // NOTE: The drawing call uses the glyph baseline as the origin.
+        //       We want our text to be perfectly vertically centered, so we need to offset it
+        //       but the difference between the baseline and the vertical centre of the font.
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
+
         service_ptr_t<playback_control> playback = playback_control::get();
         double current_time = playback->playback_get_position();
 
@@ -753,27 +787,28 @@ namespace {
         int next_line_scroll = (int)((double)total_scroll_to_next_line * next_line_scroll_factor);
 
         CPoint centre = client_area.CenterPoint();
+        int centre_y = centre.y + baseline_centre_correction;
         double active_x_alignment_factor = 0.15;
         int active_left_x = client_area.left + (int)((double)client_area.Width() * active_x_alignment_factor);
         int left_x = active_left_x - pre_active_width - next_line_scroll;
         BOOL draw_success = TRUE;
 
         SetTextColor(dc, fg_colour);
-        draw_success &= DrawTextOut(dc, left_x + pre_active_width/2, centre.y, pre_active_line_text);
+        draw_success &= DrawTextOut(dc, left_x + pre_active_width/2, centre_y, pre_active_line_text);
         left_x += pre_active_width;
 
         COLORREF active_line_colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
         SetTextColor(dc, active_line_colour);
-        draw_success &= DrawTextOut(dc, left_x + active_line_width/2, centre.y, active_line_text);
+        draw_success &= DrawTextOut(dc, left_x + active_line_width/2, centre_y, active_line_text);
         left_x += active_line_width;
 
         COLORREF next_line_colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
         SetTextColor(dc, next_line_colour);
-        draw_success &= DrawTextOut(dc, left_x + next_line_width/2, centre.y, next_line_text);
+        draw_success &= DrawTextOut(dc, left_x + next_line_width/2, centre_y, next_line_text);
         left_x += next_line_width;
 
         SetTextColor(dc, fg_colour);
-        draw_success &= DrawTextOut(dc, left_x + post_active_width/2, centre.y, post_active_line_text);
+        draw_success &= DrawTextOut(dc, left_x + post_active_width/2, centre_y, post_active_line_text);
 
         if(!draw_success)
         {
