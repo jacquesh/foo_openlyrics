@@ -64,16 +64,6 @@ static cfg_auto_property* g_saving_auto_properties[] =
     &cfg_save_merge_lrc_lines,
 };
 
-class titleformat_filename_filter : public titleformat_text_filter
-{
-    void write(const GUID& /*input_type*/, pfc::string_receiver& output, const char* data, t_size data_length) override
-    {
-        pfc::string8 input(data, data_length);
-        input.fix_filename_chars();
-        output.add_string(input.c_str(), input.length());
-    }
-};
-
 AutoSaveStrategy preferences::saving::autosave_strategy()
 {
     return cfg_save_auto_save_strategy.get_value();
@@ -153,8 +143,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
                 return "";
             }
 
-            titleformat_filename_filter filter;
-            bool dir_format_success = track->format_title(nullptr, formatted_directory, dir_format_script, &filter);
+            bool dir_format_success = track->format_title(nullptr, formatted_directory, dir_format_script, nullptr);
             if(!dir_format_success)
             {
                 LOG_WARN("Failed to format save path using format: %s", path_format_str);
@@ -214,6 +203,7 @@ public:
         COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH_BROWSE, BN_CLICKED, OnCustomPathBrowse)
+        NOTIFY_HANDLER_EX(IDC_SAVE_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
     END_MSG_MAP()
 
 private:
@@ -227,6 +217,7 @@ private:
     void OnDirectoryClassChange(UINT, int, CWindow);
     void OnCustomPathFormatChange(UINT, int, CWindow);
     void OnCustomPathBrowse(UINT, int, CWindow);
+    LRESULT OnSyntaxHelpClicked(NMHDR*);
 
     void UpdateFormatPreview(int edit_id, int preview_id, bool is_path);
     void SetMethodFieldsEnabled();
@@ -380,6 +371,12 @@ void PreferencesSaving::OnCustomPathBrowse(UINT, int, CWindow)
     }
 }
 
+LRESULT PreferencesSaving::OnSyntaxHelpClicked(NMHDR* /*notify_msg*/)
+{
+    standard_commands::main_titleformat_help();
+    return 0;
+}
+
 void PreferencesSaving::UpdateFormatPreview(int edit_id, int preview_id, bool is_path)
 {
     CWindow preview_item = GetDlgItem(preview_id);
@@ -429,22 +426,10 @@ void PreferencesSaving::UpdateFormatPreview(int edit_id, int preview_id, bool is
 
             if(preview_track != nullptr)
             {
-                titleformat_filename_filter filter_impl;
-                titleformat_text_filter* filter = nullptr;
-                if(is_path)
-                {
-                    filter = &filter_impl;
-                }
-
                 pfc::string8 formatted;
-                bool format_success = preview_track->format_title(nullptr, formatted, format_script, filter);
+                bool format_success = preview_track->format_title(nullptr, formatted, format_script, nullptr);
                 if(format_success)
                 {
-                    if(!is_path)
-                    {
-                        formatted.fix_filename_chars();
-                    }
-
                     std::tstring preview = to_tstring(formatted);
                     preview_item.SetWindowText(preview.c_str());
                 }

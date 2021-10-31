@@ -90,16 +90,17 @@ BEGIN
     GROUPBOX        "ID3 Tags",IDC_STATIC,0,81,331,61
     COMBOBOX        IDC_SAVE_DIRECTORY_CLASS,90,202,199,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Save directory:",IDC_STATIC,37,204,48,8
-    LTEXT           "Custom path format:",IDC_STATIC,21,226,64,8
+    LTEXT           "Custom directory format:",IDC_STATIC,10,226,79,8
     EDITTEXT        IDC_SAVE_CUSTOM_PATH,89,223,200,14,ES_AUTOHSCROLL
     LTEXT           "Static",IDC_SAVE_CUSTOM_PATH_PREVIEW,90,244,202,8,SS_PATHELLIPSIS
-    PUSHBUTTON      "...",IDC_SAVE_CUSTOM_PATH_BROWSE,292,224,20,14
+    PUSHBUTTON      "...",IDC_SAVE_CUSTOM_PATH_BROWSE,292,223,20,15
     CONTROL         "Note: The corresponding source will be searched even if it is not configured as active.",IDC_STATIC,
                     "Static",SS_LEFTNOWORDWRAP | WS_GROUP,9,26,271,8
     COMBOBOX        IDC_SAVE_AUTOSAVE_TYPE,254,4,71,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Autosave:",IDC_STATIC,218,6,33,8
     CONTROL         "Collapse multiple instances of the same line when saving timestamped lyrics",IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,58,252,10
+    CONTROL         "<a>Syntax help</a>",IDC_SAVE_SYNTAX_HELP,"SysLink",WS_TABSTOP,7,272,39,9
 END
 
 IDD_PREFERENCES_DISPLAY DIALOGEX 0, 0, 333, 287

@@ -22,6 +22,7 @@ DECLARE_COMPONENT_VERSION(
     "- Avoid auto-searching a track after a while if it keeps failing\n"
     "- Support applying a manual search result by double-clicking it\n"
     "- Remember modified column widths in the manual search table UI\n"
+    "- Stop automatically sanitising custom save directory to a valid path\n"
     "- Make auto-searches case-insensitive when matching track metadata\n"
     "- Fix ColumnsUI config export complaints of corrupted file\n"
     "\n"
