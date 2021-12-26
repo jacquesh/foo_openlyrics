@@ -4,6 +4,7 @@
 #include "lyric_data.h"
 #include "parsers.h"
 #include "win32_util.h"
+#include <regex>
 
 namespace parsers::lrc
 {
@@ -159,7 +160,7 @@ void remove_offset_tag(LyricData& lyrics)
 double get_line_first_timestamp(std::string_view line)
 {
     double timestamp = DBL_MAX;
-    if((line.length() >= 10) && try_parse_timestamp(line.substr(0, 10), timestamp))
+    if((line.length() >= 10) && try_parse_timestamp(line, timestamp))
     {
         return timestamp;
     }
@@ -192,30 +193,26 @@ std::string print_6digit_timestamp(double timestamp)
     return std::string(temp);
 }
 
-bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
+bool try_parse_timestamp(std::string_view string_with_tag, double& out_timestamp)
 {
-    if((tag.length() != 10) ||
-       (tag[0] != '[') ||
-       !is_digit(tag[1]) ||
-       !is_digit(tag[2]) ||
-       (tag[3] != ':') ||
-       !is_digit(tag[4]) ||
-       !is_digit(tag[5]) ||
-       (tag[6] != '.') ||
-       !is_digit(tag[7]) ||
-       !is_digit(tag[8]) ||
-       (tag[9] != ']'))
-    {
-        // We do not have a well-formed timestamp
+    // Match timestamps occurring at the start of the string
+    std::string subject = std::string(string_with_tag);
+    std::smatch matches;
+    std::regex pattern("^\\s*\\[(\\d)+:(\\d+\\.\\d+)\\]");
+    if (std::regex_search(subject, matches, pattern) && matches.size() > 1) {
+        // Convert matched groups to numerical primitives
+        std::string minutes_string = matches.str(1);
+        std::string seconds_string = matches.str(2);
+        int minutes = std::stoi(minutes_string);
+        double seconds = std::stod(seconds_string);
+
+        // Create and return final timestamp
+        double timestamp = 60 * minutes + seconds;
+        out_timestamp = timestamp;
+        return true;
+    } else {
         return false;
     }
-
-    int minute = str_to_int(tag.substr(1, 2));
-    int second = str_to_int(tag.substr(4,2));
-    int centisec = str_to_int(tag.substr(7,2));
-    double timestamp = (double)(minute*60) + (double)second + ((double)centisec * 0.01);
-    out_timestamp = timestamp;
-    return true;
 }
 
 static LineTimeParseResult parse_time_from_line(std::string_view line)
