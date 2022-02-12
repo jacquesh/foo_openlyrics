@@ -78,7 +78,7 @@ bool LocalFileSource::lookup(LyricDataRaw& data, abort_callback& abort)
         LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
 
         data.text = file_contents;
-        return !data.text.empty();
+        return true;
     }
     catch(const std::exception& e)
     {

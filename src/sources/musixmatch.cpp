@@ -280,7 +280,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
 
     data.text = json_lyricstext->valuestring;
     cJSON_Delete(json);
-    return !data.text.empty();
+    return true;
 }
 
 bool MusixmatchLyricsSource::get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const

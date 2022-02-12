@@ -116,10 +116,16 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
                 assert(result.source_id == source_id);
                 if(result.lookup_id.empty())
                 {
-                    assert(!result.text.empty());
-                    lyric_data_raw = std::move(result);
-                    LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
-                    break;
+                    if(result.text.empty())
+                    {
+                        LOG_INFO("Source %s returned an empty lyric, skipping...", friendly_name.c_str());
+                    }
+                    else
+                    {
+                        lyric_data_raw = std::move(result);
+                        LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
+                        break;
+                    }
                 }
                 else
                 {
@@ -128,14 +134,14 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
                     {
                         if(result.text.empty())
                         {
-                            LOG_WARN("Received illegal empty success result from source: %s", friendly_name.c_str());
-                            assert(!result.text.empty());
-                            continue;
+                            LOG_INFO("Received empty successful lookup from source: %s", friendly_name.c_str());
                         }
-
-                        lyric_data_raw = std::move(result);
-                        LOG_INFO("Successfully looked-up lyrics from source: %s", friendly_name.c_str());
-                        break;
+                        else
+                        {
+                            lyric_data_raw = std::move(result);
+                            LOG_INFO("Successfully looked-up lyrics from source: %s", friendly_name.c_str());
+                            break;
+                        }
                     }
                     else
                     {
@@ -224,15 +230,16 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
             std::optional<LyricDataRaw> lyric;
             if(result.lookup_id.empty())
             {
-                assert(!result.text.empty());
-                lyric = std::move(result);
+                if(!result.text.empty())
+                {
+                    lyric = std::move(result);
+                }
             }
             else
             {
                 bool lyrics_found = source->lookup(result, handle.get_checked_abort());
-                if(lyrics_found)
+                if(lyrics_found && !result.text.empty())
                 {
-                    assert(!result.text.empty());
                     lyric = std::move(result);
                 }
             }
