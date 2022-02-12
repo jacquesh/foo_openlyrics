@@ -171,6 +171,7 @@ void ManualLyricSearch::OnDestroyDialog()
     assert(std::tstring_view(column_data.pszText) == _T("Source"));
     cfg_source_column_width = column_data.cx;
 
+    m_child_abort.abort();
     if(m_child_update.has_value())
     {
         bool completed = m_child_update.value().wait_for_complete(10'000);
@@ -189,7 +190,6 @@ void ManualLyricSearch::OnDestroyDialog()
 
 void ManualLyricSearch::OnClose()
 {
-    m_child_abort.abort();
     DestroyWindow();
 }
 
@@ -319,7 +319,7 @@ void ManualLyricSearch::start_search()
     }
     catch(const std::exception& e)
     {
-        LOG_WARN("Failed to add custom search 'child' update, the update was probably cancelled", e.what());
+        LOG_WARN("Failed to add custom search 'child' update, the update was probably cancelled: %s", e.what());
         return;
     }
 
@@ -376,7 +376,6 @@ void ManualLyricSearch::save_selected_item()
 
 void ManualLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
 {
-    m_child_abort.abort();
     DestroyWindow();
 }
 
@@ -384,7 +383,6 @@ void ManualLyricSearch::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn
 {
     save_selected_item();
 
-    m_child_abort.abort();
     DestroyWindow();
 }
 
@@ -472,19 +470,41 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
             ListView_SetItemState(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), item_index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
         }
     }
+
+    bool aborting = false;
+    try
+    {
+        if(m_parent_update.get_checked_abort().is_aborting())
+        {
+            aborting = true;
+        }
+    }
+    catch(const std::exception& ex)
+    {
+        LOG_WARN("Error when checking the child update handle, it was probably cancelled so cancelling our own handle: %s", ex.what());
+        aborting = true;
+    }
+    if(aborting && !m_child_abort.is_aborting())
+    {
+        m_child_abort.abort();
+    }
+
     return 0;
 }
 
-void SpawnManualLyricSearch(LyricUpdateHandle& update)
+HWND SpawnManualLyricSearch(HWND parent_window, LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning manual search window...");
+    HWND result = nullptr;
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<ManualLyricSearch>>(core_api::get_main_window(), update);
+        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<ManualLyricSearch>>(parent_window, update);
+        result = new_window->m_hWnd;
     }
     catch(const std::exception& e)
     {
         popup_message::g_complain("Failed to create manual search dialog", e);
     }
+    return result;
 }
 

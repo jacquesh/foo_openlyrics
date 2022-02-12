@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.11-dev (" __DATE__ "):\n"
+    "- Fix a freeze when closing the lyric panel while a search/editor is open\n"
     "\n"
     "Version 0.10 (2021-10-31):\n"
     "- Add a bulk search option to the playlist context menu\n"

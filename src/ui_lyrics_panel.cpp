@@ -96,6 +96,7 @@ namespace {
         void InitiateLyricSearch(metadb_handle_ptr track);
 
         ui_element_config::ptr m_config;
+        abort_callback_impl m_child_abort;
 
         bool m_timerRunning;
 
@@ -226,6 +227,7 @@ namespace {
         if(m_back_buffer != nullptr) DeleteDC(m_back_buffer);
 
         // Cancel and clean up any pending updates
+        m_child_abort.abort();
         m_update_handles.clear();
 
         auto panel_iter = std::find(g_active_panels.begin(), g_active_panels.end(), this);
@@ -996,8 +998,8 @@ namespace {
                     if(m_now_playing != nullptr)
                     {
                         LOG_INFO("Initiate manual lyric search");
-                        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, fb2k::noAbort);
-                        SpawnManualLyricSearch(*update);
+                        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_child_abort);
+                        SpawnManualLyricSearch(get_wnd(), *update);
                         m_update_handles.push_back(std::move(update));
                     }
                 } break;
@@ -1013,7 +1015,7 @@ namespace {
                         try
                         {
                             bool allow_overwrite = true;
-                            m_lyrics.persistent_storage_path = io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, fb2k::noAbort);
+                            m_lyrics.persistent_storage_path = io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, m_child_abort);
                         }
                         catch(const std::exception& e)
                         {
@@ -1031,8 +1033,8 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
-                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
-                    SpawnLyricEditor(m_lyrics, *update);
+                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_child_abort);
+                    SpawnLyricEditor(get_wnd(), m_lyrics, *update);
                     m_update_handles.push_back(std::move(update));
                 } break;
 
@@ -1110,7 +1112,7 @@ namespace {
 
             if(updated_lyrics.has_value())
             {
-                LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
+                LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, m_child_abort);
                 update.set_started();
                 update.set_result(std::move(updated_lyrics.value()), true);
 
@@ -1130,8 +1132,8 @@ namespace {
     {
         if(m_now_playing == nullptr) return;
 
-        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, fb2k::noAbort);
-        SpawnLyricEditor(m_lyrics, *update);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_child_abort);
+        SpawnLyricEditor(get_wnd(), m_lyrics, *update);
         m_update_handles.push_back(std::move(update));
     }
 
@@ -1295,7 +1297,7 @@ namespace {
         m_lyrics = {};
         m_auto_search_avoided = false;
 
-        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, track, fb2k::noAbort);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, track, m_child_abort);
         io::search_for_lyrics(*update, false);
         m_update_handles.push_back(std::move(update));
     }

@@ -244,21 +244,24 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
     return 0;
 }
 
-void SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
+HWND SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
 {
     if(tracks_to_search.empty())
     {
-        return;
+        return nullptr;;
     }
 
     LOG_INFO("Spawning bulk search window...");
+    HWND result = nullptr;
     try
     {
-        new CWindowAutoLifetime<ImplementModelessTracking<BulkLyricSearch>>(core_api::get_main_window(), tracks_to_search);
+        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<BulkLyricSearch>>(core_api::get_main_window(), tracks_to_search);
+        result = new_window->m_hWnd;
     }
     catch(const std::exception& e)
     {
         popup_message::g_complain("Failed to create bulk search dialog", e);
     }
+    return result;
 }
 

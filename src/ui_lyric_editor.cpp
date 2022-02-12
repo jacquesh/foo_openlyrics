@@ -562,17 +562,20 @@ LyricData LyricEditor::ParseEditorContents()
     return data;
 }
 
-void SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update)
+HWND SpawnLyricEditor(HWND parent_window, const LyricData& lyrics, LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning editor window...");
+    HWND result = nullptr;
     try
     {
         std::tstring lyric_text = parsers::lrc::expand_text(lyrics);
-        new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(core_api::get_main_window(), lyric_text, update);
+        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(parent_window, lyric_text, update);
+        result = new_window->m_hWnd;
     }
     catch(const std::exception& e)
     {
         popup_message::g_complain("Failed to create lyric editor dialog", e);
     }
+    return result;
 }
 
