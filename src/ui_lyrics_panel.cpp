@@ -485,6 +485,7 @@ namespace {
         double total_length = playback->playback_get_length_ex();
         double track_fraction = current_position / total_length;
 
+        int one_line_height = ComputeWrappedLyricLineHeight(dc, client_area, _T(""));
         int total_height = std::accumulate(m_lyrics.lines.begin(), m_lyrics.lines.end(), 0,
                                            [dc, client_area](int x, const LyricDataLine& line)
                                            {
@@ -497,8 +498,6 @@ namespace {
         {
             // Shift the 'top' Y down by a single line so we can see the first line of text,
             // because the 'top y' is actually used as the *baseline*
-            int one_line_height = ComputeWrappedLyricLineHeight(dc, client_area, _T(""));
-
             int default_top_y = one_line_height;
             if(total_height < client_area.Height())
             {
@@ -533,6 +532,14 @@ namespace {
             WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
 
             top_y = centre.y - (int)(track_fraction * total_height) + font_metrics.tmAscent;
+
+            // NOTE: We support the manual scroll distance here so that people can offset
+            //       the default automated scrolling (which is often significantly wrong)
+            const int min_scroll = - top_y - total_height + 2*one_line_height;
+            const int max_scroll = client_area.Height() - top_y - font_metrics.tmAscent;
+            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
+            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
+            top_y += m_manual_scroll_distance;
         }
 
         CPoint origin = {centre.x, top_y};
@@ -593,20 +600,26 @@ namespace {
         CPoint origin = centre;
         if(preferences::display::scroll_type() == LineScrollType::Manual)
         {
-            int half_width = client_area.Width()/2;
-            if(m_manual_scroll_distance > half_width)
-            {
-                m_manual_scroll_distance = half_width;
-            }
-            if(m_manual_scroll_distance < -line_size.cx + half_width)
-            {
-                m_manual_scroll_distance = -line_size.cx + half_width;
-            }
+            const int half_width = client_area.Width()/2;
+            const int min_scroll = -line_size.cx + half_width;
+            const int max_scroll = half_width;
+            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
+            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
+
             origin.x += (line_size.cx - client_area.Width())/2 + m_manual_scroll_distance;
         }
         else
         {
             origin.x += (int)((0.5 - track_fraction) * (double)line_size.cx);
+
+            // NOTE: We support the manual scroll distance here so that people can offset
+            //       the default automated scrolling (which is often significantly wrong)
+            const int epsilon = 16;
+            const int min_scroll = - origin.x - line_size.cx/2 + epsilon; // origin.x + line_size.cx/2 + m_manual_scroll_distance > 0
+            const int max_scroll = client_area.Width() - origin.x + line_size.cx/2 - epsilon; // origin.x - line_size.cx/2 + m_manual_scroll_distance < client_area.Width()
+            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
+            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
+            origin.x += m_manual_scroll_distance;
         }
         origin.y += baseline_centre_correction;
 
@@ -1139,11 +1152,6 @@ namespace {
 
     LRESULT LyricPanel::OnMouseWheel(UINT /*virtualKeys*/, short rotation, CPoint /*point*/)
     {
-        if(preferences::display::scroll_type() == LineScrollType::Automatic)
-        {
-            return 0;
-        }
-
         // NOTE: WHEEL_DELTA is defined to be 120
         // rotation > 0 (usually 120) means we scrolled up
         // rotation < 0 (usually -120) means we scrolled down
@@ -1206,20 +1214,14 @@ namespace {
 
     void LyricPanel::OnLMBDown(UINT /*virtualKeys*/, CPoint point)
     {
-        if(preferences::display::scroll_type() == LineScrollType::Manual)
-        {
-            m_manual_scroll_start = point;
-            SetCapture();
-        }
+        m_manual_scroll_start = point;
+        SetCapture();
     }
 
     void LyricPanel::OnLMBUp(UINT /*virtualKeys*/, CPoint /*point*/)
     {
-        if(m_manual_scroll_start.has_value())
-        {
-            m_manual_scroll_start.reset();
-            ReleaseCapture();
-        }
+        m_manual_scroll_start.reset();
+        ReleaseCapture();
     }
 
     t_ui_font LyricPanel::get_font()
