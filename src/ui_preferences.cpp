@@ -132,6 +132,7 @@ public:
         COMMAND_HANDLER_EX(IDC_ACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnActiveSourceSelect)
         COMMAND_HANDLER_EX(IDC_INACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnInactiveSourceSelect)
         COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_HELP, BN_CLICKED, OnMusixmatchHelp)
+        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_SHOW, BN_CLICKED, OnMusixmatchShow)
     END_MSG_MAP()
 
 private:
@@ -144,18 +145,24 @@ private:
     void OnActiveSourceSelect(UINT, int, CWindow);
     void OnInactiveSourceSelect(UINT, int, CWindow);
     void OnMusixmatchHelp(UINT, int, CWindow);
+    void OnMusixmatchShow(UINT, int, CWindow);
 
     void SourceListInitialise();
     void SourceListResetFromSaved();
     void SourceListResetToDefault();
     void SourceListApply();
     bool SourceListHasChanged();
+
+    DWORD m_default_password_char;
 };
 
 BOOL PreferencesRoot::OnInitDialog(CWindow, LPARAM)
 {
     SourceListInitialise();
     init_auto_preferences();
+
+    CWindow token = GetDlgItem(IDC_SEARCH_MUSIXMATCH_TOKEN);
+    m_default_password_char = SendDlgItemMessage(IDC_SEARCH_MUSIXMATCH_TOKEN, EM_GETPASSWORDCHAR, 0, 0);
     return FALSE;
 }
 
@@ -419,6 +426,21 @@ void PreferencesRoot::OnMusixmatchHelp(UINT, int, CWindow)
             SetDlgItemText(IDC_SEARCH_MUSIXMATCH_TOKEN, ui_token.c_str());
         }
     }
+}
+
+void PreferencesRoot::OnMusixmatchShow(UINT, int, CWindow)
+{
+    CWindow token = GetDlgItem(IDC_SEARCH_MUSIXMATCH_TOKEN);
+    LRESULT password_char = token.SendMessage(EM_GETPASSWORDCHAR, 0, 0);
+    if(password_char == m_default_password_char)
+    {
+        token.SendMessage(EM_SETPASSWORDCHAR, 0, 0);
+    }
+    else
+    {
+        token.SendMessage(EM_SETPASSWORDCHAR, m_default_password_char, 0);
+    }
+    token.Invalidate(); // Force it to redraw with the new character
 }
 
 void PreferencesRoot::reset()
