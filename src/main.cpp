@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 0.11-dev (" __DATE__ "):\n"
+    "- Significantly improve Musixmatch error logging\n"
     "- Fix a freeze when closing the lyric panel while a search/editor is open\n"
     "- Fix the auto-search skip continuing to happen after lyrics are found\n"
     "\n"
