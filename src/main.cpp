@@ -17,6 +17,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 0.11-dev (" __DATE__ "):\n"
     "- Allow manual offset of the automatic scroll with mouse drag or wheel\n"
+    "- Skip the anti-flood delay when only local sources are bulk-searched\n"
     "- Make the Musixmatch token text field hidden by default\n"
     "- Significantly improve Musixmatch error logging\n"
     "- Fix a freeze when closing the lyric panel while a search/editor is open\n"

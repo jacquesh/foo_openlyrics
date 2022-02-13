@@ -40,6 +40,7 @@ public:
     bool wait_for_complete(uint32_t timeout_ms);
     bool is_complete();
     bool has_result();
+    bool has_searched_remote_sources(); // True if this update handle has searched any remote sources
     LyricData get_result();
 
     abort_callback& get_checked_abort(); // Checks the abort flag (so it might throw) and returns it
@@ -47,6 +48,7 @@ public:
 
     void set_started();
     void set_progress(std::string_view value);
+    void set_remote_source_searched();
     void set_result(LyricData&& data, bool final_result);
     void set_complete();
 
@@ -69,5 +71,6 @@ private:
     HANDLE m_complete;
     Status m_status;
     std::string m_progress;
+    bool m_searched_remote_sources;
 };
 

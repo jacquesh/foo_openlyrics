@@ -187,6 +187,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
 
     assert(m_child_update.has_value());
     LyricUpdateHandle& update = m_child_update.value();
+    bool were_remote_sources_searched = update.has_searched_remote_sources();
     if(!update.is_complete())
     {
         return 0;
@@ -233,8 +234,16 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         //       traffic for the lyric servers in a very short time when we're searching for many tracks.
         //       When this timer expires, the callback will see that there is no child update active and
         //       will start a new search for the next track.
+        DWORD sleep_ms = 10000;
+        if(!were_remote_sources_searched)
+        {
+            // NOTE: If we found lyrics did not need to search a remote source in the process,
+            //       then we need not add the extra delay since we aren't worried about flooding a website.
+            sleep_ms = 1;
+        }
+
         assert(!m_child_update.has_value());
-        UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 10000, nullptr);
+        UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, sleep_ms, nullptr);
         if (result != BULK_SEARCH_UPDATE_TIMER)
         {
             LOG_WARN("Unexpected timer result when starting bulk search update timer to check for results");

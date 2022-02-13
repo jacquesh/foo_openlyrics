@@ -92,6 +92,10 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
 
         try
         {
+            if(!source->is_local())
+            {
+                handle.set_remote_source_searched();
+            }
             std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_checked_abort());
 
             std::string tag_artist = track_metadata(handle.get_track(), "artist");
@@ -214,6 +218,7 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
         }
         else
         {
+            handle.set_remote_source_searched();
             LyricSourceRemote* remote_source = dynamic_cast<LyricSourceRemote*>(source);
             assert(remote_source != nullptr);
             if(remote_source == nullptr)
@@ -398,7 +403,8 @@ LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_c
     m_abort(abort),
     m_complete(nullptr),
     m_status(Status::Created),
-    m_progress()
+    m_progress(),
+    m_searched_remote_sources(false)
 {
     InitializeCriticalSection(&m_mutex);
     m_complete = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -413,7 +419,8 @@ LyricUpdateHandle::LyricUpdateHandle(LyricUpdateHandle&& other) :
     m_abort(other.m_abort),
     m_complete(nullptr),
     m_status(other.m_status),
-    m_progress(std::move(other.m_progress))
+    m_progress(std::move(other.m_progress)),
+    m_searched_remote_sources(other.m_searched_remote_sources)
 {
     other.m_status = Status::Closed;
     InitializeCriticalSection(&m_mutex);
@@ -472,6 +479,14 @@ bool LyricUpdateHandle::has_result()
     return output;
 }
 
+bool LyricUpdateHandle::has_searched_remote_sources()
+{
+    EnterCriticalSection(&m_mutex);
+    bool output = m_searched_remote_sources;
+    LeaveCriticalSection(&m_mutex);
+    return output;
+}
+
 LyricData LyricUpdateHandle::get_result()
 {
     EnterCriticalSection(&m_mutex);
@@ -513,6 +528,13 @@ void LyricUpdateHandle::set_progress(std::string_view value)
     LeaveCriticalSection(&m_mutex);
 
     repaint_all_lyric_panels();
+}
+
+void LyricUpdateHandle::set_remote_source_searched()
+{
+    EnterCriticalSection(&m_mutex);
+    m_searched_remote_sources = true;
+    LeaveCriticalSection(&m_mutex);
 }
 
 void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
