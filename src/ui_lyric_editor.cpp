@@ -234,7 +234,7 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     LyricData parsed = ParseEditorContents();
     service_ptr_t<playback_control> playback = playback_control::get();
     double timestamp = playback->playback_get_position() + parsed.timestamp_offset;
-    std::string timestamp_str = parsers::lrc::print_6digit_timestamp(timestamp);
+    std::string timestamp_str = parsers::lrc::print_timestamp(timestamp);
     std::tstring timestamp_tstr = to_tstring(timestamp_str);
 
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SETSEL, replace_start, replace_end);

@@ -220,65 +220,40 @@ std::optional<LyricData> auto_edit::ResetCapitalisation(const LyricData& lyrics)
 
 std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyrics)
 {
-    const auto is_digit = [](char c)
+    const auto fix_decimal_separator = [](std::string_view tag)
     {
-        return ((c >= '0') && (c <= '9'));
-    };
-
-    const auto fix_too_many_decimal_places = [&is_digit](std::string& line, size_t start)
-    {
-        if((line.length() <= start + 10) ||
-           (line[start+0] != '[') ||
-           !is_digit(line[start+1]) ||
-           !is_digit(line[start+2]) ||
-           (line[start+3] != ':') ||
-           !is_digit(line[start+4]) ||
-           !is_digit(line[start+5]) ||
-           (line[start+6] != '.') ||
-           !is_digit(line[start+7]) ||
-           !is_digit(line[start+8]))
+        if((tag.length() < 10) || // Tag isn't long enough to contain a timestamp
+           (tag[0] != '[') || // Tag doesn't start with a bracket
+           (tag[tag.length()-1] != ']')) // Tag doesn't end with a bracket
         {
             return false;
         }
 
-        size_t erase_start = start + 9;
-        size_t tag_end_index = line.find(']', erase_start);
-        if(tag_end_index == std::tstring::npos)
-        {
-            // Unclosed timestamp tag, not what we're fixing here
-            return false;
-        }
-
-        assert(tag_end_index >= erase_start);
-        size_t erase_count = tag_end_index - erase_start;
-        if(erase_count == 0)
+        double unused;
+        bool was_bad = !parsers::lrc::try_parse_timestamp(tag, unused);
+        if(!was_bad)
         {
             return false;
         }
 
-        line.erase(erase_start, erase_count);
-        return true;
-    };
-
-    const auto fix_decimal_separator = [&is_digit](std::string& line, size_t start)
-    {
-        if((line.length() < start + 10) ||
-           (line[start+0] != '[') ||
-           !is_digit(line[start+1]) ||
-           !is_digit(line[start+2]) ||
-           (line[start+3] != ':') ||
-           !is_digit(line[start+4]) ||
-           !is_digit(line[start+5]) ||
-           (line[start+6] == '.') || // Already correct
-           !is_digit(line[start+7]) ||
-           !is_digit(line[start+8]) ||
-           (line.find(']', start+9) == std::tstring::npos)) // Unclosed timestamp tag, not what we're fixing here
+        size_t last_nondecimal_index = tag.find_last_not_of("1234567890.", tag.length()-2);
+        if(last_nondecimal_index == std::string_view::npos)
         {
-            return false;
+            return false; // No non-decimal characters, this really shouldn't happen since we've checked tag[0]=='[' above.
         }
 
-        line[start+6] = '.';
-        return true;
+        char replaced_char = tag[last_nondecimal_index];
+        const_cast<char&>(tag[last_nondecimal_index]) = '.';
+        bool is_fixed = parsers::lrc::try_parse_timestamp(tag, unused);
+        if(is_fixed)
+        {
+            return true;
+        }
+        else
+        {
+            const_cast<char&>(tag[last_nondecimal_index]) = replaced_char;
+            return false;
+        }
     };
 
     LyricDataRaw new_lyrics = lyrics;
@@ -288,8 +263,14 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
     while(current_index != std::string::npos)
     {
         bool changed = false;
-        changed |= fix_decimal_separator(new_lyrics.text, current_index);
-        changed |= fix_too_many_decimal_places(new_lyrics.text, current_index);
+
+        size_t end_index = new_lyrics.text.find(']', current_index);
+        if(end_index == std::string::npos)
+        {
+            break;
+        }
+        std::string_view tag {new_lyrics.text.c_str() + current_index, end_index - current_index + 1};
+        changed |= fix_decimal_separator(tag);
 
         if(changed)
         {

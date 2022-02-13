@@ -15,7 +15,7 @@ namespace lrc
     void remove_offset_tag(LyricData& lyrics);
 
     double get_line_first_timestamp(std::string_view line);
-    std::string print_6digit_timestamp(double timestamp);
+    std::string print_timestamp(double timestamp);
     bool try_parse_timestamp(std::string_view tag, double& out_timestamp);
 
     LyricData parse(const LyricDataRaw& input);

@@ -8,22 +8,63 @@
 namespace parsers::lrc
 {
 
-static bool is_digit(char c)
+static std::optional<uint64_t> strtou64(std::string_view str)
 {
-    return ((c >= '0') && (c <= '9'));
-}
-
-static int str_to_int(std::string_view str)
-{
-    assert(str.length() <= 6); // Just to ensure no overflow, could actually be larger
-    int result = 0;
+    uint64_t result = 0;
     for(char c : str)
     {
-        assert(is_digit(c));
-        int char_val = (int)c - (int)'0';
-        result = (result*10) + char_val;
+        if((c >= '0') && (c <= '9'))
+        {
+            uint64_t char_val = uint64_t(c) - uint64_t('0');
+            result = (result*10) + char_val;
+        }
+        else
+        {
+            return {};
+        }
+
     }
     return result;
+}
+
+// TODO: In theory this can be replaced by std::from_chars when we update to a compiler version that supports it
+static std::optional<int64_t> strtoi64(std::string_view str)
+{
+    int64_t sign = 1;
+    int64_t value = 0;
+    bool sign_complete = false;
+
+    for(char c : str)
+    {
+        if(c == '-')
+        {
+            if(!sign_complete)
+            {
+                sign *= -1;
+                continue;
+            }
+            else
+            {
+                return {}; // The string looks like -1-1 (with a minus in the middle somewhere)
+            }
+        }
+        else
+        {
+            sign_complete = true;
+        }
+
+        if((c >= '0') && (c <= '9'))
+        {
+            int64_t char_val = c - '0';
+            value = (value*10) + char_val;
+        }
+        else
+        {
+            return {}; // String contains illegal characters
+        }
+    }
+
+    return sign*value;
 }
 
 bool is_tag_line(std::string_view line)
@@ -53,46 +94,6 @@ bool is_tag_line(std::string_view line)
     }
 
     return true;
-}
-
-// TODO: In theory this can be replaced by std::from_chars when we update to a compiler version that supports it
-static std::optional<int64_t> strtoi64(std::string_view str)
-{
-    int64_t sign = 1;
-    int64_t value = 0;
-    bool sign_complete = false;
-
-    for(char c : str)
-    {
-        if(c == '-')
-        {
-            if(!sign_complete)
-            {
-                sign *= -1;
-                continue;
-            }
-            else
-            {
-                return 0; // The string looks like -1-1 (with a minus in the middle somewhere)
-            }
-        }
-        else
-        {
-            sign_complete = true;
-        }
-
-        if((c >= '0') && (c <= '9'))
-        {
-            int64_t char_val = c - '0';
-            value = (value*10) + char_val;
-        }
-        else
-        {
-            return 0; // String contains illegal characters
-        }
-    }
-
-    return sign*value;
 }
 
 std::optional<double> try_parse_offset_tag(std::string_view line)
@@ -159,7 +160,8 @@ void remove_offset_tag(LyricData& lyrics)
 double get_line_first_timestamp(std::string_view line)
 {
     double timestamp = DBL_MAX;
-    if((line.length() >= 10) && try_parse_timestamp(line.substr(0, 10), timestamp))
+    size_t close_index = line.find(']');
+    if((close_index != std::string_view::npos) && try_parse_timestamp(line.substr(0, close_index), timestamp))
     {
         return timestamp;
     }
@@ -179,41 +181,86 @@ struct LineTimeParseResult
     size_t charsConsumed;
 };
 
-std::string print_6digit_timestamp(double timestamp)
+std::string print_timestamp(double timestamp)
 {
     double total_seconds_flt = std::floor(timestamp);
     int total_seconds = static_cast<int>(total_seconds_flt);
-    int time_minutes = total_seconds/60;
-    int time_seconds = total_seconds - (time_minutes*60);
+    int time_hours = total_seconds/3600;
+    int time_minutes = (total_seconds - 3600*time_hours)/60;
+    int time_seconds = total_seconds - (time_hours*3600) - (time_minutes*60);
     int time_centisec = static_cast<int>((timestamp - total_seconds_flt) * 100.0);
 
-    char temp[11];
-    snprintf(temp, sizeof(temp), "[%02d:%02d.%02d]", time_minutes, time_seconds, time_centisec);
+    char temp[32];
+    if(time_hours == 0)
+    {
+        snprintf(temp, sizeof(temp), "[%02d:%02d.%02d]", time_minutes, time_seconds, time_centisec);
+    }
+    else
+    {
+        snprintf(temp, sizeof(temp), "[%02d:%02d:%02d.%02d]", time_hours, time_minutes, time_seconds, time_centisec);
+    }
     return std::string(temp);
 }
 
 bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
 {
-    if((tag.length() != 10) ||
-       (tag[0] != '[') ||
-       !is_digit(tag[1]) ||
-       !is_digit(tag[2]) ||
-       (tag[3] != ':') ||
-       !is_digit(tag[4]) ||
-       !is_digit(tag[5]) ||
-       (tag[6] != '.') ||
-       !is_digit(tag[7]) ||
-       !is_digit(tag[8]) ||
-       (tag[9] != ']'))
+    if((tag[0] != '[') ||
+       (tag[tag.length()-1] != ']'))
     {
-        // We do not have a well-formed timestamp
+        // We require that the tag is the entire string
         return false;
     }
 
-    int minute = str_to_int(tag.substr(1, 2));
-    int second = str_to_int(tag.substr(4,2));
-    int centisec = str_to_int(tag.substr(7,2));
-    double timestamp = (double)(minute*60) + (double)second + ((double)centisec * 0.01);
+    size_t second_separator = tag.rfind('.');
+    size_t minsec_separator = tag.rfind(':');
+    size_t hourmin_separator = tag.rfind(':', minsec_separator-1);
+    if((second_separator == std::string_view::npos) || (minsec_separator == std::string_view::npos))
+    {
+        // We don't have the required separators for seconds-milliseconds and minutes-seconds
+        return false;
+    }
+
+    std::string_view subsec_str = tag.substr(second_separator + 1, tag.length() - second_separator - 2);
+    std::string_view sec_str = tag.substr(minsec_separator + 1, second_separator - minsec_separator - 1);
+    std::string_view min_str = {};
+    std::string_view hour_str = {};
+    if(hourmin_separator == std::string_view::npos)
+    {
+        min_str = tag.substr(1, minsec_separator - 1);
+    }
+    else
+    {
+        min_str = tag.substr(hourmin_separator + 1, minsec_separator - hourmin_separator - 1);
+        hour_str = tag.substr(1, hourmin_separator - 1);
+    }
+
+    std::optional<uint64_t> maybe_subsec = strtou64(subsec_str);
+    std::optional<uint64_t> maybe_sec = strtou64(sec_str);
+    std::optional<uint64_t> maybe_min = strtou64(min_str);
+    std::optional<uint64_t> maybe_hour = strtou64(hour_str);
+
+    if(!maybe_subsec.has_value() ||
+       !maybe_sec.has_value() ||
+       !maybe_min.has_value())
+    {
+        // The substrings that should contain positive integers, don't.
+        return false;
+    }
+
+    double subsec_coefficient = 1.0;
+    for(size_t i=0; i<subsec_str.length(); i++)
+    {
+        subsec_coefficient *= 0.1;
+    }
+
+    double timestamp = 0;
+    timestamp += double(maybe_subsec.value()) * subsec_coefficient;
+    timestamp += double(maybe_sec.value());
+    timestamp += double(maybe_min.value())*60.0;
+    if(maybe_hour.has_value())
+    {
+        timestamp += double(maybe_hour.value())*3600.0;
+    }
     out_timestamp = timestamp;
     return true;
 }
@@ -226,7 +273,7 @@ static LineTimeParseResult parse_time_from_line(std::string_view line)
     {
         if(line[index] != '[') break;
 
-        size_t close_index = min(line_length, line.find_first_of(']', index));
+        size_t close_index = min(line_length, line.find(']', index));
         size_t tag_length = close_index - index + 1;
         std::string_view tag = line.substr(index, tag_length);
 
@@ -414,7 +461,7 @@ std::tstring expand_text(const LyricData& data)
     {
         if(line.timestamp != DBL_MAX)
         {
-            expanded_text += to_tstring(print_6digit_timestamp(line.timestamp));
+            expanded_text += to_tstring(print_timestamp(line.timestamp));
         }
 
         if(line.text.empty())
@@ -475,7 +522,7 @@ std::string shrink_text(const LyricData& data)
     {
         for(double time : times)
         {
-            shrunk_text += print_6digit_timestamp(time);
+            shrunk_text += print_timestamp(time);
         }
         shrunk_text += line;
         shrunk_text += "\r\n";
