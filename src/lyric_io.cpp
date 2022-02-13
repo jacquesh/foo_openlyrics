@@ -16,30 +16,33 @@ std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bo
     //       only happen on the main thread.
     core_api::ensure_main_thread();
 
-    std::string output_path;
 
     LyricSourceBase* source = LyricSourceBase::get(preferences::saving::save_source());
-    if(source != nullptr)
+    if(source == nullptr)
     {
-        std::string text;
-        if(lyrics.IsTimestamped())
-        {
-            text = parsers::lrc::shrink_text(lyrics);
-        }
-        else
-        {
-            text = lyrics.text;
-        }
+        return {};
+    }
 
-        try
-        {
-            output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
-        }
-        catch(const std::exception& e)
-        {
-            std::string source_name = from_tstring(source->friendly_name());
-            LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
-        }
+    std::string text;
+    if(lyrics.IsTimestamped())
+    {
+        text = parsers::lrc::shrink_text(lyrics);
+    }
+    else
+    {
+        text = lyrics.text;
+    }
+
+    std::string output_path;
+    try
+    {
+        output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
+        clear_search_avoidance(track);
+    }
+    catch(const std::exception& e)
+    {
+        std::string source_name = from_tstring(source->friendly_name());
+        LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
     }
 
     return output_path;

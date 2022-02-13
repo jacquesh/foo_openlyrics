@@ -104,3 +104,11 @@ void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoid
                               writer.m_buffer.get_size());
 }
 
+void clear_search_avoidance(metadb_handle_ptr track)
+{
+    auto meta_index = metadb_index_manager::get();
+    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
+
+    meta_index->set_user_data(GUID_METADBINDEX_LYRIC_HISTORY, our_index_hash, nullptr, 0);
+}
+

@@ -11,4 +11,5 @@ struct lyric_search_avoidance
 
 lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track);
 void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance);
+void clear_search_avoidance(metadb_handle_ptr track);
 
