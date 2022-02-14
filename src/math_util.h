@@ -2,6 +2,11 @@
 
 #include "stdafx.h"
 
+inline int lerpi(int x, int y, double t)
+{
+    return x + int(t*double(y-x));
+}
+
 inline double lerp(double x, double y, double t)
 {
     return x + (y-x)*t;

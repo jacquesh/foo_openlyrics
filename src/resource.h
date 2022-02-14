@@ -36,6 +36,7 @@
 #define IDC_SAVE_TAG_SYNCED             1049
 #define IDC_SEARCH_TAGS                 1050
 #define IDC_FONT                        1051
+#define IDC_HIGHLIGHT_FONT              1052
 #define IDC_FOREGROUND_COLOUR           1054
 #define IDC_HIGHLIGHT_COLOUR            1055
 #define IDC_BACKGROUND_COLOUR           1056
@@ -44,6 +45,8 @@
 #define IDC_HIGHLIGHT_COLOUR_CUSTOM     1061
 #define IDC_FONT_CUSTOM                 1062
 #define IDC_SAVE_DIRECTORY_CLASS        1063
+#define IDC_HIGHLIGHT_COLOUR_CUSTOM2    1063
+#define IDC_HIGHLIGHT_FONT_CUSTOM       1063
 #define IDC_SAVE_CUSTOM_PATH            1064
 #define IDC_SAVE_CUSTOM_PATH_PREVIEW    1065
 #define IDC_SAVE_CUSTOM_PATH_BROWSE     1066

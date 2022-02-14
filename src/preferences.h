@@ -91,6 +91,7 @@ namespace preferences
         std::optional<t_ui_color> foreground_colour();
         std::optional<t_ui_color> background_colour();
         std::optional<t_ui_color> highlight_colour();
+        t_ui_font highlight_font();
 
         LineScrollDirection scroll_direction();
         LineScrollType scroll_type();

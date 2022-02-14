@@ -83,6 +83,7 @@ namespace {
         t_ui_color get_fg_colour();
         t_ui_color get_bg_colour();
         t_ui_color get_highlight_colour();
+        t_ui_font get_highlight_font();
 
         void StartTimer();
         void StopTimer();
@@ -666,23 +667,85 @@ namespace {
         int next_line_scroll = (int)((double)active_line_height * next_line_scroll_factor);
         int top_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll + baseline_centre_correction);
         CPoint origin = {centre.x, top_y};
+
         for(int line_index=0; line_index < lyric_line_count; line_index++)
         {
+            const auto lerpfont = [](HFONT from, HFONT to, double t)
+            {
+                HFONT result = nullptr;
+                uint8_t from_buffer[sizeof(LOGFONT)];
+                uint8_t to_buffer[sizeof(LOGFONT)];
+                int from_bytes_written = GetObject(from, sizeof(LOGFONT), from_buffer);
+                int to_bytes_written = GetObject(to, sizeof(LOGFONT), to_buffer);
+                if((from_bytes_written != 0) && (to_bytes_written != 0))
+                {
+                    LOGFONT* from_logfont = (LOGFONT*)from_buffer;
+                    LOGFONT* to_logfont = (LOGFONT*)to_buffer;
+
+                    from_logfont->lfHeight = lerpi(from_logfont->lfHeight, to_logfont->lfHeight, t);
+                    from_logfont->lfWeight = lerpi(from_logfont->lfWeight, to_logfont->lfWeight, t);
+                    from_logfont->lfWidth = 0;
+
+                    result = CreateFontIndirect(from_logfont);
+                }
+                return result;
+            };
+            HFONT custom_font = nullptr;
             const LyricDataLine& line = m_lyrics.lines[line_index];
             if(line_index == active_line_index)
             {
+#if 1
+                if(next_line_scroll_factor == 0.0)
+                {
+                    SelectObject(m_back_buffer, get_highlight_font());
+                }
+                else if(next_line_scroll_factor == 1.0)
+                {
+                    SelectObject(m_back_buffer, get_font());
+                }
+                else
+                {
+                    custom_font = lerpfont(get_highlight_font(), get_font(), next_line_scroll_factor);
+                    SelectObject(m_back_buffer, custom_font);
+                }
+#else
+                SelectObject(m_back_buffer, get_highlight_font());
+#endif
+
                 COLORREF colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else if(line_index == active_line_index+1)
             {
+#if 1
+                if(next_line_scroll_factor == 0.0)
+                {
+                    SelectObject(m_back_buffer, get_font());
+                }
+                else if(next_line_scroll_factor == 1.0)
+                {
+                    SelectObject(m_back_buffer, get_highlight_font());
+                }
+                else
+                {
+                    custom_font = lerpfont(get_font(), get_highlight_font(), next_line_scroll_factor);
+                    SelectObject(m_back_buffer, custom_font);
+                }
+#else
+                SelectObject(m_back_buffer, get_font());
+#endif
+
                 COLORREF colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else
             {
+                SelectObject(m_back_buffer, get_font());
                 SetTextColor(dc, fg_colour);
             }
+
+            WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+            origin.y += font_metrics.tmAscent;
 
             int wrapped_line_height = DrawWrappedLyricLine(dc, client_area, line.text, origin);
             if(wrapped_line_height == 0)
@@ -693,6 +756,11 @@ namespace {
             }
 
             origin.y += wrapped_line_height;
+            origin.y -= font_metrics.tmAscent;
+            if(custom_font != nullptr)
+            {
+                DeleteObject(custom_font);
+            }
         }
     }
 
@@ -1271,6 +1339,16 @@ namespace {
         {
             return m_callback->query_std_color(ui_color_highlight);
         }
+    }
+
+    t_ui_font LyricPanel::get_highlight_font()
+    {
+        t_ui_font result = preferences::display::highlight_font();
+        if(result == nullptr)
+        {
+            result = m_callback->query_font_ex(ui_font_console);
+        }
+        return result;
     }
 
     void LyricPanel::StartTimer()

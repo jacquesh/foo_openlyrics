@@ -17,10 +17,12 @@ static const GUID GUID_CFG_DISPLAY_CUSTOM_FONT = { 0x828be475, 0x8e26, 0x4504, {
 static const GUID GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR = { 0x675418e1, 0xe0b0, 0x4c85, { 0xbf, 0xde, 0x1c, 0x17, 0x9b, 0xbc, 0xca, 0xa7 } };
 static const GUID GUID_CFG_DISPLAY_CUSTOM_BACKGROUND_COLOUR = { 0x13da3237, 0xaa1d, 0x4065, { 0x82, 0xb0, 0xe4, 0x3, 0x31, 0xe0, 0x69, 0x5b } };
 static const GUID GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR = { 0xfa2fed99, 0x593c, 0x4828, { 0xbf, 0x7d, 0x95, 0x8e, 0x99, 0x26, 0x9d, 0xcb } };
+static const GUID GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_FONT = { 0x83823ff7, 0x244c, 0x4ec6, { 0xa8, 0x2c, 0x1, 0x78, 0x97, 0x66, 0xef, 0x16 } };
 static const GUID GUID_CFG_DISPLAY_FONT = { 0xc06f95f7, 0x9358, 0x42ab, { 0xb7, 0xa0, 0x19, 0xe6, 0x74, 0x5f, 0xb9, 0x16 } };
 static const GUID GUID_CFG_DISPLAY_FOREGROUND_COLOUR = { 0x36724d22, 0xe51e, 0x4c84, { 0x9e, 0xb2, 0x58, 0xa4, 0xd8, 0x23, 0xb3, 0x67 } };
 static const GUID GUID_CFG_DISPLAY_BACKGROUND_COLOUR = { 0x7eaeeae6, 0xd41d, 0x4c0d, { 0x97, 0x86, 0x20, 0xa2, 0x8f, 0x27, 0x98, 0xd4 } };
 static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR = { 0xfa16da6c, 0xb22d, 0x49cb, { 0x97, 0x53, 0x94, 0x8c, 0xec, 0xf8, 0x37, 0x35 } };
+static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_FONT = { 0xf57dccd3, 0xbfd4, 0x4017, { 0x87, 0x98, 0x31, 0xc8, 0xab, 0xe7, 0x1c, 0x6f } };
 static const GUID GUID_CFG_DISPLAY_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9, 0x35, 0x9, 0xbb, 0xfa, 0xc6, 0x40, 0x43 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_DIRECTION = { 0x6b1f47ae, 0xa383, 0x434b, { 0xa7, 0xd2, 0x43, 0xbe, 0x55, 0x54, 0x2a, 0x33 } };
@@ -46,10 +48,12 @@ static cfg_auto_bool                          cfg_display_custom_font(GUID_CFG_D
 static cfg_auto_bool                          cfg_display_custom_fg_colour(GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_bg_colour(GUID_CFG_DISPLAY_CUSTOM_BACKGROUND_COLOUR, IDC_BACKGROUND_COLOUR_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_hl_colour(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR_CUSTOM, false);
+static cfg_auto_bool                          cfg_display_custom_hl_font(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_FONT, IDC_HIGHLIGHT_FONT_CUSTOM, false);
 static cfg_font_t                             cfg_display_font(GUID_CFG_DISPLAY_FONT);
 static cfg_int_t<uint32_t>                    cfg_display_fg_colour(GUID_CFG_DISPLAY_FOREGROUND_COLOUR, cfg_display_fg_colour_default);
 static cfg_int_t<uint32_t>                    cfg_display_bg_colour(GUID_CFG_DISPLAY_BACKGROUND_COLOUR, cfg_display_bg_colour_default);
 static cfg_int_t<uint32_t>                    cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
+static cfg_font_t                             cfg_display_hl_font(GUID_CFG_DISPLAY_HIGHLIGHT_FONT);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
 static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 500);
 static cfg_auto_combo<LineScrollDirection, 2> cfg_display_scroll_direction(GUID_CFG_DISPLAY_SCROLL_DIRECTION, IDC_DISPLAY_SCROLL_DIRECTION, LineScrollDirection::Vertical, g_scroll_direction_options);
@@ -61,6 +65,7 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_custom_fg_colour,
     &cfg_display_custom_bg_colour,
     &cfg_display_custom_hl_colour,
+    &cfg_display_custom_hl_font,
 
     &cfg_display_linegap,
     &cfg_display_scroll_time,
@@ -72,6 +77,7 @@ static cfg_auto_property* g_display_auto_properties[] =
 // Globals
 //
 static HFONT g_display_font = nullptr;
+static HFONT g_highlight_font = nullptr;
 static COLORREF g_custom_colours[16] = {
     RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
     RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
@@ -121,6 +127,20 @@ std::optional<t_ui_color> preferences::display::highlight_colour()
     return {};
 }
 
+t_ui_font preferences::display::highlight_font()
+{
+    if(cfg_display_custom_hl_font.get_value())
+    {
+        if(g_highlight_font == nullptr)
+        {
+            LOG_INFO("Creating new highlight font handle");
+            g_highlight_font = CreateFontIndirect(&cfg_display_hl_font.get_value());
+        }
+        return g_highlight_font;
+    }
+    return nullptr;
+}
+
 int preferences::display::linegap()
 {
     return cfg_display_linegap.get_value();
@@ -167,7 +187,9 @@ public:
         COMMAND_HANDLER_EX(IDC_FOREGROUND_COLOUR_CUSTOM, BN_CLICKED, OnCustomToggle)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR_CUSTOM, BN_CLICKED, OnCustomToggle)
         COMMAND_HANDLER_EX(IDC_HIGHLIGHT_COLOUR_CUSTOM, BN_CLICKED, OnCustomToggle)
+        COMMAND_HANDLER_EX(IDC_HIGHLIGHT_FONT_CUSTOM, BN_CLICKED, OnCustomToggle)
         COMMAND_HANDLER_EX(IDC_FONT, BN_CLICKED, OnFontChange)
+        COMMAND_HANDLER_EX(IDC_HIGHLIGHT_FONT, BN_CLICKED, OnHighlightFontChange)
         COMMAND_HANDLER_EX(IDC_FOREGROUND_COLOUR, BN_CLICKED, OnFgColourChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR, BN_CLICKED, OnBgColourChange)
         COMMAND_HANDLER_EX(IDC_HIGHLIGHT_COLOUR, BN_CLICKED, OnHlColourChange)
@@ -180,6 +202,7 @@ public:
 private:
     BOOL OnInitDialog(CWindow, LPARAM);
     void OnFontChange(UINT, int, CWindow);
+    void OnHighlightFontChange(UINT, int, CWindow);
     void OnFgColourChange(UINT, int, CWindow);
     void OnBgColourChange(UINT, int, CWindow);
     void OnHlColourChange(UINT, int, CWindow);
@@ -197,6 +220,7 @@ private:
     HBRUSH m_brush_foreground;
     HBRUSH m_brush_background;
     HBRUSH m_brush_highlight;
+    LOGFONT m_highlight_font;
 };
 
 PreferencesDisplay::PreferencesDisplay(preferences_page_callback::ptr callback) :
@@ -206,6 +230,7 @@ PreferencesDisplay::PreferencesDisplay(preferences_page_callback::ptr callback) 
     m_brush_foreground = CreateSolidBrush(cfg_display_fg_colour.get_value());
     m_brush_background = CreateSolidBrush(cfg_display_bg_colour.get_value());
     m_brush_highlight = CreateSolidBrush(cfg_display_hl_colour.get_value());
+    m_highlight_font = cfg_display_hl_font.get_value();
 }
 
 PreferencesDisplay::~PreferencesDisplay()
@@ -222,6 +247,10 @@ void PreferencesDisplay::apply()
     g_display_font = nullptr;
     cfg_display_font.set_value(m_font);
 
+    DeleteObject(g_highlight_font);
+    g_highlight_font = nullptr;
+    cfg_display_hl_font.set_value(m_highlight_font);
+
     LOGBRUSH brushes[3] = {};
     GetObject(m_brush_foreground, sizeof(brushes[0]), &brushes[0]);
     GetObject(m_brush_background, sizeof(brushes[0]), &brushes[1]);
@@ -237,6 +266,7 @@ void PreferencesDisplay::apply()
 void PreferencesDisplay::reset()
 {
     m_font = cfg_display_font.get_value();
+    m_highlight_font = cfg_display_hl_font.get_value();
 
     DeleteObject(m_brush_foreground);
     DeleteObject(m_brush_background);
@@ -260,6 +290,7 @@ bool PreferencesDisplay::has_changed()
 
     bool changed = false;
     changed |= !(cfg_display_font == m_font);
+    changed |= !(cfg_display_hl_font == m_highlight_font);
     changed |= (cfg_display_fg_colour != brushes[0].lbColor);
     changed |= (cfg_display_bg_colour != brushes[1].lbColor);
     changed |= (cfg_display_hl_colour != brushes[2].lbColor);
@@ -282,6 +313,24 @@ void PreferencesDisplay::OnFontChange(UINT, int, CWindow)
     fontOpts.lStructSize = sizeof(fontOpts);
     fontOpts.hwndOwner = m_hWnd;
     fontOpts.lpLogFont = &m_font;
+    fontOpts.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT;
+    fontOpts.nFontType = SCREEN_FONTTYPE;
+    BOOL font_selected = ChooseFont(&fontOpts);
+    if(font_selected)
+    {
+        UpdateFontButtonText();
+        on_ui_interaction();
+    }
+
+    on_ui_interaction();
+}
+
+void PreferencesDisplay::OnHighlightFontChange(UINT, int, CWindow)
+{
+    CHOOSEFONT fontOpts = {};
+    fontOpts.lStructSize = sizeof(fontOpts);
+    fontOpts.hwndOwner = m_hWnd;
+    fontOpts.lpLogFont = &m_highlight_font;
     fontOpts.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT;
     fontOpts.nFontType = SCREEN_FONTTYPE;
     BOOL font_selected = ChooseFont(&fontOpts);
@@ -383,28 +432,39 @@ void PreferencesDisplay::UpdateFontButtonText()
     assert(font_btn != nullptr);
     font_btn.EnableWindow(custom_font);
 
+    bool custom_hlfont = (SendDlgItemMessage(IDC_HIGHLIGHT_FONT_CUSTOM, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    CWindow hlfont_btn = GetDlgItem(IDC_HIGHLIGHT_FONT);
+    assert(hlfont_btn != nullptr);
+    hlfont_btn.EnableWindow(custom_hlfont);
+
+    const auto get_font_str = [](HDC dc, LOGFONT font) -> std::tstring
+    {
+        int point_size = -MulDiv(font.lfHeight, 72, GetDeviceCaps(dc, LOGPIXELSY));
+        const int point_buffer_len = 32;
+        TCHAR point_buffer[point_buffer_len];
+        _sntprintf_s(point_buffer, point_buffer_len, _T(", %dpt"), point_size);
+
+        std::tstring result;
+        result += font.lfFaceName;
+        result += point_buffer;
+
+        if(font.lfWeight == FW_BOLD)
+        {
+            result += _T(", Bold");
+        }
+        if(font.lfItalic)
+        {
+            result += _T(", Italic");
+        }
+        return result;
+    };
     HDC dc = GetDC();
-    int point_size = -MulDiv(m_font.lfHeight, 72, GetDeviceCaps(dc, LOGPIXELSY));
+    std::tstring font_str = get_font_str(dc, m_font);
+    std::tstring hlfont_str = get_font_str(dc, m_highlight_font);
     ReleaseDC(dc);
-    const int point_buffer_len = 32;
-    TCHAR point_buffer[point_buffer_len];
-    _sntprintf_s(point_buffer, point_buffer_len, _T(", %dpt"), point_size);
-
-    std::tstring font_str;
-    font_str += m_font.lfFaceName;
-    font_str += point_buffer;
-
-    if(m_font.lfWeight == FW_BOLD)
-    {
-        font_str += _T(", Bold");
-    }
-    if(m_font.lfItalic)
-    {
-        font_str += _T(", Italic");
-    }
 
     font_btn.SetWindowText(font_str.c_str());
-    ReleaseDC(dc);
+    hlfont_btn.SetWindowText(hlfont_str.c_str());
 }
 
 void PreferencesDisplay::SelectBrushColour(HBRUSH& handle)
