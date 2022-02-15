@@ -8,7 +8,7 @@ on:
 jobs:
   build-release:
     name: Build Release
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Print installed Windows SDK versions
