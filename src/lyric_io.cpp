@@ -71,6 +71,93 @@ static void ensure_windows_newlines(std::string& str)
     }
 }
 
+static void ensure_utf8(LyricDataRaw& lyric)
+{
+    const auto GetLastErrorString = []() -> const char*
+    {
+        DWORD error = GetLastError();
+        static char errorMsgBuffer[4096];
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error, 0, errorMsgBuffer, sizeof(errorMsgBuffer), nullptr);
+        return errorMsgBuffer;
+    };
+
+
+    int utf8success = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+                                          lyric.text.data(), lyric.text.length(),
+                                          nullptr, 0);
+    if(utf8success > 0)
+    {
+        // The input bytes are already valid UTF8, so we don't need to do anything
+        LOG_INFO("Loaded lyrics already form a valid UTF-8 sequence");
+        return;
+    }
+
+    UINT codepages[] = { CP_ACP, CP_OEMCP,
+        037, 437, 500, 708, 709, 710, 720, 737, 775, 850, 852, 855, 857, 858, 860,
+        861, 862, 863, 864, 865, 866, 869, 870, 874, 875, 932, 936, 949, 950, 1026,
+        1047, 1140, 1141, 1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1200, 1201,
+        1250, 1251, 1252, 1253, 1254, 1255, 1256, 1257, 1258, 1361, 10000, 10001, 10002,
+        10003, 10004, 10005, 10006, 10007, 10008, 10010, 10017, 10021, 10029, 10079, 10081,
+        10082, 12000, 12001, 20000, 20001, 20002, 20003, 20004, 20005, 20105, 20106, 20107,
+        20108, 20127, 20261, 20269, 20273, 20277, 20278, 20280, 20284, 20285, 20290, 20297,
+        20420, 20423, 20424, 20833, 20838, 20866, 20871, 20880, 20905, 20924, 20932, 20936,
+        20949, 21025, 21027, 21866, 28591, 28592, 28593, 28594, 28595, 28596, 28597, 28598,
+        28599, 28603, 28605, 29001, 38598, 50930, 50931, 50933, 50935, 50936, 50937, 50939,
+        51932, 51936, 51949, 51950, 52936, 54936
+    };
+    for(UINT cp : codepages)
+    {
+        int wide_chars_required = MultiByteToWideChar(cp, MB_ERR_INVALID_CHARS,
+                                                      lyric.text.data(), lyric.text.length(),
+                                                      nullptr, 0);
+        if(wide_chars_required > 0)
+        {
+            WCHAR* wide_buffer = new WCHAR[static_cast<size_t>(wide_chars_required)];
+            int wide_chars_written = MultiByteToWideChar(cp, MB_ERR_INVALID_CHARS,
+                                                         lyric.text.data(), lyric.text.length(),
+                                                         wide_buffer, wide_chars_required);
+            assert(wide_chars_written == wide_chars_required);
+
+            CPINFOEXA info = {};
+            GetCPInfoExA(cp, 0, &info);
+            const char* current_locale_str = (GetACP() == cp) ? " (current locale code page)" : "";
+            LOG_INFO("Successfully converted %d chars to %s%s using MultiByteToWideChars", wide_chars_written, info.CodePageName, current_locale_str);
+
+            int bytes_required = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                                     wide_buffer, wide_chars_written,
+                                                     nullptr, 0, nullptr, nullptr);
+            if(bytes_required > 0)
+            {
+                char* narrow_buffer = new char[static_cast<size_t>(bytes_required)];
+                int bytes_written = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                                        wide_buffer, wide_chars_written,
+                                                        narrow_buffer, bytes_required,
+                                                        nullptr, nullptr);
+                assert(bytes_written == bytes_required);
+
+                LOG_INFO("Successfully converted %d bytes back into UTF-8", bytes_written);
+                lyric.text = std::string(narrow_buffer, bytes_written);
+                delete[] narrow_buffer;
+                delete[] wide_buffer;
+                break;
+            }
+            else
+            {
+                delete[] wide_buffer;
+                LOG_WARN("Failed to convert wide string back to UTF8: %d/%s", GetLastError(), GetLastErrorString());
+            }
+
+        }
+        else
+        {
+            CPINFOEXA info = {};
+            GetCPInfoExA(cp, 0, &info);
+            const char* current_locale_str = (GetACP() == cp) ? " (current locale code page)" : "";
+            LOG_WARN("Failed to convert to codepage %u/%s%s using MultiByteToWideChars: %d/%s", cp, info.CodePageName, current_locale_str, GetLastError(), GetLastErrorString());
+        }
+    }
+}
+
 static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
     LOG_INFO("Searching for lyrics...");
@@ -176,6 +263,10 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
 
     LOG_INFO("Parsing lyrics text...");
     handle.set_progress("Parsing...");
+    if(!lyric_data_raw.text.empty())
+    {
+        ensure_utf8(lyric_data_raw);
+    }
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw);
 
     if(lyric_data.IsEmpty())
