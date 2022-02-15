@@ -121,7 +121,7 @@ static void ensure_utf8(LyricDataRaw& lyric)
             CPINFOEXA info = {};
             GetCPInfoExA(cp, 0, &info);
             const char* current_locale_str = (GetACP() == cp) ? " (current locale code page)" : "";
-            LOG_INFO("Successfully converted %d chars to %s%s using MultiByteToWideChars", wide_chars_written, info.CodePageName, current_locale_str);
+            LOG_INFO("Successfully converted %d chars to codepage %s%s", wide_chars_written, info.CodePageName, current_locale_str);
 
             int bytes_required = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
                                                      wide_buffer, wide_chars_written,
@@ -153,7 +153,7 @@ static void ensure_utf8(LyricDataRaw& lyric)
             CPINFOEXA info = {};
             GetCPInfoExA(cp, 0, &info);
             const char* current_locale_str = (GetACP() == cp) ? " (current locale code page)" : "";
-            LOG_WARN("Failed to convert to codepage %u/%s%s using MultiByteToWideChars: %d/%s", cp, info.CodePageName, current_locale_str, GetLastError(), GetLastErrorString());
+            LOG_WARN("Failed to convert to codepage %u/%s%s: %d/%s", cp, info.CodePageName, current_locale_str, GetLastError(), GetLastErrorString());
         }
     }
 }
