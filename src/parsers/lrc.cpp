@@ -161,7 +161,7 @@ double get_line_first_timestamp(std::string_view line)
 {
     double timestamp = DBL_MAX;
     size_t close_index = line.find(']');
-    if((close_index != std::string_view::npos) && try_parse_timestamp(line.substr(0, close_index), timestamp))
+    if((close_index != std::string_view::npos) && try_parse_timestamp(line.substr(0, close_index+1), timestamp))
     {
         return timestamp;
     }

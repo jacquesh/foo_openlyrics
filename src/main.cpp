@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "1.1-dev"
+#define OPENLYRICS_VERSION "1.1"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -16,8 +16,9 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 1.1-dev (" __DATE__ "):\n"
+    "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
     "\n"
-    "Version 1.00 (2022-02-15):\n"
+    "Version 1.0 (2022-02-15):\n"
     "- Allow manual offset of the automatic scroll with mouse drag or wheel\n"
     "- Support loading lyrics encoded as something other than UTF-8\n"
     "- Skip the anti-flood delay when only local sources are bulk-searched\n"
