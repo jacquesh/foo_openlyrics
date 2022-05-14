@@ -464,8 +464,11 @@ std::tstring expand_text(const LyricData& data)
             expanded_text += to_tstring(print_timestamp(line.timestamp));
         }
 
-        if(line.text.empty())
+        if(line.text.empty() && (line.timestamp == DBL_MAX))
         {
+            // NOTE: In the lyric editor, we automatically select the next line after synchronising the current one.
+            //       If the new-selected line has no timestamp and is empty then visually there will be no selection, which is a little confusing.
+            //       To avoid this we add a space to such lines when loading the lyrics, which will be removed when we shrink the text for saving.
             expanded_text += _T(" ");
         }
         else

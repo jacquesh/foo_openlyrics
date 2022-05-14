@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 1.1-dev (" __DATE__ "):\n"
+    "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
     "\n"
     "Version 1.0 (2022-02-15):\n"
