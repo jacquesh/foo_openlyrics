@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include <cctype>
 
+#include "iconv.h"
+
 #include "logging.h"
 #include "preferences.h"
 #include "tag_util.h"
@@ -179,3 +181,39 @@ std::string track_metadata(const file_info& track_info, std::string_view key)
     return track_info.meta_enum_value(value_index, 0);
 }
 
+std::string transliterate_to_ascii(std::string_view tag_str)
+{
+    // NOTE: fb2k docs specify that tags are UTF-8 encoded
+    libiconv_t icd = libiconv_open("ASCII", "UTF-8");
+    if(icd != nullptr)
+    {
+        int enable = 1;
+        libiconvctl(icd, ICONV_SET_TRANSLITERATE, &enable); // We'd like to transliterate characters (e.g "A with an accent" to just "A")
+        libiconvctl(icd, ICONV_SET_DISCARD_ILSEQ, &enable); // We'd like to silently drop chars that can't be converted to ASCII and continue
+
+        const size_t out_buffer_length = tag_str.length();
+        char* out_buffer = new char[out_buffer_length];
+
+        char* in_bytes = const_cast<char*>(tag_str.data());
+        size_t in_bytes_remaining = tag_str.length();
+        char* out_bytes = out_buffer;
+        size_t out_bytes_remaining = out_buffer_length;
+
+        bool success = true;
+        while(success && (in_bytes_remaining > 0))
+        {
+            size_t result = libiconv(icd,  &in_bytes, &in_bytes_remaining, &out_bytes, &out_bytes_remaining);
+
+            success = success && (result != (size_t(-1)));
+        }
+
+        size_t bytes_written = out_buffer_length - out_bytes_remaining;
+        std::string result(out_buffer, bytes_written);
+
+        delete[] out_buffer;
+        libiconv_close(icd);
+        return result;
+    }
+
+    return std::string(tag_str.data(), tag_str.length());
+}

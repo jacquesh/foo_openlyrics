@@ -24,14 +24,16 @@ static const LyricSourceFactory<AZLyricsComSource> src_factory;
 
 static std::string remove_chars_for_url(const std::string_view input)
 {
-    std::string output;
-    output.reserve(input.length());
+    std::string transliterated = transliterate_to_ascii(input);
 
-    for(size_t i=0; i<input.length(); i++)
+    std::string output;
+    output.reserve(transliterated.length());
+
+    for(char c : transliterated)
     {
-        if(pfc::char_is_ascii_alphanumeric(input[i]))
+        if(pfc::char_is_ascii_alphanumeric(c))
         {
-            output += static_cast<char>(std::tolower(static_cast<unsigned char>(input[i])));
+            output += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         }
     }
 

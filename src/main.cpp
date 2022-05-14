@@ -18,6 +18,7 @@ DECLARE_COMPONENT_VERSION(
     "Version 1.1-dev (" __DATE__ "):\n"
     "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
+    "- Fix some sources failing to search for tags with non-ASCII characters\n"
     "\n"
     "Version 1.0 (2022-02-15):\n"
     "- Allow manual offset of the automatic scroll with mouse drag or wheel\n"
