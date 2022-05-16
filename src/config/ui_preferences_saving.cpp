@@ -45,12 +45,19 @@ static cfg_auto_combo_option<AutoSaveStrategy> autosave_strategy_options[] =
 
 static cfg_auto_combo<AutoSaveStrategy, 4>   cfg_save_auto_save_strategy(GUID_CFG_SAVE_ENABLE_AUTOSAVE, IDC_SAVE_AUTOSAVE_TYPE, AutoSaveStrategy::Always, autosave_strategy_options);
 static cfg_auto_combo<SaveMethod, 2>         cfg_save_method(GUID_CFG_SAVE_METHOD, IDC_SAVE_METHOD_COMBO, SaveMethod::LocalFile, save_method_options);
-static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCEDLYRICS");
-static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "LYRICS");
 static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
 static cfg_auto_combo<SaveDirectoryClass, 3> cfg_save_dir_class(GUID_CFG_SAVE_DIR_CLASS, IDC_SAVE_DIRECTORY_CLASS, SaveDirectoryClass::ConfigDirectory, save_dir_class_options);
 static cfg_auto_string                       cfg_save_path_custom(GUID_CFG_SAVE_PATH_CUSTOM, IDC_SAVE_CUSTOM_PATH, "C:\\Lyrics\\%artist%");
 static cfg_auto_bool                         cfg_save_merge_lrc_lines(GUID_CFG_SAVE_MERGE_LRC_LINES, IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES, true);
+
+// NOTE: fb2k will silently handle "UNSYNCED LYRICS" as a special case and store the text in a USLT frame rather than a TXXX frame
+//       Documented here: https://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
+//       fb2k does *not* support the SYLT frame, but OpenLyrics will recognise synced lyrics regardless of where they were loaded from, so we default
+//       to using the same tag for both synced and unsynced lyrics to get it to at least save in the dedicated ID3 frame.
+//       Also worth noting that not all container formats support ID3 tags. flac, for example, uses "vorbis comments" instead
+static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCED LYRICS");
+static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "UNSYNCED LYRICS"); // 
+
 
 static cfg_auto_property* g_saving_auto_properties[] =
 {
@@ -203,6 +210,7 @@ public:
         COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH_BROWSE, BN_CLICKED, OnCustomPathBrowse)
+        COMMAND_HANDLER_EX(IDC_SAVE_TAG_EXPLAIN, BN_CLICKED, OnTagExplain)
         NOTIFY_HANDLER_EX(IDC_SAVE_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
     END_MSG_MAP()
 
@@ -217,6 +225,7 @@ private:
     void OnDirectoryClassChange(UINT, int, CWindow);
     void OnCustomPathFormatChange(UINT, int, CWindow);
     void OnCustomPathBrowse(UINT, int, CWindow);
+    void OnTagExplain(UINT, int, CWindow);
     LRESULT OnSyntaxHelpClicked(NMHDR*);
 
     void UpdateFormatPreview(int edit_id, int preview_id, bool is_path);
@@ -369,6 +378,18 @@ void PreferencesSaving::OnCustomPathBrowse(UINT, int, CWindow)
     {
         LOG_INFO("Failure to get a path from the directory-select dialog");
     }
+}
+
+void PreferencesSaving::OnTagExplain(UINT, int, CWindow)
+{
+    // Documented here: https://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
+    popup_message_v3::query_t query = {};
+    query.title = "Save Tag Help";
+    query.msg = "The 'UNSYNCED LYRICS' tag is handled differently to most other tags. It is stored in a way that is more compatible with other media players that might want to read lyric info.\n\nOpenLyrics will correctly load both synced and unsynced lyrics regardless of the tag in which they are stored.\n\nUnless you have a specific reason for wanting to use a different tag to store synced lyrics, leaving it as the 'UNSYNCED LYRICS' is strongly recommended.";
+    query.buttons = popup_message_v3::buttonOK;
+    query.defButton = popup_message_v3::buttonOK;
+    query.icon = popup_message_v3::iconInformation;
+    popup_message_v3::get()->show_query_modal(query);
 }
 
 LRESULT PreferencesSaving::OnSyntaxHelpClicked(NMHDR* /*notify_msg*/)

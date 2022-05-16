@@ -32,7 +32,7 @@ static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid, qq
 
 static cfg_int_t<uint64_t> cfg_search_active_sources_generation(GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION, 0);
 static cfg_objList<GUID>   cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
-static cfg_auto_string     cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCEDLYRICS;UNSYNCED LYRICS");
+static cfg_auto_string     cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCED LYRICS;UNSYNCEDLYRICS");
 static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
 static cfg_auto_string     cfg_search_musixmatch_token(GUID_CFG_SEARCH_MUSIXMATCH_TOKEN, IDC_SEARCH_MUSIXMATCH_TOKEN, "");
 

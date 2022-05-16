@@ -102,6 +102,7 @@ BEGIN
     CONTROL         "Collapse multiple instances of the same line when saving timestamped lyrics",IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,58,252,10
     CONTROL         "<a>Syntax help</a>",IDC_SAVE_SYNTAX_HELP,"SysLink",WS_TABSTOP,7,272,39,9
+    PUSHBUTTON      "?",IDC_SAVE_TAG_EXPLAIN,159,113,16,14
 END
 
 IDD_PREFERENCES_DISPLAY DIALOGEX 0, 0, 333, 287

@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 1.1-dev (" __DATE__ "):\n"
+    "- Change the default save tag for better compatibility with other players\n"
     "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
     "- Fix some sources failing to search for tags with non-ASCII characters\n"
