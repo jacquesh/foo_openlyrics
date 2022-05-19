@@ -22,7 +22,6 @@ namespace lrc
     LyricDataRaw serialise(const LyricData& input);
 
     std::tstring expand_text(const LyricData& data);
-    std::string shrink_text(const LyricData& data);
 } // namespace lrc
 
 } // namespace parsers

@@ -319,6 +319,44 @@ static ParsedLineContents parse_line_times(std::string_view line)
     return {result, std::string(line.substr(index).data(), line.size()-index)};
 }
 
+template<typename T, typename TOperation>
+std::vector<T> collapse(const std::vector<T>& input, TOperation op)
+{
+    if(input.size() <= 1) return std::vector<T>(input);
+
+    std::vector<T> result;
+    T first_arg = *input.begin();
+    for(auto iter = ++input.begin(); iter != input.end(); iter++)
+    {
+        std::pair<T, std::optional<T>> collapsed = op(first_arg, *iter);
+        if(collapsed.second.has_value())
+        {
+            result.emplace_back(std::move(collapsed.first));
+            first_arg = std::move(collapsed.second.value());
+        }
+        else
+        {
+            first_arg = std::move(collapsed.first);
+        }
+    }
+
+    return result;
+}
+
+std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricDataLine>& input)
+{
+    return collapse(input, [](const LyricDataLine& lhs, const LyricDataLine& rhs)
+    {
+        if((lhs.timestamp == DBL_MAX) || (lhs.timestamp != rhs.timestamp))
+        {
+            return std::pair{lhs, std::optional{rhs}};
+        }
+
+        LyricDataLine combined = {lhs.text + _T('\n') + rhs.text, lhs.timestamp};
+        return std::pair{combined, std::optional<LyricDataLine>{}};
+    });
+}
+
 LyricData parse(const LyricDataRaw& input)
 {
     LOG_INFO("Parsing LRC lyric text...");
@@ -329,12 +367,7 @@ LyricData parse(const LyricDataRaw& input)
         return result;
     }
 
-    struct LineData
-    {
-        std::string text;
-        double timestamp;
-    };
-    std::vector<LineData> lines;
+    std::vector<LyricDataLine> lines;
     std::vector<std::string> tags;
     bool tag_section_passed = false; // We only want to count lines as "tags" if they appear at the top of the file
     double timestamp_offset = 0.0;
@@ -375,7 +408,7 @@ LyricData parse(const LyricDataRaw& input)
             tag_section_passed = true;
             for(double timestamp : parse_output.timestamps)
             {
-                lines.push_back({parse_output.line, timestamp});
+                lines.push_back({to_tstring(parse_output.line), timestamp});
             }
         }
         else
@@ -401,7 +434,8 @@ LyricData parse(const LyricDataRaw& input)
             else
             {
                 tag_section_passed |= (line_bytes > 0);
-                lines.push_back({std::string(input.text.c_str() + line_start_index, line_bytes), DBL_MAX});
+                std::string_view content(input.text.c_str() + line_start_index, line_bytes);
+                lines.push_back({to_tstring(content), DBL_MAX});
             }
         }
 
@@ -417,10 +451,11 @@ LyricData parse(const LyricDataRaw& input)
         }
     }
 
-    std::stable_sort(lines.begin(), lines.end(), [](const LineData& a, const LineData& b)
+    std::stable_sort(lines.begin(), lines.end(), [](const LyricDataLine& a, const LyricDataLine& b)
     {
         return a.timestamp < b.timestamp;
     });
+    lines = collapse_concurrent_lines(lines);
 
     LyricData result = {};
     result.source_id = input.source_id;
@@ -428,15 +463,9 @@ LyricData parse(const LyricDataRaw& input)
     result.artist = input.artist;
     result.album = input.album;
     result.title = input.title;
-    result.text = input.text;
     result.tags = std::move(tags);
-    result.lines.reserve(lines.size());
+    result.lines = std::move(lines);
     result.timestamp_offset = timestamp_offset;
-    for(const auto& line : lines)
-    {
-        std::tstring line_text = to_tstring(line.text);
-        result.lines.push_back({std::move(line_text), line.timestamp});
-    }
     return result;
 }
 
@@ -472,90 +501,43 @@ std::tstring expand_text(const LyricData& data)
 
     for(const LyricDataLine& line : data.lines)
     {
-        if(line.timestamp != DBL_MAX)
+        if(line.timestamp == DBL_MAX)
         {
-            expanded_text += to_tstring(print_timestamp(line.timestamp));
-        }
-
-        if(line.text.empty() && (line.timestamp == DBL_MAX))
-        {
-            // NOTE: In the lyric editor, we automatically select the next line after synchronising the current one.
-            //       If the new-selected line has no timestamp and is empty then visually there will be no selection, which is a little confusing.
-            //       To avoid this we add a space to such lines when loading the lyrics, which will be removed when we shrink the text for saving.
-            expanded_text += _T(" ");
+            if(line.text.empty())
+            {
+                // NOTE: In the lyric editor, we automatically select the next line after synchronising the current one.
+                //       If the new-selected line has no timestamp and is empty then visually there will be no selection, which is a little confusing.
+                //       To avoid this we add a space to such lines when loading the lyrics, which will be removed when we shrink the text for saving.
+                expanded_text += _T(" ");
+            }
+            else
+            {
+                expanded_text += line.text;
+            }
+            expanded_text += _T("\r\n");
         }
         else
         {
-            expanded_text += line.text;
+            // NOTE: Ordinarily a single line is just a single line and contains no newlines.
+            //       However if two lines in an lrc file have identical timestamps, then we merge them
+            //       during parsing. In that case we need to split them out again here.
+            size_t start_index = 0;
+            while(start_index < line.text.length())
+            {
+                size_t end_index = min(line.text.length(), line.text.find('\n', start_index));
+                size_t length = end_index - start_index;
+                std::tstring_view view(&line.text.data()[start_index], length);
+
+                expanded_text += to_tstring(print_timestamp(line.timestamp));
+                expanded_text += view;
+                expanded_text += _T("\r\n");
+
+                start_index = end_index+1;
+            }
         }
-        expanded_text += _T("\r\n");
     }
 
     return expanded_text;
-}
-
-std::string shrink_text(const LyricData& data)
-{
-    LOG_INFO("Shrinking lyric text...");
-    std::string shrunk_text;
-    shrunk_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
-
-    if(!data.tags.empty())
-    {
-        for(const std::string& tag : data.tags)
-        {
-            shrunk_text += tag;
-            shrunk_text += "\r\n";
-        }
-        shrunk_text += "\r\n";
-    }
-
-    std::vector<std::pair<std::string, std::vector<double>>> timestamp_map;
-    for(const LyricDataLine& line : data.lines)
-    {
-        if(line.timestamp == DBL_MAX) continue;
-
-        std::string linestr = from_tstring(line.text);
-        auto iter = std::find_if(timestamp_map.begin(),
-                                 timestamp_map.end(),
-                                 [&linestr](const auto& entry) { return entry.first == linestr; });
-        if((iter == timestamp_map.end()) || !preferences::saving::merge_equivalent_lrc_lines())
-        {
-            std::string_view line_to_insert("");
-            if(linestr != " ")
-            {
-                line_to_insert = std::string_view(linestr);
-            }
-            timestamp_map.emplace_back(line_to_insert, std::vector<double>{line.timestamp});
-        }
-        else
-        {
-            iter->second.push_back(line.timestamp);
-        }
-    }
-
-    for(const auto& [line, times] : timestamp_map)
-    {
-        for(double time : times)
-        {
-            shrunk_text += print_timestamp(time);
-        }
-        shrunk_text += line;
-        shrunk_text += "\r\n";
-    }
-    for(const LyricDataLine& line : data.lines)
-    {
-        if(line.timestamp != DBL_MAX) continue;
-
-        bool was_expanded = ((line.text[0] == ' ') && (line.text[1] == '\0'));
-        if(!was_expanded)
-        {
-            shrunk_text += from_tstring(line.text);
-        }
-        shrunk_text += "\r\n";
-    }
-
-    return shrunk_text;
 }
 
 } // namespace parsers::lrc

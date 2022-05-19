@@ -276,7 +276,7 @@ namespace {
         return TRUE;
     }
 
-    int _WrapLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, const CPoint* origin)
+    int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, const CPoint* origin)
     {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
@@ -373,14 +373,43 @@ namespace {
         return total_height;
     }
 
+    // Ordinarily a single "line" from the lyric data is just one row (pre-wrapping) of text.
+    // However if multiple lines have the exact same timestamp, they get combined and are presented
+    // here as a single "line" that contains newline chars.
+    // We refer to these here as simple & compound lines.
+    int _WrapCompoundLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, CPoint* origin)
+    {
+        if(line.length() == 0)
+        {
+            return _WrapSimpleLyricsLineToRect(dc, clip_rect, line, origin);
+        }
+
+        int result = 0;
+        size_t start_index = 0;
+        while(start_index < line.length())
+        {
+            size_t end_index = min(line.length(), line.find('\n', start_index));
+            size_t length = end_index - start_index;
+            std::tstring_view view(&line.data()[start_index], length);
+            int row_height = _WrapSimpleLyricsLineToRect(dc, clip_rect, view, origin);
+            if(origin != nullptr)
+            {
+                origin->y += row_height;
+            }
+            result += row_height;
+            start_index = end_index+1;
+        }
+        return result;
+    }
+
     int ComputeWrappedLyricLineHeight(HDC dc, CRect clip_rect, const std::tstring& line)
     {
-        return _WrapLyricsLineToRect(dc, clip_rect, line, nullptr);
+        return _WrapCompoundLyricsLineToRect(dc, clip_rect, line, nullptr);
     }
 
     int DrawWrappedLyricLine(HDC dc, CRect clip_rect, const std::tstring_view line, CPoint origin)
     {
-        return _WrapLyricsLineToRect(dc, clip_rect, line, &origin);
+        return _WrapCompoundLyricsLineToRect(dc, clip_rect, line, &origin);
     }
 
     void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)

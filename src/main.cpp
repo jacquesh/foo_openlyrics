@@ -16,6 +16,7 @@ DECLARE_COMPONENT_VERSION(
     "\n"
     "Changelog:\n"
     "Version 1.1-dev (" __DATE__ "):\n"
+    "- Support concurrently highlighting multiple lines with identical times\n"
     "- Change the default save tag for better compatibility with other players\n"
     "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
