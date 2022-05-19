@@ -65,6 +65,7 @@ private:
 
     void SelectLineWithTimestampGreaterOrEqual(double threshold_timestamp);
     void SetEditorContents(const LyricData& lyrics);
+    std::tstring GetEditorContents();
     LyricData ParseEditorContents();
 
     LyricUpdateHandle& m_update;
@@ -530,7 +531,7 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     m_update.set_result(std::move(data), is_editor_closing);
 
     // Update m_input_text so that HasContentChanged() will return the correct value after the same
-    m_input_text = to_tstring(data.text);
+    m_input_text = GetEditorContents();
 
     // We know that if we ran HasContentChanged() now, it would return false.
     // So short-circuit it and just disable the apply button directly
@@ -538,12 +539,12 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     apply_btn.EnableWindow(FALSE);
 }
 
-LyricData LyricEditor::ParseEditorContents()
+std::tstring LyricEditor::GetEditorContents()
 {
     LRESULT lyric_length = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
     if(lyric_length <= 0)
     {
-        return {};
+        return _T("");
     }
 
     TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
@@ -553,13 +554,18 @@ LyricData LyricEditor::ParseEditorContents()
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }
 
-    std::string lyrics = from_tstring(std::tstring_view{lyric_buffer, chars_copied});
-    LyricDataRaw data_raw = {};
-    data_raw.text = lyrics;
-    LyricData data = parsers::lrc::parse(data_raw);
+    std::tstring result = std::tstring{lyric_buffer, chars_copied};
     delete[] lyric_buffer;
 
-    return data;
+    return result;
+}
+
+LyricData LyricEditor::ParseEditorContents()
+{
+    std::string lyrics = from_tstring(GetEditorContents());
+    LyricDataRaw data_raw = {};
+    data_raw.text = lyrics;
+    return parsers::lrc::parse(data_raw);
 }
 
 HWND SpawnLyricEditor(HWND parent_window, const LyricData& lyrics, LyricUpdateHandle& update)

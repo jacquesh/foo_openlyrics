@@ -19,6 +19,7 @@ namespace lrc
     bool try_parse_timestamp(std::string_view tag, double& out_timestamp);
 
     LyricData parse(const LyricDataRaw& input);
+    LyricDataRaw serialise(const LyricData& input);
 
     std::tstring expand_text(const LyricData& data);
     std::string shrink_text(const LyricData& data);

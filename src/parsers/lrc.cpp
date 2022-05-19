@@ -440,6 +440,19 @@ LyricData parse(const LyricDataRaw& input)
     return result;
 }
 
+LyricDataRaw serialise(const LyricData& input)
+{
+    LyricDataRaw result = {};
+    result.source_id = input.source_id;
+    result.persistent_storage_path = input.persistent_storage_path;
+    result.artist = input.artist;
+    result.album = input.album;
+    result.title = input.title;
+    // NOTE: We cannot set the lookup ID as that is a temporary value used only during search and is lost when parsed
+    result.text = from_tstring(expand_text(input));
+    return result;
+}
+
 std::tstring expand_text(const LyricData& data)
 {
     LOG_INFO("Expanding lyric text...");

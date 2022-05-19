@@ -23,16 +23,7 @@ std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bo
         return {};
     }
 
-    std::string text;
-    if(lyrics.IsTimestamped())
-    {
-        text = parsers::lrc::shrink_text(lyrics);
-    }
-    else
-    {
-        text = lyrics.text;
-    }
-
+    std::string text = from_tstring(parsers::lrc::expand_text(lyrics));
     std::string output_path;
     try
     {

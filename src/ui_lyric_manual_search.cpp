@@ -270,9 +270,11 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
             {
                 LyricData* item_lyrics = (LyricData*)change->lParam;
                 assert(item_lyrics != nullptr);
-
-                std::tstring lyrics_tstr = to_tstring(item_lyrics->text);
-                SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, lyrics_tstr.c_str());
+                if(item_lyrics != nullptr)
+                {
+                    std::tstring lyrics_tstr = parsers::lrc::expand_text(*item_lyrics);
+                    SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, lyrics_tstr.c_str());
+                }
             }
             else
             {

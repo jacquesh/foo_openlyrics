@@ -25,8 +25,15 @@ struct LyricDataLine
     double timestamp;
 };
 
-struct LyricData : LyricDataRaw
+struct LyricData
 {
+    GUID source_id;
+    std::string persistent_storage_path;
+
+    std::string artist;
+    std::string album;
+    std::string title;
+
     std::vector<std::string> tags;
     std::vector<LyricDataLine> lines;
     double timestamp_offset;

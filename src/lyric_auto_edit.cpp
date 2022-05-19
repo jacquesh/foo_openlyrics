@@ -29,13 +29,12 @@ std::optional<LyricData> auto_edit::CreateInstrumental(const LyricData& /*lyrics
 {
     LyricData lyrics;
     lyrics.lines.push_back({_T("[Instrumental]"), DBL_MAX});
-    lyrics.text = "[Instrumental]";
     return {std::move(lyrics)};
 }
 
 std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyrics)
 {
-    LyricDataRaw new_raw = lyrics;
+    LyricDataRaw new_raw = parsers::lrc::serialise(lyrics);
     std::pair<std::string_view, char> replacements[] =
     {
         {"&amp;", '&'},
@@ -63,8 +62,7 @@ std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyr
 
     if(replace_count > 0)
     {
-        LyricData new_lyrics = parsers::lrc::parse(new_raw);
-        return {std::move(new_lyrics)};
+        return {parsers::lrc::parse(new_raw)};
     }
     else
     {
@@ -107,7 +105,6 @@ std::optional<LyricData> auto_edit::RemoveRepeatedSpaces(const LyricData& lyrics
 
     if(spaces_erased > 0)
     {
-        new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
         return {std::move(new_lyrics)};
     }
     else
@@ -140,7 +137,6 @@ std::optional<LyricData> auto_edit::RemoveRepeatedBlankLines(const LyricData& ly
 
     if(lines_removed > 0)
     {
-        new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
         return {std::move(new_lyrics)};
     }
     else
@@ -160,7 +156,6 @@ std::optional<LyricData> auto_edit::RemoveAllBlankLines(const LyricData& lyrics)
 
     if(lines_removed > 0)
     {
-        new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
         return {std::move(new_lyrics)};
     }
     else
@@ -209,7 +204,6 @@ std::optional<LyricData> auto_edit::ResetCapitalisation(const LyricData& lyrics)
 
     if(edit_count > 0)
     {
-        new_lyrics.text = parsers::lrc::shrink_text(new_lyrics);
         return {std::move(new_lyrics)};
     }
     else
@@ -256,7 +250,7 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
         }
     };
 
-    LyricDataRaw new_lyrics = lyrics;
+    LyricDataRaw new_lyrics = parsers::lrc::serialise(lyrics);
 
     int change_count = 0;
     size_t current_index = new_lyrics.text.find('[');
