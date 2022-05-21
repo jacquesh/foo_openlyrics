@@ -114,16 +114,16 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
         throw std::exception("Failed to determine save file path");
     }
 
-    pfc::string output_path(output_path_str.c_str(), output_path_str.length());
+    const char* extension = is_timestamped ? ".lrc" : ".txt";
+    output_path_str += extension;
+
+    const pfc::string output_path(output_path_str.c_str(), output_path_str.length());
     pfc::string output_file_name = pfc::io::path::getFileName(output_path);
     if(output_file_name.isEmpty())
     {
         throw std::exception("Calculated file path does not contain a file leaf node");
     }
     ensure_dir_exists(pfc::io::path::getParent(output_path), abort);
-
-    const char* extension = is_timestamped ? ".lrc" : ".txt";
-    output_path += extension;
     LOG_INFO("Saving lyrics to %s...", output_path.c_str());
 
     if(!allow_overwrite && filesystem::g_exists(output_path.c_str(), abort))

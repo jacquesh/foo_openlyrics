@@ -53,6 +53,7 @@ enum class AutoEditType : int
     RemoveAllBlankLines      = 5,
     ResetCapitalisation      = 6,
     FixMalformedTimestamps   = 7,
+    RemoveTimestamps         = 8,
 };
 
 namespace preferences

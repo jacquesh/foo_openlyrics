@@ -16,6 +16,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
         case AutoEditType::RemoveAllBlankLines: return RemoveAllBlankLines(lyrics);
         case AutoEditType::ResetCapitalisation: return ResetCapitalisation(lyrics);
         case AutoEditType::FixMalformedTimestamps: return FixMalformedTimestamps(lyrics);
+        case AutoEditType::RemoveTimestamps: return RemoveTimestamps(lyrics);
 
         case AutoEditType::Unknown:
         default:
@@ -281,4 +282,14 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
     {
         return {};
     }
+}
+
+std::optional<LyricData> auto_edit::RemoveTimestamps(const LyricData& lyrics)
+{
+    LyricData new_lyrics = lyrics;
+    for(LyricDataLine& line : new_lyrics.lines)
+    {
+        line.timestamp = DBL_MAX;
+    }
+    return {new_lyrics};
 }

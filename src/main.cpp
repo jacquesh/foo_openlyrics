@@ -17,6 +17,7 @@ DECLARE_COMPONENT_VERSION(
     "Changelog:\n"
     "Version 1.1-dev (" __DATE__ "):\n"
     "- Add an auto-edit for deleting the currently-loaded lyrics\n"
+    "- Add an auto-edit for removing timestamps from synced lyrics\n"
     "- Support concurrently highlighting multiple lines with identical times\n"
     "- Rename the 'ID3 tags' source to 'Metadata tags'\n"
     "- The 'Metadata tags' source is now enabled by default\n"
