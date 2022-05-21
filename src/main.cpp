@@ -38,6 +38,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Auto-edits that edit timestamps are now disabled for unsynced lyrics\n"
     "- Search auto-skip now also updates its metadata after searching\n"
     "- 'Mark as instrumental' now forces an auto-skip instead of creating lyrics\n"
+    "- Make the input field order for manual search consistent with the results\n"
     "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
     "- Fix some sources failing to search for tags with non-ASCII characters\n"
