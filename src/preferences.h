@@ -97,5 +97,7 @@ namespace preferences
         LineScrollType scroll_type();
         double scroll_time_seconds();
         int linegap();
+
+        bool debug_logs_enabled();
     }
 }

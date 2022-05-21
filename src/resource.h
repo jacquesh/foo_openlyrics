@@ -75,6 +75,7 @@
 #define IDC_BULKSEARCH_STATUS           1096
 #define IDC_SAVE_SYNTAX_HELP            1097
 #define IDC_SAVE_TAG_EXPLAIN            1098
+#define IDC_DEBUG_LOGS_ENABLED          1099
 
 // Next default values for new objects
 // 
@@ -82,7 +83,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        127
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1099
+#define _APS_NEXT_CONTROL_VALUE         1100
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

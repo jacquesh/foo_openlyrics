@@ -31,6 +31,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add an auto-edit for deleting the currently-loaded lyrics\n"
     "- Add an auto-edit for removing timestamps from synced lyrics\n"
     "- Support concurrently highlighting multiple lines with identical times\n"
+    "- Add an option to enable additional debug logging\n"
     "- Rename the 'ID3 tags' source to 'Metadata tags'\n"
     "- The 'Metadata tags' source is now enabled by default\n"
     "- Change the default save tag for better compatibility with other players\n"

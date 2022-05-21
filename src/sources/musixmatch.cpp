@@ -68,11 +68,13 @@ static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
 std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const
 {
     std::string apikey = preferences::searching::musixmatch_api_key();
-    std::string url = std::string(g_api_url) + "track.search?" + g_common_params + "&subtitle_format=lrc&usertoken=" + apikey;
+    std::string url = std::string(g_api_url) + "track.search?" + g_common_params + "&subtitle_format=lrc";
     url += "&q_artist=" + urlencode(artist);
     url += "&q_album=" + urlencode(album);
     url += "&q_track=" + urlencode(title);
-    LOG_INFO("Querying for track ID from %s...", url.c_str());
+    url += "&usertoken=";
+    LOG_INFO("Querying for track ID from %s", url.c_str());
+    url +=  apikey; // Add this after logging so we don't log sensitive info
 
     pfc::string8 content;
     try
@@ -94,7 +96,7 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view 
     }
     catch(const std::exception& e)
     {
-        LOG_WARN("Failed to make Musixmatch search request to %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to make Musixmatch search request: %s", e.what());
         return {};
     }
 
@@ -212,9 +214,10 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
     assert(data.source_id == id());
 
     std::string apikey = preferences::searching::musixmatch_api_key();
-    std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&usertoken=" + apikey + "&commontrack_id=" + std::to_string(track_id);
+    std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&commontrack_id=" + std::to_string(track_id) + "&usertoken=";
+    LOG_INFO("Get Musixmatch lyrics lyrics from %s", url.c_str());
+    url += apikey; // Add this after logging so we don't log sensitive info
     data.source_path = url;
-    LOG_INFO("Get Musixmatch lyrics lyrics from %s...", url.c_str());
 
     pfc::string8 content;
     try
@@ -228,7 +231,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
     }
     catch(const std::exception& e)
     {
-        LOG_WARN("Failed to make Musixmatch %s request to %s: %s", method, url.c_str(), e.what());
+        LOG_WARN("Failed to make Musixmatch %s request: %s", method, e.what());
         return false;
     }
 

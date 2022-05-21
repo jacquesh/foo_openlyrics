@@ -25,6 +25,7 @@ static const GUID GUID_CFG_DISPLAY_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa
 static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_DIRECTION = { 0x6b1f47ae, 0xa383, 0x434b, { 0xa7, 0xd2, 0x43, 0xbe, 0x55, 0x54, 0x2a, 0x33 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TYPE = { 0x3f2f17d8, 0x9309, 0x4721, { 0x9f, 0xa7, 0x79, 0x6d, 0x17, 0x84, 0x2a, 0x5d } };
+static const GUID GUID_CFG_DEBUG_LOGS_ENABLED = { 0x57920cbe, 0xa27, 0x4fad, { 0x92, 0xc, 0x2b, 0x61, 0x3b, 0xf9, 0xd6, 0x13 } };
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35,85,125);
 static const COLORREF cfg_display_bg_colour_default = RGB(255,255,255);
@@ -54,6 +55,7 @@ static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPL
 static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 500);
 static cfg_auto_combo<LineScrollDirection, 2> cfg_display_scroll_direction(GUID_CFG_DISPLAY_SCROLL_DIRECTION, IDC_DISPLAY_SCROLL_DIRECTION, LineScrollDirection::Vertical, g_scroll_direction_options);
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
+static cfg_auto_bool                          cfg_debug_logs_enabled(GUID_CFG_DEBUG_LOGS_ENABLED, IDC_DEBUG_LOGS_ENABLED, false);
 
 static cfg_auto_property* g_display_auto_properties[] =
 {
@@ -66,6 +68,8 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_scroll_time,
     &cfg_display_scroll_direction,
     &cfg_display_scroll_type,
+
+    &cfg_debug_logs_enabled,
 };
 
 //
@@ -141,6 +145,11 @@ LineScrollType preferences::display::scroll_type()
     return cfg_display_scroll_type.get_value();
 }
 
+bool preferences::display::debug_logs_enabled()
+{
+    return cfg_debug_logs_enabled.get_value();
+}
+
 //
 // Preference page UI
 //
@@ -175,6 +184,7 @@ public:
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_DIRECTION, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
+        COMMAND_HANDLER_EX(IDC_DEBUG_LOGS_ENABLED, BN_CLICKED, OnUIChange)
     END_MSG_MAP()
 
 private:
