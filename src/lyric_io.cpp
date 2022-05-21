@@ -30,6 +30,7 @@ bool io::save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_over
         std::string output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
         lyrics.save_path = output_path;
         lyrics.save_source = source->id();
+        clear_search_avoidance(track); // Clear here so that we will always find saved lyrics
         return true;
     }
     catch(const std::exception& e)
@@ -264,6 +265,11 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     if(lyric_data.IsEmpty())
     {
         search_avoidance_log_search_failure(handle.get_track());
+    }
+    else
+    {
+        // Clear here so that we will continue searching even if auto-save is disabled and the user doesn't save
+        clear_search_avoidance(handle.get_track());
     }
 
     handle.set_result(std::move(lyric_data), true);
