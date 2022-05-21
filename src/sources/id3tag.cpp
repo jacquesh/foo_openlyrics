@@ -9,7 +9,7 @@ static const GUID src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0
 class ID3TagLyricSource : public LyricSourceBase
 {
     const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("ID3 tags"); }
+    std::tstring_view friendly_name() const final { return _T("Metadata tags"); }
     bool is_local() const final { return true; }
 
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
