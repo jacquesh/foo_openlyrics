@@ -213,7 +213,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
 
     std::string apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&usertoken=" + apikey + "&commontrack_id=" + std::to_string(track_id);
-    data.persistent_storage_path = url;
+    data.source_path = url;
     LOG_INFO("Get Musixmatch lyrics lyrics from %s...", url.c_str());
 
     pfc::string8 content;

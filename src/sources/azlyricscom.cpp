@@ -144,7 +144,7 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std
 
             LyricDataRaw result = {};
             result.source_id = id();
-            result.persistent_storage_path = url;
+            result.source_path = url;
             result.artist = artist;
             result.title = title;
             result.text = trim_surrounding_whitespace(lyric_text);

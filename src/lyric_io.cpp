@@ -10,7 +10,7 @@
 #include "ui_hooks.h"
 #include "win32_util.h"
 
-std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
+bool io::save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
     //       only happen on the main thread.
@@ -20,23 +20,24 @@ std::string io::save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bo
     LyricSourceBase* source = LyricSourceBase::get(preferences::saving::save_source());
     if(source == nullptr)
     {
-        return {};
+        LOG_WARN("Failed to load configured save source");
+        return false;
     }
 
     std::string text = from_tstring(parsers::lrc::expand_text(lyrics));
-    std::string output_path;
     try
     {
-        output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
-        clear_search_avoidance(track);
+        std::string output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
+        lyrics.save_path = output_path;
+        lyrics.save_source = source->id();
+        return true;
     }
     catch(const std::exception& e)
     {
         std::string source_name = from_tstring(source->friendly_name());
         LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
+        return false;
     }
-
-    return output_path;
 }
 
 static void ensure_windows_newlines(std::string& str)
@@ -466,7 +467,7 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
             }
 
             const bool allow_overwrite = user_requested;
-            lyrics.persistent_storage_path = io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
+            io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
         }
         catch(const std::exception& e)
         {

@@ -16,6 +16,8 @@ class ID3TagLyricSource : public LyricSourceBase
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+
+    std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 };
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
@@ -40,7 +42,7 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abo
 
         LyricDataRaw lyric = {};
         lyric.source_id = src_guid;
-        lyric.persistent_storage_path = track->get_path();
+        lyric.source_path = tag;
         lyric.artist = track_metadata(track, "artist");
         lyric.album = track_metadata(track, "album");
         lyric.title = track_metadata(track, "title");
@@ -127,4 +129,19 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped
                                completion);
     LOG_INFO("Successfully wrote lyrics to ID3 tag %s", tag_name.c_str());
     return track->get_path();
+}
+
+std::tstring ID3TagLyricSource::get_file_path(metadb_handle_ptr track, const LyricData& lyrics)
+{
+    const char* path = track->get_path();
+    if((lyrics.source_id == src_guid) ||
+       (lyrics.save_source.has_value() && (lyrics.save_source.value() == src_guid))
+      )
+    {
+        return to_tstring(std::string_view(path, strlen(path)));
+    }
+    {
+        LOG_WARN("Attempt to get lyric file path for lyrics that were neither saved nor loaded from metadata tags");
+        return _T("");
+    }
 }

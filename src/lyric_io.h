@@ -14,8 +14,9 @@ namespace io
 
     std::optional<LyricData> process_available_lyric_update(LyricUpdateHandle& update);
 
-    // Returns the path of the file on disk to which the lyrics were saved
-    std::string save_lyrics(metadb_handle_ptr track, const LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
+    // Updates the lyric data with the ID of the source used for saving, as well as the persistence path that it reports.
+    // Returns a success flag
+    bool save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
 }
 
 

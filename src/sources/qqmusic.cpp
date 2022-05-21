@@ -165,7 +165,7 @@ bool QQMusicLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
     }
 
     std::string url = "http://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&inCharset=utf-8&outCharset=utf-8&songmid=" + data.lookup_id;
-    data.persistent_storage_path = url;
+    data.source_path = url;
     LOG_INFO("Get QQMusic lyrics for song ID %s from %s...", data.lookup_id.c_str(), url.c_str());
 
     pfc::string8 content;

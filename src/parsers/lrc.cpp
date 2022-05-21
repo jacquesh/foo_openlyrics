@@ -459,7 +459,7 @@ LyricData parse(const LyricDataRaw& input)
 
     LyricData result = {};
     result.source_id = input.source_id;
-    result.persistent_storage_path = input.persistent_storage_path;
+    result.source_path = input.source_path;
     result.artist = input.artist;
     result.album = input.album;
     result.title = input.title;
@@ -473,7 +473,7 @@ LyricDataRaw serialise(const LyricData& input)
 {
     LyricDataRaw result = {};
     result.source_id = input.source_id;
-    result.persistent_storage_path = input.persistent_storage_path;
+    result.source_path = input.source_path;
     result.artist = input.artist;
     result.album = input.album;
     result.title = input.title;

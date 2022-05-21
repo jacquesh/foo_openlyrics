@@ -8,14 +8,14 @@
 // Raw (unparsed) lyric data
 struct LyricDataRaw
 {
-    GUID source_id;
-    std::string persistent_storage_path;
+    GUID source_id;          // The source from which the lyrics were retrieved
+    std::string source_path; // The path (on the originating source) at which the lyrics were found
 
-    std::string artist;
-    std::string album;
-    std::string title;
-    std::string lookup_id;
-    std::string text;
+    std::string artist;      // The track artist, as reported by the source
+    std::string album;       // The track album, as reported by the source
+    std::string title;       // The track title, as reported by the source
+    std::string lookup_id;   // An ID used by the source to get the lyrics text after a search. Used only temporarily during searching.
+    std::string text;        // The raw lyrics text
 };
 
 // Parsed lyric data
@@ -27,12 +27,15 @@ struct LyricDataLine
 
 struct LyricData
 {
-    GUID source_id;
-    std::string persistent_storage_path;
+    GUID source_id;                  // The source from which the lyrics were retrieved
+    std::string source_path;         // The path (on the originating source) at which the lyrics were found
 
-    std::string artist;
-    std::string album;
-    std::string title;
+    std::optional<GUID> save_source; // The source to which the lyrics were last saved (if any)
+    std::string save_path;           // The path (on the save source) at which the lyrics can be found (if they've been saved)
+
+    std::string artist;              // The track artist, as reported by the source
+    std::string album;               // The track album, as reported by the source
+    std::string title;               // The track title, as reported by the source
 
     std::vector<std::string> tags;
     std::vector<LyricDataLine> lines;

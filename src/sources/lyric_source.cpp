@@ -102,3 +102,10 @@ std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_times
     assert(false);
     return "";
 }
+
+std::tstring LyricSourceRemote::get_file_path(metadb_handle_ptr /*track*/, const LyricData& /*lyrics*/)
+{
+    LOG_WARN("Cannot get file path for lyrics on a remote source");
+    assert(false);
+    return _T("");
+}

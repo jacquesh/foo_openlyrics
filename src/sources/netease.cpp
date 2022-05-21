@@ -164,7 +164,7 @@ bool NetEaseLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
     }
 
     std::string url = std::string(BASE_URL) + "/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=" + data.lookup_id;
-    data.persistent_storage_path = url;
+    data.source_path = url;
     LOG_INFO("Get NetEase lyrics for song ID %s from %s...", data.lookup_id.c_str(), url.c_str());
 
     pfc::string8 content;

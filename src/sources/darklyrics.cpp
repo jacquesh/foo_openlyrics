@@ -157,7 +157,7 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std:
 
             LyricDataRaw result = {};
             result.source_id = id();
-            result.persistent_storage_path = url;
+            result.source_path = url;
             result.artist = artist;
             result.album = album;
             result.title = title;

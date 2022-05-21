@@ -18,6 +18,8 @@ class LocalFileSource : public LyricSourceBase
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+
+    std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
@@ -45,7 +47,7 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort
             {
                 LyricDataRaw result = {};
                 result.source_id = id();
-                result.persistent_storage_path = file_path;
+                result.source_path = file_path;
                 result.artist = track_metadata(track, "artist");
                 result.album = track_metadata(track, "album");
                 result.title = track_metadata(track, "title");
@@ -155,3 +157,20 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
     return output_path_str;
 }
 
+
+std::tstring LocalFileSource::get_file_path(metadb_handle_ptr /*track*/, const LyricData& lyrics)
+{
+    if(lyrics.source_id == src_guid)
+    {
+        return to_tstring(lyrics.source_path);
+    }
+    else if(lyrics.save_source.has_value() && (lyrics.save_source.value() == src_guid))
+    {
+        return to_tstring(lyrics.save_path);
+    }
+    else
+    {
+        LOG_WARN("Attempt to get lyric file path for lyrics that were neither saved nor loaded from local files");
+        return _T("");
+    }
+}

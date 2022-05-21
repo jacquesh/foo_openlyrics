@@ -162,7 +162,7 @@ std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::
             LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
             LyricDataRaw result = {};
             result.source_id = id();
-            result.persistent_storage_path = url;
+            result.source_path = url;
             result.artist = artist;
             result.title = title;
             result.text = trim_surrounding_whitespace(lyric_text);

@@ -1056,8 +1056,8 @@ namespace {
                     {
                         try
                         {
-                            bool allow_overwrite = true;
-                            m_lyrics.persistent_storage_path = io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, m_child_abort);
+                            const bool allow_overwrite = true;
+                            io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, m_child_abort);
                         }
                         catch(const std::exception& e)
                         {
@@ -1082,14 +1082,33 @@ namespace {
 
                 case ID_OPEN_FILE_DIR:
                 {
-                    if(m_lyrics.persistent_storage_path.empty())
+                    LyricSourceBase* source = nullptr;
+                    if(m_lyrics.save_source.has_value())
+                    {
+                        source = LyricSourceBase::get(m_lyrics.save_source.value());
+                    }
+
+                    if(source == nullptr)
+                    {
+                        LyricSourceBase* originating_source = LyricSourceBase::get(m_lyrics.source_id);
+                        if((originating_source != nullptr) && originating_source->is_local())
+                        {
+                            source = originating_source;
+                        }
+                    }
+
+                    std::tstring pathstr;
+                    if(source != nullptr)
+                    {
+                        pathstr = source->get_file_path(m_now_playing, m_lyrics);
+                    }
+
+                    if(pathstr.empty())
                     {
                         popup_message::g_complain("The selected track does not have any lyrics stored locally");
                     }
                     else
                     {
-                        std::tstring pathstr = to_tstring(m_lyrics.persistent_storage_path);
-
                         // Truncate the string at the last directory separator to get a directory path
                         for(size_t i=pathstr.length(); i>0; i--)
                         {
