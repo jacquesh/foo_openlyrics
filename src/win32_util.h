@@ -20,5 +20,7 @@ std::tstring to_tstring(const pfc::string8& string);
 std::string from_tstring(std::tstring_view string);
 std::string from_tstring(const std::tstring& string);
 
+std::tstring normalise_utf8(std::tstring_view input);
+
 std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string); // GetTextExtentPoint32
 BOOL DrawTextOut(HDC dc, int x, int y, std::tstring_view string); // TextOut

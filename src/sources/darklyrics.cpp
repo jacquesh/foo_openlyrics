@@ -24,7 +24,7 @@ static const LyricSourceFactory<DarkLyricsSource> src_factory;
 
 static std::string remove_chars_for_url(const std::string_view input)
 {
-    std::string transliterated = transliterate_to_ascii(input);
+    std::string transliterated = from_tstring(normalise_utf8(to_tstring(input)));
 
     std::string output;
     output.reserve(transliterated.length());

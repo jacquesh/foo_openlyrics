@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "win32_util.h"
 
 std::tstring to_tstring(std::string_view string)
@@ -44,6 +45,37 @@ std::string from_tstring(std::tstring_view string)
 std::string from_tstring(const std::tstring& string)
 {
     return from_tstring(std::tstring_view(string));
+}
+
+std::tstring normalise_utf8(std::tstring_view input)
+{
+    // NOTE: fb2k docs specify that tags are UTF-8 encoded
+    if((input.length() == 0) || (input.length() > INT_MAX))
+    {
+        LOG_WARN("Input string for UTF-8 normalisation is too long, skipping...");
+        return std::tstring(input.data(), input.length());
+    }
+
+    int required_bytes = NormalizeString(NormalizationKD, input.data(), (int)input.length(), nullptr, 0);
+    if(required_bytes <= 0)
+    {
+        LOG_WARN("Estimated number of bytes required for normalised string is negative, skipping normalisation...");
+        return std::tstring(input.data(), input.length());
+    }
+
+    size_t buffer_size = (size_t)(required_bytes+1);
+    TCHAR* buffer = new TCHAR[buffer_size];
+    int normalised_bytes = NormalizeString(NormalizationKD, input.data(), (int)input.length(), buffer, buffer_size);
+    if(normalised_bytes <= 0)
+    {
+        LOG_WARN("Failed to normalise UTF-8 string with error %u. Skipping normalisation...", GetLastError());
+        return std::tstring(input.data(), input.length());
+    }
+
+    std::tstring result(buffer, normalised_bytes);
+    delete[] buffer;
+
+    return result;
 }
 
 std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string)
