@@ -360,12 +360,6 @@ std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricData
 LyricData parse(const LyricDataRaw& input)
 {
     LOG_INFO("Parsing LRC lyric text...");
-    if(input.text.empty())
-    {
-        LyricData result;
-        result.source_id = input.source_id;
-        return result;
-    }
 
     std::vector<LyricDataLine> lines;
     std::vector<std::string> tags;
