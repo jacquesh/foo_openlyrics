@@ -982,6 +982,7 @@ namespace {
                 ID_AUTO_REPLACE_XML_CHARS,
                 ID_AUTO_RESET_CAPITALISATION,
                 ID_FIX_MALFORMED_TIMESTAMPS,
+                ID_DELETE_CURRENT_LYRICS,
                 ID_CMD_COUNT,
             };
 
@@ -994,6 +995,7 @@ namespace {
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_RESET_CAPITALISATION, _T("Reset capitalisation"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_FIX_MALFORMED_TIMESTAMPS, _T("Fix malformed timestamps"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_DELETE_CURRENT_LYRICS, _T("Delete current lyrics"));
 
             CMenu menu = nullptr;
             WIN32_OP(menu.CreatePopupMenu())
@@ -1168,6 +1170,22 @@ namespace {
                 case ID_FIX_MALFORMED_TIMESTAMPS:
                 {
                     updated_lyrics = auto_edit::FixMalformedTimestamps(m_lyrics);
+                } break;
+
+                case ID_DELETE_CURRENT_LYRICS:
+                {
+                    bool deleted = io::delete_saved_lyrics(m_now_playing, m_lyrics);
+                    if(deleted)
+                    {
+                        m_lyrics = {};
+                    }
+                } break;
+
+                case 0: break; // Do nothing, the user clicked away
+
+                default:
+                {
+                    LOG_ERROR("Unrecognised auto-edit ID: %d", cmd);
                 } break;
             }
 

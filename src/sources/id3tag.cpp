@@ -16,6 +16,7 @@ class ID3TagLyricSource : public LyricSourceBase
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
 
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 };
@@ -76,7 +77,7 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped
     LOG_INFO("Saving lyrics to an ID3 tag...");
     struct MetaCompletionLogger : public completion_notify
     {
-        std::string metatag;
+        const std::string metatag;
         MetaCompletionLogger(std::string_view tag) : metatag(tag) {}
         void on_completion(unsigned int result_code) final
         {
@@ -128,7 +129,80 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped
                                metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
                                completion);
     LOG_INFO("Successfully wrote lyrics to ID3 tag %s", tag_name.c_str());
-    return track->get_path();
+    return tag_name;
+}
+
+bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::string& path)
+{
+    struct MetaRemovalCompletionLogger : public completion_notify
+    {
+        std::string metatag;
+        MetaRemovalCompletionLogger(std::string_view tag) : metatag(tag) {}
+        void on_completion(unsigned int result_code) final
+        {
+            if(result_code == metadb_io::update_info_success)
+            {
+                LOG_INFO("Successfully removed lyrics stored in tag '%s'", metatag.c_str());
+            }
+            else
+            {
+                LOG_WARN("Failed to remove lyrics stored in tag '%s': %u", metatag.c_str(), result_code);
+            }
+        }
+    };
+
+    try
+    {
+        std::string msg = "This will delete the lyrics stored in the '" + path + "' metadata tag.'\n\nThis operation cannot be undone. Are you sure you want to proceed?";
+        popup_message_v3::query_t query = {};
+        query.title = "Confirm delete";
+        query.msg = msg.c_str();
+        query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
+        query.defButton = popup_message_v3::buttonNo;
+        query.icon = popup_message_v3::iconWarning;
+        uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
+        if(popup_result != popup_message_v3::buttonYes)
+        {
+            return false;
+        }
+
+        auto update_meta_tag = [path](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+        {
+            size_t lyric_value_index = info.meta_find_ex(path.c_str(), path.length());
+            if(lyric_value_index == pfc::infinite_size)
+            {
+                return false;
+            }
+
+            t_size tag_index = info.meta_find_ex(path.data(), path.length());
+            if(tag_index == pfc::infinite_size)
+            {
+                LOG_WARN("Failed to find persisted tag '%s' for deletion", path.c_str());
+                return false;
+            }
+            info.meta_remove_index(tag_index);
+            return true;
+        };
+
+        // NOTE: I'm actually not 100% sure this is necessary but lets ensure we've loaded the full tag data
+        //       before we save it so that we don't accidentally overwrite some esoteric tag that wasn't loaded.
+        track->get_full_info_ref(fb2k::noAbort);
+
+        service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
+        service_ptr_t<MetaRemovalCompletionLogger> completion = fb2k::service_new<MetaRemovalCompletionLogger>(path);
+        service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
+        meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
+                                   updater,
+                                   core_api::get_main_window(),
+                                   metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
+                                   completion);
+    }
+    catch(const std::exception& ex)
+    {
+        LOG_WARN("Failed to delete lyrics file %s: %s", path.c_str(), ex.what());
+    }
+
+    return false;
 }
 
 std::tstring ID3TagLyricSource::get_file_path(metadb_handle_ptr track, const LyricData& lyrics)

@@ -478,6 +478,44 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
     return {std::move(lyrics)};
 }
 
+bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
+{
+    if(lyrics.save_source.has_value())
+    {
+        // These lyrics have been saved, delete them from the save source
+        LyricSourceBase* source = LyricSourceBase::get(lyrics.save_source.value());
+        if(source == nullptr)
+        {
+            LOG_WARN("Failed to look up save source for lyric deletion request");
+            return false;
+        }
+
+        LOG_INFO("Lyric was saved to a local source, deleting with the saver source");
+        return source->delete_persisted(track, lyrics.save_path);
+    }
+    else
+    {
+        // These lyrics have not been saved, but they may have been loaded from a local source
+        LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
+        if(source == nullptr)
+        {
+            LOG_WARN("Failed to look up originating source for lyric deletion request");
+            return false;
+        }
+
+        if(source->is_local())
+        {
+            LOG_INFO("Lyric was loaded from a local source, deleting with the loader source");
+            return source->delete_persisted(track, lyrics.source_path);
+        }
+        else
+        {
+            LOG_INFO("Lyric was loaded from a non-local source and has not been saved, nothing to delete");
+            return false;
+        }
+    }
+}
+
 LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort) :
     m_track(track),
     m_type(type),

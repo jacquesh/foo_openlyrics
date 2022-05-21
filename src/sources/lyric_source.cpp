@@ -103,6 +103,13 @@ std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_times
     return "";
 }
 
+bool LyricSourceRemote::delete_persisted(metadb_handle_ptr /*track*/, const std::string& /*path*/)
+{
+    LOG_WARN("Cannot delete lyrics from a remote source");
+    assert(false);
+    return false;
+}
+
 std::tstring LyricSourceRemote::get_file_path(metadb_handle_ptr /*track*/, const LyricData& /*lyrics*/)
 {
     LOG_WARN("Cannot get file path for lyrics on a remote source");

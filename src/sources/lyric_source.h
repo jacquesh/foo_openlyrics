@@ -24,6 +24,7 @@ public:
     virtual bool lookup(LyricDataRaw& data, abort_callback& abort) = 0;
 
     virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
+    virtual bool delete_persisted(metadb_handle_ptr track, const std::string& path) = 0;
 
     virtual std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) = 0;
 
@@ -37,6 +38,7 @@ public:
     bool is_local() const final;
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 
     virtual std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) = 0;
