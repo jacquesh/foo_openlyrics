@@ -6,16 +6,28 @@
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
 // Note that it is possible to declare multiple components within one DLL, but it's strongly recommended to keep only one declaration per DLL.
 // As for 1.1, the version numbers are used by the component update finder to find updates; for that to work, you must have ONLY ONE declaration per DLL. If there are multiple declarations, the component is assumed to be outdated and a version number of "0" is assumed, to overwrite the component with whatever is currently on the site assuming that it comes with proper version numbers.
-DECLARE_COMPONENT_VERSION(
-    "OpenLyrics",
-    OPENLYRICS_VERSION,
-    "foo_openlyrics " OPENLYRICS_VERSION "\n"
-    "Open-source lyrics retrieval and display\n"
-    "Source available at https://github.com/jacquesh/foo_openlyrics\n"
-    "You can support development at https://www.buymeacoffee.com/jacquesheunis\n"
-    "\n"
-    "Changelog:\n"
-    "Version 1.1-dev (" __DATE__ "):\n"
+
+// Copied from the DECLARE_COMPONENT_VERSION(NAME,VERSION,ABOUT) macro, defined in foo_SDK/foobar2000/SDK/component_version.h
+namespace
+{
+    class OpenLyricsVersion : public componentversion
+    {
+        public:
+            void get_file_name(pfc::string_base& out) final {out = core_api::get_my_file_name();}
+            void get_component_name(pfc::string_base & out) final {out = "OpenLyrics";}
+            void get_component_version(pfc::string_base & out) final {out = OPENLYRICS_VERSION;}
+            void get_about_message(pfc::string_base & out) final;
+    };
+    static service_factory_single_t<OpenLyricsVersion> g_openlyricsversion_factory;
+}
+void OpenLyricsVersion::get_about_message(pfc::string_base & out)
+{
+    out = "foo_openlyrics " OPENLYRICS_VERSION "\n";
+    out += "Open-source lyrics retrieval and display\n";
+    out += "Source available at https://github.com/jacquesh/foo_openlyrics\n";
+    out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
+    out += "\nChangelog:\n";
+    out += "Version 1.1-dev (" __DATE__ "):\n"
     "- Add an auto-edit for deleting the currently-loaded lyrics\n"
     "- Add an auto-edit for removing timestamps from synced lyrics\n"
     "- Support concurrently highlighting multiple lines with identical times\n"
@@ -23,13 +35,13 @@ DECLARE_COMPONENT_VERSION(
     "- The 'Metadata tags' source is now enabled by default\n"
     "- Change the default save tag for better compatibility with other players\n"
     "- Auto-edits that edit timestamps are now disabled for unsynced lyrics\n"
-    //"- Search auto-skip now also updates its metadata after searching\n"
+    "- Search auto-skip now also updates its metadata after searching\n"
     "- 'Mark as instrumental' now forces an auto-skip instead of creating lyrics\n"
     "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
     "- Fix some sources failing to search for tags with non-ASCII characters\n"
-    "\n"
-    "Version 1.0 (2022-02-15):\n"
+    "\n";
+    out += "Version 1.0 (2022-02-15):\n"
     "- Allow manual offset of the automatic scroll with mouse drag or wheel\n"
     "- Support loading lyrics encoded as something other than UTF-8\n"
     "- Skip the anti-flood delay when only local sources are bulk-searched\n"
@@ -39,8 +51,8 @@ DECLARE_COMPONENT_VERSION(
     "- Fix a freeze when closing the lyric panel while a search/editor is open\n"
     "- Fix the auto-search skip continuing to happen after lyrics are found\n"
     "- Fix mishandling of timestamps that include an hour as [hh:mm:ss.xx]\n"
-    "\n"
-    "Version 0.10 (2021-10-31):\n"
+    "\n";
+    out += "Version 0.10 (2021-10-31):\n"
     "- Add a bulk search option to the playlist context menu\n"
     "- Allow sorting the manual search result list by any column\n"
     "- Allow applying lyrics from manual search without closing the dialog\n"
@@ -149,9 +161,8 @@ DECLARE_COMPONENT_VERSION(
     "- Fix saving lyrics for a track that has not yet saved any\n"
     "\n"
     "Version 0.1 (2021-01-23):\n"
-    "- Initial release\n"
-);
-
+    "- Initial release\n";
+}
 
 // This will prevent users from renaming your component around (important for proper troubleshooter behaviors) or loading multiple instances of it.
 VALIDATE_COMPONENT_FILENAME("foo_openlyrics.dll");
