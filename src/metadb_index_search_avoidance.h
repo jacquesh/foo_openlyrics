@@ -9,7 +9,8 @@ struct lyric_search_avoidance
     uint64_t search_config_generation;
 };
 
-lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track);
-void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance);
+bool search_avoidance_allows_search(metadb_handle_ptr track);
+void search_avoidance_log_search_failure(metadb_handle_ptr track);
+void search_avoidance_force_avoidance(metadb_handle_ptr track);
 void clear_search_avoidance(metadb_handle_ptr track);
 

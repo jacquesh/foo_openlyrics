@@ -157,11 +157,7 @@ namespace {
         // NOTE: We also track a generation counter that increments every time you change the search config
         //       so that if you don't find lyrics with some active sources and then add more, it'll search
         //       again at least once, possibly finding something if there are new active sources.
-        lyric_search_avoidance avoidance = load_search_avoidance(track);
-        const bool expected_to_fail = (avoidance.failed_searches > 3);
-        const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
-        const bool same_generation = (avoidance.search_config_generation == preferences::searching::source_config_generation());
-        if(!same_generation || !expected_to_fail || !trial_period_expired)
+        if(search_avoidance_allows_search(track))
         {
             InitiateLyricSearch(track);
         }
@@ -967,7 +963,6 @@ namespace {
         {
             UINT disabled_without_nowplaying = (m_now_playing == nullptr) ? MF_GRAYED : 0;
             UINT disabled_without_lyrics = m_lyrics.IsEmpty() ? MF_GRAYED : 0;
-            UINT disabled_with_lyrics = m_lyrics.IsEmpty() ? 0 : MF_GRAYED;
             UINT disabled_without_timestamps = m_lyrics.IsTimestamped() ? 0 : MF_GRAYED;
             enum {
                 ID_SEARCH_LYRICS = 1,
@@ -976,7 +971,7 @@ namespace {
                 ID_PREFERENCES,
                 ID_EDIT_LYRICS,
                 ID_OPEN_FILE_DIR,
-                ID_AUTO_ADD_INSTRUMENTAL,
+                ID_AUTO_MARK_INSTRUMENTAL,
                 ID_AUTO_REMOVE_EXTRA_SPACES,
                 ID_AUTO_REMOVE_EXTRA_BLANK_LINES,
                 ID_AUTO_REMOVE_ALL_BLANK_LINES,
@@ -990,7 +985,7 @@ namespace {
 
             CMenu menu_edit = nullptr;
             WIN32_OP(menu_edit.CreatePopupMenu())
-            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_with_lyrics, ID_AUTO_ADD_INSTRUMENTAL, _T("Mark as 'instrumental'"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying, ID_AUTO_MARK_INSTRUMENTAL, _T("Mark as instrumental"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REPLACE_XML_CHARS, _T("Replace &&-named HTML characters"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
@@ -1021,7 +1016,7 @@ namespace {
             menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
             menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
             menudesc.Set(ID_OPEN_FILE_DIR, "Open explorer to the location of the lyrics file");
-            menudesc.Set(ID_AUTO_ADD_INSTRUMENTAL, "Add lyrics containing just the text '[Instrumental]'");
+            menudesc.Set(ID_AUTO_MARK_INSTRUMENTAL, "Optionally remove existing lyrics and skip future automated lyric searches");
             menudesc.Set(ID_AUTO_REPLACE_XML_CHARS, "Replace &-encoded named HTML characters (e.g &lt;) with the characters they represent (e.g <)");
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_SPACES, "Replace sequences of multiple whitespace characters with a single space");
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_BLANK_LINES, "Replace sequences of multiple empty lines with just a single empty line");
@@ -1133,17 +1128,14 @@ namespace {
                     }
                 } break;
 
-                case ID_AUTO_ADD_INSTRUMENTAL:
+                case ID_AUTO_MARK_INSTRUMENTAL:
                 {
-                    if(m_lyrics.IsEmpty())
+                    if(!m_lyrics.IsEmpty())
                     {
-                        updated_lyrics = auto_edit::CreateInstrumental(m_lyrics);
+                        io::delete_saved_lyrics(m_now_playing, m_lyrics);
+                        m_lyrics = {};
                     }
-                    else
-                    {
-                        LOG_WARN("Current track already has lyrics. It will not be marked as instrumental to avoid overwriting existing lyrics");
-                    }
-
+                    search_avoidance_force_avoidance(m_now_playing);
                 } break;
 
                 case ID_AUTO_REMOVE_EXTRA_SPACES:

@@ -9,7 +9,6 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
 {
     switch(type)
     {
-        case AutoEditType::CreateInstrumental: return CreateInstrumental(lyrics);
         case AutoEditType::ReplaceHtmlEscapedChars: return ReplaceHtmlEscapedChars(lyrics);
         case AutoEditType::RemoveRepeatedSpaces: return RemoveRepeatedSpaces(lyrics);
         case AutoEditType::RemoveRepeatedBlankLines: return RemoveRepeatedBlankLines(lyrics);
@@ -24,13 +23,6 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
             assert(false);
             return {};
     }
-}
-
-std::optional<LyricData> auto_edit::CreateInstrumental(const LyricData& /*lyrics*/)
-{
-    LyricData lyrics;
-    lyrics.lines.push_back({_T("[Instrumental]"), DBL_MAX});
-    return {std::move(lyrics)};
 }
 
 std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyrics)

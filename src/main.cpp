@@ -23,6 +23,7 @@ DECLARE_COMPONENT_VERSION(
     "- The 'Metadata tags' source is now enabled by default\n"
     "- Change the default save tag for better compatibility with other players\n"
     "- Auto-edits that edit timestamps are now disabled for unsynced lyrics\n"
+    "- 'Mark as instrumental' now forces an auto-skip instead of creating lyrics\n"
     "- No longer automatically add a space to synced & empty lyric lines\n"
     "- Fix the editor failing to parse tags from synced lyrics for offsetting\n"
     "- Fix some sources failing to search for tags with non-ASCII characters\n"

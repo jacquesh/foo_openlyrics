@@ -263,17 +263,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
 
     if(lyric_data.IsEmpty())
     {
-        lyric_search_avoidance avoidance = load_search_avoidance(handle.get_track());
-        avoidance.search_config_generation = preferences::searching::source_config_generation();
-        if(avoidance.first_fail_time == 0)
-        {
-            avoidance.first_fail_time = filetimestamp_from_system_timer();
-        }
-        if(avoidance.failed_searches < INT_MAX)
-        {
-            avoidance.failed_searches++;
-        }
-        save_search_avoidance(handle.get_track(), avoidance);
+        search_avoidance_log_search_failure(handle.get_track());
     }
 
     handle.set_result(std::move(lyric_data), true);

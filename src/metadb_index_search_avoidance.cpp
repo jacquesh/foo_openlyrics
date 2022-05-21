@@ -3,6 +3,7 @@
 #include "metadb_index_search_avoidance.h"
 
 #include "logging.h"
+#include "preferences.h"
 #include "tag_util.h"
 
 static const GUID GUID_METADBINDEX_LYRIC_HISTORY = { 0x915bee72, 0xfd1d, 0x4cf8, { 0x90, 0xd4, 0x8e, 0x2c, 0x18, 0xfd, 0x5, 0xbf } };
@@ -61,7 +62,7 @@ class lyric_metadb_index_init : public init_stage_callback
 };
 static service_factory_single_t<lyric_metadb_index_init> g_lyric_metadb_index_init;
 
-lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
+static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
 {
     char data_buffer[512] = {};
 
@@ -88,7 +89,16 @@ lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
     }
 }
 
-void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance)
+bool search_avoidance_allows_search(metadb_handle_ptr track)
+{
+    lyric_search_avoidance avoidance = load_search_avoidance(track);
+    const bool expected_to_fail = (avoidance.failed_searches > 3);
+    const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
+    const bool same_generation = (avoidance.search_config_generation == preferences::searching::source_config_generation());
+    return !same_generation || !expected_to_fail || !trial_period_expired;
+}
+
+static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance)
 {
     auto meta_index = metadb_index_manager::get();
     metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
@@ -102,6 +112,35 @@ void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoid
                               our_index_hash,
                               writer.m_buffer.get_ptr(),
                               writer.m_buffer.get_size());
+}
+
+void search_avoidance_log_search_failure(metadb_handle_ptr track)
+{
+    lyric_search_avoidance avoidance = load_search_avoidance(track);
+    avoidance.search_config_generation = preferences::searching::source_config_generation();
+    if(avoidance.first_fail_time == 0)
+    {
+        avoidance.first_fail_time = filetimestamp_from_system_timer();
+    }
+    if(avoidance.failed_searches < INT_MAX)
+    {
+        avoidance.failed_searches++;
+    }
+    save_search_avoidance(track, avoidance);
+}
+
+void search_avoidance_force_avoidance(metadb_handle_ptr track)
+{
+    lyric_search_avoidance avoidance = load_search_avoidance(track);
+    avoidance.search_config_generation = preferences::searching::source_config_generation();
+    avoidance.first_fail_time = 0;
+    avoidance.failed_searches = INT_MAX;
+    save_search_avoidance(track, avoidance);
+
+#ifndef NDEBUG
+    // Sanity check this in debug builds to ensure we have successfully prevented searches
+    assert(!search_avoidance_allows_search(track));
+#endif
 }
 
 void clear_search_avoidance(metadb_handle_ptr track)

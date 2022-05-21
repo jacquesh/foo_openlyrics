@@ -46,7 +46,7 @@ enum class LineScrollType : int
 enum class AutoEditType : int
 {
     Unknown                  = 0,
-    CreateInstrumental       = 1,
+    // CreateInstrumental       = 1, // Deprecated
     ReplaceHtmlEscapedChars  = 2,
     RemoveRepeatedSpaces     = 3,
     RemoveRepeatedBlankLines = 4,
