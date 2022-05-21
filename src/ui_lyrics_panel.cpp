@@ -968,6 +968,7 @@ namespace {
             UINT disabled_without_nowplaying = (m_now_playing == nullptr) ? MF_GRAYED : 0;
             UINT disabled_without_lyrics = m_lyrics.IsEmpty() ? MF_GRAYED : 0;
             UINT disabled_with_lyrics = m_lyrics.IsEmpty() ? 0 : MF_GRAYED;
+            UINT disabled_without_timestamps = m_lyrics.IsTimestamped() ? 0 : MF_GRAYED;
             enum {
                 ID_SEARCH_LYRICS = 1,
                 ID_SEARCH_LYRICS_MANUAL,
@@ -995,8 +996,8 @@ namespace {
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_RESET_CAPITALISATION, _T("Reset capitalisation"));
-            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_FIX_MALFORMED_TIMESTAMPS, _T("Fix malformed timestamps"));
-            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_TIMESTAMPS, _T("Remove timestamps"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics | disabled_without_timestamps, ID_AUTO_FIX_MALFORMED_TIMESTAMPS, _T("Fix malformed timestamps"));
+            AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics | disabled_without_timestamps, ID_AUTO_REMOVE_TIMESTAMPS, _T("Remove timestamps"));
             AppendMenu(menu_edit, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_DELETE_CURRENT_LYRICS, _T("Delete current lyrics"));
 
