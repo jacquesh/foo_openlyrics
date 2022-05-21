@@ -24,11 +24,12 @@ static const GUID GUID_CFG_SEARCH_MUSIXMATCH_TOKEN = { 0xb88a82a7, 0x746d, 0x44f
 //       It should not be a problem because these GUIDs must never change anyway (since it would
 //       break everybody's config), but probably worth noting that the information is duplicated.
 static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+static const GUID metadata_tags_src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
 static const GUID musixmatch_src_guid = { 0xf94ba31a, 0x7b33, 0x49e4, { 0x81, 0x9b, 0x0, 0xc, 0x36, 0x44, 0x29, 0xcd } };
 static const GUID netease_src_guid = { 0xaac13215, 0xe32e, 0x4667, { 0xac, 0xd7, 0x1f, 0xd, 0xbd, 0x84, 0x27, 0xe4 } };
 static const GUID qqmusic_src_guid = { 0x4b0b5722, 0x3a84, 0x4b8e, { 0x82, 0x7a, 0x26, 0xb9, 0xea, 0xb3, 0xb4, 0xe8 } };
 
-static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid, qqmusic_src_guid, netease_src_guid};
+static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid, metadata_tags_src_guid, qqmusic_src_guid, netease_src_guid};
 
 static cfg_int_t<uint64_t> cfg_search_active_sources_generation(GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION, 0);
 static cfg_objList<GUID>   cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
