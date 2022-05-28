@@ -153,8 +153,11 @@ static void ensure_utf8(LyricDataRaw& lyric)
 
 static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
-    LOG_INFO("Searching for lyrics...");
     handle.set_started();
+    std::string tag_artist = track_metadata(handle.get_track(), "artist");
+    std::string tag_album = track_metadata(handle.get_track(), "album");
+    std::string tag_title = track_metadata(handle.get_track(), "title");
+    LOG_INFO("Searching for lyrics for artist='%s', album='%s', title='%s'...", tag_artist.c_str(), tag_album.c_str(), tag_title.c_str());
 
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::searching::active_sources())
@@ -178,9 +181,6 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
             }
             std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_checked_abort());
 
-            std::string tag_artist = track_metadata(handle.get_track(), "artist");
-            std::string tag_album = track_metadata(handle.get_track(), "album");
-            std::string tag_title = track_metadata(handle.get_track(), "title");
             for(LyricDataRaw& result : search_results)
             {
                 // NOTE: Some sources don't return an album so we ignore album data if the source didn't give us any

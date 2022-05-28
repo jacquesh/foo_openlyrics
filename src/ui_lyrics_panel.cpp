@@ -1363,7 +1363,6 @@ namespace {
 
     void LyricPanel::InitiateLyricSearch(metadb_handle_ptr track)
     {
-        LOG_INFO("Initiate lyric search");
         m_lyrics = {};
         m_auto_search_avoided = false;
 

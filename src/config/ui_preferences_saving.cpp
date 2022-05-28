@@ -121,18 +121,21 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
     }
     formatted_name.fix_filename_chars();
 
+    std::string dir_class_name = "(Unknown)";
     pfc::string8 formatted_directory;
     SaveDirectoryClass dir_class = cfg_save_dir_class.get_value();
     switch(dir_class)
     {
         case SaveDirectoryClass::ConfigDirectory:
         {
+            dir_class_name = "ConfigDirectory";
             formatted_directory = core_api::get_profile_path();
             formatted_directory += "\\lyrics\\";
         } break;
 
         case SaveDirectoryClass::TrackFileDirectory:
         {
+            dir_class_name = "TrackFileDirectory";
             const char* path = track->get_path();
             pfc::string tmp = path;
             tmp = pfc::io::path::getParent(tmp);
@@ -142,6 +145,8 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
         case SaveDirectoryClass::Custom:
         {
             const char* path_format_str = cfg_save_path_custom.get_ptr();
+            dir_class_name = std::string("Custom('") + path_format_str + "')";
+
             titleformat_object::ptr dir_format_script;
             bool dir_compile_success = titleformat_compiler::get()->compile(dir_format_script, path_format_str);
             if(!dir_compile_success)
@@ -166,6 +171,8 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
 
     pfc::string8 result = formatted_directory;
     result.add_filename(formatted_name);
+    LOG_INFO("Save file name format '%s' with directory class '%s' evaluated to '%s'", name_format_str, dir_class_name.c_str(), result.c_str());
+
     if(formatted_directory.is_empty() || formatted_name.is_empty())
     {
         LOG_WARN("Invalid save path: %s", result.c_str());
