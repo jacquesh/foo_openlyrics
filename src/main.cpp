@@ -29,6 +29,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Fix failing to load the last line of lyrics\n"
+    "- Fix empty lines being ignored by the editor\n"
     "\n";
     out += "Version 1.1 (2022-05-21):\n"
     "- Add an auto-edit for deleting the currently-loaded lyrics\n"

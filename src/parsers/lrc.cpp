@@ -517,7 +517,7 @@ std::tstring expand_text(const LyricData& data)
             //       However if two lines in an lrc file have identical timestamps, then we merge them
             //       during parsing. In that case we need to split them out again here.
             size_t start_index = 0;
-            while(start_index < line.text.length())
+            while(start_index <= line.text.length()) // This is specifically less-or-equal so that empty lines do not get ignored and show up in the editor
             {
                 size_t end_index = min(line.text.length(), line.text.find('\n', start_index));
                 size_t length = end_index - start_index;
