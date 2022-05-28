@@ -340,6 +340,7 @@ std::vector<T> collapse(const std::vector<T>& input, TOperation op)
         }
     }
 
+    result.emplace_back(std::move(first_arg));
     return result;
 }
 
