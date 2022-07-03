@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include <cctype>
 
-#include "libxml/HTMLparser.h"
-#include "libxml/tree.h"
-#include "libxml/xpath.h"
+#include "tidy.h"
+#include "tidybuffio.h"
+#include "pugixml.hpp"
 
 #include "logging.h"
 #include "lyric_source.h"
@@ -16,7 +16,7 @@ class GeniusComSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Genius.com"); }
 
-    void add_all_text_to_string(std::string& output, xmlNodePtr node) const;
+    void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
     std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
@@ -51,29 +51,32 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
-void GeniusComSource::add_all_text_to_string(std::string& output, xmlNodePtr node) const
+void GeniusComSource::add_all_text_to_string(std::string& output, pugi::xml_node node) const
 {
-    if((node == nullptr) || (node->type != XML_ELEMENT_NODE))
+    if((node.type() == pugi::node_null) || (node.type() != pugi::node_element))
     {
         return;
     }
 
-    xmlNode* child = node->children;
-    while(child != nullptr)
+    for(pugi::xml_node child : node.children())
     {
-        if(child->type == XML_TEXT_NODE)
+        if(child.type() == pugi::node_pcdata)
         {
-            // NOTE: libxml2 stores strings as UTF8 internally, so we don't need to do any conversion here
-            std::string_view node_text = trim_surrounding_whitespace((char*)child->content);
+            // We assume the text is already UTF-8
+            std::string_view node_text = trim_surrounding_whitespace(child.value());
             output += node_text;
-            output += "\r\n";
         }
-        else if(child->type == XML_ELEMENT_NODE)
+        else if(child.type() == pugi::node_element)
         {
-            add_all_text_to_string(output, child);
+            if(strcmp(child.name(), "br") == 0)
+            {
+                output += "\r\n";
+            }
+            else
+            {
+                add_all_text_to_string(output, child);
+            }
         }
-
-        child = child->next;
     }
 }
 
@@ -102,76 +105,66 @@ std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::
     }
 
     LOG_INFO("Page %s retrieved", url.c_str());
-    htmlDocPtr doc = htmlReadMemory(content.c_str(), content.length(), url.c_str(), nullptr, 0);
-    if(doc != nullptr)
-    {
-        xmlXPathContextPtr xpath_ctx = xmlXPathNewContext(doc);
-        if(xpath_ctx == nullptr)
-        {
-            xmlFreeDoc(doc);
-            throw std::runtime_error("Failed to create xpath context");
-        }
+    std::string lyric_text;
+    TidyBuffer tidy_output = {};
+    TidyBuffer tidy_error = {};
 
-        xmlXPathObjectPtr xpath_obj = xmlXPathEvalExpression(BAD_CAST "//div[@class='lyrics']", xpath_ctx);
-        if(xpath_obj == nullptr)
-        {
-            xmlXPathFreeContext(xpath_ctx);
-            xmlFreeDoc(doc);
-            throw new std::runtime_error("Failed to create new XPath search expression");
-        }
+    TidyDoc tidy_doc = tidyCreate();
+    tidySetErrorBuffer(tidy_doc, &tidy_error);
+    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
+    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
+    tidyParseString(tidy_doc, content.c_str());
+    tidyCleanAndRepair(tidy_doc);
+    tidyRunDiagnostics(tidy_doc);
+    tidySaveBuffer(tidy_doc, &tidy_output);
+
+    if(tidyErrorCount(tidy_doc) == 0)
+    {
+        pugi::xml_document doc;
+        doc.load_buffer(tidy_output.bp, tidy_output.size);
 
         const char* xpath_queries[] = { "//div[@class='lyrics']", "//div[contains(@class, 'Lyrics__Container')]" };
         for(const char* query_str : xpath_queries)
         {
-            xpath_obj = xmlXPathEvalExpression(BAD_CAST query_str, xpath_ctx);
-            if(xpath_obj == nullptr)
-            {
-                xmlXPathFreeContext(xpath_ctx);
-                xmlFreeDoc(doc);
-                throw new std::runtime_error("Failed to create new XPath search expression");
-            }
+            pugi::xpath_query query_lyricdivs(query_str);
+            pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
 
-            if((xpath_obj->nodesetval != nullptr) && (xpath_obj->nodesetval->nodeNr > 0))
+            if(!lyricdivs.empty())
             {
-                LOG_INFO("Succeeded with xpath query: %s", query_str);
+                for(const pugi::xpath_node& node : lyricdivs)
+                {
+                    add_all_text_to_string(lyric_text, node.node());
+                }
                 break;
             }
-        }
-
-        std::string lyric_text;
-        if((xpath_obj->nodesetval != nullptr) && (xpath_obj->nodesetval->nodeNr > 0))
-        {
-            int node_count = xpath_obj->nodesetval->nodeNr;
-            for(int i=0; i<node_count; i++)
-            {
-                xmlNodePtr node = xpath_obj->nodesetval->nodeTab[i];
-                add_all_text_to_string(lyric_text, node);
-            }
-        }
-
-        xmlXPathFreeObject(xpath_obj);
-        xmlXPathFreeContext(xpath_ctx);
-        xmlFreeDoc(doc);
-
-        if(lyric_text.empty())
-        {
-            throw std::runtime_error("Failed to parse lyrics, the page format may have changed");
-        }
-        else
-        {
-            LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
-            LyricDataRaw result = {};
-            result.source_id = id();
-            result.source_path = url;
-            result.artist = artist;
-            result.title = title;
-            result.text = trim_surrounding_whitespace(lyric_text);
-            return {std::move(result)};
         }
     }
     else
     {
-        LOG_WARN("Failed to parse HTML response from %s", url.c_str());
+        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
+        LOG_INFO("Failed to convert retrieved HTML from %s to XHTML:\n%s", url.c_str(), tidy_error.bp);
+    }
+
+    tidyBufFree(&tidy_output);
+    tidyBufFree(&tidy_error);
+    tidyRelease(tidy_doc);
+
+    if(lyric_text.empty())
+    {
+        throw new std::runtime_error("Failed to parse lyrics, the page format may have changed");
+    }
+    else
+    {
+        LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
+
+        LyricDataRaw result = {};
+        result.source_id = id();
+        result.source_path = url;
+        result.artist = artist;
+        result.album = album;
+        result.title = title;
+        result.text = trim_surrounding_whitespace(lyric_text);
+        return {std::move(result)};
     }
 
     return {};
