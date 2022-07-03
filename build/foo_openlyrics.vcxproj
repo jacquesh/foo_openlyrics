@@ -70,11 +70,12 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../3rdparty/libiconv-1.16/include;$(SolutionDir)/../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>TIDY_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -96,11 +97,11 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../3rdparty/libiconv-1.16/include;$(SolutionDir)/../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PreprocessorDefinitions>NDEBUG;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDLL;TIDY_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -117,11 +118,11 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/libxml2-2.9.10/include;$(SolutionDir)/../3rdparty/libiconv-1.16/include;$(SolutionDir)/../3rdparty/cJSON;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-6.5;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PreprocessorDefinitions>NDEBUG;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDLL;TIDY_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>-Zo %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -244,8 +245,11 @@
     <ProjectReference Include="..\3rdparty\foo_SDK\pfc\pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\3rdparty\libxml2-2.9.10\win32\VC10\libxml2.vcxproj">
-      <Project>{1d6039f6-5078-416f-a3af-a36efc7e6a1c}</Project>
+    <ProjectReference Include="..\3rdparty\pugixml-1.12.1\scripts\pugixml_vs2022_static.vcxproj">
+      <Project>{07cf01c0-b887-499d-ad9c-799cb6a9fe64}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\3rdparty\tidy-html5-5.8.0\cmakebuilddir\tidy-static.vcxproj">
+      <Project>{f025259e-ff0b-3a0e-a8a6-201464e422f3}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

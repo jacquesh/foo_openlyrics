@@ -28,6 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Replace the internal HTML parser for MIT license compatibility\n"
     "\n";
     out += "Version 1.2 (2022-05-28):\n"
     "- Add some additional info to the debug logs for searching & saving\n"
