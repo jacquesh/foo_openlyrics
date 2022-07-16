@@ -199,8 +199,7 @@ public:
                 {
                     msg = "This will delete the lyrics stored locally for the ";
                     msg += std::to_string(all_tracks.size());
-                    msg += " selected tracks";
-                    msg += "and mark those tracks as instrumental. OpenLyrics will no longer search for lyrics for those tracks automatically so it will not show any lyrics for those tracks until you explicitly request a search for it.\n\nAre you sure you want to proceed?";
+                    msg += " selected tracks and mark those tracks as instrumental. OpenLyrics will no longer search for lyrics for those tracks automatically so it will not show any lyrics for those tracks until you explicitly request a search for it.\n\nAre you sure you want to proceed?";
                 }
                 popup_message_v3::query_t query = {};
                 query.title = "Confirm delete & mark as instrumental";

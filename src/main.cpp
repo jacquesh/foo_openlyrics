@@ -33,6 +33,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add 'Mark as instrumental' to the playlist context menu\n"
     "- Move the playlist context menu entries into the OpenLyrics submenu\n"
     "- Improve clarity of the confirmation text for 'Mark as instrumental'\n"
+    "- Delay lyric search when results aren't visible (e.g fb2k is minimised)\n"
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"
     "\n";

@@ -99,13 +99,14 @@ namespace {
         ui_element_config::ptr m_config;
         abort_callback_impl m_child_abort;
 
-        bool m_timerRunning;
+        bool m_timerRunning = false;
 
         metadb_handle_ptr m_now_playing;
         std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
-        bool m_auto_search_avoided;
-        uint64_t m_auto_search_avoided_timestamp;
+        bool m_search_pending = false;
+        bool m_auto_search_avoided = false;
+        uint64_t m_auto_search_avoided_timestamp = 0;
 
         HDC m_back_buffer;
         HBITMAP m_back_buffer_bitmap;
@@ -131,13 +132,10 @@ namespace {
 
     LyricPanel::LyricPanel(ui_element_config::ptr config, ui_element_instance_callback_ptr p_callback) :
         m_config(config),
-        m_timerRunning(false),
         m_now_playing(nullptr),
         m_update_handles(),
         m_lyrics(),
-        m_callback(p_callback),
-        m_auto_search_avoided(false),
-        m_auto_search_avoided_timestamp(0)
+        m_callback(p_callback)
     {
     }
 
@@ -154,21 +152,7 @@ namespace {
     {
         m_now_playing = track;
         m_manual_scroll_distance = 0;
-
-        // NOTE: We also track a generation counter that increments every time you change the search config
-        //       so that if you don't find lyrics with some active sources and then add more, it'll search
-        //       again at least once, possibly finding something if there are new active sources.
-        if(search_avoidance_allows_search(track))
-        {
-            InitiateLyricSearch(track);
-        }
-        else
-        {
-            LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
-            m_lyrics = {};
-            m_auto_search_avoided = true;
-            m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
-        }
+        m_search_pending = true;
 
         // NOTE: If playback is paused on startup then this gets called with the paused track,
         //       but playback is paused so we don't actually want to run the timer
@@ -860,6 +844,26 @@ namespace {
 
     void LyricPanel::OnPaint(CDCHandle)
     {
+        if(m_search_pending)
+        {
+            m_search_pending = false;
+
+            // NOTE: We also track a generation counter that increments every time you change the search config
+            //       so that if you don't find lyrics with some active sources and then add more, it'll search
+            //       again at least once, possibly finding something if there are new active sources.
+            if(search_avoidance_allows_search(m_now_playing))
+            {
+                InitiateLyricSearch(m_now_playing);
+            }
+            else
+            {
+                LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
+                m_lyrics = {};
+                m_auto_search_avoided = true;
+                m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
+            }
+        }
+
         for(auto iter=m_update_handles.begin(); iter!=m_update_handles.end(); /*omitted*/)
         {
             std::unique_ptr<LyricUpdateHandle>& update = *iter;
