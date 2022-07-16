@@ -5,13 +5,16 @@
 #include "parsers.h"
 #include "ui_hooks.h"
 
-static const GUID GUID_OPENLYRICS_CTX_GROUP = { 0x99cb0828, 0x6b73, 0x404f, { 0x95, 0xcd, 0x29, 0xca, 0x63, 0x50, 0x4c, 0xea } };
-static contextmenu_group_factory g_openlyrics_ctx_group(GUID_OPENLYRICS_CTX_GROUP, contextmenu_groups::root, 0);
+static const GUID GUID_OPENLYRICS_CTX_POPUP = { 0x99cb0828, 0x6b73, 0x404f, { 0x95, 0xcd, 0x29, 0xca, 0x63, 0x50, 0x4c, 0xea } };
+static const GUID GUID_OPENLYRICS_CTX_SUBGROUP = { 0x119bf93d, 0xdeec, 0x4fd2, { 0x80, 0xbb, 0x91, 0x6a, 0x58, 0x6a, 0x2, 0x25 } };
 
-class OpenLyricsContextItem : public contextmenu_item_simple
+static contextmenu_group_popup_factory g_ctx_item_factory(GUID_OPENLYRICS_CTX_POPUP, contextmenu_groups::root, "OpenLyrics");
+static contextmenu_group_factory g_openlyrics_ctx_subgroup(GUID_OPENLYRICS_CTX_SUBGROUP, GUID_OPENLYRICS_CTX_POPUP, 0);
+
+class OpenLyricsContextSubItem : public contextmenu_item_simple
 {
 public:
-    GUID get_parent() override { return GUID_OPENLYRICS_CTX_GROUP; }
+    GUID get_parent() override { return GUID_OPENLYRICS_CTX_SUBGROUP; }
     unsigned get_num_items() override { return cmd_total; }
 
     void get_item_name(unsigned int index, pfc::string_base& out) override
@@ -31,7 +34,6 @@ public:
             case cmd_show_lyrics:
             {
                 if(data.get_count() == 0) break;
-
                 metadb_handle_ptr track = data.get_item(0);
 
                 const auto async_search = [track](threaded_process_status& /*status*/, abort_callback& abort)
@@ -127,5 +129,5 @@ private:
     };
 };
 
-static contextmenu_item_factory_t<OpenLyricsContextItem> g_myitem_factory;
+static contextmenu_item_factory_t<OpenLyricsContextSubItem> g_ctx_subitem_factory;
 
