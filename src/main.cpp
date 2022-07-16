@@ -28,7 +28,9 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
-    "- Add 'Search manually' and 'Edit lyrics' to the playlist context menu\n"
+    "- Add 'Search manually' to the playlist context menu\n"
+    "- Add 'Edit lyrics' to the playlist context menu\n"
+    "- Add 'Mark as instrumental' to the playlist context menu\n"
     "- Move the playlist context menu entries into the OpenLyrics submenu\n"
     "- Improve clarity of the confirmation text for 'Mark as instrumental'\n"
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
