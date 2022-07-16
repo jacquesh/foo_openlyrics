@@ -32,6 +32,34 @@ public:
         }
     }
 
+    bool context_get_display(unsigned int index, metadb_handle_list_cref data, pfc::string_base& out_name, unsigned int& out_display_flags, const GUID& caller) override
+    {
+        contextmenu_item_simple::context_get_display(index, data, out_name, out_display_flags, caller);
+
+        // Disable & grey-out items that only apply to single selection, when many items are selected
+        if(data.get_count() > 1)
+        {
+            switch(index)
+            {
+                case cmd_show_lyrics:
+                case cmd_manualsearch_lyrics:
+                case cmd_edit_lyrics:
+                {
+                    out_display_flags = contextmenu_item_simple::FLAG_DISABLED_GRAYED;
+                } break;
+
+                case cmd_bulksearch_lyrics:
+                case cmd_mark_instrumental:
+                {
+                    // No change, keep default behaviuor
+                } break;
+
+                default: uBugCheck();
+            }
+        }
+        return true;
+    }
+
     void context_command(unsigned int index, metadb_handle_list_cref data, const GUID& /*caller*/) override
     {
         switch(index)
