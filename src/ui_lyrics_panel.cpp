@@ -15,6 +15,7 @@
 #include "preferences.h"
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
+#include "ui_util.h"
 #include "uie_shim_panel.h"
 #include "win32_util.h"
 
@@ -986,6 +987,7 @@ namespace {
             CMenu menu_edit = nullptr;
             WIN32_OP(menu_edit.CreatePopupMenu())
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying, ID_AUTO_MARK_INSTRUMENTAL, _T("Mark as instrumental"));
+            AppendMenu(menu_edit, MF_SEPARATOR, 0, nullptr);
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REPLACE_XML_CHARS, _T("Replace &&-named HTML characters"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
             AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
@@ -1129,6 +1131,25 @@ namespace {
 
                 case ID_AUTO_MARK_INSTRUMENTAL:
                 {
+                    std::string msg = "This will delete the lyrics stored locally for the current track ";
+                    std::string track_str = get_track_friendly_string(m_lyrics);
+                    if(!track_str.empty())
+                    {
+                        msg += "(" + track_str + ") ";
+                    }
+                    msg += "and mark the track as instrumental. OpenLyrics will no longer search for lyrics for this track automatically so it will not show any lyrics for this track until you explicitly request a search for it.\n\nAre you sure you want to proceed?";
+                    popup_message_v3::query_t query = {};
+                    query.title = "Confirm delete & mark as instrumental";
+                    query.msg = msg.c_str();
+                    query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
+                    query.defButton = popup_message_v3::buttonNo;
+                    query.icon = popup_message_v3::iconWarning;
+                    uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
+                    if(popup_result != popup_message_v3::buttonYes)
+                    {
+                        break;
+                    }
+
                     if(!m_lyrics.IsEmpty())
                     {
                         io::delete_saved_lyrics(m_now_playing, m_lyrics);
@@ -1175,6 +1196,25 @@ namespace {
 
                 case ID_DELETE_CURRENT_LYRICS:
                 {
+                    std::string msg = "This will delete the lyrics stored locally for the current track";
+                    std::string track_str = get_track_friendly_string(m_lyrics);
+                    if(!track_str.empty())
+                    {
+                        msg += "(" + track_str + ")";
+                    }
+                    msg += "'\n\nThis operation cannot be undone. Are you sure you want to proceed?";
+                    popup_message_v3::query_t query = {};
+                    query.title = "Confirm delete";
+                    query.msg = msg.c_str();
+                    query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
+                    query.defButton = popup_message_v3::buttonNo;
+                    query.icon = popup_message_v3::iconWarning;
+                    uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
+                    if(popup_result != popup_message_v3::buttonYes)
+                    {
+                        break;
+                    }
+
                     bool deleted = io::delete_saved_lyrics(m_now_playing, m_lyrics);
                     if(deleted)
                     {

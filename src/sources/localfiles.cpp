@@ -160,26 +160,14 @@ std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, 
 
 bool LocalFileSource::delete_persisted(metadb_handle_ptr /*track*/, const std::string& path)
 {
-    std::string msg = "This will delete the lyrics stored at:\n" + path + "\n\nThis operation cannot be undone. Are you sure you want to proceed?";
-
-    popup_message_v3::query_t query = {};
-    query.title = "Confirm delete";
-    query.msg = msg.c_str();
-    query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
-    query.defButton = popup_message_v3::buttonNo;
-    query.icon = popup_message_v3::iconWarning;
-    uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
-    if(popup_result == popup_message_v3::buttonYes)
+    try
     {
-        try
-        {
-            filesystem::g_remove(path.c_str(), fb2k::noAbort);
-            return true;
-        }
-        catch(const std::exception& ex)
-        {
-            LOG_WARN("Failed to delete lyrics file %s: %s", path.c_str(), ex.what());
-        }
+        filesystem::g_remove(path.c_str(), fb2k::noAbort);
+        return true;
+    }
+    catch(const std::exception& ex)
+    {
+        LOG_WARN("Failed to delete lyrics file %s: %s", path.c_str(), ex.what());
     }
 
     return false;

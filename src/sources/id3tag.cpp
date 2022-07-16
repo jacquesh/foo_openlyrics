@@ -153,19 +153,6 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
 
     try
     {
-        std::string msg = "This will delete the lyrics stored in the '" + path + "' metadata tag.'\n\nThis operation cannot be undone. Are you sure you want to proceed?";
-        popup_message_v3::query_t query = {};
-        query.title = "Confirm delete";
-        query.msg = msg.c_str();
-        query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
-        query.defButton = popup_message_v3::buttonNo;
-        query.icon = popup_message_v3::iconWarning;
-        uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
-        if(popup_result != popup_message_v3::buttonYes)
-        {
-            return false;
-        }
-
         auto update_meta_tag = [path](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
         {
             size_t lyric_value_index = info.meta_find_ex(path.c_str(), path.length());
@@ -196,6 +183,7 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
                                    core_api::get_main_window(),
                                    metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
                                    completion);
+        return true;
     }
     catch(const std::exception& ex)
     {

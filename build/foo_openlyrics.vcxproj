@@ -204,6 +204,7 @@
     <ClCompile Include="..\src\ui_lyrics_panel.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\src\ui_util.cpp" />
     <ClCompile Include="..\src\win32_util.cpp" />
   </ItemGroup>
   <ItemGroup>
