@@ -542,8 +542,12 @@ LyricUpdateHandle::LyricUpdateHandle(LyricUpdateHandle&& other) :
     other.m_status = Status::Closed;
     InitializeCriticalSection(&m_mutex);
 
-    BOOL event_set = other.is_complete();
-    m_complete = CreateEvent(nullptr, TRUE, event_set, nullptr);
+    BOOL other_complete = other.is_complete();
+    m_complete = CreateEvent(nullptr, TRUE, other_complete, nullptr);
+    if(!other_complete)
+    {
+        other.set_complete();
+    }
     assert(m_complete != nullptr);
 }
 

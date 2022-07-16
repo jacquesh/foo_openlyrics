@@ -28,6 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Add 'Search manually' and 'Edit lyrics' to the playlist context menu\n"
     "- Move the playlist context menu entries into the OpenLyrics submenu\n"
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"

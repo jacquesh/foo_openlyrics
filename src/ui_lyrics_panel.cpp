@@ -1016,7 +1016,7 @@ namespace {
             menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
             menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
             menudesc.Set(ID_OPEN_FILE_DIR, "Open explorer to the location of the lyrics file");
-            menudesc.Set(ID_AUTO_MARK_INSTRUMENTAL, "Optionally remove existing lyrics and skip future automated lyric searches");
+            menudesc.Set(ID_AUTO_MARK_INSTRUMENTAL, "Remove existing lyrics and skip future automated lyric searches");
             menudesc.Set(ID_AUTO_REPLACE_XML_CHARS, "Replace &-encoded named HTML characters (e.g &lt;) with the characters they represent (e.g <)");
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_SPACES, "Replace sequences of multiple whitespace characters with a single space");
             menudesc.Set(ID_AUTO_REMOVE_EXTRA_BLANK_LINES, "Replace sequences of multiple empty lines with just a single empty line");
@@ -1040,7 +1040,6 @@ namespace {
                 {
                     if(m_now_playing != nullptr)
                     {
-                        LOG_INFO("Initiate manual lyric search");
                         auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_child_abort);
                         SpawnManualLyricSearch(get_wnd(), *update);
                         m_update_handles.push_back(std::move(update));
@@ -1377,6 +1376,66 @@ namespace {
     UIE_SHIM_PANEL_FACTORY(LyricPanel)
 
 } // namespace
+
+bool are_there_any_lyric_panels()
+{
+    return !g_active_panels.empty();
+}
+
+void register_update_handle_with_lyric_panels(std::unique_ptr<LyricUpdateHandle>&& handle)
+{
+    // NOTE: Moving something into a lambda is annoyingly difficult to do correctly.
+    //       In the case of unique_ptr we can just extract the pointer from inside it, copy that
+    //       into the lambda by value and re-create a new unique_ptr. We've effectively moved
+    //       out of the unique_ptr at that point which was the expected behaviour anyway
+    //       when the value is passed as r-value ref.
+    LyricUpdateHandle* handle_ptr = handle.release();
+    fb2k::inMainThread2([handle_ptr]()
+    {
+        std::unique_ptr<LyricUpdateHandle> update(handle_ptr);
+        core_api::ensure_main_thread();
+        if(g_active_panels.size() == 0)
+        {
+            // The update won't save!
+            popup_message_v3::query_t query = {};
+            query.title = "No OpenLyrics lyric panels";
+            query.msg = "There are no OpenLyrics lyric panels on the UI. As a result, this lyric will not be saved. Please add a lyric panel to the UI before editing or searching for lyrics.";
+            query.buttons = popup_message_v3::buttonOK;
+            query.icon = popup_message_v3::iconWarning;
+            popup_message_v3::get()->show_query_modal(query);
+
+            update->set_complete(); // The handle is going to be destroyed, complete it so we don't sit waiting for it to complete in the destructor
+            update.reset(); // Consume the handle that got passed into us, since that is the expected behaviour
+        }
+        else
+        {
+            if(g_active_panels.size() > 1)
+            {
+                // We're going to ignore all of them except the first one
+                service_ptr_t<playback_control> playback = playback_control::get();
+                metadb_handle_ptr now_playing;
+                bool now_playing_success = playback->get_now_playing(now_playing);
+
+                // If a different track is playing then it doesn't matter. The update will be saved
+                // and the panel would not have changed anyway.
+                if(!now_playing_success || (now_playing == update->get_track()))
+                {
+                    popup_message_v3::query_t query = {};
+                    query.title = "Multiple OpenLyrics lyric panels";
+                    query.msg = "There are multiple OpenLyrics lyric panels on the UI. Only one of them will automatically update with your edited or downloaded lyrics. You can update the others by playing a new track or by requesting a search on each one.";
+                    query.buttons = popup_message_v3::buttonOK;
+                    query.icon = popup_message_v3::iconWarning;
+                    popup_message_v3::get()->show_query_modal(query);
+                }
+            }
+
+            LyricPanel* panel = g_active_panels[0];
+            assert(panel != nullptr);
+
+            panel->m_update_handles.push_back(std::move(update));
+        }
+    });
+}
 
 void repaint_all_lyric_panels()
 {

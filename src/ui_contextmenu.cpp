@@ -23,6 +23,8 @@ public:
         {
             case cmd_show_lyrics: out = "Show lyrics"; break;
             case cmd_bulksearch_lyrics: out = "Search for lyrics"; break;
+            case cmd_manualsearch_lyrics: out = "Search for lyrics (manually)"; break;
+            case cmd_edit_lyrics: out = "Edit lyrics"; break;
             default: uBugCheck();
         }
     }
@@ -87,6 +89,61 @@ public:
                 SpawnBulkLyricSearch(tracks);
             } break;
 
+            case cmd_manualsearch_lyrics:
+            {
+                if(data.get_count() == 0) break;
+                metadb_handle_ptr track = data.get_item(0);
+
+                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, fb2k::noAbort/*TODO*/);
+                if(are_there_any_lyric_panels())
+                {
+                    SpawnManualLyricSearch(core_api::get_main_window(), *update);
+                }
+                else
+                {
+                    update->set_started();
+                }
+                register_update_handle_with_lyric_panels(std::move(update));
+            } break;
+
+            case cmd_edit_lyrics:
+            {
+                if(data.get_count() == 0) break;
+                metadb_handle_ptr track = data.get_item(0);
+
+                const auto async_instrumental = [track](threaded_process_status& /*status*/, abort_callback& abort)
+                {
+                    LyricUpdateHandle search_update(LyricUpdateHandle::Type::AutoSearch, track, abort);
+                    io::search_for_lyrics(search_update, true);
+                    bool success = search_update.wait_for_complete(30'000);
+                    if(success)
+                    {
+                        LyricData lyrics = search_update.get_result();
+                        fb2k::inMainThread2([lyrics, track]()
+                        {
+                            auto edit_update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
+
+                            if(are_there_any_lyric_panels())
+                            {
+                                SpawnLyricEditor(core_api::get_main_window(), lyrics, *edit_update);
+                            }
+                            else
+                            {
+                                edit_update->set_started();
+                            }
+                            register_update_handle_with_lyric_panels(std::move(edit_update));
+                        });
+                    }
+                };
+
+                threaded_process::g_run_modeless(threaded_process_callback_lambda::create(async_instrumental),
+                                                 threaded_process::flag_show_delayed | threaded_process::flag_show_abort,
+                                                 core_api::get_main_window(),
+                                                 "Retrieving saved lyrics...");
+            } break;
+
+            } break;
+
             default:
                 uBugCheck();
         }
@@ -96,11 +153,15 @@ public:
     {
         static const GUID GUID_ITEM_SHOW_LYRICS = { 0xff674f8, 0x8536, 0x4edc, { 0xb1, 0xd7, 0xf7, 0xad, 0x72, 0x87, 0x84, 0x3c } };
         static const GUID GUID_ITEM_BULKSEARCH_LYRICS = { 0x16d008, 0x83ec, 0x4d0a, { 0x9a, 0x1a, 0x9e, 0xae, 0xc8, 0x24, 0x2, 0x5d } };
+        static const GUID GUID_ITEM_MANUALSEARCH_LYRICS = { 0x9fac3e8e, 0xa847, 0x4b73, { 0x90, 0xe4, 0xc9, 0x5, 0x49, 0xf9, 0xe9, 0x32 } };
+        static const GUID GUID_ITEM_EDIT_LYRICS = { 0x518d992d, 0xd61b, 0x4cfd, { 0x8f, 0xcf, 0x8c, 0x7f, 0x21, 0xd0, 0x59, 0x2c } };
 
         switch(index)
         {
             case cmd_show_lyrics: return GUID_ITEM_SHOW_LYRICS;
             case cmd_bulksearch_lyrics: return GUID_ITEM_BULKSEARCH_LYRICS;
+            case cmd_manualsearch_lyrics: return GUID_ITEM_MANUALSEARCH_LYRICS;
+            case cmd_edit_lyrics: return GUID_ITEM_EDIT_LYRICS;
             default: uBugCheck();
         }
     }
@@ -115,6 +176,12 @@ public:
             case cmd_bulksearch_lyrics:
                 out = "Search for lyrics for all selected tracks (as if you played them one after the other)";
                 return true;
+            case cmd_manualsearch_lyrics:
+                out = "Search for lyrics for this track with customisable search terms and multiple results";
+                return true;
+            case cmd_edit_lyrics:
+                out = "Open the lyric editor with the lyrics for this track";
+                return true;
             default:
                 uBugCheck();
         }
@@ -125,6 +192,8 @@ private:
     {
         cmd_show_lyrics = 0,
         cmd_bulksearch_lyrics,
+        cmd_manualsearch_lyrics,
+        cmd_edit_lyrics,
         cmd_total
     };
 };
