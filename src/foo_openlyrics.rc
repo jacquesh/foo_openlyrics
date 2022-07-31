@@ -63,7 +63,7 @@ BEGIN
     PUSHBUTTON      "Down",IDC_SOURCE_MOVE_DOWN_BTN,78,120,44,14,WS_DISABLED
     GROUPBOX        "Searching",IDC_STATIC,0,0,330,164
     LTEXT           "Available sources:",IDC_STATIC,198,12,58,8
-    LTEXT           "ID3 Tag to search & save to (semicolon-separated):",IDC_STATIC,7,185,158,8
+    LTEXT           "Metadata tags to search (separated by a semicolon):",IDC_STATIC,7,185,166,8
     EDITTEXT        IDC_SEARCH_TAGS,7,194,318,14,ES_AUTOHSCROLL
     CONTROL         "Exclude text in brackets at the end of artist/album names and track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,146,313,10
@@ -88,7 +88,7 @@ BEGIN
     EDITTEXT        IDC_SAVE_TAG_SYNCED,74,113,82,14,ES_AUTOHSCROLL
     RTEXT           "File name format:",IDC_STATIC,27,165,59,10
     GROUPBOX        "Local Files",IDC_STATIC,0,150,331,107
-    GROUPBOX        "ID3 Tags",IDC_STATIC,0,81,331,61
+    GROUPBOX        "Metadata Tags",IDC_STATIC,0,81,331,61
     COMBOBOX        IDC_SAVE_DIRECTORY_CLASS,90,202,199,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Save directory:",IDC_STATIC,37,204,48,8
     LTEXT           "Custom directory format:",IDC_STATIC,10,226,79,8

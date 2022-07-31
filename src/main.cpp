@@ -35,6 +35,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Improve clarity of the confirmation text for 'Mark as instrumental'\n"
     "- Delay lyric search when results aren't visible (e.g fb2k is minimised)\n"
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
+    "- Change preferences nomenclature from 'ID3 tags' to 'Metadata tags'\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"
     "\n";
     out += "Version 1.2 (2022-05-28):\n"
