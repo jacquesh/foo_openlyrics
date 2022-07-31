@@ -848,19 +848,25 @@ namespace {
         {
             m_search_pending = false;
 
-            // NOTE: We also track a generation counter that increments every time you change the search config
-            //       so that if you don't find lyrics with some active sources and then add more, it'll search
-            //       again at least once, possibly finding something if there are new active sources.
-            if(search_avoidance_allows_search(m_now_playing))
+            // We need to check that there is a now-playing track still.
+            // There might not be one if a new track started while fb2k was minimised (so we don't repaint) and then playback stopped before fb2k got maximised again.
+            // In that case we'd previously try to use m_now_playing to power the search & search-avoidance and would crash.
+            if(m_now_playing != nullptr)
             {
-                InitiateLyricSearch(m_now_playing);
-            }
-            else
-            {
-                LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
-                m_lyrics = {};
-                m_auto_search_avoided = true;
-                m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
+                // NOTE: We also track a generation counter that increments every time you change the search config
+                //       so that if you don't find lyrics with some active sources and then add more, it'll search
+                //       again at least once, possibly finding something if there are new active sources.
+                if(search_avoidance_allows_search(m_now_playing))
+                {
+                    InitiateLyricSearch(m_now_playing);
+                }
+                else
+                {
+                    LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
+                    m_lyrics = {};
+                    m_auto_search_avoided = true;
+                    m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
+                }
             }
         }
 
@@ -1036,39 +1042,38 @@ namespace {
             {
                 case ID_SEARCH_LYRICS:
                 {
-                    if(m_now_playing != nullptr)
-                    {
-                        InitiateLyricSearch(m_now_playing);
-                    }
+                    if(m_now_playing == nullptr) break;
+
+                    InitiateLyricSearch(m_now_playing);
                 } break;
 
                 case ID_SEARCH_LYRICS_MANUAL:
                 {
-                    if(m_now_playing != nullptr)
-                    {
-                        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_child_abort);
-                        SpawnManualLyricSearch(get_wnd(), *update);
-                        m_update_handles.push_back(std::move(update));
-                    }
+                    if(m_now_playing == nullptr) break;
+
+                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_child_abort);
+                    SpawnManualLyricSearch(get_wnd(), *update);
+                    m_update_handles.push_back(std::move(update));
                 } break;
 
                 case ID_SAVE_LYRICS:
                 {
-                    if((m_now_playing == nullptr) || m_lyrics.IsEmpty())
+                    if(m_now_playing == nullptr) break;
+
+                    if(m_lyrics.IsEmpty())
                     {
                         LOG_INFO("Attempt to manually save empty lyrics, ignoring...");
+                        break;
                     }
-                    else
+
+                    try
                     {
-                        try
-                        {
-                            const bool allow_overwrite = true;
-                            io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, m_child_abort);
-                        }
-                        catch(const std::exception& e)
-                        {
-                            LOG_ERROR("Failed to complete manually requested lyric save: %s", e.what());
-                        }
+                        const bool allow_overwrite = true;
+                        io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, m_child_abort);
+                    }
+                    catch(const std::exception& e)
+                    {
+                        LOG_ERROR("Failed to complete manually requested lyric save: %s", e.what());
                     }
                 } break;
 
@@ -1088,6 +1093,8 @@ namespace {
 
                 case ID_OPEN_FILE_DIR:
                 {
+                    if(m_now_playing == nullptr) break;
+
                     LyricSourceBase* source = nullptr;
                     if(m_lyrics.save_source.has_value())
                     {
@@ -1135,6 +1142,8 @@ namespace {
 
                 case ID_AUTO_MARK_INSTRUMENTAL:
                 {
+                    if(m_now_playing == nullptr) break;
+
                     std::string msg = "This will delete the lyrics stored locally for the current track ";
                     std::string track_str = get_track_friendly_string(m_lyrics);
                     if(!track_str.empty())
@@ -1194,12 +1203,16 @@ namespace {
 
                 case ID_AUTO_REMOVE_TIMESTAMPS:
                 {
+                    if(m_now_playing == nullptr) break;
+
                     io::delete_saved_lyrics(m_now_playing, m_lyrics);
                     updated_lyrics = auto_edit::RemoveTimestamps(m_lyrics);
                 } break;
 
                 case ID_DELETE_CURRENT_LYRICS:
                 {
+                    if(m_now_playing == nullptr) break;
+
                     std::string msg = "This will delete the lyrics stored locally for the current track";
                     std::string track_str = get_track_friendly_string(m_lyrics);
                     if(!track_str.empty())
