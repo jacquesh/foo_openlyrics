@@ -37,6 +37,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
     "- Change preferences nomenclature from 'ID3 tags' to 'Metadata tags'\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"
+    "- Add a status bar description for the 'Remove timestamps' auto-edit\n"
     "\n";
     out += "Version 1.2 (2022-05-28):\n"
     "- Add some additional info to the debug logs for searching & saving\n"
