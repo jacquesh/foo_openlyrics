@@ -34,7 +34,7 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abo
 
     for(const std::string& tag : preferences::searching::tags())
     {
-        LOG_INFO("Searching for lyrics in tag: %s", tag.c_str());
+        LOG_INFO("Searching for lyrics in tag: '%s'", tag.c_str());
         size_t lyric_value_index = track_info.meta_find_ex(tag.c_str(), tag.length());
         if(lyric_value_index == pfc::infinite_size)
         {
@@ -57,7 +57,7 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abo
 
         if(!lyric.text.empty())
         {
-            LOG_INFO("Found lyrics in tag: %s", tag.c_str());
+            LOG_INFO("Found lyrics in tag: '%s'", tag.c_str());
             result.push_back(std::move(lyric));
         }
     }
