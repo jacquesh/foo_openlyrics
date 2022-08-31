@@ -42,8 +42,29 @@ static std::string remove_chars_for_url(const std::string_view input)
 
 std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
+    // NOTE: It seems that if we let the user-agent indicate a browser that is sufficiently far out of date, we get served a captcha.
+    //       Firefox has a published release schedule (https://wiki.mozilla.org/Release_Management/Calendar) and there's a new
+    //       release roughly once a month, so we can fake this being updated by just bumping our version number once a month.
+    // NOTE: Until C++20 there is no concept of a "day", "month" or "year" in std::chrono.
+    //       Really what we want is the number of months since 2022-08-30 but instead we
+    //       need to approximate that using hours.
+    std::tm useragent_epoch = {};
+    useragent_epoch.tm_year = 2022 - 1900;
+    useragent_epoch.tm_mon = 8 - 1;
+    useragent_epoch.tm_mday = 30;
+    useragent_epoch.tm_isdst = -1;
+    std::time_t useragent_epoch_time = std::mktime(&useragent_epoch);
+    const auto useragent_epoch_time_point = std::chrono::system_clock::from_time_t(useragent_epoch_time);
+    const auto now = std::chrono::system_clock::now();
+    const int64_t hours_since_epoch = std::chrono::duration_cast<std::chrono::hours>(now - useragent_epoch_time_point).count();
+    const int64_t hours_per_month = 24*30;
+    const int64_t months_since_epoch = hours_since_epoch / hours_per_month;
+    const int64_t firefox_version = 103 + months_since_epoch; // 103 is the version of Firefox that was current as of our epoch above (2022-07-30)
+    char useragent[128] = {};
+    snprintf(useragent, sizeof(useragent), "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:%lld.0) Gecko/20100101 Firefox/%lld.0", firefox_version, firefox_version);
+
     http_request::ptr request = http_client::get()->create_request("GET");
-    request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
+    request->add_header("User-Agent", useragent);
 
     std::string url_artist = remove_chars_for_url(artist);
     std::string url_title = remove_chars_for_url(title);

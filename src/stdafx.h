@@ -2,6 +2,7 @@
 #include <foobar2000/helpers/foobar2000+atl.h>
 
 #include <algorithm>
+#include <chrono>
 #include <numeric>
 #include <optional>
 #include <string_view>
