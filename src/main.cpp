@@ -37,6 +37,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
     "- Fix the AZLyrics source not returning lyrics available on the site\n"
     "- Change preferences nomenclature from 'ID3 tags' to 'Metadata tags'\n"
+    "- Re-word preferences for local files from 'save' to 'storage' folder\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"
     "- Add a status bar description for the 'Remove timestamps' auto-edit\n"
     "\n";

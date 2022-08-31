@@ -30,9 +30,9 @@ static cfg_auto_combo_option<SaveMethod> save_method_options[] =
 
 static cfg_auto_combo_option<SaveDirectoryClass> save_dir_class_options[] =
 {
-    {_T("Save to the configuration directory"), SaveDirectoryClass::ConfigDirectory},
-    {_T("Save to the same directory as the track"), SaveDirectoryClass::TrackFileDirectory},
-    {_T("Save to a custom directory"), SaveDirectoryClass::Custom},
+    {_T("foobar2000 configuration directory"), SaveDirectoryClass::ConfigDirectory},
+    {_T("Same directory as the track"), SaveDirectoryClass::TrackFileDirectory},
+    {_T("Custom directory"), SaveDirectoryClass::Custom},
 };
 
 static cfg_auto_combo_option<AutoSaveStrategy> autosave_strategy_options[] =
