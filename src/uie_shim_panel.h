@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-#include "columns_ui-sdk/ui_extension.h"
+#include "ui_extension.h"
 
 #define UIE_SHIM_PANEL_FACTORY(TypeName) ui_extension::window_factory<uie_shim_panel< TypeName >> g_uie_shim_panel##TypeName;
 

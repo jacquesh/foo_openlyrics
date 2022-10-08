@@ -38,6 +38,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix the AZLyrics source not returning lyrics available on the site\n"
     "- Fix 'Invalid path syntax' error when saving lyrics to network share\n"
     "- Fix manual search results sometimes not showing up in the result list\n"
+    "- Update ColumnsUI SDK to version 7.0.0 beta 2\n"
     "- Change preferences nomenclature from 'ID3 tags' to 'Metadata tags'\n"
     "- Re-word preferences for local files from 'save' to 'storage' folder\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"

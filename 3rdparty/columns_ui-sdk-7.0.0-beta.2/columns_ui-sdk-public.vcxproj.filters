@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Panel API">
+      <UniqueIdentifier>{e15fcf9c-8637-43d0-98a1-0e78f81b8e2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{2022b9c3-c253-4235-97b9-90dac50f6f52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CUI">
+      <UniqueIdentifier>{f53abb3c-f2b1-4908-85d7-657f3e54b28b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="container_window_v3.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="container_uie_window_v3.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="base.h" />
+    <ClInclude Include="buttons.h" />
+    <ClInclude Include="menu.h" />
+    <ClInclude Include="splitter.h" />
+    <ClInclude Include="visualisation.h" />
+    <ClInclude Include="window.h" />
+    <ClInclude Include="window_host.h" />
+    <ClInclude Include="win32_helpers.h" />
+    <ClInclude Include="window_helper.h" />
+    <ClInclude Include="columns_ui.h" />
+    <ClInclude Include="columns_ui_appearance.h" />
+    <ClInclude Include="ui_extension.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="container_window_v3.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="win32_helpers.cpp" />
+    <ClCompile Include="window_helper.cpp" />
+    <ClCompile Include="columns_ui.cpp" />
+    <ClCompile Include="ui_extension.cpp" />
+  </ItemGroup>
+</Project>
