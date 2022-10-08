@@ -36,6 +36,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Delay lyric search when results aren't visible (e.g fb2k is minimised)\n"
     "- Fix accidentally deleting newlines from genius, azlyrics & darklyrics\n"
     "- Fix the AZLyrics source not returning lyrics available on the site\n"
+    "- Fix 'Invalid path syntax' error when saving lyrics to network share\n"
     "- Change preferences nomenclature from 'ID3 tags' to 'Metadata tags'\n"
     "- Re-word preferences for local files from 'save' to 'storage' folder\n"
     "- Replace the internal HTML parser for MIT license compatibility\n"

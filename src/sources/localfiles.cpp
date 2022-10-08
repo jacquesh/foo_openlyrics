@@ -93,6 +93,16 @@ bool LocalFileSource::lookup(LyricDataRaw& data, abort_callback& abort)
 static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort)
 {
     pfc::string parent = pfc::io::path::getParent(dir_path);
+    if(parent == "file://\\\\")
+    {
+        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a network filesystem).
+        // filesystem::g_exists fails (at least in SDK version 20200728 with fb2k version 1.6.7) on a path like that.
+        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just return here
+        // as if it does and then either the existence checks further down the path tree will fail, or the actual file write will fail.
+        // Both are guarded against IO failure, so that'd be fine (we'd just do slightly more work).
+        return;
+    }
+
     if(!parent.isEmpty())
     {
         ensure_dir_exists(parent, abort);
