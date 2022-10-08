@@ -1,5 +1,5 @@
 #pragma once
-
+#include <functional>
 #include <atlcomcli.h> // CComPtr
 
 unsigned QueryScreenDPI(HWND wnd = NULL);
@@ -7,10 +7,9 @@ unsigned QueryScreenDPI_X(HWND wnd = NULL);
 unsigned QueryScreenDPI_Y(HWND wnd = NULL);
 
 SIZE QueryScreenDPIEx(HWND wnd = NULL);
+SIZE QueryContextDPI(HDC dc);
 
 void HeaderControl_SetSortIndicator(HWND header, int column, bool isUp);
-
-POINT GetCursorPos();
 
 HINSTANCE GetThisModuleHandle();
 
@@ -46,3 +45,8 @@ void SetDefaultMenuItem(HMENU p_menu, unsigned p_id);
 
 void GetOSVersionString(pfc::string_base & out);
 WORD GetOSVersionCode();
+bool IsWine();
+DWORD Win10BuildNumber();
+
+void EnumChildWindows(HWND, std::function<void(HWND)>); // Recursive
+void EnumChildWindowsHere(HWND, std::function<void(HWND)>); // Non-recursive

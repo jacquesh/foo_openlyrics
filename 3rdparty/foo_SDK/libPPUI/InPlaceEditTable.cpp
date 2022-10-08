@@ -39,7 +39,7 @@ namespace InPlaceEdit {
 			}
 		}
 		PFC_ASSERT(!"Should not get here.");
-		return ~0;
+		return SIZE_MAX;
 	}
 	t_size CTableEditHelperV2::PositionToColumn(t_size pos) const {
 		pfc::array_t<t_size> colOrder; GrabColumnOrder(colOrder);
@@ -52,7 +52,7 @@ namespace InPlaceEdit {
 			}
 		}
 		PFC_ASSERT(!"Should not get here.");
-		return ~0;
+		return SIZE_MAX;
 	}
 	t_size CTableEditHelperV2::EditableColumnCount() const {
 		const t_size total = TableEdit_GetColumnCount();
@@ -101,19 +101,21 @@ namespace InPlaceEdit {
 
 	}
 
-	void CTableEditHelperV2::TableEdit_Start(t_size item, t_size subItem) {
+	HWND CTableEditHelperV2::TableEdit_Start(t_size item, t_size subItem) {
 		PFC_ASSERT(TableEdit_IsColumnEditable(subItem));
 		m_editItem = item; m_editSubItem = subItem;
-		_ReStart();
+		return _ReStart();
 	}
 
-	void CTableEditHelperV2::_ReStart() {
+	HWND CTableEditHelperV2::_ReStart() {
 		PFC_ASSERT(m_editItem < TableEdit_GetItemCount());
 		PFC_ASSERT(m_editSubItem < TableEdit_GetColumnCount());
 
 		TableEdit_SetItemFocus(m_editItem, m_editSubItem);
 
 		m_editFlags = TableEdit_GetEditFlags(m_editItem, m_editSubItem);
+
+		if (this->TableEdit_GetDarkMode()) m_editFlags |= KFlagDark;
 
 		m_editData.release();
 		m_editDataCombo.reset();
@@ -131,8 +133,7 @@ namespace InPlaceEdit {
 				task(status);
 			};
 
-			InPlaceEdit::StartCombo(TableEdit_GetParentWnd(), rc, m_editFlags, combo.strings, combo.iDefault, comboTask );
-			return;
+			return InPlaceEdit::StartCombo(TableEdit_GetParentWnd(), rc, m_editFlags, combo.strings, combo.iDefault, comboTask );
 		}
 
 		m_editData.new_t();
@@ -145,10 +146,10 @@ namespace InPlaceEdit {
 			m_editFlags |= KFlagMultiLine;
 		}
 		auto ac = this->TableEdit_GetAutoCompleteEx(m_editItem, m_editSubItem );
-		InPlaceEdit::StartEx(TableEdit_GetParentWnd(), rc, m_editFlags, m_editData, tableEdit_create_task(), ac.data.get_ptr(), ac.options);
+		return InPlaceEdit::StartEx(TableEdit_GetParentWnd(), rc, m_editFlags, m_editData, tableEdit_create_task(), ac.data.get_ptr(), ac.options);
 	}
 
-	CTableEditHelperV2::combo_t CTableEditHelperV2::TableEdit_GetCombo(size_t item, size_t sub) {
+	CTableEditHelperV2::combo_t CTableEditHelperV2::TableEdit_GetCombo(size_t, size_t) {
 		return combo_t();
 	}
 	CTableEditHelperV2::autoComplete_t CTableEditHelperV2::TableEdit_GetAutoCompleteEx( size_t item, size_t sub ) {
@@ -204,13 +205,19 @@ namespace InPlaceEdit {
 	}
 	void CTableEditHelperV2_ListView::TableEdit_SetField(t_size item, t_size subItem, const char * value) {
 		WIN32_OP_D(listview_helper::set_item_text(TableEdit_GetParentWnd(), (int)item, (int)subItem, value));
+
+#if PFC_DEBUG
+		pfc::string8 meh;
+		listview_helper::get_item_text(TableEdit_GetParentWnd(), (int)item, (int)subItem, meh);
+		PFC_ASSERT(meh == value);
+#endif
 	}
 	t_size CTableEditHelperV2_ListView::TableEdit_GetItemCount() const {
 		LRESULT temp;
 		WIN32_OP_D((temp = ListView_GetItemCount(TableEdit_GetParentWnd())) >= 0);
 		return (t_size)temp;
 	}
-	void CTableEditHelperV2_ListView::TableEdit_SetItemFocus(t_size item, t_size subItem) {
+	void CTableEditHelperV2_ListView::TableEdit_SetItemFocus(t_size item, t_size) {
 		WIN32_OP_D(listview_helper::select_single_item(TableEdit_GetParentWnd(), (int) item));
 	}
 

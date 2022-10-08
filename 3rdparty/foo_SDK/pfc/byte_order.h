@@ -86,9 +86,8 @@ namespace pfc {
 
 #ifdef _MSC_VER
 
-#if defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM)
+// No MSVC platform is ever big endian
 #define PFC_BYTE_ORDER_IS_BIG_ENDIAN 0
-#endif
 
 #else//_MSC_VER
 

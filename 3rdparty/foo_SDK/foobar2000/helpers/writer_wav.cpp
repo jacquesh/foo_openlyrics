@@ -8,6 +8,7 @@
 
 #include "writer_wav.h"
 
+#include "audio_render_float.h"
 
 static const GUID guid_RIFF = pfc::GUID_from_text("66666972-912E-11CF-A5D6-28DB04C10000");
 static const GUID guid_WAVE = pfc::GUID_from_text("65766177-ACF3-11D3-8CD1-00C04F8EDB8A");
@@ -216,43 +217,9 @@ void CWavWriter::write(const audio_chunk & p_chunk, abort_callback & p_abort)
 	
 	if (m_setup.m_float)
 	{
-		switch(m_setup.m_bps)
-		{
-		case 32:
-			{
-#if audio_sample_size == 32
-				t_size bytes = p_chunk.get_sample_count() * p_chunk.get_channels() * sizeof(audio_sample);
-				write_raw( p_chunk.get_data(),bytes,p_abort );
-#else
-				enum {tempsize = 256};
-				float temp[tempsize];
-				t_size todo = p_chunk.get_sample_count() * p_chunk.get_channels();
-				const audio_sample * readptr = p_chunk.get_data();
-				while(todo > 0)
-				{
-					unsigned n,delta = todo;
-					if (delta > tempsize) delta = tempsize;
-                    for(n=0;n<delta;n++)
-						temp[n] = (float)(*(readptr++));
-					unsigned bytes = delta * sizeof(float);
-					write_raw(temp,bytes,p_abort);
-					todo -= delta;
-				}
-#endif
-			}
-			break;
-#if 0
-		case 64:
-			{
-				unsigned bytes = p_chunk.get_sample_count() * p_chunk.get_channels() * sizeof(audio_sample);
-				m_file->write_object_e(p_chunk.get_data(),bytes,p_abort);
-				m_bytes_written += bytes;
-			}
-			break;
-#endif
-		default:
-			throw exception_io_data();
-		}
+		const size_t count = p_chunk.get_channels() * p_chunk.get_sample_count();
+		const void* data = render_float_by_bps(m_setup.m_bps, m_postprocessor_output, p_chunk.get_data(), count);
+		write_raw(data, count * m_setup.m_bps / 8, p_abort);
 	}
 	else
 	{

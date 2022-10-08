@@ -4,20 +4,17 @@
 #include <string>
 #include <functional>
 #include <memory>
-#include "WTL-PP.h"
+#include "wtl-pp.h"
 
 #include "CButtonLite.h"
 
 class CEditWithButtons : public CEditPPHooks {
 public:
-	CEditWithButtons(::ATL::CMessageMap * hookMM = nullptr, int hookMMID = 0) : CEditPPHooks(hookMM, hookMMID), m_fixedWidth() {}
+	CEditWithButtons(::ATL::CMessageMap * hookMM = nullptr, int hookMMID = 0) : CEditPPHooks(hookMM, hookMMID) {}
 
-	enum {
-		MSG_CHECKCONDITIONS = WM_USER+13,
-		MSG_CHECKCONDITIONS_MAGIC1 = 0xaec66f0c,
-		MSG_CHECKCONDITIONS_MAGIC2 = 0x180c2f35,
-
-	};
+	static constexpr UINT MSG_CHECKCONDITIONS = WM_USER + 13;
+	static constexpr WPARAM MSG_CHECKCONDITIONS_MAGIC1 = 0xaec66f0c;
+	static constexpr LPARAM MSG_CHECKCONDITIONS_MAGIC2 = 0x180c2f35;
 
 	BEGIN_MSG_MAP_EX(CEditWithButtons)
 		MSG_WM_SETFONT(OnSetFont)
@@ -101,7 +98,7 @@ private:
 		SetMsgHandled(FALSE);
 		return 0;
 	}
-	int OnSetText(LPCTSTR lpstrText) {
+	int OnSetText(LPCTSTR) {
 		PostCheckConditions();
 		SetMsgHandled(FALSE);
 		return 0;
@@ -115,6 +112,7 @@ private:
 		SetMsgHandled(FALSE); 
 	}
 	void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) {
+		(void)nRepCnt; (void)nFlags;
 		if (nChar == VK_TAB ) {
 			return;
 		}
@@ -122,6 +120,7 @@ private:
 		SetMsgHandled(FALSE);
 	}
 	void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+		(void)nRepCnt; (void)nFlags;
 		if ( nChar == VK_TAB ) {
 			return;
 		}
@@ -133,7 +132,7 @@ private:
 		if (m_buttons.size() == 0) return false;
 		return true;
 	}
-	UINT OnGetDlgCode(UINT, WPARAM wp, LPARAM lp) {
+	UINT OnGetDlgCode(UINT, WPARAM wp, LPARAM) {
 		if ( wp == VK_TAB && canStealTab() ) {
 			for (auto i = m_buttons.begin(); i != m_buttons.end(); ++ i ) {
 				if ( i->visible ) {
@@ -150,26 +149,26 @@ private:
 	void OnKillFocus(HWND) {
 		this->ModifyStyleEx(WS_EX_CONTROLPARENT, 0 ); SetMsgHandled(FALSE);
 	}
-	HBRUSH OnColorBtn(CDCHandle dc, CButton button) {
+	HBRUSH OnColorBtn(CDCHandle dc, CButton) {
 		if ( (this->GetStyle() & ES_READONLY) != 0 || !this->IsWindowEnabled() ) {
 			return (HBRUSH) GetParent().SendMessage( WM_CTLCOLORSTATIC, (WPARAM) dc.m_hDC, (LPARAM) m_hWnd );
 		} else {
 			return (HBRUSH) GetParent().SendMessage( WM_CTLCOLOREDIT, (WPARAM) dc.m_hDC, (LPARAM) m_hWnd );
 		}
 	}
-	void OnPosChanged(LPWINDOWPOS lpWndPos) {
+	void OnPosChanged(LPWINDOWPOS) {
 		Layout(); SetMsgHandled(FALSE);
 	}
 	
 	struct Button_t {
 		std::wstring title, titleDraw;
 		handler_t handler;
-		std::shared_ptr<CButtonLite> buttonImpl;
-		CWindow wnd;
+		CButtonLite wnd;
 		bool visible;
 		condition_t condition;
 	};
 	void OnSetFont(CFontHandle font, BOOL bRedraw) {
+		(void)bRedraw;
 		CRect rc;
 		if (GetClientRect(&rc)) {
 			Layout(rc.Size(), font);
@@ -207,7 +206,7 @@ private:
 	void Layout(CSize size, CFontHandle fontSetMe);
 	unsigned MeasureButton(Button_t const & button );
 
-	unsigned m_fixedWidth;
+	unsigned m_fixedWidth = 0;
 	std::list< Button_t > m_buttons;
 	bool m_hasAutoComplete = false;
 };

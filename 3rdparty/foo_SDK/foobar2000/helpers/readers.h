@@ -28,14 +28,16 @@ private:
 
 class reader_membuffer_simple : public reader_membuffer_base {
 public:
-	reader_membuffer_simple(const void * ptr, t_size size, t_filetimestamp ts = filetimestamp_invalid, bool is_remote = false) : m_isRemote(is_remote), m_ts(ts) {
+	reader_membuffer_simple(const void * ptr, t_size size, t_filetimestamp ts = filetimestamp_invalid, bool is_remote = false) : m_ts(ts), m_isRemote(is_remote) {
 		m_data.set_size_discard(size);
-		memcpy(m_data.get_ptr(), ptr, size);
+		if ( ptr != nullptr ) memcpy(m_data.get_ptr(), ptr, size);
 	}
 	const void * get_buffer() { return m_data.get_ptr(); }
+	void* _get_write_buffer() { return m_data.get_ptr(); }
 	t_size get_buffer_size() { return m_data.get_size(); }
 	t_filetimestamp get_timestamp(abort_callback & p_abort) { return m_ts; }
 	bool is_remote() { return m_isRemote; }
+
 private:
 	pfc::array_staticsize_t<t_uint8> m_data;
 	t_filetimestamp m_ts;
@@ -169,7 +171,7 @@ private:
 
 // A more clever version of reader_membuffer_*.
 // Behaves more nicely with large files within 32bit address space.
-class reader_bigmem : public file_readonly {
+class reader_bigmem : public file_readonly_t<file_get_metadata> {
 public:
 	reader_bigmem() : m_offset() {}
 	t_size read(void * p_buffer, t_size p_bytes, abort_callback & p_abort) {
@@ -207,6 +209,7 @@ public:
 	bool get_content_type(pfc::string_base & p_out) { return false; }
 	t_filetimestamp get_timestamp(abort_callback & p_abort) { return filetimestamp_invalid; }
 	bool is_remote() { return false; }
+	service_ptr get_metadata(abort_callback&) { return nullptr; }
 protected:
 	void resize(size_t newSize) {
 		m_offset = 0;
@@ -223,6 +226,7 @@ public:
 
 	void init(file::ptr source, abort_callback & abort) {
 		source->reopen(abort);
+		m_metadata = source->get_metadata_(abort);
 		t_filesize fs = source->get_size(abort);
 		if (fs > 1024 * 1024 * 1024) { // reject > 1GB
 			throw std::bad_alloc();
@@ -244,14 +248,19 @@ public:
 	}
 	t_filetimestamp get_timestamp(abort_callback & p_abort) { return m_ts; }
 	bool is_remote() { return m_isRemote; }
+	service_ptr get_metadata(abort_callback&) { return m_metadata; }
 private:
-	t_filetimestamp m_ts;
+	service_ptr m_metadata;
+	t_filetimestamp m_ts = filetimestamp_invalid;
 	pfc::string8 m_contentType;
-	bool m_isRemote;
+	bool m_isRemote = false;
 };
 
-class file_chain : public file {
+class file_chain : public file_get_metadata {
 public:
+	service_ptr get_metadata(abort_callback& a) {
+		return m_file->get_metadata_(a);
+	}
 	t_size read(void * p_buffer, t_size p_bytes, abort_callback & p_abort) {
 		return m_file->read(p_buffer, p_bytes, p_abort);
 	}

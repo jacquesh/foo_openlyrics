@@ -1,4 +1,5 @@
 #pragma once
+#include "synchro.h"
 
 namespace pfc {
 // Read/write lock guarded object store for safe concurrent access

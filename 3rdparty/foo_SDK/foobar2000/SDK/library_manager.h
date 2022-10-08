@@ -15,13 +15,17 @@ public:
 	};
 
 	//! Returns whether the specified item is in the Media Library or not.
+	//! MAIN THREAD ONLY until foobar2000 v2.0; valid to call from anywhere since v2.0
 	virtual bool is_item_in_library(const metadb_handle_ptr & p_item) = 0;
 	//! Returns whether current user settings allow the specified item to be added to the Media Library or not.
+	//! MAIN THREAD ONLY until foobar2000 v2.0; valid to call from anywhere since v2.0
 	virtual bool is_item_addable(const metadb_handle_ptr & p_item) = 0;
 	//! Returns whether current user settings allow the specified item path to be added to the Media Library or not.
+	//! MAIN THREAD ONLY until foobar2000 v2.0; valid to call from anywhere since v2.0
 	virtual bool is_path_addable(const char * p_path) = 0;
 	//! Retrieves path of the specified item relative to the Media Library folder it is in. Returns true on success, false when the item is not in the Media Library.
 	//! SPECIAL WARNING: to allow multi-CPU optimizations to parse relative track paths, this API works in threads other than the main app thread. Main thread MUST be blocked while working in such scenarios, it's NOT safe to call from worker threads while the Media Library content/configuration might be getting altered.
+	//! foobar2000 v2.0 and newer: legal to call from any thread with no restrictions.
 	virtual bool get_relative_path(const metadb_handle_ptr & p_item,pfc::string_base & p_out) = 0;
 	//! Calls callback method for every item in the Media Library. Note that order of items in Media Library is undefined.
 	virtual void enum_items(enum_callback & p_callback) = 0;
@@ -194,4 +198,13 @@ class NOVTABLE library_meta_autocomplete : public service_base {
 	FB2K_MAKE_SERVICE_COREAPI(library_meta_autocomplete)
 public:
 	virtual bool get_value_list(const char * metaName, pfc::com_ptr_t<IUnknown> & out) = 0;
+};
+
+//! \since 1.6.1
+//! Caching & asynchronous version. \n
+//! Keep a reference to your library_meta_autocomplete_v2 object in your dialog class to cache the looked up values & speed up the operation.
+class NOVTABLE library_meta_autocomplete_v2 : public service_base {
+	FB2K_MAKE_SERVICE_COREAPI(library_meta_autocomplete_v2)
+public:
+	virtual bool get_value_list_async(const char* metaName, pfc::com_ptr_t<IUnknown>& out) = 0;
 };

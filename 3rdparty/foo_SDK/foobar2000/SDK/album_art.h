@@ -6,11 +6,16 @@
 //! Type of contained picture data is unknown and to be determined according to memory block contents by code parsing/rendering the picture. Commonly encountered types are: BMP, PNG, JPEG and GIF. \n
 //! Implementation: use album_art_data_impl.
 class NOVTABLE album_art_data : public service_base {
+	FB2K_MAKE_SERVICE_INTERFACE(album_art_data, service_base);
 public:
 	//! Retrieves a pointer to a memory block containing the picture.
 	virtual const void * get_ptr() const = 0;
 	//! Retrieves size of the memory block containing the picture.
 	virtual t_size get_size() const = 0;
+
+	//! New code compat
+	size_t size() const { return get_size(); }
+	const void * data() const { return get_ptr(); }
 
 	//! Determine whether two album_art_data objects store the same picture data.
 	static bool equals(album_art_data const & v1, album_art_data const & v2) {
@@ -18,13 +23,20 @@ public:
 		if (s != v2.get_size()) return false;
 		return memcmp(v1.get_ptr(), v2.get_ptr(),s) == 0;
 	}
+	static bool equals(ptr const& v1, ptr const& v2) {
+		if (v1.is_valid() != v2.is_valid()) return false;
+		if (v1.is_empty() && v2.is_empty()) return true;
+		return equals(*v1, *v2);
+	}
+
 	bool operator==(const album_art_data & other) const {return equals(*this,other);}
 	bool operator!=(const album_art_data & other) const {return !equals(*this,other);}
-
-	FB2K_MAKE_SERVICE_INTERFACE(album_art_data,service_base);
 };
 
 typedef service_ptr_t<album_art_data> album_art_data_ptr;
+namespace fb2k {
+	typedef album_art_data_ptr memBlockRef;
+}
 
 //! Namespace containing identifiers of album art types.
 namespace album_art_ids {
@@ -178,6 +190,9 @@ class NOVTABLE album_art_path_list : public service_base {
 public:
 	virtual const char * get_path(t_size index) const = 0;
 	virtual t_size get_count() const = 0;
+
+	static bool equals(album_art_path_list const& v1, album_art_path_list const& v2);
+	static bool equals(ptr const& v1, ptr const& v2);
 };
 
 //! album_art_extractor_instance extension; lets the frontend query referenced file paths (eg. when using external album art).
@@ -254,4 +269,25 @@ public:
 
 	//! Helper; register a lambda notification. Pass the returned obejct to remove() to unregister.
 	now_playing_album_art_notify* add( std::function<void (album_art_data::ptr) > );
+};
+
+//! \since 1.6.6
+class NOVTABLE now_playing_album_art_notify_manager_v2 : public now_playing_album_art_notify_manager {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(now_playing_album_art_notify_manager_v2, now_playing_album_art_notify_manager);
+public:
+	struct info_t {
+		album_art_data::ptr data;
+		album_art_path_list::ptr paths;
+
+		static bool equals(const info_t& v1, const info_t& v2) {
+			return album_art_data::equals(v1.data, v2.data) && album_art_path_list::equals(v1.paths, v2.paths);
+		}
+		bool operator==(const info_t& other) const { return equals(*this, other); }
+		bool operator!=(const info_t& other) const { return !equals(*this, other); }
+
+		void clear() { *this = {}; }
+		bool is_valid() const { return data.is_valid(); }
+		operator bool() const { return is_valid(); }
+	};
+	virtual info_t current_v2() = 0;
 };

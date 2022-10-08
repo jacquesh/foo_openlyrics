@@ -9,32 +9,24 @@
 #define FB2K_LEAK_STATIC_OBJECTS PFC_LEAK_STATIC_OBJECTS 
 
 #define FB2K_TARGET_MICROSOFT_STORE 0
-#define FB2K_SUPPORT_CRASH_LOGS (!FB2K_TARGET_MICROSOFT_STORE)
+
+#if defined(_WIN32) && ! FB2K_TARGET_MICROSOFT_STORE
+#define FB2K_SUPPORT_CRASH_LOGS 1
+#endif
+#ifndef FB2K_SUPPORT_CRASH_LOGS
+#define FB2K_SUPPORT_CRASH_LOGS 0
+#endif
 
 #include <signal.h>
 
-#ifndef WIN32
-#error N/A
-#endif
 
-#ifndef STRICT
-#define STRICT
-#endif
-
+#ifdef _WIN32
 #include <windows.h>
 #include <ddeml.h>
 #include <commctrl.h>
 #include <uxtheme.h>
 //#include <tmschema.h>
 #include <vssym32.h>
-
-#ifndef NOTHROW
-#ifdef _MSC_VER
-#define NOTHROW __declspec(nothrow)
-#else
-#define NOTHROW
-#endif
-#endif
 
 #define SHARED_API /*NOTHROW*/ __stdcall
 
@@ -44,35 +36,53 @@
 #define SHARED_EXPORT __declspec(dllexport) SHARED_API
 #endif
 
+#else // _WIN32
+
+#define SHARED_API
+#define SHARED_EXPORT
+
+#endif // _WIN32
+
 extern "C" {
 
-//SHARED_EXPORT BOOL IsUnicode();
-#ifdef UNICODE
-#define IsUnicode() 1
+#ifdef _WIN32
+	typedef HANDLE uSortString_t;
 #else
-#define IsUnicode() 0
+	typedef void* uSortString_t;
 #endif
 
+// Implemented for non-Windows as well
+void SHARED_EXPORT uOutputDebugString(const char * msg);
+unsigned SHARED_EXPORT uCharLower(unsigned c);
+unsigned SHARED_EXPORT uCharUpper(unsigned c);
+int SHARED_EXPORT uStringCompare(const char * elem1, const char * elem2);
+int SHARED_EXPORT uCharCompare(t_uint32 p_char1,t_uint32 p_char2);
+uSortString_t SHARED_EXPORT uSortStringCreate(const char * src);
+int SHARED_EXPORT uSortStringCompare(uSortString_t string1,uSortString_t string2);
+int SHARED_EXPORT uSortStringCompareEx(uSortString_t string1,uSortString_t string2,uint32_t flags);//flags - see win32 CompareString
+int SHARED_EXPORT uSortPathCompare(uSortString_t string1,uSortString_t string2);
+void SHARED_EXPORT uSortStringFree(uSortString_t string);
+pfc::eventHandle_t SHARED_EXPORT GetInfiniteWaitEvent();
+} // extern "C"
+
+#ifdef _WIN32
+extern "C" {
 LRESULT SHARED_EXPORT uSendMessageText(HWND wnd,UINT msg,WPARAM wp,const char * text);
 LRESULT SHARED_EXPORT uSendDlgItemMessageText(HWND wnd,UINT id,UINT msg,WPARAM wp,const char * text);
 BOOL SHARED_EXPORT uGetWindowText(HWND wnd,pfc::string_base & out);
 BOOL SHARED_EXPORT uSetWindowText(HWND wnd,const char * p_text);
-BOOL SHARED_EXPORT uSetWindowTextEx(HWND wnd,const char * p_text,unsigned p_text_length);
+BOOL SHARED_EXPORT uSetWindowTextEx(HWND wnd,const char * p_text,size_t p_text_length);
 BOOL SHARED_EXPORT uGetDlgItemText(HWND wnd,UINT id,pfc::string_base & out);
 BOOL SHARED_EXPORT uSetDlgItemText(HWND wnd,UINT id,const char * p_text);
-BOOL SHARED_EXPORT uSetDlgItemTextEx(HWND wnd,UINT id,const char * p_text,unsigned p_text_length);
+BOOL SHARED_EXPORT uSetDlgItemTextEx(HWND wnd,UINT id,const char * p_text,size_t p_text_length);
 BOOL SHARED_EXPORT uBrowseForFolder(HWND parent,const char * title,pfc::string_base & out);
 BOOL SHARED_EXPORT uBrowseForFolderWithFile(HWND parent,const char * title,pfc::string_base & out,const char * p_file_to_find);
 int SHARED_EXPORT uMessageBox(HWND wnd,const char * text,const char * caption,UINT type);
-void SHARED_EXPORT uOutputDebugString(const char * msg);
 BOOL SHARED_EXPORT uAppendMenu(HMENU menu,UINT flags,UINT_PTR id,const char * content);
 BOOL SHARED_EXPORT uInsertMenu(HMENU menu,UINT position,UINT flags,UINT_PTR id,const char * content);
-int SHARED_EXPORT uStringCompare(const char * elem1, const char * elem2);
-int SHARED_EXPORT uCharCompare(t_uint32 p_char1,t_uint32 p_char2);
 int SHARED_EXPORT uStringCompare_ConvertNumbers(const char * elem1,const char * elem2);
 HINSTANCE SHARED_EXPORT uLoadLibrary(const char * name);
 HANDLE SHARED_EXPORT uCreateEvent(LPSECURITY_ATTRIBUTES lpEventAttributes,BOOL bManualReset,BOOL bInitialState, const char * lpName);
-HANDLE SHARED_EXPORT GetInfiniteWaitEvent();
 DWORD SHARED_EXPORT uGetModuleFileName(HMODULE hMod,pfc::string_base & out);
 BOOL SHARED_EXPORT uSetClipboardString(const char * ptr);
 BOOL SHARED_EXPORT uGetClipboardString(pfc::string_base & out);
@@ -111,18 +121,15 @@ BOOL SHARED_EXPORT uFixPathCaps(const char * path,pfc::string_base & p_out);
 void SHARED_EXPORT uGetCommandLine(pfc::string_base & out);
 BOOL SHARED_EXPORT uGetTempPath(pfc::string_base & out);
 BOOL SHARED_EXPORT uGetTempFileName(const char * path_name,const char * prefix,UINT unique,pfc::string_base & out);
+
+//! Win32 GetOpenFileName/GetSaveFileName wrapper. \n
+//! Extension mask uses | instead of \0 for delimiter; "Text files|*.txt|foo files|*.foo"
 BOOL SHARED_EXPORT uGetOpenFileName(HWND parent,const char * p_ext_mask,unsigned def_ext_mask,const char * p_def_ext,const char * p_title,const char * p_directory,pfc::string_base & p_filename,BOOL b_save);
-//note: uGetOpenFileName extension mask uses | as separator, not null
+
 HANDLE SHARED_EXPORT uLoadImage(HINSTANCE hIns,const char * name,UINT type,int x,int y,UINT flags);
 UINT SHARED_EXPORT uRegisterClipboardFormat(const char * name);
 BOOL SHARED_EXPORT uGetClipboardFormatName(UINT format,pfc::string_base & out);
 BOOL SHARED_EXPORT uFormatSystemErrorMessage(pfc::string_base & p_out,DWORD p_code);
-
-HANDLE SHARED_EXPORT uSortStringCreate(const char * src);
-int SHARED_EXPORT uSortStringCompare(HANDLE string1,HANDLE string2);
-int SHARED_EXPORT uSortStringCompareEx(HANDLE string1,HANDLE string2,DWORD flags);//flags - see win32 CompareString
-int SHARED_EXPORT uSortPathCompare(HANDLE string1,HANDLE string2);
-void SHARED_EXPORT uSortStringFree(HANDLE string);
 
 // New in 1.1.12
 HANDLE SHARED_EXPORT CreateFileAbortable(    __in     LPCWSTR lpFileName,
@@ -136,7 +143,7 @@ HANDLE SHARED_EXPORT CreateFileAbortable(    __in     LPCWSTR lpFileName,
 	);
 
 
-int SHARED_EXPORT uCompareString(DWORD flags,const char * str1,unsigned len1,const char * str2,unsigned len2);
+int SHARED_EXPORT uCompareString(DWORD flags,const char * str1,size_t len1,const char * str2,size_t len2);
 
 class NOVTABLE uGetOpenFileNameMultiResult : public pfc::list_base_const_t<const char*>
 {
@@ -239,8 +246,6 @@ void SHARED_EXPORT uPrintCrashInfo_SetDumpPath(const char * name);//called only 
 
 void SHARED_EXPORT uDumpCrashInfo(LPEXCEPTION_POINTERS param);
 
-void SHARED_EXPORT uPrintCrashInfo_OnEvent(const char * message, t_size length);
-
 BOOL SHARED_EXPORT uListBox_GetText(HWND listbox,UINT index,pfc::string_base & out);
 
 void SHARED_EXPORT uPrintfV(pfc::string_base & out,const char * fmt,va_list arglist);
@@ -263,9 +268,6 @@ HRSRC SHARED_EXPORT uFindResource(HMODULE hMod,const char * name,const char * ty
 
 BOOL SHARED_EXPORT uLoadString(HINSTANCE ins,UINT id,pfc::string_base & out);
 
-UINT SHARED_EXPORT uCharLower(UINT c);
-UINT SHARED_EXPORT uCharUpper(UINT c);
-
 BOOL SHARED_EXPORT uGetMenuString(HMENU menu,UINT id,pfc::string_base & out,UINT flag);
 BOOL SHARED_EXPORT uModifyMenu(HMENU menu,UINT id,UINT flags,UINT newitem,const char * data);
 UINT SHARED_EXPORT uGetMenuItemType(HMENU menu,UINT position);
@@ -274,42 +276,26 @@ UINT SHARED_EXPORT uGetMenuItemType(HMENU menu,UINT position);
 // New in 1.3.4
 // Load a system library safely - forcibly look in system directories, not elsewhere.
 HMODULE SHARED_EXPORT LoadSystemLibrary(const TCHAR * name);
+
+void SHARED_EXPORT uPrintCrashInfo_OnEvent(const char * message, t_size length);
+
 }//extern "C"
 
-static inline void uAddDebugEvent(const char * msg) {uPrintCrashInfo_OnEvent(msg, strlen(msg));}
 
 inline char * uCharNext(char * src) {return src+uCharLength(src);}
 inline const char * uCharNext(const char * src) {return src+uCharLength(src);}
 
 
-class string_utf8_from_window
-{
-public:
-	string_utf8_from_window(HWND wnd)
-	{
-		uGetWindowText(wnd,m_data);
-	}
-	string_utf8_from_window(HWND wnd,UINT id)
-	{
-		uGetDlgItemText(wnd,id,m_data);
-	}
-	inline operator const char * () const {return m_data.get_ptr();}
-	inline t_size length() const {return m_data.length();}
-	inline bool is_empty() const {return length() == 0;}
-	inline const char * get_ptr() const {return m_data.get_ptr();}
-private:
-	pfc::string8 m_data;
-};
-
-static pfc::string uGetWindowText(HWND wnd) {
+inline pfc::string uGetWindowText(HWND wnd) {
 	pfc::string8 temp;
-	if (!uGetWindowText(wnd,temp)) return "";
-	return temp.toString();
+	if (!uGetWindowText(wnd,temp)) temp = "";
+	return temp;
 }
-static pfc::string uGetDlgItemText(HWND wnd,UINT id) {
+
+inline pfc::string uGetDlgItemText(HWND wnd,UINT id) {
 	pfc::string8 temp;
-	if (!uGetDlgItemText(wnd,id,temp)) return "";
-	return temp.toString();
+	if (!uGetDlgItemText(wnd,id,temp)) temp = "";
+	return temp;
 }
 
 #define uMAKEINTRESOURCE(x) ((const char*)LOWORD(x))
@@ -360,12 +346,17 @@ public:
 private:
 	pfc::string8_fastalloc m_data;
 };
-#pragma deprecated(uStringPrintf, uPrintf, uPrintfV)
 
 inline LRESULT uButton_SetCheck(HWND wnd,UINT id,bool state) {return uSendDlgItemMessage(wnd,id,BM_SETCHECK,state ? BST_CHECKED : BST_UNCHECKED,0); }
 inline bool uButton_GetCheck(HWND wnd,UINT id) {return uSendDlgItemMessage(wnd,id,BM_GETCHECK,0,0) == BST_CHECKED;}
 
+inline BOOL uGetLongPathNameEx(const char * name,pfc::string_base & out)
+{
+    if (uGetLongPathName(name,out)) return TRUE;
+    return uGetFullPathName(name,out);
+}
 
+#endif // _WIN32
 
 extern "C" {
 int SHARED_EXPORT stricmp_utf8(const char * p1,const char * p2) throw();
@@ -424,13 +415,7 @@ private:
 	pfc::string8 m_data;
 };
 
-
-inline BOOL uGetLongPathNameEx(const char * name,pfc::string_base & out)
-{
-	if (uGetLongPathName(name,out)) return TRUE;
-	return uGetFullPathName(name,out);
-}
-
+#ifdef _WIN32
 struct t_font_description
 {
 	enum
@@ -497,7 +482,7 @@ extern "C" {
 	void SHARED_EXPORT PokeWindow(HWND p_wnd);
 };
 
-static bool ModalDialogPrologue() {
+inline bool ModalDialogPrologue() {
 	bool rv = ModalDialog_CanCreateNew();
 	if (!rv) ModalDialog_PokeExisting();
 	return rv;
@@ -550,10 +535,12 @@ private:
 	bool m_initialized;
 };
 
-
+#endif // _WIN32
 
 #include "audio_math.h"
+#ifdef _WIN32
 #include "win32_misc.h"
+#endif
 
 #include "fb2kdebug.h"
 
@@ -562,5 +549,42 @@ private:
 #else
 #define FB2K_STATIC_OBJECT(TYPE, NAME) static TYPE NAME;
 #endif
+
+
+#ifdef _MSC_VER
+#define FB2K_DEPRECATED __declspec(deprecated)
+#else
+#define FB2K_DEPRECATED
+#endif
+
+
+namespace fb2k {
+#ifdef _WIN32
+typedef HWND hwnd_t;
+typedef HICON hicon_t;
+typedef HMENU hmenu_t;
+typedef HFONT hfont_t;
+#else
+typedef void* hwnd_t;
+typedef void* hicon_t;
+typedef void* hmenu_t;
+typedef void* hfont_t;
+#endif
+
+inline void messageBeep() {
+#ifdef _WIN32
+    MessageBeep(0);
+#endif
+}
+}
+
+#ifdef __APPLE__
+#include "shared-apple.h"
+#endif
+
+#ifndef _WIN32
+#include "shared-nix.h"
+#endif
+
 
 #endif //_SHARED_DLL__SHARED_H_

@@ -1,6 +1,6 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "cue_creator.h"
-
+#include "../SDK/chapterizer.h"
 
 namespace {
 
@@ -45,6 +45,9 @@ static bool is_meta_same_everywhere(const cue_creator::t_entry_list & p_list,con
 
 namespace cue_creator
 {
+	pfc::string_formatter create(const t_entry_list& p_list) {
+		pfc::string_formatter ret; create(ret, p_list); return ret;
+	}
 	void create(pfc::string_formatter & p_out,const t_entry_list & p_data)
 	{
 		if (p_data.get_count() == 0) return;
@@ -130,8 +133,13 @@ namespace cue_creator
 			if (iter->m_infos.meta_find("title") != pfc_infinite)
 				p_out << "    TITLE \"" << format_meta(iter->m_infos,"title") << "\"" << g_eol;
 			
-			if (!artist_global && iter->m_infos.meta_find("artist") != pfc_infinite)
+			const bool bHaveArtist = iter->m_infos.meta_exists("artist");
+			if (!artist_global && bHaveArtist) {
 				p_out << "    PERFORMER \"" << format_meta(iter->m_infos,"artist") << "\"" << g_eol;
+			} else if (album_artist_global && !bHaveArtist) {
+				// special case: album artist set, track artist not set
+				p_out << "    PERFORMER \"\"" << g_eol;
+			}
 
 			if (!songwriter_global && iter->m_infos.meta_find("songwriter") != pfc_infinite) {
 				p_out << "    SONGWRITER \"" << format_meta(iter->m_infos,"songwriter") << "\"" << g_eol;
@@ -144,7 +152,9 @@ namespace cue_creator
 			if (!date_global && iter->m_infos.meta_find("date") != pfc_infinite) {
 				p_out << "    REM DATE " << format_meta(iter->m_infos,"date") << g_eol;
 			}
-
+			if (!comment_global && iter->m_infos.meta_exists("comment")) {
+				p_out << "    REM COMMENT " << format_meta(iter->m_infos, "comment") << g_eol;
+			}
 
 
 			{

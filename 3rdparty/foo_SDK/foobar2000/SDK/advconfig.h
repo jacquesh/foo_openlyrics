@@ -23,7 +23,7 @@ public:
 	}
 
 	static const GUID guid_root;
-	static const GUID guid_branch_tagging,guid_branch_decoding,guid_branch_tools,guid_branch_playback,guid_branch_display,guid_branch_debug, guid_branch_tagging_general;
+	static const GUID guid_branch_tagging,guid_branch_decoding,guid_branch_tools,guid_branch_playback,guid_branch_display,guid_branch_debug, guid_branch_tagging_general, guid_branch_converter;
 
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(advconfig_entry);
 };
@@ -88,11 +88,11 @@ public:
 class advconfig_branch_impl : public advconfig_branch {
 public:
 	advconfig_branch_impl(const char * p_name,const GUID & p_guid,const GUID & p_parent,double p_priority) : m_name(p_name), m_guid(p_guid), m_parent(p_parent), m_priority(p_priority) {}
-	void get_name(pfc::string_base & p_out) {p_out = m_name;}
-	GUID get_guid() {return m_guid;}
-	GUID get_parent() {return m_parent;}
-	void reset() {}
-	double get_sort_priority() {return m_priority;}
+	void get_name(pfc::string_base & p_out) override {p_out = m_name;}
+	GUID get_guid() override {return m_guid;}
+	GUID get_parent() override {return m_parent;}
+	void reset() override {}
+	double get_sort_priority() override {return m_priority;}
 private:
 	pfc::string8 m_name;
 	GUID m_guid,m_parent;
@@ -100,30 +100,31 @@ private:
 };
 
 //! Standard implementation of advconfig_entry_checkbox. \n
-//! p_is_radio parameter controls whether we're implementing a checkbox or a radiocheckbox (see advconfig_entry_checkbox description for more details).
-template<bool p_is_radio = false, uint32_t prefFlags = 0>
 class advconfig_entry_checkbox_impl : public advconfig_entry_checkbox_v2 {
 public:
-	advconfig_entry_checkbox_impl(const char * p_name,const GUID & p_guid,const GUID & p_parent,double p_priority,bool p_initialstate)
-		: m_name(p_name), m_initialstate(p_initialstate), m_state(p_guid,p_initialstate), m_parent(p_parent), m_priority(p_priority) {}
+	advconfig_entry_checkbox_impl(const char * p_name,const GUID & p_guid,const GUID & p_parent,double p_priority,bool p_initialstate, bool isRadio = false, uint32_t flags = 0)
+		: m_name(p_name), m_initialstate(p_initialstate), m_state(p_guid,p_initialstate), m_parent(p_parent), m_priority(p_priority), m_isRadio(isRadio), m_flags(flags) {}
 	
-	void get_name(pfc::string_base & p_out) {p_out = m_name;}
-	GUID get_guid() {return m_state.get_guid();}
-	GUID get_parent() {return m_parent;}
-	void reset() {m_state = m_initialstate;}
-	bool get_state() {return m_state;}
-	void set_state(bool p_state) {m_state = p_state;}
-	bool is_radio() {return p_is_radio;}
-	double get_sort_priority() {return m_priority;}
-	bool get_state_() const {return m_state;}
-	bool get_default_state() {return m_initialstate;}
-	bool get_default_state_() const {return m_initialstate;}
-	t_uint32 get_preferences_flags() {return prefFlags;}
+	void get_name(pfc::string_base & p_out) override {p_out = m_name;}
+	GUID get_guid() override {return m_state.get_guid();}
+	GUID get_parent() override {return m_parent;}
+	void reset() override {m_state = m_initialstate;}
+	bool get_state() override {return m_state;}
+	void set_state(bool p_state) override {m_state = p_state;}
+	bool is_radio() override {return m_isRadio;}
+	double get_sort_priority() override {return m_priority;}
+	bool get_default_state() override {return m_initialstate;}
+	t_uint32 get_preferences_flags() override {return m_flags;}
+
+	bool get_state_() const { return m_state; }
+	bool get_default_state_() const { return m_initialstate; }
 private:
-	pfc::string8 m_name;
+	const pfc::string8 m_name;
 	const bool m_initialstate;
+	const bool m_isRadio;
+	const uint32_t m_flags;
 	cfg_bool m_state;
-	GUID m_parent;
+	const GUID m_parent;
 	const double m_priority;
 };
 
@@ -135,24 +136,36 @@ public:
 		: service_factory_single_t<advconfig_branch_impl>(p_name,p_guid,p_parent,p_priority) {}
 };
 
-//! Service factory helper around standard advconfig_entry_checkbox implementation. Use this class to register your own Advanced Preferences checkbox/radiocheckbox entries. \n
-//! Usage: static advconfig_entry_checkbox<isRadioBox> mybox(name, itemID, parentID, priority, initialstate);
-template<bool p_is_radio, uint32_t prefFlags = 0>
-class advconfig_checkbox_factory_t : public service_factory_single_t<advconfig_entry_checkbox_impl<p_is_radio, prefFlags> > {
+class advconfig_checkbox_factory_common : public service_factory_single_t<advconfig_entry_checkbox_impl> {
 public:
-	advconfig_checkbox_factory_t(const char * p_name,const GUID & p_guid,const GUID & p_parent,double p_priority,bool p_initialstate) 
-		: service_factory_single_t<advconfig_entry_checkbox_impl<p_is_radio, prefFlags> >(p_name,p_guid,p_parent,p_priority,p_initialstate) {}
-
-	bool get() const {return this->get_static_instance().get_state_();}
-	void set(bool val) {this->get_static_instance().set_state(val);}
-	operator bool() const {return get();}
-	bool operator=(bool val) {set(val); return val;}
+	template<typename ... args_t> advconfig_checkbox_factory_common(args_t && ... args) : service_factory_single_t<advconfig_entry_checkbox_impl>(std::forward<args_t>(args) ...) {}
+	
+	bool get() const { return this->get_static_instance().get_state_(); }
+	void set(bool val) { this->get_static_instance().set_state(val); }
+	operator bool() const { return get(); }
+	bool operator=(bool val) { set(val); return val; }
 };
 
-//! Service factory helper around standard advconfig_entry_checkbox implementation, specialized for checkboxes (rather than radiocheckboxes). See advconfig_checkbox_factory_t<> for more details.
-typedef advconfig_checkbox_factory_t<false> advconfig_checkbox_factory;
-//! Service factory helper around standard advconfig_entry_checkbox implementation, specialized for radiocheckboxes (rather than standard checkboxes). See advconfig_checkbox_factory_t<> for more details.
-typedef advconfig_checkbox_factory_t<true> advconfig_radio_factory;
+class advconfig_checkbox_factory : public advconfig_checkbox_factory_common  {
+public:
+	advconfig_checkbox_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate, uint32_t flags = 0) 
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, false /* not radio */, flags) {}
+
+};
+
+class advconfig_radio_factory : public advconfig_checkbox_factory_common {
+public:
+	advconfig_radio_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate, uint32_t flags = 0)
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, true /* radio */, flags) {}
+};
+
+// OBSOLETE, use advconfig_checkbox_factory / advconfig_radio_factory
+template<bool p_is_radio, uint32_t prefFlags = 0>
+class advconfig_checkbox_factory_t : public advconfig_checkbox_factory_common {
+public:
+	advconfig_checkbox_factory_t(const char * p_name,const GUID & p_guid,const GUID & p_parent,double p_priority,bool p_initialstate) 
+		: advconfig_checkbox_factory_common(p_name,p_guid,p_parent,p_priority,p_initialstate, p_is_radio, prefFlags) {}
+};
 
 
 //! Standard advconfig_entry_string implementation. Use advconfig_string_factory to register your own string entries in Advanced Preferences instead of using this class directly.

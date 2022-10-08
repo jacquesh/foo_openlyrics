@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "cue_parser.h"
 
 
@@ -69,8 +69,8 @@ namespace {
 		static bool is_known_meta(const char * p_name,t_size p_length)
 		{
 			static const char * metas[] = {"genre","date","discid","comment","replaygain_track_gain","replaygain_track_peak","replaygain_album_gain","replaygain_album_peak"};
-			for(t_size n=0;n<PFC_TABSIZE(metas);n++) {
-				if (!stricmp_utf8_ex(p_name,p_length,metas[n],pfc_infinite)) return true;
+			for (const char* m : metas) {
+				if (!stricmp_utf8_ex(p_name, p_length, m, pfc_infinite)) return true;
 			}
 			return false;
 		}
@@ -129,9 +129,7 @@ namespace {
 	class cue_parser_callback_retrievelist : public cue_parser_callback
 	{
 	public:
-		cue_parser_callback_retrievelist(cue_parser::t_cue_entry_list & p_out) : m_out(p_out), m_track(0), m_pregap(0), m_index0_set(false), m_index1_set(false)
-		{
-		}
+		cue_parser_callback_retrievelist(cue_parser::t_cue_entry_list& p_out) : m_out(p_out) {}
 		
 		void on_file(const char * p_file,t_size p_file_length,const char * p_type,t_size p_type_length)
 		{
@@ -204,10 +202,10 @@ namespace {
 			m_track = 0; m_trackIsAudio = false;
 		}
 
-		bool m_index0_set,m_index1_set;
+		bool m_index0_set = false,m_index1_set = false;
 		t_cuesheet_index_list m_index_list;
-		double m_pregap;
-		unsigned m_track;
+		double m_pregap = 0;
+		unsigned m_track = 0;
 		bool m_trackIsAudio = false;
 		pfc::string8 m_file,m_fileType,m_trackfile,m_trackFileType;
 		cue_parser::t_cue_entry_list & m_out;
@@ -290,6 +288,10 @@ namespace {
 			}
 		}
 
+		void _meta_set(const char* key, const pfc::string8 & value) {
+			if ( value.length() > 0 ) m_out.meta_set( key, value );
+		}
+
 		void finalize()
 		{
 			if (!m_index1_set) pfc::throw_exception_with_message< exception_cue > ("INDEX 01 not set");
@@ -310,13 +312,16 @@ namespace {
 				iter_local = find_first_field(m_locals,"artist");
 				if (iter_global.is_valid())
 				{
-					m_out.meta_set("album artist",iter_global->m_value);
-					if (iter_local.is_valid()) m_out.meta_set("artist",iter_local->m_value);
-					else m_out.meta_set("artist",iter_global->m_value);
+					_meta_set("album artist",iter_global->m_value);
+					if (iter_local.is_valid()) {
+						_meta_set("artist",iter_local->m_value);
+					} else {
+						_meta_set("artist",iter_global->m_value);
+					}
 				}
 				else
 				{
-					if (iter_local.is_valid()) m_out.meta_set("artist",iter_local->m_value);
+					if (iter_local.is_valid()) _meta_set("artist",iter_local->m_value);
 				}
 				
 
@@ -328,12 +333,12 @@ namespace {
 			for(iter=m_globals.first();iter.is_valid();iter++)
 			{
 				if (!rg.set_from_meta(iter->m_name,iter->m_value))
-					m_out.meta_set(iter->m_name,iter->m_value);
+					_meta_set(iter->m_name,iter->m_value);
 			}
 			for(iter=m_locals.first();iter.is_valid();iter++)
 			{
 				if (!rg.set_from_meta(iter->m_name,iter->m_value))
-					m_out.meta_set(iter->m_name,iter->m_value);
+					_meta_set(iter->m_name,iter->m_value);
 			}
 			m_out.meta_set("tracknumber",PFC_string_formatter() << m_wanted_track);
 			m_out.meta_set("totaltracks", PFC_string_formatter() << m_totaltracks);
@@ -524,7 +529,8 @@ static void g_parse_cue_line(const char * p_line,t_size p_line_length,cue_parser
 	else if (!stricmp_utf8_ex(p_line,ptr,"performer",pfc_infinite))
 	{
 		auto arg = cue_line_argument(p_line + ptr, p_line_length - ptr);
-		if (arg.m_len > 0) p_callback.on_performer(arg.m_ptr, arg.m_len);
+		// 2021-01 fix: allow blank performer
+		/*if (arg.m_len > 0)*/ p_callback.on_performer(arg.m_ptr, arg.m_len);
 	}
 	else if (!stricmp_utf8_ex(p_line,ptr,"songwriter",pfc_infinite))
 	{
@@ -715,7 +721,6 @@ namespace {
 		bool m_index0_set,m_index1_set;
 		double m_pregap;
 		unsigned m_track;
-		bool m_trackIsAudio = false;
 		cue_creator::t_entry_list & m_out;
 		pfc::string8 m_file, m_fileType,m_trackfile, m_trackFileType, m_flags, m_trackType;
 		t_cuesheet_index_list m_indexes;
@@ -845,6 +850,11 @@ namespace file_info_record_helper {
 
 	const file_info_record::t_meta_value * file_info_record::meta_query_ptr(const char * p_name) const {
 		return m_meta.query_ptr(p_name);
+	}
+	size_t file_info_record::meta_value_count(const char* name) const {
+		auto v = meta_query_ptr(name);
+		if (v == nullptr) return 0;
+		return v->get_count();
 	}
 
 

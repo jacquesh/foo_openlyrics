@@ -1,37 +1,64 @@
 #pragma once
+#include <memory>
+#include "pp-COM-macros.h"
 
 namespace PP {
+
 	class CEnumString : public IEnumString {
 	public:
 		typedef pfc::chain_list_v2_t<pfc::array_t<TCHAR> > t_data;
-		CEnumString(const t_data & in) : m_data(in) { m_walk = m_data.first(); }
-		CEnumString() {}
+		typedef std::shared_ptr<t_data> shared_t;
 
-		void AddString(const TCHAR * in) {
-			m_data.insert_last()->set_data_fromptr(in, _tcslen(in) + 1);
-			m_walk = m_data.first();
+		CEnumString(t_data && in) {
+			m_shared = std::make_shared<t_data>(std::move(in));
+			Reset();
 		}
-		void AddStringU(const char * in, t_size len) {
-			pfc::array_t<TCHAR> & arr = *m_data.insert_last();
-			arr.set_size(pfc::stringcvt::estimate_utf8_to_wide(in, len));
-			pfc::stringcvt::convert_utf8_to_wide(arr.get_ptr(), arr.get_size(), in, len);
-			m_walk = m_data.first();
+		CEnumString(const t_data & in) { 
+			m_shared = std::make_shared<t_data>(in);
+			Reset();
 		}
-		void AddStringU(const char * in) {
-			pfc::array_t<TCHAR> & arr = *m_data.insert_last();
+		CEnumString() {
+			m_shared = std::make_shared< t_data >();
+		}
+
+		void SetStrings(t_data && data) {
+			*m_shared = std::move(data);
+			Reset();
+		}
+
+		static pfc::array_t<TCHAR> stringToBuffer(const char * in) {
+			pfc::array_t<TCHAR> arr;
 			arr.set_size(pfc::stringcvt::estimate_utf8_to_wide(in));
 			pfc::stringcvt::convert_utf8_to_wide_unchecked(arr.get_ptr(), in);
-			m_walk = m_data.first();
+			return arr;
 		}
-		void ResetStrings() { m_walk.invalidate(); m_data.remove_all(); }
+
+		void AddString(const TCHAR * in) {
+			m_shared->insert_last()->set_data_fromptr(in, _tcslen(in) + 1);
+			Reset();
+		}
+		void AddStringU(const char * in, t_size len) {
+			pfc::array_t<TCHAR> & arr = *m_shared->insert_last();
+			arr.set_size(pfc::stringcvt::estimate_utf8_to_wide(in, len));
+			pfc::stringcvt::convert_utf8_to_wide(arr.get_ptr(), arr.get_size(), in, len);
+			Reset();
+		}
+		void AddStringU(const char * in) {
+			*m_shared->insert_last() = stringToBuffer(in);
+			Reset();
+		}
+		void ResetStrings() {
+			m_shared->remove_all();
+			Reset();
+		}
 
 		typedef ImplementCOMRefCounter<CEnumString> TImpl;
 		COM_QI_BEGIN()
 			COM_QI_ENTRY(IUnknown)
 			COM_QI_ENTRY(IEnumString)
-			COM_QI_END()
+		COM_QI_END()
 
-			HRESULT STDMETHODCALLTYPE Next(ULONG celt, LPOLESTR *rgelt, ULONG *pceltFetched) {
+		HRESULT STDMETHODCALLTYPE Next(ULONG celt, LPOLESTR *rgelt, ULONG *pceltFetched) override {
 			if (rgelt == NULL) return E_INVALIDARG;
 			ULONG done = 0;
 			while (done < celt && m_walk.is_valid()) {
@@ -49,7 +76,7 @@ namespace PP {
 			return out;
 		}
 
-		HRESULT STDMETHODCALLTYPE Skip(ULONG celt) {
+		HRESULT STDMETHODCALLTYPE Skip(ULONG celt) override {
 			while (celt > 0) {
 				if (m_walk.is_empty()) return S_FALSE;
 				--celt; ++m_walk;
@@ -57,16 +84,16 @@ namespace PP {
 			return S_OK;
 		}
 
-		HRESULT STDMETHODCALLTYPE Reset() {
-			m_walk = m_data.first();
+		HRESULT STDMETHODCALLTYPE Reset() override {
+			m_walk = m_shared->first();
 			return S_OK;
 		}
 
-		HRESULT STDMETHODCALLTYPE Clone(IEnumString **ppenum) {
+		HRESULT STDMETHODCALLTYPE Clone(IEnumString **ppenum) override {
 			*ppenum = new TImpl(*this); return S_OK;
 		}
 	private:
-		t_data m_data;
+		shared_t m_shared;
 		t_data::const_iterator m_walk;
 	};
 }

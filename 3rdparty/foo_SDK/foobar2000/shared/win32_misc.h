@@ -1,9 +1,4 @@
-class uDebugLog : public pfc::string_formatter {
-public:
-	~uDebugLog() {*this << "\n"; uOutputDebugString(get_ptr());}
-};
-
-#define FB2K_DebugLog() uDebugLog()._formatter()
+#pragma once
 
 
 class win32_font {

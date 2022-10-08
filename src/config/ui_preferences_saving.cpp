@@ -119,7 +119,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
         LOG_WARN("Failed to format save file title using format: %s", name_format_str);
         return "";
     }
-    formatted_name.fix_filename_chars();
+    formatted_name = pfc::io::path::replaceIllegalNameChars(formatted_name);
 
     std::string dir_class_name = "(Unknown)";
     pfc::string8 formatted_directory;

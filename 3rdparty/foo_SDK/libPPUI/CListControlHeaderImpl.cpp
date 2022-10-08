@@ -5,6 +5,8 @@
 #include "PaintUtils.h"
 #include "GDIUtils.h"
 #include "win32_utility.h"
+#include "DarkMode.h"
+#include <vssym32.h>
 
 enum {
 	lineBelowHeaderCY = 1
@@ -12,16 +14,34 @@ enum {
 
 static bool testDrawLineBelowHeader() {
 	// Win10
-	return GetOSVersionCode() >= 0xA00;
+	return IsWindows10OrGreater();
+}
+
+void CListControlHeaderImpl::OnThemeChangedPT() {
+	if (m_header) {
+		auto dark = GetDarkMode();
+		if (dark != m_headerDark) {
+			m_headerDark = dark;
+			DarkMode::ApplyDarkThemeCtrl(m_header, dark, L"ItemsView");
+		}
+	}
+	this->SetMsgHandled(FALSE);
 }
 
 void CListControlHeaderImpl::InitializeHeaderCtrl(DWORD flags) {
+	PFC_ASSERT(IsWindow());
 	PFC_ASSERT(!IsHeaderEnabled());
+	m_headerDark = false;
 	WIN32_OP_D( m_header.Create(*this,NULL,NULL,WS_CHILD | flags) != NULL );
 	m_header.SetFont( GetFont() );
 
+	InjectParentEraseHandler(m_header);
+
+	this->OnThemeChangedPT();
+
 	if (testDrawLineBelowHeader()) {
 		WIN32_OP_D( m_headerLine.Create( *this, NULL, NULL, WS_CHILD ) != NULL );
+		InjectParentEraseHandler(m_headerLine);
 	}
 
 	UpdateHeaderLayout();
@@ -29,6 +49,7 @@ void CListControlHeaderImpl::InitializeHeaderCtrl(DWORD flags) {
 
 void CListControlHeaderImpl::UpdateHeaderLayout() {
 	CRect client; WIN32_OP_D( GetClientRect(client) );
+	int cw_old = m_clientWidth;
 	m_clientWidth = client.Width();
 	if (IsHeaderEnabled()) {
 		auto rc = client; 
@@ -42,6 +63,8 @@ void CListControlHeaderImpl::UpdateHeaderLayout() {
 			m_header.ShowWindow(SW_HIDE);
 			if (m_headerLine != NULL) m_headerLine.ShowWindow(SW_HIDE);
 		}
+	} else {
+		if ( cw_old != m_clientWidth) Invalidate();
 	}
 }
 
@@ -50,7 +73,7 @@ int CListControlHeaderImpl::GetItemWidth() const {
 	else return m_clientWidth;
 }
 
-LRESULT CListControlHeaderImpl::OnSizePassThru(UINT,WPARAM,LPARAM p_lp) {
+LRESULT CListControlHeaderImpl::OnSizePassThru(UINT,WPARAM,LPARAM) {
 	UpdateHeaderLayout();
 
 	ProcessAutoWidth();
@@ -68,6 +91,25 @@ void CListControlHeaderImpl::SetHeaderFont(HFONT font) {
 	if (IsHeaderEnabled()) {
 		m_header.SetFont(font); UpdateHeaderLayout();
 	}
+}
+
+LRESULT CListControlHeaderImpl::OnHeaderCustomDraw(LPNMHDR hdr) {
+	LPNMCUSTOMDRAW nmcd = reinterpret_cast<LPNMCUSTOMDRAW>(hdr);
+	if ( m_header != NULL && this->GetDarkMode() && nmcd->hdr.hwndFrom == m_header) {
+		switch (nmcd->dwDrawStage)
+		{
+		case CDDS_PREPAINT:
+			return CDRF_NOTIFYITEMDRAW;
+		case CDDS_ITEMPREPAINT:
+			{
+				CDCHandle dc(nmcd->hdc);
+				dc.SetTextColor(0xdedede); 
+				dc.SetBkColor(0x191919); // disregarded anyway
+			}
+			return CDRF_DODEFAULT;
+		}
+	}
+	SetMsgHandled(FALSE); return 0;
 }
 
 LRESULT CListControlHeaderImpl::OnDividerDoubleClick(int,LPNMHDR hdr,BOOL&) {
@@ -117,14 +159,14 @@ t_size CListControlHeaderImpl::SubItemFromPointAbs(CPoint pt) const {
 	const t_size colCount = order.size();
 
 	size_t item;
-	if (! ItemFromPointAbs(pt, item ) ) item = pfc_infinite;
+	if (! ItemFromPointAbs(pt, item ) ) item = SIZE_MAX;
 
 	long xWalk = 0;
 	for(t_size _walk = 0; _walk < colCount; ) {
 		const t_size walk = (t_size) order[_walk];
 
 		size_t span = 1;
-		if (item != pfc_infinite) span = this->GetSubItemSpan(item, walk);
+		if (item != SIZE_MAX) span = this->GetSubItemSpan(item, walk);
 
 		PFC_ASSERT( span == 1 || _walk == walk );
 
@@ -139,7 +181,7 @@ t_size CListControlHeaderImpl::SubItemFromPointAbs(CPoint pt) const {
 		xWalk += width;
 		_walk += span;
 	}
-	return pfc_infinite;
+	return SIZE_MAX;
 }
 
 bool CListControlHeaderImpl::OnClickedSpecial(DWORD status, CPoint pt) {
@@ -151,18 +193,21 @@ bool CListControlHeaderImpl::OnClickedSpecial(DWORD status, CPoint pt) {
 	if (!GetCellTypeSupported()) return false;
 
 	size_t item; size_t subItem;
-	if (! this->GetItemAtPointAbsEx( pt + GetViewOffset(), item, subItem ) ) {
+	if (! this->GetItemAtPointAbsEx( this->PointClientToAbs(pt), item, subItem ) ) {
 		return false;
 	}
 
-	bool bCapture = false;
 	auto cellType = GetCellType(item, subItem);
 	if ( !CellTypeReactsToMouseOver( cellType ) ) return false;
 	auto rcHot = CellHotRect( item, subItem, cellType );
 	if (!rcHot.PtInRect( pt )) return false;
 
 	SetPressedItem(item, subItem);
-	SetCaptureEx([=](UINT, DWORD newStatus, CPoint pt) {
+	mySetCapture([=](UINT msg, DWORD newStatus, CPoint pt) {
+
+		if (msg == WM_MOUSELEAVE) {
+			ClearPressedItem(); return false;
+		}
 
 		{
 			CRect rc = this->GetClientRectHook();
@@ -172,7 +217,7 @@ bool CListControlHeaderImpl::OnClickedSpecial(DWORD status, CPoint pt) {
 		}
 
 		size_t newItem, newSubItem;
-		if (!this->GetItemAtPointAbsEx(pt + GetViewOffset(), newItem, newSubItem) || newItem != item || newSubItem != subItem) {
+		if (!this->GetItemAtPointAbsEx(this->PointClientToAbs(pt), newItem, newSubItem) || newItem != item || newSubItem != subItem) {
 			ClearPressedItem(); return false;
 		}
 
@@ -201,13 +246,13 @@ bool CListControlHeaderImpl::CellTypeUsesSpecialHitTests( cellType_t ct ) {
 
 bool CListControlHeaderImpl::OnClickedSpecialHitTest(CPoint pt) {
 	if ( ! GetCellTypeSupported() ) return false;
-	auto ct = GetCellTypeAtPointAbs( pt + GetViewOffset() );
+	auto ct = GetCellTypeAtPointAbs( PointClientToAbs( pt ) );
 	return CellTypeUsesSpecialHitTests(ct);
 }
 
 void CListControlHeaderImpl::OnItemClicked(t_size item, CPoint pt) {
-	t_size subItem = SubItemFromPointAbs(pt + GetViewOffset());
-	if (subItem != ~0) {
+	t_size subItem = SubItemFromPointAbs( PointClientToAbs( pt ) );
+	if (subItem != SIZE_MAX) {
 		if ( this->GetCellTypeSupported() ) {
 			auto ct = this->GetCellType(item, subItem );
 			// we don't handle hyperlink & button clicks thru here
@@ -233,7 +278,7 @@ std::vector<int> CListControlHeaderImpl::GetColumnOrderArray() const {
 
 void CListControlHeaderImpl::RenderItemText(t_size item,const CRect & itemRect,const CRect & updateRect,CDCHandle dc, bool allowColors) {
 	
-	t_uint32 xWalk = itemRect.left;
+	int xWalk = itemRect.left;
 	CRect subItemRect(itemRect);
 	auto order = GetColumnOrderArray();
 	const size_t cCount = order.size();
@@ -245,7 +290,7 @@ void CListControlHeaderImpl::RenderItemText(t_size item,const CRect & itemRect,c
 
 		PFC_ASSERT( walk == _walk || span == 1 );
 
-		t_uint32 width = GetSubItemWidth(walk);
+		int width = GetSubItemWidth(walk);
 
 		if ( span > 1 ) {
 			if ( walk + span > cCount ) span = cCount - walk;
@@ -255,11 +300,14 @@ void CListControlHeaderImpl::RenderItemText(t_size item,const CRect & itemRect,c
 		}
 
 		subItemRect.left = xWalk; subItemRect.right = xWalk + width;
-		CRect subUpdate;
-		if (subUpdate.IntersectRect(subItemRect, updateRect)) {
-			DCStateScope scope(dc);
-			if (dc.IntersectClipRect(subItemRect) != NULLREGION) {
-				RenderSubItemText(item,walk,subItemRect,subUpdate,dc, allowColors);
+		CRect test;
+		if (test.IntersectRect(itemRect, subItemRect)) {
+			CRect subUpdate;
+			if (subUpdate.IntersectRect(subItemRect, updateRect)) {
+				DCStateScope scope(dc);
+				if (dc.IntersectClipRect(subItemRect) != NULLREGION) {
+					RenderSubItemText(item, walk, subItemRect, subUpdate, dc, allowColors);
+				}
 			}
 		}
 		xWalk += width;
@@ -277,6 +325,7 @@ t_size CListControlHeaderImpl::GetSubItemOrder(t_size subItem) const {
 }
 
 size_t CListControlHeaderImpl::GetSubItemSpan(size_t row, size_t column) const {
+	(void)row; (void)column;
 	return 1;
 }
 
@@ -324,15 +373,23 @@ void CListControlHeaderImpl::ResetColumns(bool update) {
 
 void CListControlHeaderImpl::SetColumn( size_t which, const char * label, DWORD fmtFlags, bool updateView) {
 	PFC_ASSERT( IsHeaderEnabled() );
-	pfc::stringcvt::string_os_from_utf8 labelOS(label);
+	pfc::stringcvt::string_os_from_utf8 labelOS;
 
 	HDITEM item = {};
-	item.mask = HDI_TEXT | HDI_FORMAT;
-	item.fmt = fmtFlags | HDF_STRING;
-	item.pszText = const_cast<TCHAR*>(labelOS.get_ptr());
-	m_header.SetItem( (int) which, &item );
 
-	if (which < m_colRuntime.size()) m_colRuntime[which].m_text = label;
+	if (label != nullptr) {
+		if (which < m_colRuntime.size()) m_colRuntime[which].m_text = label;
+
+		labelOS.convert(label);
+		item.mask |= HDI_TEXT;
+		item.pszText = const_cast<TCHAR*>(labelOS.get_ptr());
+	}
+	if (fmtFlags != UINT32_MAX) {
+		item.mask |= HDI_FORMAT;
+		item.fmt = fmtFlags | HDF_STRING;
+	}
+	
+	m_header.SetItem( (int) which, &item );
 
 	if (updateView) OnColumnsChanged();
 }
@@ -348,13 +405,19 @@ void CListControlHeaderImpl::GetColumnText(size_t which, pfc::string_base & out)
 void CListControlHeaderImpl::ResizeColumn(t_size index, t_uint32 widthPixels, bool updateView) {
 	PFC_ASSERT( IsHeaderEnabled() );
 	PFC_ASSERT( index < m_colRuntime.size() );
-	HDITEM item = {};
-	item.mask = HDI_WIDTH;
-	item.cxy = widthPixels;
-	{ pfc::vartoggle_t<bool> scope(m_ownColumnsChange, true); m_header.SetItem( (int) index, &item ); }
-	m_colRuntime[index].m_widthPixels = widthPixels;
-	RecalcItemWidth();
-	if (updateView) OnColumnsChanged();
+	auto& rt = m_colRuntime[index];
+	rt.m_userWidth = widthPixels;
+	if (rt.autoWidth()) {
+		this->ProcessAutoWidth();
+	} else {
+		rt.m_widthPixels = widthPixels;
+		HDITEM item = {};
+		item.mask = HDI_WIDTH;
+		item.cxy = rt.autoWidth() ? 0 : widthPixels;
+		{ pfc::vartoggle_t<bool> scope(m_ownColumnsChange, true); m_header.SetItem((int)index, &item); }
+		RecalcItemWidth();
+		if (updateView) OnColumnsChanged();
+	}
 }
 
 void CListControlHeaderImpl::DeleteColumns( pfc::bit_array const & mask, bool updateView ) {
@@ -436,6 +499,7 @@ void CListControlHeaderImpl::AddColumnF( const char * label, float widthF, DWORD
 	AddColumn( label, w, fmtFlags, update );
 }
 void CListControlHeaderImpl::AddColumn(const char * label, uint32_t width, DWORD fmtFlags,bool update) {
+	PFC_ASSERT(IsWindow());
 	if (! IsHeaderEnabled( ) ) InitializeHeaderCtrl();
 
 	pfc::stringcvt::string_os_from_utf8 labelOS(label);
@@ -531,17 +595,25 @@ DWORD CListControlHeaderImpl::GetColumnFormat(t_size which) const {
 	return hditem.fmt;
 }
 
-BOOL CListControlHeaderImpl::OnSetCursor(CWindow wnd, UINT nHitTest, UINT message) {
-#if 0
-	// no longer meaningful since SetCapture on mouse over was added to track hot status
+BOOL CListControlHeaderImpl::OnSetCursor(CWindow, UINT nHitTest, UINT message) {
+	(void)nHitTest;
 	if ( message != 0 && GetCellTypeSupported() ) {
 		CPoint pt( (LPARAM) GetMessagePos() );
 		WIN32_OP_D( ScreenToClient( &pt ) );
-		if ( GetCellTypeAtPointAbs( pt + GetViewOffset() ) == cell_hyperlink ) {
-			SetCursor(LoadCursor(NULL, IDC_HAND)); return TRUE;
+		size_t item, subItem;
+		if (GetItemAtPointAbsEx(this->PointClientToAbs(pt), item, subItem)) {
+			auto ct = GetCellType(item, subItem);
+			if (CellTypeReactsToMouseOver(ct)) {
+				auto rc = CellHotRect(item, subItem, ct);
+				if (PtInRect(rc, pt)) {
+					auto cursor = ct->HotCursor();
+					if (cursor) {
+						SetCursor(cursor); return TRUE;
+					}
+				}
+			}
 		}
 	}
-#endif
 	SetMsgHandled(FALSE); return FALSE;
 }
 
@@ -549,7 +621,7 @@ bool CListControlHeaderImpl::GetItemAtPointAbsEx(CPoint pt, size_t & outItem, si
 	size_t item, subItem;
 	if (ItemFromPointAbs(pt, item)) {
 		subItem = SubItemFromPointAbs(pt);
-		if (subItem != pfc_infinite) {
+		if (subItem != SIZE_MAX) {
 			outItem = item; outSubItem = subItem; return true;
 		}
 	}
@@ -564,30 +636,15 @@ CListControlHeaderImpl::cellType_t CListControlHeaderImpl::GetCellTypeAtPointAbs
 	return nullptr;
 }
 
-void CListControlHeaderImpl::RenderSubItemTextInternal(t_size subItem, const CRect & subItemRect, CDCHandle dc, const char * text, bool allowColors) {
-	pfc::stringcvt::string_os_from_utf8 cvt(text);
-	CRect clip = GetItemTextRect(subItemRect);
-	const t_uint32 format = PaintUtils::DrawText_TranslateHeaderAlignment(GetColumnFormat(subItem));
-	if (true) {
-		const t_uint32 bk = dc.GetBkColor();
-		const t_uint32 fg = dc.GetTextColor();
-		const t_uint32 hl = (allowColors ? GetSysColorHook(colorHighlight) : fg);
-		const t_uint32 colors[3] = {PaintUtils::BlendColor(bk, fg, 33), fg, hl};
-
-		PaintUtils::TextOutColorsEx(dc, cvt, clip, format, colors);
-		
-		dc.SetTextColor(fg);
-	} else {
-		dc.DrawText(cvt,(int)cvt.length(),clip,DT_NOPREFIX | DT_END_ELLIPSIS | DT_SINGLELINE | DT_VCENTER | format );
-	}
-}
 CListCell * CListControlHeaderImpl::GetCellType( size_t item, size_t subItem ) const {
+	(void)item; (void)subItem;
 	return &PFC_SINGLETON(CListCell_Text);
 }
+
 void CListControlHeaderImpl::RenderSubItemText(t_size item, t_size subItem,const CRect & subItemRect,const CRect & updateRect,CDCHandle dc, bool allowColors) {
+	(void)updateRect;
 	const auto cellType = GetCellType( item, subItem );
 	if ( cellType == nullptr ) {
-		PFC_ASSERT( !"Should not get here" );
 		return;
 	}
 	pfc::string_formatter label;
@@ -598,6 +655,7 @@ void CListControlHeaderImpl::RenderSubItemText(t_size item, t_size subItem,const
 
 	pfc::stringcvt::string_os_from_utf8_fast labelOS ( label );
 	CListCell::DrawContentArg_t arg;
+	arg.darkMode = this->GetDarkMode();
 	arg.hdrFormat = GetColumnFormat( subItem );
 	arg.subItemRect = subItemRect;
 	arg.dc = dc;
@@ -624,6 +682,10 @@ void CListControlHeaderImpl::RenderSubItemText(t_size item, t_size subItem,const
 		arg.cellState |= CListCell::cellState_disabled;
 	}
 
+	if (this->RenderCellImageTest(item, subItem)) {
+		arg.imageRenderer = [this, item, subItem](CDCHandle dc, const CRect& rc) { this->RenderCellImage(item, subItem, dc, rc); };
+	}
+
 	CFontHandle fontRestore;
 	CFont fontOverride;
 
@@ -640,9 +702,10 @@ void CListControlHeaderImpl::RenderSubItemText(t_size item, t_size subItem,const
 	if ( fontRestore != NULL ) dc.SelectFont( fontRestore );
 }
 
-void CListControlHeaderImpl::RenderGroupHeaderText(int id,const CRect & headerRect,const CRect & updateRect,CDCHandle dc) {
+void CListControlHeaderImpl::RenderGroupHeaderText2(size_t baseItem,const CRect & headerRect,const CRect & updateRect,CDCHandle dc) {
+	(void)updateRect;
 	pfc::string_formatter label;
-	if (GetGroupHeaderText(id,label)) {
+	if (GetGroupHeaderText2(baseItem,label)) {
 		SelectObjectScope fontScope(dc,GetGroupHeaderFont());
 		pfc::stringcvt::string_os_from_utf8 cvt(label);
 		CRect contentRect(GetItemTextRect(headerRect));
@@ -664,13 +727,15 @@ void CListControlHeaderImpl::RenderGroupHeaderText(int id,const CRect & headerRe
 	}
 }
 
-uint32_t CListControlHeaderImpl::GetOptimalColumnWidthFixed(const char * fixedText) const {
+uint32_t CListControlHeaderImpl::GetOptimalColumnWidthFixed(const char * fixedText, bool pad) const {
 	CWindowDC dc(*this);
 	SelectObjectScope fontScope(dc, GetFont());
 	GetOptimalWidth_Cache cache;
 	cache.m_dc = dc;
 	cache.m_stringTemp = fixedText;
-	return cache.GetStringTempWidth() + this->GetColumnSpacing() * 2;
+	uint32_t ret = cache.GetStringTempWidth();
+	if ( pad ) ret += this->GetColumnSpacing() * 2;
+	return ret;
 }
 
 t_uint32 CListControlHeaderImpl::GetOptimalSubItemWidth(t_size item, t_size subItem, GetOptimalWidth_Cache & cache) const {
@@ -782,12 +847,12 @@ void CListControlHeaderImpl::AutoColumnWidths(const pfc::bit_array & mask, bool 
 	ProcessColumnsChange();
 }
 
-t_uint32 CListControlHeaderImpl::GetOptimalGroupHeaderWidth(int which) const {
+t_uint32 CListControlHeaderImpl::GetOptimalGroupHeaderWidth2(size_t baseItem) const {
 	CWindowDC dc(*this);
 	SelectObjectScope fontScope(dc,GetGroupHeaderFont());
 	GetOptimalWidth_Cache cache; cache.m_dc = dc;
 	const t_uint32 base = this->GetColumnSpacing() * 2;
-	if (GetGroupHeaderText(which,cache.m_stringTemp)) {
+	if (GetGroupHeaderText2(baseItem,cache.m_stringTemp)) {
 		return base + cache.GetStringTempWidth();
 	} else {
 		return base;
@@ -844,7 +909,7 @@ void CListControlHeaderImpl::ProcessAutoWidth() {
 			HDITEM item = {};
 			item.mask = HDI_WIDTH;
 			item.cxy = width;
-			WIN32_OP_D( m_header.SetItem( iCol, &item ) );
+			WIN32_OP_D( m_header.SetItem( (int) iCol, &item ) );
 			rt.m_widthPixels = width;
 
 			if ( toDivide > width ) {
@@ -902,22 +967,25 @@ CRect CListControlHeaderImpl::GetSubItemRectAbs(t_size item,t_size subItem) cons
 }
 
 CRect CListControlHeaderImpl::GetSubItemRect(t_size item,t_size subItem) const {
-	CRect rc = GetSubItemRectAbs(item,subItem); rc.OffsetRect(-GetViewOffset()); return rc;
+	return RectAbsToClient(GetSubItemRectAbs(item, subItem));
 }
 
 void CListControlHeaderImpl::SetHotItem(size_t row, size_t column) {
 	if ( m_hotItem != row  || m_hotSubItem != column ) {
-		if (m_hotItem != pfc_infinite) InvalidateRect(GetSubItemRect(m_hotItem, m_hotSubItem));
+		const size_t total = GetItemCount();
+		if (m_hotItem < total) InvalidateRect(GetSubItemRect(m_hotItem, m_hotSubItem));
 		m_hotItem = row; m_hotSubItem = column;
-		if (m_hotItem != pfc_infinite) InvalidateRect(GetSubItemRect(m_hotItem, m_hotSubItem));
+		if (m_hotItem < total) InvalidateRect(GetSubItemRect(m_hotItem, m_hotSubItem));
+		HotItemChanged(row, column);
 	}
 }
 
 void CListControlHeaderImpl::SetPressedItem(size_t row, size_t column) {
 	if (m_pressedItem != row || m_pressedSubItem != column) {
-		if (m_pressedItem != pfc_infinite) InvalidateRect(GetSubItemRect(m_pressedItem, m_pressedSubItem));
+		if (m_pressedItem != SIZE_MAX) InvalidateRect(GetSubItemRect(m_pressedItem, m_pressedSubItem));
 		m_pressedItem = row; m_pressedSubItem = column;
-		if (m_pressedItem != pfc_infinite) InvalidateRect(GetSubItemRect(m_pressedItem, m_pressedSubItem));
+		if (m_pressedItem != SIZE_MAX) InvalidateRect(GetSubItemRect(m_pressedItem, m_pressedSubItem));
+		PressedItemChanged(row, column);
 	}
 }
 
@@ -957,9 +1025,13 @@ bool CListControlHeaderImpl::ToggleSelectedItemsHook(const pfc::bit_array & mask
 
 void CListControlHeaderImpl::OnSubItemClicked(t_size item, t_size subItem, CPoint pt) {
 	auto ct = GetCellType(item, subItem);
-	if ( ct != nullptr && ct->IsToggle() ) {
-		if ( ct->HotRect(GetSubItemRect(item, subItem)).PtInRect(pt) ) {
-			this->SetCellCheckState( item, subItem, ! GetCellCheckState( item, subItem ) );
+	if (ct != nullptr) {
+		if (ct->IsToggle()) {
+			if (ct->HotRect(GetSubItemRect(item, subItem)).PtInRect(pt)) {
+				this->SetCellCheckState(item, subItem, !GetCellCheckState(item, subItem));
+			}
+		} else if (ct->ClickToEdit()) {
+			this->RequestEditItem(item, subItem);
 		}
 	}
 }
@@ -988,29 +1060,37 @@ void CListControlHeaderImpl::OnMouseMove(UINT nFlags, CPoint pt) {
 	const DWORD maskButtons = MK_LBUTTON | MK_RBUTTON | MK_MBUTTON | MK_XBUTTON1 | MK_XBUTTON2;
 	if (GetCellTypeSupported() && (nFlags & maskButtons) == 0 ) {
 		size_t item; size_t subItem;
-		if (this->GetItemAtPointAbsEx(pt + GetViewOffset(), item, subItem)) {
+		if (this->GetItemAtPointAbsEx( PointClientToAbs(pt), item, subItem)) {
 			auto ct = this->GetCellType( item, subItem );
 			if (CellTypeReactsToMouseOver(ct) ) {
 				auto rc = CellHotRect( item, subItem, ct );
 				if ( PtInRect( rc, pt ) ) {
-					{
-						auto c = ct->HotCursor();
-						if ( c != NULL ) SetCursor(c);
-					}
+					const bool bTrack = ct != nullptr && ct->TracksMouseMove();
 					SetHotItem(item, subItem);
-					SetCaptureEx([=](UINT msg, DWORD newStatus, CPoint pt) {
-						if ((newStatus & maskButtons) != 0 || msg == WM_MOUSEWHEEL || msg == WM_MOUSEHWHEEL ) {
-							// A button has been pressed or wheel has been moved
+
+					if (bTrack) this->CellTrackMouseMove(item, subItem, WM_MOUSEMOVE, nFlags, pt);
+
+					mySetCapture([=](UINT msg, DWORD newStatus, CPoint pt) {
+						if (msg == WM_MOUSELEAVE) {
 							this->ClearHotItem();
-							SetCaptureMsgHandled(FALSE);
 							return false;
 						}
 
-						if ( ! PtInRect( rc, pt ) ) {
+						if ((newStatus & maskButtons) != 0 || msg == WM_MOUSEWHEEL || msg == WM_MOUSEHWHEEL ) {
+							// A button has been pressed or wheel has been moved
+							this->ClearHotItem();
+							mySetCaptureMsgHandled(FALSE);
+							return false;
+						}
+
+						if ( ! PtInRect( rc, pt ) || item >= GetItemCount() ) {
 							// Left the rect
 							this->ClearHotItem();
-							SetCaptureMsgHandled(FALSE);
+							this->mySetCaptureMsgHandled(FALSE);
 							return false;
+						}
+						if (bTrack) {
+							this->CellTrackMouseMove(item, subItem, msg, newStatus, pt);
 						}
 
 						return true;
@@ -1037,6 +1117,7 @@ void CListControlHeaderImpl::OnDestroy() {
 	m_colRuntime.clear();
 	m_header = NULL;
 	m_headerLine = NULL;
+	m_headerDark = false;
 	SetMsgHandled(FALSE);
 }
 
@@ -1074,5 +1155,141 @@ void CListControlHeaderImpl::ReloadData() {
 	__super::ReloadData();
 	if ( this->HaveAutoWidthContentColumns( ) ) {
 		this->ColumnWidthFix();
+	}
+}
+
+void CListControlHeaderImpl::RenderGroupOverlay(size_t baseItem, const CRect& p_groupWhole, const CRect& p_updateRect, CDCHandle dc) {
+	CRect subItemRect = p_groupWhole;
+	t_uint32 xWalk = p_groupWhole.left;
+	auto order = GetColumnOrderArray();
+	const size_t cCount = order.size();
+	for (t_size _walk = 0; _walk < cCount; ) {
+		const t_size walk = order[_walk];
+
+		t_uint32 width = GetSubItemWidth(walk);
+
+		subItemRect.left = xWalk; subItemRect.right = xWalk + width;
+		CRect subUpdate;
+		if (subUpdate.IntersectRect(subItemRect, p_updateRect)) {
+			DCStateScope scope(dc);
+			if (dc.IntersectClipRect(subItemRect) != NULLREGION) {
+				this->RenderGroupOverlayColumn(baseItem, walk, subItemRect, subUpdate, dc);
+			}
+		}
+		xWalk += width;
+
+		_walk += 1;
+	}
+}
+
+void CListControlHeaderImpl::UpdateGroupOverlayColumnByID(groupID_t groupID, size_t subItem) {
+	if (this->GetItemCount() == 0) return;
+	CRect rc = this->GetSubItemRectAbs(0, subItem);
+	this->UpdateGroupOverlayByID(groupID, rc.left, rc.right);
+}
+
+void CListControlHeaderImpl::mySetCapture(CaptureProc_t proc) {
+	this->m_captureProc = proc;
+	this->TrackMouseLeave();
+}
+
+void CListControlHeaderImpl::myReleaseCapture() {
+	m_captureProc = nullptr;
+}
+
+void CListControlHeaderImpl::TrackMouseLeave() {
+	TRACKMOUSEEVENT tme = { sizeof(tme) };
+	tme.dwFlags = TME_LEAVE;
+	tme.hwndTrack = m_hWnd;
+	TrackMouseEvent(&tme);
+}
+
+LRESULT CListControlHeaderImpl::MousePassThru(UINT msg, WPARAM wp, LPARAM lp) {
+	auto p = m_captureProc; // create local ref in case something in mid-captureproc clears it
+	if (p) {
+		CPoint pt(lp);
+		if (!p(msg, (DWORD)wp, pt)) {
+			myReleaseCapture();
+		}
+		return 0;
+	}
+
+	SetMsgHandled(FALSE);
+	return 0;
+}
+
+void CListControlHeaderImpl::OnMouseLeave() {
+	if (m_captureProc) {
+		m_captureProc(WM_MOUSELEAVE, 0, -1);
+		myReleaseCapture();
+	}
+}
+
+void CListControlHeaderImpl::OnKillFocus(CWindow) {
+	myReleaseCapture();
+	SetMsgHandled(FALSE);
+}
+
+void CListControlHeaderImpl::OnWindowPosChanged(LPWINDOWPOS arg) {
+	if (arg->flags & SWP_HIDEWINDOW) {
+		myReleaseCapture();
+	}
+	SetMsgHandled(FALSE);
+}
+
+void CListControlHeaderImpl::RequestEditItem(size_t, size_t) {
+	PFC_ASSERT(!"Please enable CListControl_EditImpl");
+}
+
+void CListControlHeaderImpl::OnLButtonDblClk(UINT nFlags, CPoint point) {
+	(void)nFlags;
+	if (this->GetCellTypeSupported()) {
+		auto ptAbs = PointClientToAbs(point);
+		size_t item = this->ItemFromPointAbs(ptAbs);
+		size_t subItem = SubItemFromPointAbs(ptAbs);
+		if (item != SIZE_MAX && subItem != SIZE_MAX) {
+			auto ct = GetCellType(item, subItem);
+			if (ct != nullptr) {
+				if (ct->IsToggle()) {
+					if (ct->HotRect(GetSubItemRect(item, subItem)).PtInRect(point)) {
+						return; // disregard doubleclick on checkbox
+					}
+				}
+			}
+		}
+	}
+	SetMsgHandled(FALSE); // handle doubleclick
+}
+
+
+void CListControlHeaderImpl::RenderItemBackground(CDCHandle p_dc, const CRect& p_itemRect, size_t item, uint32_t bkColor) {
+	if (!this->DelimitColumns()) {
+		__super::RenderItemBackground(p_dc, p_itemRect, item, bkColor);
+	} else {
+		auto cnt = this->GetColumnCount();
+		const auto order = this->GetColumnOrderArray();
+		uint32_t x = p_itemRect.left;
+		for (size_t walk = 0; walk < cnt; ) {
+			const size_t sub = order[walk];
+			auto span = this->GetSubItemSpan(item, sub);
+			PFC_ASSERT(span > 0);
+			uint32_t width = 0;
+			for (size_t walk2 = 0; walk2 < span; ++walk2) {
+				width += this->GetSubItemWidth(sub + walk2);
+			}
+			CRect rc = p_itemRect;
+			rc.left = x;
+			x += width;
+			rc.right = x;
+
+			CRect test;
+			if (test.IntersectRect(rc, p_itemRect)) {
+				DCStateScope s(p_dc);
+				if (p_dc.IntersectClipRect(rc) != NULLREGION) {
+					__super::RenderItemBackground(p_dc, rc, item, bkColor);
+				}
+			}
+			walk += span;
+		}
 	}
 }

@@ -1,7 +1,10 @@
 #pragma once
 
+#include <functional>
 
 class file_info_filter; // forward decl; file_info_filter moved to file_info_filter.h
+
+class metadb_io_callback_dynamic; class metadb_io_callback_v2_dynamic;
 
 
 //! API for tag read/write operations. Legal to call from main thread only, except for hint_multi_async() / hint_async() / hint_reader().\n
@@ -30,21 +33,21 @@ public:
 	};
 
 	//! No longer used - returns false always.
-	__declspec(deprecated) virtual bool is_busy() = 0;
+    FB2K_DEPRECATED virtual bool is_busy() = 0;
 	//! No longer used - returns false always.
-	__declspec(deprecated) virtual bool is_updating_disabled() = 0;
+    FB2K_DEPRECATED virtual bool is_updating_disabled() = 0;
 	//! No longer used - returns false always.
-	__declspec(deprecated) virtual bool is_file_updating_blocked() = 0;
+    FB2K_DEPRECATED virtual bool is_file_updating_blocked() = 0;
 	//! No longer used.
-	__declspec(deprecated) virtual void highlight_running_process() = 0;
+    FB2K_DEPRECATED virtual void highlight_running_process() = 0;
 	//! Loads tags from multiple items. Use the async version in metadb_io_v2 instead if possible.
-	__declspec(deprecated) virtual t_load_info_state load_info_multi(metadb_handle_list_cref p_list,t_load_info_type p_type,HWND p_parent_window,bool p_show_errors) = 0;
+    FB2K_DEPRECATED virtual t_load_info_state load_info_multi(metadb_handle_list_cref p_list,t_load_info_type p_type,fb2k::hwnd_t p_parent_window,bool p_show_errors) = 0;
 	//! Updates tags on multiple items. Use the async version in metadb_io_v2 instead if possible.
-	__declspec(deprecated) virtual t_update_info_state update_info_multi(metadb_handle_list_cref p_list,const pfc::list_base_const_t<file_info*> & p_new_info,HWND p_parent_window,bool p_show_errors) = 0;
+    FB2K_DEPRECATED virtual t_update_info_state update_info_multi(metadb_handle_list_cref p_list,const pfc::list_base_const_t<file_info*> & p_new_info,fb2k::hwnd_t p_parent_window,bool p_show_errors) = 0;
 	//! Rewrites tags on multiple items. Use the async version in metadb_io_v2 instead if possible.
-	__declspec(deprecated) virtual t_update_info_state rewrite_info_multi(metadb_handle_list_cref p_list,HWND p_parent_window,bool p_show_errors) = 0;
+    FB2K_DEPRECATED virtual t_update_info_state rewrite_info_multi(metadb_handle_list_cref p_list,fb2k::hwnd_t p_parent_window,bool p_show_errors) = 0;
 	//! Removes tags from multiple items. Use the async version in metadb_io_v2 instead if possible.
-	__declspec(deprecated) virtual t_update_info_state remove_info_multi(metadb_handle_list_cref p_list,HWND p_parent_window,bool p_show_errors) = 0;
+    FB2K_DEPRECATED virtual t_update_info_state remove_info_multi(metadb_handle_list_cref p_list,fb2k::hwnd_t p_parent_window,bool p_show_errors) = 0;
 
 	virtual void hint_multi(metadb_handle_list_cref p_list,const pfc::list_base_const_t<const file_info*> & p_infos,const pfc::list_base_const_t<t_filestats> & p_stats,const bit_array & p_fresh_mask) = 0;
 
@@ -62,8 +65,8 @@ public:
 
 	void hint_async(metadb_handle_ptr p_item,const file_info & p_info,const t_filestats & p_stats,bool p_fresh);
 
-	__declspec(deprecated) t_load_info_state load_info(metadb_handle_ptr p_item,t_load_info_type p_type,HWND p_parent_window,bool p_show_errors);
-	__declspec(deprecated) t_update_info_state update_info(metadb_handle_ptr p_item,file_info & p_info,HWND p_parent_window,bool p_show_errors);
+    FB2K_DEPRECATED t_load_info_state load_info(metadb_handle_ptr p_item,t_load_info_type p_type,fb2k::hwnd_t p_parent_window,bool p_show_errors);
+    FB2K_DEPRECATED t_update_info_state update_info(metadb_handle_ptr p_item,file_info & p_info,fb2k::hwnd_t p_parent_window,bool p_show_errors);
 	
 	FB2K_MAKE_SERVICE_COREAPI(metadb_io);
 };
@@ -153,30 +156,35 @@ public:
 		//! \since 1.3
 		//! Indicates that the caller is aware of the metadb partial info feature introduced at v1.3.
 		//! When not specified, affected info will be quietly preserved when updating tags.
+		//! Obsolete in 2.0
 		op_flag_partial_info_aware = 1 << 3,
+
+		//! \since 2.0
+		//! Do not show any user interface.
+		op_flag_silent		= 1 << 4,
 	};
 
 	//! Preloads information from the specified tracks.
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_load_info_state values. Can be null if caller doesn't care.
-	virtual void load_info_async(metadb_handle_list_cref p_list,t_load_info_type p_type,HWND p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
+	virtual void load_info_async(metadb_handle_list_cref p_list,t_load_info_type p_type,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
 	//! Updates tags of the specified tracks.
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
 	//! @param p_filter Callback handling actual file_info alterations. Typically used to replace entire meta part of file_info, or to alter something else such as ReplayGain while leaving meta intact.
-	virtual void update_info_async(metadb_handle_list_cref p_list,service_ptr_t<file_info_filter> p_filter,HWND p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
+	virtual void update_info_async(metadb_handle_list_cref p_list,service_ptr_t<file_info_filter> p_filter,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
 	//! Rewrites tags of the specified tracks; similar to update_info_async() but using last known/cached file_info values rather than values passed by caller.
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
-	virtual void rewrite_info_async(metadb_handle_list_cref p_list,HWND p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
+	virtual void rewrite_info_async(metadb_handle_list_cref p_list,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
 	//! Strips all tags / metadata fields from the specified tracks.
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
-	virtual void remove_info_async(metadb_handle_list_cref p_list,HWND p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
+	virtual void remove_info_async(metadb_handle_list_cref p_list,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
 
 	//! Creates a metadb_hint_list object. \n
 	//! Contrary to other metadb_io methods, this can be safely called in a worker thread. You only need to call the hint list's on_done() method in main thread to finalize.
@@ -187,7 +195,7 @@ public:
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
 	//! @param p_new_info New infos to write to specified items.
-	void update_info_async_simple(metadb_handle_list_cref p_list,const pfc::list_base_const_t<const file_info*> & p_new_info, HWND p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify);
+	void update_info_async_simple(metadb_handle_list_cref p_list,const pfc::list_base_const_t<const file_info*> & p_new_info, fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify);
 
 	//! Helper to be called after a file has been rechaptered. \n
 	//! Forcibly reloads info then tells playlist_manager to update all affected playlists.
@@ -199,12 +207,6 @@ public:
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_io_v2,metadb_io);
 };
 
-
-//! Dynamically-registered version of metadb_io_callback. See metadb_io_callback for documentation, register instances using metadb_io_v3::register_callback(). It's recommended that you use the metadb_io_callback_dynamic_impl_base helper class to manage registration/unregistration.
-class NOVTABLE metadb_io_callback_dynamic {
-public:
-	virtual void on_changed_sorted(metadb_handle_list_cref p_items_sorted, bool p_fromhook) = 0;
-};
 
 //! \since 0.9.5
 class NOVTABLE metadb_io_v3 : public metadb_io_v2 {
@@ -218,7 +220,6 @@ public:
 
 class threaded_process_callback;
 
-#if FOOBAR2000_TARGET_VERSION >= 80
 //! \since 1.5
 class NOVTABLE metadb_io_v4 : public metadb_io_v3 {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_io_v4, metadb_io_v3);
@@ -236,39 +237,15 @@ public:
 	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup.
 	virtual service_ptr_t<threaded_process_callback> spawn_load_info( metadb_handle_list_cref items, t_load_info_type opType, uint32_t opFlags, completion_notify_ptr reply) = 0;
 };
-#endif
 
-//! metadb_io_callback_dynamic implementation helper.
-class metadb_io_callback_dynamic_impl_base : public metadb_io_callback_dynamic {
+// \since 2.0
+class NOVTABLE metadb_io_v5 : public metadb_io_v4 {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_io_v5, metadb_io_v4);
 public:
-	void on_changed_sorted(metadb_handle_list_cref p_items_sorted, bool p_fromhook) {}
-	
-	metadb_io_callback_dynamic_impl_base() {static_api_ptr_t<metadb_io_v3>()->register_callback(this);}
-	~metadb_io_callback_dynamic_impl_base() {static_api_ptr_t<metadb_io_v3>()->unregister_callback(this);}
-
-	PFC_CLASS_NOT_COPYABLE_EX(metadb_io_callback_dynamic_impl_base)
-};
-//! Callback service receiving notifications about metadb contents changes.
-class NOVTABLE metadb_io_callback : public service_base {
-public:
-	//! Called when metadb contents change. (Or, one of display hook component requests display update).
-	//! @param p_items_sorted List of items that have been updated. The list is always sorted by pointer value, to allow fast bsearch to test whether specific item has changed.
-	//! @param p_fromhook Set to true when actual file contents haven't changed but one of metadb_display_field_provider implementations requested an update so output of metadb_handle::format_title() etc has changed.
-	virtual void on_changed_sorted(metadb_handle_list_cref p_items_sorted, bool p_fromhook) = 0;
-
-	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(metadb_io_callback);
+	virtual void register_callback_v2(metadb_io_callback_v2_dynamic*) = 0;
+	virtual void unregister_callback_v2(metadb_io_callback_v2_dynamic*) = 0;
 };
 
-//! \since 1.1
-//! Callback service receiving notifications about user-triggered tag edits. \n
-//! You want to use metadb_io_callback instead most of the time, unless you specifically want to track tag edits for purposes other than updating user interface.
-class NOVTABLE metadb_io_edit_callback : public service_base {
-	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(metadb_io_edit_callback)
-public:
-	//! Called after the user has edited tags on a set of files.
-	typedef const pfc::list_base_const_t<const file_info*> & t_infosref;
-	virtual void on_edited(metadb_handle_list_cref items, t_infosref before, t_infosref after) = 0;
-};
 
 //! Entrypoint service for metadb_handle related operations.\n
 //! Implemented only by core, do not reimplement.\n
@@ -311,137 +288,69 @@ public:
 	FB2K_MAKE_SERVICE_COREAPI(metadb);
 };
 
-class titleformat_text_out;
-class titleformat_hook_function_params;
 
 
-/*!
-	Implementing this service lets you provide your own title-formatting fields that are parsed globally with each call to metadb_handle::format_title methods. \n
-	Note that this API is meant to allow you to add your own component-specific fields - not to overlay your data over standard fields or over fields provided by other components. Any attempts to interfere with standard fields will have severe ill effects. \n
-	This should be implemented only where absolutely necessary, for safety and performance reasons. Any expensive operations inside the process_field() method may severely damage performance of affected title-formatting calls. \n
-	You must NEVER make any other foobar2000 API calls from inside process_field, other than possibly querying information from the passed metadb_handle pointer; you should read your own implementation-specific private data and return as soon as possible. You must not make any assumptions about calling context (threading etc). \n
-	It is guaranteed that process_field() is called only inside a metadb lock scope so you can safely call "locked" metadb_handle methods on the metadb_handle pointer you get. You must not lock metadb by yourself inside process_field() - while it is always called from inside a metadb lock scope, it may be called from another thread than the one maintaining the lock because of multi-CPU optimizations active. \n
-	If there are multiple metadb_display_field_provider services registered providing fields of the same name, the behavior is undefined. You must pick unique names for provided fields to ensure safe coexistence with other people's components. \n
-	IMPORTANT: Any components implementing metadb_display_field_provider MUST call metadb_io::dispatch_refresh() with affected metadb_handles whenever info that they present changes. Otherwise, anything rendering title-formatting strings that reference your data will not update properly, resulting in unreliable/broken output, repaint glitches, etc. \n
-	Do not expect a process_field() call each time somebody uses title formatting, calling code might perform its own caching of strings that you return, getting new ones only after metadb_io::dispatch_refresh() with relevant items. \n
-	If you can't reliably notify other components about changes of content of fields that you provide (such as when your fields provide some kind of global information and not information specific to item identified by passed metadb_handle), you should not be providing those fields in first place. You must not change returned values of your fields without dispatching appropriate notifications. \n
-	Use static service_factory_single_t<myclass> to register your metadb_display_field_provider implementations. Do not call other people's metadb_display_field_provider services directly, they're meant to be called by backend only. \n
-	List of fields that you provide is expected to be fixed at run-time. The backend will enumerate your fields only once and refer to them by indexes later. \n
-*/
 
-class NOVTABLE metadb_display_field_provider : public service_base {
+//! \since 2.0
+class metadb_v2 : public metadb {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_v2, metadb);
 public:
-	//! Returns number of fields provided by this metadb_display_field_provider implementation.
-	virtual t_uint32 get_field_count() = 0;
-	//! Returns name of specified field provided by this metadb_display_field_provider implementation. Names are not case sensitive. It's strongly recommended that you keep your field names plain English / ASCII only.
-	virtual void get_field_name(t_uint32 index, pfc::string_base & out) = 0;
-	//! Evaluates the specified field.
-	//! @param index Index of field being processed : 0 <= index < get_field_count().
-	//! @param handle Handle to item being processed. You can safely call "locked" methods on this handle to retrieve track information and such.
-	//! @param out Interface receiving your text output.
-	//! @returns Return true to indicate that the field is present so if it's enclosed in square brackets, contents of those brackets should not be skipped, false otherwise.
-	virtual bool process_field(t_uint32 index, metadb_handle * handle, titleformat_text_out * out) = 0;
+	typedef metadb_v2_rec_t rec_t;
+	virtual rec_t query(playable_location const& loc) = 0;
 
-	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(metadb_display_field_provider);
-};
-
-
-
-
-
-//! \since 1.1
-//! metadb_index_manager hash, currently a 64bit int, typically made from halving MD5 hash.
-typedef t_uint64 metadb_index_hash;
-
-
-//! \since 1.1
-//! A class that transforms track information (location+metadata) to a hash for metadb_index_manager. \n
-//! You need to implement your own when using metadb_index_manager to pin your data to user's tracks. \n
-//! Possible routes to take when implementing: \n
-//! Rely on location only - pinning lost when user moves, but survives editing tags\n
-//! Rely on metadata - pinning survives moving files, but lost when editing tags\n
-//! If you do the latter, you can implement metadb_io_edit_callback to respond to tag edits and avoid data loss.
-class NOVTABLE metadb_index_client : public service_base {
-	FB2K_MAKE_SERVICE_INTERFACE(metadb_index_client, service_base)
-public:
-	virtual metadb_index_hash transform(const file_info & info, const playable_location & location) = 0;
-
-	bool hashHandle(metadb_handle_ptr const & h, metadb_index_hash & out) {
-		metadb_info_container::ptr info;
-		if (!h->get_info_ref(info)) return false;
-		out = transform(info->info(), h->get_location());
-		return true;
-	}
-
-	static metadb_index_hash from_md5(hasher_md5_result const & in) {return in.xorHalve();}
-};
-
-//! \since 1.1
-//! This service lets you pin your data to user's music library items, typically to be presented as title formatting %fields% via metadb_display_field_provider. \n
-//! Implement metadb_index_client to define how your data gets pinned to the songs.
-class NOVTABLE metadb_index_manager : public service_base {
-	FB2K_MAKE_SERVICE_COREAPI(metadb_index_manager)
-public:
-	//! Install a metadb_index_client. \n
-	//! This is best done from init_stage_callback::on_init_stage(init_stages::before_config_read) to avoid hammering already loaded UI & playlists with refresh requests. \n
-	//! If you provide your own title formatting fields, call dispatch_global_refresh() after a successful add() to signal all components to refresh all tracks \n
-	//! - which is expensive, hence it should be done in early app init phase for minimal performance penalty. \n
-	//! Always put a try/catch around add() as it may fail with an exception in an unlikely scenario of corrupted files holding your previously saved data. \n
-	//! @param client your metadb_index_client object.
-	//! @param index_id Your GUID that you will pass to other methods when referring to your index.
-	//! @param userDataRetentionPeriod Time for which the data should be retained if no matching tracks are present. \n
-	//! If this was set to zero, the data could be lost immediately if a library folder disappers for some reason. \n
-	//! Hint: use system_time_periods::* constants, for an example, system_time_periods::week.
-	virtual void add(metadb_index_client::ptr client, const GUID & index_id, t_filetimestamp userDataRetentionPeriod) = 0;
-	//! Uninstalls a previously installed index.
-	virtual void remove(const GUID & index_id) = 0;
-	//! Sets your data for the specified index+hash.
-	virtual void set_user_data(const GUID & index_id, const metadb_index_hash & hash, const void * data, t_size dataSize) = 0;
-	//! Gets your data for the specified index+hash.
-	virtual void get_user_data(const GUID & index_id, const metadb_index_hash & hash, mem_block_container & out) = 0;
-
-
-	//! Helper
-	template<typename t_array> void get_user_data_t(const GUID & index_id, const metadb_index_hash & hash, t_array & out) {
-		mem_block_container_ref_impl<t_array> ref(out);
-		get_user_data(index_id, hash, ref);
-	}
-
-	//! Helper
-	t_size get_user_data_here(const GUID & index_id, const metadb_index_hash & hash, void * out, t_size outSize) {
-		mem_block_container_temp_impl ref(out, outSize);
-		get_user_data(index_id, hash, ref);
-		return ref.get_size();
-	}
-
-	//! Signals all components that your data for the tracks matching the specified hashes has been altered; this will redraw the affected tracks in playlists and such.
-	virtual void dispatch_refresh(const GUID & index_id, const pfc::list_base_const_t<metadb_index_hash> & hashes) = 0;
+	class queryMultiCallback_t {
+	public:
+		virtual void onInfo(size_t idx, const rec_t& rec) = 0;
+	};
+	class queryMultiParallelCallback_t {
+	public:
+		virtual void* initThreadContext() { return nullptr; }
+		virtual void onInfo(size_t idx, const rec_t& rec, void * ctx) = 0;
+		virtual void clearThreadContext(void*) {}
+	};
 	
-	//! Helper
-	void dispatch_refresh(const GUID & index_id, const metadb_index_hash & hash) {
-		pfc::list_single_ref_t<metadb_index_hash> l(hash);
-		dispatch_refresh(index_id, l);
+	virtual void queryMulti(metadb_handle_list_cref items, queryMultiCallback_t& cb) = 0;
+	
+	virtual void queryMultiParallel(metadb_handle_list_cref items, queryMultiParallelCallback_t& cb) = 0;
+	
+	virtual void formatTitle_v2( const metadb_handle_ptr & handle, const rec_t & rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter) = 0;
+
+	void queryMulti_(metadb_handle_list_cref items, std::function< void(size_t idx, const rec_t& rec) > f) {
+		class qmc_impl : public queryMultiCallback_t {
+		public:
+			void onInfo(size_t idx, const rec_t& rec) override { m_f(idx, rec); }
+			decltype(f) m_f;
+		};
+		qmc_impl cb; cb.m_f = f;
+		this->queryMulti(items, cb);
 	}
 
-	//! Dispatches a global refresh, asks all components to refresh all tracks. To be calling after adding/removing indexes. Expensive!
-	virtual void dispatch_global_refresh() = 0;
+	void queryMultiParallel_(metadb_handle_list_cref items, std::function< void(size_t, const rec_t&) > f) {
+		class qmc_impl : public queryMultiParallelCallback_t {
+		public:
+			void onInfo(size_t idx, const rec_t& rec, void* ctx) override {m_f(idx, rec);}
 
-	//! Efficiently retrieves metadb_handles of items present in the Media Library matching the specified index value. \n
-	//! This can be called from the app main thread only (interfaces with the library_manager API).
-	virtual void get_ML_handles(const GUID & index_id, const metadb_index_hash & hash, metadb_handle_list_ref out) = 0;
+			decltype(f) m_f;
+		};
+		qmc_impl cb; cb.m_f = f;
+		this->queryMultiParallel(items, cb);
+	}
+	template<typename instance_t> void queryMultiParallelEx_(metadb_handle_list_cref items, std::function<void(size_t, const rec_t&, instance_t&)> f) {
+		class qmc_impl : public queryMultiParallelCallback_t {
+		public:
+			void* initThreadContext() override {return reinterpret_cast<void*>(new instance_t);}
+			void onInfo(size_t idx, const rec_t& rec, void* ctx) override { m_f(idx, rec, * reinterpret_cast<instance_t*>(ctx)); }
+			void clearThreadContext(void* ctx) override { delete reinterpret_cast<instance_t*>(ctx); }
 
-	//! Retrieves all known hash values for this index.
-	virtual void get_all_hashes(const GUID & index_id, pfc::list_base_t<metadb_index_hash> & out) = 0;
-
-	//! Determines whether a no longer needed user data file for this index exists. \n
-	//! For use with index IDs that are not currently registered only.
-	virtual bool have_orphaned_data(const GUID & index_id) = 0;
-
-	//! Deletes no longer needed index user data files. \n
-	//! For use with index IDs that are not currently registered only.
-	virtual void erase_orphaned_data(const GUID & index_id) = 0;
-
-	//! Saves index user data file now. You normally don't need to call this; it's done automatically when saving foobar2000 configuration. \n
-	//! This will throw exceptions in case of a failure (out of disk space etc).
-	virtual void save_index_data(const GUID & index_id) = 0;
+			decltype(f) m_f;
+		};
+		qmc_impl cb; cb.m_f = f;
+		this->queryMultiParallel(items, cb);
+	}
+	pfc::array_t<rec_t> queryMultiSimple(metadb_handle_list_cref items) {
+		pfc::array_t<rec_t> ret;
+		ret.resize(items.get_count());
+		this->queryMultiParallel_(items, [&](size_t idx, const rec_t& rec) {ret[idx] = rec;});
+		return ret;
+	}
 };

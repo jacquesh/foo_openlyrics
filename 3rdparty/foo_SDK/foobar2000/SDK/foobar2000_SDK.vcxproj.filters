@@ -302,6 +302,27 @@
     <ClInclude Include="imageLoaderLite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="imageViewer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="noInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_display_field_provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_index.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_callbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="exception_io.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="abort_callback.cpp">
@@ -455,9 +476,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="componentversion.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="search_tools.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="file_cached_impl.cpp">

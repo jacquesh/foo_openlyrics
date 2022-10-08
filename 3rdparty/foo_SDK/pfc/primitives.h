@@ -2,9 +2,13 @@
 
 #include <functional>
 
+#include "traits.h"
+#include "bit_array.h"
+
 #define tabsize(x) ((size_t)(sizeof(x)/sizeof(*x)))
 #define PFC_TABSIZE(x) ((size_t)(sizeof(x)/sizeof(*x)))
 
+// Retained for compatibility. Do not use. Use C++11 template<typename ... arg_t> instead.
 #define TEMPLATE_CONSTRUCTOR_FORWARD_FLOOD_WITH_INITIALIZER(THISCLASS,MEMBER,INITIALIZER)	\
 																																				THISCLASS() :																																														MEMBER() INITIALIZER	\
 	template<typename t_param1>																													THISCLASS(const t_param1 & p_param1) :																																								MEMBER(p_param1) INITIALIZER	\
@@ -300,13 +304,7 @@ namespace pfc {
 	//! p_item2 value is undefined after performing a move_t. For an example, in certain cases move_t will fall back to swap_t.
 	template<typename T>
 	inline void move_t(T & p_item1, T & p_item2) {
-		typedef traits_t<T> t;
-		if (t::needs_constructor || t::needs_destructor) {
-			if (t::realloc_safe) swap_t(p_item1, p_item2);
-			else p_item1 = std::move( p_item2 );
-		} else {
-			p_item1 = std::move( p_item2 );
-		}
+		p_item1 = std::move(p_item2);
 	}
 
 	template<typename t_array>
@@ -479,6 +477,14 @@ namespace pfc {
 		t_size old_count = p_array.get_size();
 		p_array.set_size(old_count + 1);
 		p_array[old_count] = p_item;
+		return old_count;
+	}
+	template<typename t_array, typename T>
+	inline t_size append_t(t_array & p_array, T && p_item)
+	{
+		t_size old_count = p_array.get_size();
+		p_array.set_size(old_count + 1);
+		p_array[old_count] = std::move(p_item);
 		return old_count;
 	}
 
@@ -659,7 +665,7 @@ namespace pfc {
 	template<typename TVal> void memxor_t(TVal * out, const TVal * s1, const TVal * s2, t_size count) {
 		for(t_size walk = 0; walk < count; ++walk) out[walk] = s1[walk] ^ s2[walk];
 	}
-	static void memxor(void * target, const void * source1, const void * source2, t_size size) {
+	inline static void memxor(void * target, const void * source1, const void * source2, t_size size) {
 		memxor_t( reinterpret_cast<t_uint8*>(target), reinterpret_cast<const t_uint8*>(source1), reinterpret_cast<const t_uint8*>(source2), size);
 	}
 
@@ -682,15 +688,16 @@ namespace pfc {
 	template<> inline const wchar_t * empty_string_t<wchar_t>() {return L"";}
 
 
-	template<typename t_type,typename t_newval>
-	t_type replace_t(t_type & p_var,const t_newval & p_newval) {
-		t_type oldval = p_var;
-		p_var = p_newval;
+	template<typename type_t, typename arg_t>
+	type_t replace_t(type_t & p_var,arg_t && p_newval) {
+		auto oldval = std::move(p_var);
+		p_var = std::forward<arg_t>(p_newval);
 		return oldval;
 	}
+
 	template<typename t_type>
 	t_type replace_null_t(t_type & p_var) {
-		t_type ret = p_var;
+		t_type ret = std::move(p_var);
 		p_var = 0;
 		return ret;
 	}
@@ -860,7 +867,8 @@ namespace pfc {
 		if (p_val > p_acc) p_acc = p_val;
 	}
 
-	t_uint64 pow_int(t_uint64 base, t_uint64 exp);
+	t_uint64 pow_int(t_uint64 base, t_uint64 exp) noexcept;
+	double exp_int(double base, int exp) noexcept;
 
 
 	template<typename t_val>
@@ -871,6 +879,8 @@ namespace pfc {
 	private:
 		t_val & v;
 	};
+	template<typename obj_t>
+	incrementScope<obj_t> autoIncrement(obj_t& v) { return incrementScope<obj_t>(v); }
 
 	inline unsigned countBits32(uint32_t i) {
 		const uint32_t mask = 0x11111111;
@@ -900,18 +910,38 @@ namespace pfc {
 	// Generic no-op for breakpointing stuff
 	inline void nop() {}
 
-	class onLeaving {
+	template<class T>
+	class vartoggle_t {
+		T oldval; T& var;
 	public:
-		onLeaving() {}
-		onLeaving( std::function<void () > f_ ) : f(f_) {}
-		~onLeaving() {
-			if (f) f();
+		vartoggle_t(const vartoggle_t&) = delete;
+		void operator=(const vartoggle_t&) = delete;
+		template<typename arg_t>
+		vartoggle_t(T& p_var, arg_t&& val) : var(p_var) {
+			oldval = std::move(var);
+			var = std::forward<arg_t>(val);
 		}
-		std::function<void () > f;
-	private:
-		void operator=( onLeaving const & ) = delete;
-		onLeaving( const onLeaving & ) = delete;
+		~vartoggle_t() { var = std::move(oldval); }
 	};
+
+	template<typename T, typename arg_t>
+	vartoggle_t<T> autoToggle(T& p_var, arg_t&& val) {
+		return vartoggle_t<T>(p_var, std::forward<arg_t>(val));
+	}
+
+	template<class T>
+	class vartoggle_volatile_t {
+		T oldval; volatile T& var;
+	public:
+		template<typename arg_t>
+		vartoggle_volatile_t(volatile T& p_var, arg_t && val) : var(p_var) {
+			oldval = std::move(var);
+			var = std::forward<arg_t>(val);
+		}
+		~vartoggle_volatile_t() { var = std::move(oldval); }
+	};
+
+	typedef vartoggle_t<bool> booltoggle;
 
 	template<typename obj_t>
 	class singleton {
@@ -926,8 +956,73 @@ namespace pfc {
 
 
 #define PFC_CLASS_NOT_COPYABLE(THISCLASSNAME,THISTYPE) \
-	private:	\
 	THISCLASSNAME(const THISTYPE&) = delete; \
 	const THISTYPE & operator=(const THISTYPE &) = delete;
 
 #define PFC_CLASS_NOT_COPYABLE_EX(THISTYPE) PFC_CLASS_NOT_COPYABLE(THISTYPE,THISTYPE)
+
+
+namespace pfc {
+	template<typename t_char>
+	t_size strlen_max_t(const t_char* ptr, t_size max) noexcept {
+		PFC_ASSERT(ptr != NULL || max == 0);
+		t_size n = 0;
+		while (n < max && ptr[n] != 0) n++;
+		return n;
+	}
+
+	inline t_size strlen_max(const char* ptr, t_size max) noexcept { return strlen_max_t(ptr, max); }
+	inline t_size wcslen_max(const wchar_t* ptr, t_size max) noexcept { return strlen_max_t(ptr, max); }
+
+#ifdef _WINDOWS
+	inline t_size tcslen_max(const TCHAR* ptr, t_size max) noexcept { return strlen_max_t(ptr, max); }
+#endif
+}
+
+namespace pfc {
+	class autoScope {
+	public:
+		autoScope() {}
+		autoScope(std::function<void()>&& f) : m_cleanup(std::move(f)) {}
+
+		template<typename what_t> void increment(what_t& obj) {
+			reset();
+			++obj;
+			m_cleanup = [&obj] { --obj; };
+		}
+		template<typename what_t, typename arg_t> void toggle(what_t& obj, arg_t && val) {
+			reset();
+			what_t old = obj;
+			obj = std::forward<arg_t>(val);
+			m_cleanup = [v = std::move(old), &obj]{
+				obj = std::move(v);
+			};
+		}
+		void operator() (std::function<void()>&& f) {
+			reset(); m_cleanup = std::move(f);
+		}
+
+		~autoScope() {
+			if (m_cleanup) m_cleanup();
+		}
+
+		void cancel() {
+			m_cleanup = nullptr;
+		}
+
+		void reset() {
+			if (m_cleanup) {
+				m_cleanup();
+				m_cleanup = nullptr;
+			}
+		}
+
+		autoScope(const autoScope&) = delete;
+		void operator=(const autoScope&) = delete;
+
+		operator bool() const { return !!m_cleanup; }
+	private:
+		std::function<void()> m_cleanup;
+	};
+	typedef autoScope onLeaving;
+}

@@ -85,7 +85,8 @@ namespace {
 	};
 	typedef std::shared_ptr<readAheadInstance_t> readAheadInstanceRef;
 	static const t_filesize seek_reopen = (filesize_invalid-1);
-	class fileReadAhead : public file_readonly_t<file_dynamicinfo_v2> {
+	class fileReadAhead : public file_readonly_t< service_multi_inherit<file_get_metadata, file_dynamicinfo_v2 > > {
+		service_ptr m_metadata;
 	public:
 		readAheadInstanceRef m_instance;
 		~fileReadAhead() {
@@ -96,7 +97,9 @@ namespace {
 				i.m_canWrite.set_state(true);
 			}
 		}
+		service_ptr get_metadata(abort_callback&) override { return m_metadata; }
 		void initialize( file::ptr chain, size_t readAhead, abort_callback & aborter ) {
+			m_metadata = chain->get_metadata_(aborter);
 			m_stats = chain->get_stats( aborter );
 			if (!chain->get_content_type(m_contentType)) m_contentType = "";
 			m_canSeek = chain->can_seek();
@@ -377,7 +380,10 @@ namespace {
 
 
 file::ptr fileCreateReadAhead(file::ptr chain, size_t readAheadBytes, abort_callback & aborter ) {
-	auto obj = fb2k::service_new<fileReadAhead>();
+	auto obj = fb2k::service_new<fileReadAhead>(); 
 	obj->initialize( chain, readAheadBytes, aborter );
-	return obj;
+	
+	// Two paths to cast to file*, pick one explicitly to avoid compiler error
+	file_get_metadata::ptr temp = std::move(obj);
+	return std::move(temp);
 }

@@ -1,13 +1,8 @@
 #include "foobar2000.h"
 
-void popup_message::g_show_ex(const char * p_msg,unsigned p_msg_length,const char * p_title,unsigned p_title_length,t_icon p_icon)
+void popup_message::g_show_ex(const char * p_msg,size_t p_msg_length,const char * p_title,size_t p_title_length,t_icon p_icon)
 {
-    // Do not force instantiate, not all platforms have this
-    service_enum_t< popup_message > e;
-    service_ptr_t< popup_message > m;
-    if (e.first( m ) ) {
-        m->show_ex( p_msg, p_msg_length, p_title, p_title_length, p_icon );
-    }
+    get()->show_ex(p_msg, p_msg_length, p_title, p_title_length, p_icon);
 }
 
 
@@ -22,11 +17,13 @@ void popup_message::g_complain(const char * p_whatFailed, const char * msg) {
     g_complain( PFC_string_formatter() << p_whatFailed << ": " << msg );
 }
 
+#if FOOBAR2000_TARGET_VERSION >= 80
 void popup_message_v3::show_query( const char * title, const char * msg, unsigned buttons, completion_notify::ptr reply) {
     query_t q;
     q.title = title; q.msg = msg; q.buttons = buttons; q.reply = reply;
     this->show_query( q );
 }
+#endif
 
 
 #ifdef FOOBAR2000_DESKTOP_WINDOWS
@@ -67,7 +64,7 @@ void popup_message::g_showToastLongDuration(const char * msg) {
 
 #endif // FOOBAR2000_MODERN
 
-#ifdef FOOBAR2000_DESKTOP_WINDOWS
+#if defined(FOOBAR2000_DESKTOP_WINDOWS) && FOOBAR2000_TARGET_VERSION >= 80
 int popup_message_v3::messageBox(HWND parent, const char* msg, const char* title, UINT flags) {
 	query_t q = {};
 	q.title = title;
@@ -107,13 +104,13 @@ int popup_message_v3::messageBox(HWND parent, const char* msg, const char* title
 	}
 	switch (flags & 0xF0) {
 	case MB_ICONHAND:
-		q.icon = iconWarning;
+		q.icon = iconError;
 		break;
 	case MB_ICONQUESTION:
 		q.icon = iconQuestion;
 		break;
 	case MB_ICONEXCLAMATION:
-		q.icon = iconError;
+		q.icon = iconWarning;
 		break;
 	case MB_ICONASTERISK:
 		q.icon = iconInformation;

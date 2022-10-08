@@ -1,4 +1,5 @@
-﻿#include "pfc.h"
+﻿#include "pfc-lite.h"
+#include "pathUtils.h"
 
 static_assert(L'Ö' == 0xD6, "Compile as Unicode!!!");
 
@@ -43,7 +44,7 @@ string getParent(string filePath) {
 string combine(string basePath,string fileName) {
 	if (basePath.length() > 0) {
 		if (!isSeparator(basePath.lastChar())) {
-			basePath += getDefaultSeparator();
+			basePath.add_byte( getDefaultSeparator() );
 		}
 		return basePath + fileName;
 	} else {
@@ -69,6 +70,8 @@ const char * charReplaceDefault(char c) {
 	case '/':
 	case '\\':
 		return "-";
+	case '?':
+		return "";
 	default:
 		return "_";
 	}
@@ -266,22 +269,22 @@ string validateFileName(string name, bool allowWC, bool preserveExt, charReplace
 			name = string("[unnamed]") + name.subString(end);
 		}
 	}
+	
+	// Trailing sanity AFTER replaceIllegalNameChars
+	// replaceIllegalNameChars may remove chars exposing illegal prefix/suffix chars
+	name = replaceIllegalNameChars(name, allowWC, replaceIllegalChar);
 	if (name.length() > 0 && !allowWC) {
-		const char * lstIllegal = " .?";
-
-		// Special hack... don't drop trailing question marks if Unicode replacement is in use
-		const char * q = replaceIllegalChar('?');
-		if (strlen(q) > 1) lstIllegal = " .";
+		pfc::string8 lstIllegal = " ";
+		if (!preserveExt) lstIllegal += ".";
 
 		name = trailingSanity(name, preserveExt, lstIllegal);
 	}
-	name = replaceIllegalNameChars(name, allowWC, replaceIllegalChar);
 
 #ifdef _WINDOWS
 	name = truncatePathComponent(name, preserveExt);
 	
-	for( unsigned w = 0; w < _countof(specialIllegalNames); ++w ) {
-		if (pfc::stringEqualsI_ascii( name.c_str(), specialIllegalNames[w] ) ) {
+	for( auto p : specialIllegalNames ) {
+		if (pfc::stringEqualsI_ascii( name.c_str(), p ) ) {
 			name += "-";
 			break;
 		}

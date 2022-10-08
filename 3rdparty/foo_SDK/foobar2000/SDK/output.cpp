@@ -132,13 +132,22 @@ void output_impl::process_samples(const audio_chunk & p_chunk) {
 
 void output_v3::get_injected_dsps( dsp_chain_config & dsps ) {
 	dsps.remove_all();
+#if 0 // DEPRECATED
 	unsigned rate = this->get_forced_sample_rate();
 	if (rate != 0) {
+#if PFC_DEBUG
+		FB2K_console_formatter() << "output_v3::get_injected_dsps() : requesting resampling to " << rate << " Hz";
+#endif
 		dsp_preset_impl temp;
 		if (resampler_entry::g_create_preset( temp, 0, rate, 0 )) {
 			dsps.insert_item( temp, dsps.get_count() );
+		} else {
+#if PFC_DEBUG
+			FB2K_console_formatter() << "output_v3::get_injected_dsps() : resampler could not be created";
+#endif
 		}
 	}
+#endif
 }
 
 size_t output_v4::update_v2() {

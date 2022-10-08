@@ -31,7 +31,7 @@ void dialog_resize_helper::on_wm_size()
 {
 	if (parent)
 	{
-		unsigned count = m_table.get_size();
+		unsigned count = (unsigned) m_table.get_size();
 		if (sizegrip != 0) count++;
 		HDWP hWinPosInfo = BeginDeferWindowPos(count);
 		for(unsigned n=0;n<m_table.get_size();n++)

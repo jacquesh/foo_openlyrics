@@ -75,3 +75,8 @@ file_info_filter::ptr file_info_filter::create(func_t f) {
     o->f = f;
     return o;
 }
+
+#include "noInfo.h"
+namespace fb2k {
+	noInfo_t noInfo;
+}

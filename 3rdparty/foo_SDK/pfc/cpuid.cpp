@@ -1,12 +1,22 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "cpuid.h"
 
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 #if PFC_HAVE_CPUID
-
 namespace pfc {
 
 	bool query_cpu_feature_set(unsigned p_value) {
-#if _M_IX86_FP >= 2
+
+#ifdef __AVX__
+		// AVX implies all supported values are set
+		return true;
+#else
+
+#if _M_IX86_FP >= 2 || defined(_M_X64)
 		// don't bother checking for SSE/SSE2 if compiled to use them
 		p_value &= ~(CPU_HAVE_SSE | CPU_HAVE_SSE2);
 		if (p_value == 0) return true;
@@ -15,7 +25,7 @@ namespace pfc {
 #ifdef _MSC_VER
 		__try {
 #endif
-			if (p_value & (CPU_HAVE_SSE | CPU_HAVE_SSE2 | CPU_HAVE_SSE3 | CPU_HAVE_SSSE3 | CPU_HAVE_SSE41 | CPU_HAVE_SSE42)) {
+			if (p_value & (CPU_HAVE_SSE | CPU_HAVE_SSE2 | CPU_HAVE_SSE3 | CPU_HAVE_SSSE3 | CPU_HAVE_SSE41 | CPU_HAVE_SSE42 | CPU_HAVE_AVX)) {
 				int buffer[4];
 				__cpuid(buffer,1);
 				if (p_value & CPU_HAVE_SSE) {
@@ -36,29 +46,36 @@ namespace pfc {
 				if (p_value & CPU_HAVE_SSE42) {
 					if ((buffer[2]&(1<<20)) == 0) return false;
 				}
-			}
-	#ifdef _M_IX86
-			if (p_value & (CPU_HAVE_3DNOW_EX | CPU_HAVE_3DNOW)) {
-				int buffer_amd[4];
-				__cpuid(buffer_amd,0x80000000);
-				if ((unsigned)buffer_amd[0] < 0x80000001) return false;
-				__cpuid(buffer_amd,0x80000001);
-			
-				if (p_value & CPU_HAVE_3DNOW) {
-					if ((buffer_amd[3]&(1<<31)) == 0) return false;
-				}
-				if (p_value & CPU_HAVE_3DNOW_EX) {
-					if ((buffer_amd[3]&(1<<30)) == 0) return false;
+				if (p_value & CPU_HAVE_AVX) {
+					if ((buffer[2] & (1 << 28)) == 0) return false;
 				}
 			}
-	#endif
 			return true;
 #ifdef _MSC_VER
 		} __except(1) {
 			return false;
 		}
 #endif
+#endif
 	}
 }
 
 #endif
+
+namespace pfc {
+	const char* cpuArch() {
+#ifdef _M_ARM64EC
+		return "ARM64EC";
+#elif defined(_M_X64) || defined(__x86_64__)
+        return "x64";
+#elif defined(_M_IX86) || defined(__i386__)
+		return "x86";
+#elif defined(_M_ARM64) || defined(__aarch64__)
+		return "ARM64";
+#elif defined(_M_ARM) || defined(__arm__)
+        return "ARM";
+#else
+		return "Unknown";
+#endif
+	}
+}

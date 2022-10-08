@@ -1,3 +1,0 @@
-Icon needed by CMiddleDragImpl and things that use it - such as CListControl.
-Include IDI_SCROLL.ico in your resources, with identifier set to IDI_SCROLL.
-To get libPPUI to recognize your resource, include your resource.h before libPPUI headers in at least one of your source files.

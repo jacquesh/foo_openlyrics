@@ -1,77 +1,13 @@
 #pragma once
 #include "win32_op.h"
 
-static HBITMAP CreateDIB24(CSize size) {
-	struct {
-		BITMAPINFOHEADER bmi;
-	} bi = {};
-	bi.bmi.biSize = sizeof(bi.bmi);
-	bi.bmi.biWidth = size.cx;
-	bi.bmi.biHeight = size.cy;
-	bi.bmi.biPlanes = 1;
-	bi.bmi.biBitCount = 24;
-	bi.bmi.biCompression = BI_RGB;
-	void * bitsPtr;
-	return CreateDIBSection(NULL, reinterpret_cast<const BITMAPINFO*>(&bi), DIB_RGB_COLORS,&bitsPtr,0,0);
-}
-
-static HBITMAP CreateDIB16(CSize size) {
-	struct {
-		BITMAPINFOHEADER bmi;
-	} bi = {};
-	bi.bmi.biSize = sizeof(bi.bmi);
-	bi.bmi.biWidth = size.cx;
-	bi.bmi.biHeight = size.cy;
-	bi.bmi.biPlanes = 1;
-	bi.bmi.biBitCount = 16;
-	bi.bmi.biCompression = BI_RGB;
-	void * bitsPtr;
-	return CreateDIBSection(NULL, reinterpret_cast<const BITMAPINFO*>(&bi), DIB_RGB_COLORS,&bitsPtr,0,0);
-}
-
-static HBITMAP CreateDIB8(CSize size, const COLORREF palette[256]) {
-	struct {
-		BITMAPINFOHEADER bmi;
-		COLORREF colors[256];
-	} bi = { };
-	for(int c = 0; c < 256; ++c ) bi.colors[c] = palette[c];
-	bi.bmi.biSize = sizeof(bi.bmi);
-	bi.bmi.biWidth = size.cx;
-	bi.bmi.biHeight = size.cy;
-	bi.bmi.biPlanes = 1;
-	bi.bmi.biBitCount = 8;
-	bi.bmi.biCompression = BI_RGB;
-	bi.bmi.biClrUsed = 256;
-	void * bitsPtr;
-	return CreateDIBSection(NULL, reinterpret_cast<const BITMAPINFO*>(&bi), DIB_RGB_COLORS,&bitsPtr,0,0);
-}
-
-static void CreateScaledFont(CFont & out, CFontHandle in, double scale) {
-	LOGFONT lf;
-	WIN32_OP_D( in.GetLogFont(lf) );
-	int temp = pfc::rint32(scale * lf.lfHeight);
-	if (temp == 0) temp = pfc::sgn_t(lf.lfHeight);
-	lf.lfHeight = temp;
-	WIN32_OP_D( out.CreateFontIndirect(&lf) != NULL );
-}
-
-static void CreateScaledFontEx(CFont & out, CFontHandle in, double scale, int weight) {
-	LOGFONT lf;
-	WIN32_OP_D( in.GetLogFont(lf) );
-	int temp = pfc::rint32(scale * lf.lfHeight);
-	if (temp == 0) temp = pfc::sgn_t(lf.lfHeight);
-	lf.lfHeight = temp;
-	lf.lfWeight = weight;
-	WIN32_OP_D( out.CreateFontIndirect(&lf) != NULL );
-}
-
-static void CreatePreferencesHeaderFont(CFont & out, CWindow source) {
-	CreateScaledFontEx(out, source.GetFont(), 1.3, FW_BOLD);
-}
-
-static void CreatePreferencesHeaderFont2(CFont & out, CWindow source) {
-	CreateScaledFontEx(out, source.GetFont(), 1.1, FW_BOLD);
-}
+HBITMAP CreateDIB24(CSize size);
+HBITMAP CreateDIB16(CSize size);
+HBITMAP CreateDIB8(CSize size, const COLORREF palette[256]);
+void CreateScaledFont(CFont& out, CFontHandle in, double scale);
+void CreateScaledFontEx(CFont& out, CFontHandle in, double scale, int weight);
+void CreatePreferencesHeaderFont(CFont& out, CWindow source);
+void CreatePreferencesHeaderFont2(CFont& out, CWindow source);
 
 template<typename TCtrl>
 class CAltFontCtrl : public TCtrl {
@@ -111,7 +47,7 @@ public:
 		m_dc.SelectClipRgn(m_rgn);
 	}
 
-	HRGN OldVal() const throw() {return m_rgn;}
+	HRGN OldVal() const noexcept {return m_rgn;}
 
 	PFC_CLASS_NOT_COPYABLE_EX(DCClipRgnScope)
 private:
@@ -120,18 +56,16 @@ private:
 };
 
 
-static HBRUSH MakeTempBrush(HDC dc, COLORREF color) throw() {
-	SetDCBrushColor(dc, color); return (HBRUSH) GetStockObject(DC_BRUSH);
-}
+HBRUSH MakeTempBrush(HDC dc, COLORREF color) noexcept;
 
 class CDCBrush : public CBrushHandle {
 public:
-	CDCBrush(HDC dc, COLORREF color) throw() {
+	CDCBrush(HDC dc, COLORREF color) noexcept {
 		m_dc = dc;
 		m_oldCol = m_dc.SetDCBrushColor(color);
 		m_hBrush = (HBRUSH) GetStockObject(DC_BRUSH);
 	}
-	~CDCBrush() throw() {
+	~CDCBrush() noexcept {
 		m_dc.SetDCBrushColor(m_oldCol);
 	}
 	PFC_CLASS_NOT_COPYABLE_EX(CDCBrush)
@@ -142,12 +76,12 @@ private:
 
 class CDCPen : public CPenHandle {
 public:
-	CDCPen(HDC dc, COLORREF color) throw() {
+	CDCPen(HDC dc, COLORREF color) noexcept {
 		m_dc = dc;
 		m_oldCol = m_dc.SetDCPenColor(color);
 		m_hPen = (HPEN) GetStockObject(DC_PEN);
 	}
-	~CDCPen() throw() {
+	~CDCPen() noexcept {
 		m_dc.SetDCPenColor(m_oldCol);
 	}
 private:
@@ -158,7 +92,7 @@ private:
 
 class CBackBuffer : public CDC {
 public:
-	CBackBuffer() : m_bitmapOld(NULL), m_curSize(0,0) {
+	CBackBuffer() {
 		CreateCompatibleDC(NULL);
 		ATLASSERT(m_hDC != NULL);
 	}
@@ -210,14 +144,14 @@ public:
 
 	PFC_CLASS_NOT_COPYABLE_EX(CBackBuffer)
 private:
-	CSize m_curSize;
+	CSize m_curSize = CSize(0,0);
 	CBitmap m_bitmap;
-	HBITMAP m_bitmapOld;
+	HBITMAP m_bitmapOld = NULL;
 };
 
 class CBackBufferScope : public CDCHandle {
 public:
-	CBackBufferScope(HDC hDC, HDC hDCBB, const CRect & rcPaint) : CDCHandle(hDCBB), m_dcOrig(hDC), m_rcPaint(rcPaint)
+	CBackBufferScope(HDC hDC, HDC hDCBB, const CRect & rcPaint) : CDCHandle(hDCBB), m_rcPaint(rcPaint), m_dcOrig(hDC)
 	{
 		GetClipRgn(m_clipRgnOld); 
 		CRgn temp;
@@ -241,10 +175,10 @@ private:
 
 class SetTextColorScope {
 public:
-	SetTextColorScope(HDC dc, COLORREF col) throw() : m_dc(dc) {
+	SetTextColorScope(HDC dc, COLORREF col) noexcept : m_dc(dc) {
 		m_oldCol = SetTextColor(dc, col);
 	}
-	~SetTextColorScope() throw() {
+	~SetTextColorScope() noexcept {
 		SetTextColor(m_dc, m_oldCol);
 	}
 	PFC_CLASS_NOT_COPYABLE_EX(SetTextColorScope)
@@ -253,9 +187,5 @@ private:
 	COLORREF m_oldCol;
 };
 
-static CSize GetBitmapSize( HBITMAP bmp ) {
-	CBitmapHandle h ( bmp );
-	BITMAP bm = {};
-	WIN32_OP_D( h.GetBitmap(bm) );
-	return CSize(bm.bmWidth, bm.bmHeight);
-}
+CSize GetBitmapSize(HBITMAP bmp);
+CSize GetIconSize(HICON icon);

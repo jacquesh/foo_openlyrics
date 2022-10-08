@@ -7,11 +7,13 @@ inline static t_size GetOptimalWorkerThreadCount() throw() {
 //! IMPORTANT: all classes derived from CVerySimpleThread must call WaitTillThreadDone() in their destructor, to avoid object destruction during a virtual function call!
 class CVerySimpleThread : private pfc::thread {
 public:
-	void StartThread(int priority) {
-		this->pfc::thread::startWithPriority( priority );
+#ifdef _WIN32
+	void StartThread(int winPriority) {
+		StartThread(pfc::thread::argWinPriority(winPriority));
 	}
-	void StartThread() {
-		this->StartThread( pfc::thread::currentPriority() );
+#endif
+	void StartThread( pfc::thread::arg_t const & arg = pfc::thread::argCurrentThread() ) {
+        pfc::thread::start( arg );
 	}
 
 	bool IsThreadActive() const {
@@ -35,14 +37,16 @@ private:
 //! IMPORTANT: all classes derived from CSimpleThread must call AbortThread()/WaitTillThreadDone() in their destructors, to avoid object destruction during a virtual function call!
 class CSimpleThread : private completion_notify_receiver, private pfc::thread {
 public:
-	void StartThread(int priority) {
+#ifdef _WIN32
+	void StartThread(int winPriority) {
+		StartThread(pfc::thread::argWinPriority(winPriority));
+	}
+#endif
+	void StartThread(pfc::thread::arg_t const & arg = pfc::thread::argCurrentThread() ) {
 		AbortThread();
 		m_abort.reset();
 		m_ownNotify = create_task(0);
-		this->pfc::thread::startWithPriority( priority );
-	}
-	void StartThread() {
-		this->StartThread( pfc::thread::currentPriority () );
+        this->pfc::thread::start( arg );
 	}
 	void AbortThread() {
 		m_abort.abort();

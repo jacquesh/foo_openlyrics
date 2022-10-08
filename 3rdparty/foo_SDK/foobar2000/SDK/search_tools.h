@@ -45,10 +45,8 @@ public:
 	//! Creates a search_filter object. Throws an exception on failure (such as an error in the query). It's recommended that you relay the exception message to the user if this function fails.
 	virtual search_filter::ptr create(const char * p_query) = 0;
 
-	//! Retrieves the search expression manual string. See also: show_manual().
+	//! Obsolete, do not call.
 	virtual void get_manual(pfc::string_base & p_out) = 0;
-
-	void show_manual();
 
 	FB2K_MAKE_SERVICE_COREAPI(search_filter_manager);
 };

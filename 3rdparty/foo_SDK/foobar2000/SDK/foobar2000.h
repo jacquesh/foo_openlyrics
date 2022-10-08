@@ -12,8 +12,11 @@
 // #define FOOBAR2000_TARGET_VERSION 79 // 1.4
 #define FOOBAR2000_TARGET_VERSION 80 // 1.5, 1.6
 
+// Note that upcoming foobar2000 v2.0 x64/ARM64 will load components with FOOBAR2000_TARGET_VERSION of 80 or higher.
+// foobar2000 v2.0 x86 currently supports all old components from 0.9 era up.
+
 // Use this to determine what foobar2000 SDK version is in use, undefined for releases older than 2018
-#define FOOBAR2000_SDK_VERSION 20200728
+#define FOOBAR2000_SDK_VERSION 20220810
 
 
 #include "foobar2000-pfc.h"
@@ -55,6 +58,9 @@ typedef const char * pcchar;
 #include "hasher_md5.h"
 #include "metadb_handle.h"
 #include "metadb.h"
+#include "metadb_index.h"
+#include "metadb_display_field_provider.h"
+#include "metadb_callbacks.h"
 #include "file_info_filter.h"
 #include "console.h"
 #include "dsp.h"
@@ -125,5 +131,6 @@ typedef const char * pcchar;
 
 #include "file_lock_manager.h"
 #include "imageLoaderLite.h"
+#include "imageViewer.h"
 
 #endif //_FOOBAR2000_H_

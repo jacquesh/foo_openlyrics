@@ -59,6 +59,7 @@ namespace text_file_loader
 				return;
 			}
 			if (!memcmp(utf8_header, temp, 3)) is_utf8 = true;
+            else if (is_utf8) p_out.add_string(temp,3);
 			else ansitemp.add_string(temp, 3);
 
 			mem.set_size(delta);

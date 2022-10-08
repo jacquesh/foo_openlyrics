@@ -1,5 +1,12 @@
 #pragma once
 
+class uDebugLog : public pfc::string_formatter {
+public:
+    ~uDebugLog() {*this << "\n"; uOutputDebugString(get_ptr());}
+};
+
+#define FB2K_DebugLog() uDebugLog()._formatter()
+
 // since fb2k 1.5
 namespace fb2k {
 	class panicHandler {
@@ -17,37 +24,49 @@ extern "C"
 
 extern "C"
 {
+#ifdef _WIN32
 	LPCSTR SHARED_EXPORT uGetCallStackPath();
 	LONG SHARED_EXPORT uExceptFilterProc(LPEXCEPTION_POINTERS param);
+#endif
+
 	PFC_NORETURN void SHARED_EXPORT uBugCheck();
 
-#ifdef _DEBUG
+#if PFC_DEBUG
 	void SHARED_EXPORT fb2kDebugSelfTest();
+#endif
+
+#ifdef _WIN32
+    static inline void uAddDebugEvent(const char * msg) {uPrintCrashInfo_OnEvent(msg, strlen(msg));}
+#else
+    static inline void uAddDebugEvent( const char * msg ) { uOutputDebugString(pfc::format(msg, "\n")); }
 #endif
 }
 
-class uCallStackTracker
-{
+#ifdef _WIN32
+class uCallStackTracker {
 	t_size param;
 public:
-	explicit SHARED_EXPORT uCallStackTracker(const char * name);
+	explicit SHARED_EXPORT uCallStackTracker(const char* name);
 	SHARED_EXPORT ~uCallStackTracker();
 };
-
-
-
-#if FB2K_SUPPORT_CRASH_LOGS
-#define TRACK_CALL(X) uCallStackTracker TRACKER__##X(#X)
-#define TRACK_CALL_TEXT(X) uCallStackTracker TRACKER__BLAH(X)
-#define TRACK_CODE(description,code) {uCallStackTracker __call_tracker(description); code;}
-#else
-#define TRACK_CALL(X)
-#define TRACK_CALL_TEXT(X)
-#define TRACK_CODE(description,code) {code;}
 #endif
 
 #if FB2K_SUPPORT_CRASH_LOGS
-static int uExceptFilterProc_inline(LPEXCEPTION_POINTERS param) {
+
+#define TRACK_CALL(X) uCallStackTracker TRACKER__##X(#X)
+#define TRACK_CALL_TEXT(X) uCallStackTracker TRACKER__BLAH(X)
+#define TRACK_CODE(description,code) {uCallStackTracker __call_tracker(description); code;}
+
+#else // FB2K_SUPPORT_CRASH_LOGS
+
+#define TRACK_CALL(X)
+#define TRACK_CALL_TEXT(X)
+#define TRACK_CODE(description,code) {code;}
+
+#endif // FB2K_SUPPORT_CRASH_LOGS
+
+#if FB2K_SUPPORT_CRASH_LOGS
+inline int uExceptFilterProc_inline(LPEXCEPTION_POINTERS param) {
 	uDumpCrashInfo(param);
 	TerminateProcess(GetCurrentProcess(), 0);
 	return 0;// never reached
@@ -64,14 +83,17 @@ static int uExceptFilterProc_inline(LPEXCEPTION_POINTERS param) {
 #define fb2k_instacrash_scope(X) {X;}
 #endif
 
-PFC_NORETURN static void fb2kCriticalError(DWORD code, DWORD argCount = 0, const ULONG_PTR * args = NULL) {
+#if 0 // no longer used
+PFC_NORETURN inline void fb2kCriticalError(DWORD code, DWORD argCount = 0, const ULONG_PTR * args = NULL) {
 	fb2k_instacrash_scope( RaiseException(code,EXCEPTION_NONCONTINUABLE,argCount,args); );
 }
-PFC_NORETURN static void fb2kDeadlock() {
+PFC_NORETURN inline void fb2kDeadlock() {
 	fb2kCriticalError(0x63d81b66);
 }
+#endif
 
-static void fb2kWaitForCompletion(HANDLE hEvent) {
+#ifdef _WIN32
+inline void fb2kWaitForCompletion(HANDLE hEvent) {
 	switch(WaitForSingleObject(hEvent, INFINITE)) {
 	case WAIT_OBJECT_0:
 		return;
@@ -80,7 +102,7 @@ static void fb2kWaitForCompletion(HANDLE hEvent) {
 	}
 }
 
-static void fb2kWaitForThreadCompletion(HANDLE hWaitFor, DWORD threadID) {
+inline void fb2kWaitForThreadCompletion(HANDLE hWaitFor, DWORD threadID) {
 	(void) threadID;
 	switch(WaitForSingleObject(hWaitFor, INFINITE)) {
 	case WAIT_OBJECT_0:
@@ -90,7 +112,7 @@ static void fb2kWaitForThreadCompletion(HANDLE hWaitFor, DWORD threadID) {
 	}
 }
 
-static void fb2kWaitForThreadCompletion2(HANDLE hWaitFor, HANDLE hThread, DWORD threadID) {
+inline void fb2kWaitForThreadCompletion2(HANDLE hWaitFor, HANDLE hThread, DWORD threadID) {
 	(void) threadID;
 	switch(WaitForSingleObject(hWaitFor, INFINITE)) {
 	case WAIT_OBJECT_0:
@@ -101,7 +123,7 @@ static void fb2kWaitForThreadCompletion2(HANDLE hWaitFor, HANDLE hThread, DWORD 
 }
 
 
-static void __cdecl _OverrideCrtAbort_handler(int signal) {
+inline void __cdecl _OverrideCrtAbort_handler(int signal) {
 	const ULONG_PTR args[] = {(ULONG_PTR)signal};
 	RaiseException(0x6F8E1DC8 /* random GUID */, EXCEPTION_NONCONTINUABLE, _countof(args), args);
 }
@@ -121,7 +143,7 @@ static void _InvalidParameter(
 	RaiseException(0xd142b808 /* random GUID */, EXCEPTION_NONCONTINUABLE, 0, 0);
 }
 
-static void OverrideCrtAbort() {
+inline void OverrideCrtAbort() {
 	const int signals[] = {SIGINT, SIGTERM, SIGBREAK, SIGABRT};
 	for(size_t i=0; i<_countof(signals); i++) signal(signals[i], _OverrideCrtAbort_handler);
 	_set_abort_behavior(0, UINT_MAX);
@@ -129,3 +151,24 @@ static void OverrideCrtAbort() {
 	_set_purecall_handler(_PureCallHandler);
 	_set_invalid_parameter_handler(_InvalidParameter);
 }
+#endif
+
+namespace fb2k {
+#ifdef _WIN32
+	PFC_NORETURN inline void crashWithMessage(const char * msg) {
+		uAddDebugEvent(msg);
+		uBugCheck();
+	}
+#else
+    void crashWithMessage [[noreturn]] (const char*);
+#endif
+}
+
+
+// implement me
+#define FB2K_TRACE_ENABLED 0
+
+#define FB2K_TRACE_FORCED(X)
+#define FB2K_TRACE(X)
+#define FB2K_TRACE_THIS FB2K_TRACE(__FUNCTION__)
+#define FB2K_TRACE_THIS_FORCED FB2K_TRACE_FORCED(__FUNCTION__)

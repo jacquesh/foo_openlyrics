@@ -9,6 +9,7 @@ PFC_NORETURN PFC_NOINLINE void WIN32_OP_FAIL() {
 }
 
 PFC_NORETURN PFC_NOINLINE void WIN32_OP_FAIL_CRITICAL(const char * what) {
+	(void)what;
 #if PFC_DEBUG
 	const DWORD code = GetLastError();
 	PFC_ASSERT(code != NO_ERROR);

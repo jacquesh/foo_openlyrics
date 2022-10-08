@@ -1,4 +1,6 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "bsearch.h"
+#include "bsearch_inline.h"
 
 //deprecated
 

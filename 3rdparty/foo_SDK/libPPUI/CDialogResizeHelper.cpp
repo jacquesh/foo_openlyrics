@@ -125,7 +125,7 @@ void CDialogResizeHelper::OnDestroy() {
 
 void CDialogResizeHelper::AddSizeGrip()
 {
-	if (m_thisWnd != NULL && m_sizeGrip == NULL)
+	if ( m_autoSizeGrip && m_thisWnd != NULL && m_sizeGrip == NULL)
 	{
 		if (m_thisWnd.GetWindowLong(GWL_STYLE) & WS_POPUP) {
 			m_sizeGrip = CreateWindowEx(0, WC_SCROLLBAR, _T(""), WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEGRIP | SBS_SIZEBOXBOTTOMRIGHTALIGN,

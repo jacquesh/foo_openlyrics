@@ -10,14 +10,11 @@
 #include "listview_helper.h" // ListView_GetColumnCount
 #include "clipboard.h"
 
+#include "DarkMode.h"
+
 #include <forward_list>
 
-#ifndef WM_MOUSEHWHEEL
-#define WM_MOUSEHWHEEL 0x20E
-#endif
-
 using namespace InPlaceEdit;
-
 
 namespace {
 
@@ -37,19 +34,19 @@ namespace {
 		parent.PostMessage(MSG_COMPLETION, code, 0);
 	}
 
+#if 0
 	static void GAbortEditing(t_uint32 code) {
 		for (auto walk = g_editboxes.begin(); walk != g_editboxes.end(); ++walk) {
 			GAbortEditing(*walk, code);
 		}
 	}
-
+#endif
 	static bool IsSamePopup(CWindow wnd1, CWindow wnd2) {
 		return pfc::findOwningPopup(wnd1) == pfc::findOwningPopup(wnd2);
 	}
 
 	static void MouseEventTest(HWND target, CPoint pt, bool isWheel) {
-		for (auto walk = g_editboxes.begin(); walk != g_editboxes.end(); ++walk) {
-			CWindow edit(*walk);
+		for (CWindow edit : g_editboxes) {
 			bool cancel = false;
 			if (target != edit && IsSamePopup(target, edit)) {
 				cancel = true;
@@ -131,7 +128,7 @@ namespace {
 			on_editbox_destruction(m_hWnd);
 			SetMsgHandled(FALSE);
 		}
-		int OnCreate(LPCREATESTRUCT lpCreateStruct) {
+		int OnCreate(LPCREATESTRUCT) {
 			OnCreation();
 			SetMsgHandled(FALSE);
 			return 0;
@@ -202,6 +199,7 @@ namespace {
 			return true;
 		}
 		void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) {
+			(void)nRepCnt; (void)nRepCnt;
 			if (m_suppressChar != 0) {
 				UINT code = nFlags & 0xFF;
 				if (code == m_suppressChar) return;
@@ -215,6 +213,7 @@ namespace {
 			SetMsgHandled(FALSE);
 		}
 		void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+			(void)nRepCnt;
 			m_suppressChar = nFlags & 0xFF;
 			switch (nChar) {
 			case VK_BACK:
@@ -302,6 +301,8 @@ namespace {
 				WIN32_OP(edit.Create(*this, rcClient, NULL, style, 0, ID_MYEDIT) != NULL);
 				edit.SetFont(parent.GetFont());
 
+				if ((m_flags & KFlagDark) != 0) DarkMode::DarkenEditLite(edit);
+
 				if (m_ACData.is_valid()) InitializeSimpleAC(edit, m_ACData.get_ptr(), m_ACOpts);
 				m_edit.SubclassWindow(edit);
 				m_edit.OnCreation();
@@ -324,8 +325,8 @@ namespace {
 		}
 
 		InPlaceEditContainer(const RECT & p_rect, t_uint32 p_flags, pfc::rcptr_t<pfc::string_base> p_content, reply_t p_notify, IUnknown * ACData, DWORD ACOpts)
-			: m_content(p_content), m_notify(p_notify), m_completed(false), m_initialized(false), m_changed(false), m_disable_editing(false), m_initRect(p_rect), 
-			m_flags(p_flags), m_selfDestruct(), m_ACData(ACData), m_ACOpts(ACOpts),
+			: m_content(p_content), m_notify(p_notify), m_initRect(p_rect), 
+			m_flags(p_flags), m_ACData(ACData), m_ACOpts(ACOpts),
 			m_edit(p_flags)
 		{
 		}
@@ -360,7 +361,7 @@ namespace {
 			GetParent().UpdateWindow();
 			m_disable_editing = true;
 		}
-		LRESULT OnMsgCompletion(UINT, WPARAM wParam, LPARAM lParam) {
+		LRESULT OnMsgCompletion(UINT, WPARAM wParam, LPARAM) {
 			PFC_ASSERT(m_initialized);
 			if ((wParam & KEditMaskReason) != KEditLostFocus) {
 				GetParent().SetFocus();
@@ -396,10 +397,10 @@ namespace {
 
 		const pfc::rcptr_t<pfc::string_base> m_content;
 		const reply_t m_notify;
-		bool m_completed;
-		bool m_initialized, m_changed;
-		bool m_disable_editing;
-		bool m_selfDestruct;
+		bool m_completed = false;
+		bool m_initialized = false, m_changed = false;
+		bool m_disable_editing = false;
+		bool m_selfDestruct = false;
 		const CRect m_initRect;
 		const t_uint32 m_flags;
 		CInPlaceEditBox m_edit;

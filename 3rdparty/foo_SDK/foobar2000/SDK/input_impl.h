@@ -106,7 +106,7 @@ public:
 	//! These typedefs indicate which interfaces your class actually supports. You can override them to support non default input API interfaces without specifying input_factory parameters.
 	typedef input_decoder_v4 interface_decoder_t;
 	typedef input_info_reader interface_info_reader_t;
-	typedef input_info_writer interface_info_writer_t;
+	typedef input_info_writer_v2 interface_info_writer_t;
 };
 
 //! This is a class that just declares prototypes of functions that each non-multitrack-enabled input needs to implement. See input_decoder / input_info_reader / input_info_writer interfaces for full descriptions of member functions. Since input implementation class is instantiated using a template, you don't need to derive from input_singletrack_impl as virtual functions are not used on implementation class level. Use input_singletrack_factory_t template to register input class based on input_singletrack_impl.

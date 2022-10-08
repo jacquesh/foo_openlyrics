@@ -12,12 +12,21 @@ namespace ThreadUtils {
 	
 	void WaitAbortable_MsgLoop(HANDLE ev, abort_callback & abort);
 	
-	t_size MultiWaitAbortable_MsgLoop(const HANDLE * ev, t_size evCount, abort_callback & abort);
+	
+	// Throws an exception if aborted, returns index of triggered event otherwise.
+	t_size MultiWaitAbortable_MsgLoop2(const HANDLE* ev, t_size evCount, abort_callback& abort);
+
+	// Do not use, broken version of MultiWaitAbortable_MsgLoop2 retained for compatibility (returns 1 based index)
+	t_size MultiWaitAbortable_MsgLoop(const HANDLE* ev, t_size evCount, abort_callback& abort);
+
 	void SleepAbortable_MsgLoop(abort_callback & abort, DWORD timeout /*must not be INFINITE*/);
 	bool WaitAbortable_MsgLoop(HANDLE ev, abort_callback & abort, DWORD timeout /*must not be INFINITE*/);
 
 	DWORD MultiWait_MsgLoop(const HANDLE* ev, DWORD evCount, DWORD timeout);
 	DWORD MultiWait_MsgLoop(const HANDLE* ev, DWORD evCount);
+
+	// Drop-in replacement for pfc::event::g_wait_for()
+	bool pfcWaitMsgLoop(HANDLE ev, double timeout);
 
 	template<typename TWhat>
 	class CObjectQueue {

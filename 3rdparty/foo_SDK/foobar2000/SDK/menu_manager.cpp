@@ -225,8 +225,10 @@ namespace {
 
 void menu_helpers::win32_auto_mnemonics(HMENU menu)
 {
+	PFC_ASSERT(IsMenu(menu));
 	mnemonic_manager mgr;
-	unsigned n, m = GetMenuItemCount(menu);
+	int n, m = GetMenuItemCount(menu);
+	PFC_ASSERT(m >= 0);
 	pfc::string8_fastalloc temp,temp2;
 	for(n=0;n<m;n++)//first pass, check existing mnemonics
 	{
@@ -323,7 +325,7 @@ bool keyboard_shortcut_manager::on_keydown_auto_context(const pfc::list_base_con
 	else return on_keydown_auto(wp);
 }
 
-static bool should_relay_key_restricted(UINT p_key) {
+static bool should_relay_key_restricted(WPARAM p_key) {
 	switch(p_key) {
 	case VK_LEFT:
 	case VK_RIGHT:
@@ -412,5 +414,5 @@ bool keyboard_shortcut_manager::is_typing_message(HWND editbox, const MSG * msg)
 }
 bool keyboard_shortcut_manager::is_typing_message(const MSG * msg) {
 	if (msg->message != WM_KEYDOWN && msg->message != WM_SYSKEYDOWN) return false;
-	return is_typing_key_combo(msg->wParam, GetHotkeyModifierFlags());
+	return is_typing_key_combo((uint32_t)msg->wParam, GetHotkeyModifierFlags());
 }

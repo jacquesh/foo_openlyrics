@@ -1,9 +1,7 @@
 #pragma once
 
-#include "CIconOverlayWindow.h"
+#include "CMiddleDragOverlay.h"
 #include <utility>
-#include "ppresources.h"
-#include "win32_utility.h"
 
 class CMiddleDragCommon {
 public:
@@ -52,7 +50,7 @@ protected:
 private:
 	bool m_active = false, m_dragged = false;
 	CPoint m_base;
-	CIconOverlayWindow m_overlay;
+	CMiddleDragOverlay m_overlay;
 	double m_accX = 0, m_accY = 0;
 
 	LRESULT OnDestroyPassThru(UINT,WPARAM,LPARAM,BOOL& bHandled) {
@@ -61,14 +59,14 @@ private:
 		return 0;
 	}
 
-	LRESULT OnMButtonUp(UINT,WPARAM,LPARAM p_lp,BOOL& bHandled) {
+	LRESULT OnMButtonUp(UINT,WPARAM,LPARAM,BOOL&) {
 		if (m_active /*&& m_dragged*/) {
 			EndDrag();
 		}
 		return 0;
 	}
 
-	LRESULT OnMButtonDown(UINT,WPARAM,LPARAM p_lp,BOOL& bHandled) {
+	LRESULT OnMButtonDown(UINT,WPARAM,LPARAM p_lp,BOOL&) {
 		if (m_active) {
 			EndDrag();
 			return 0;
@@ -108,10 +106,7 @@ private:
 
 		if (m_overlay == NULL) {
 			PFC_ASSERT( this->m_hWnd != NULL );
-			if (m_overlay.Create(*this) == NULL) {PFC_ASSERT(!"Should not get here!"); return;}
-			HANDLE temp;
-			WIN32_OP_D( (temp = LoadImage(GetThisModuleHandle(),MAKEINTRESOURCE(CPPUIResources::get_IDI_SCROLL()),IMAGE_ICON,32,32,LR_DEFAULTCOLOR)) != NULL );
-			m_overlay.AttachIcon((HICON) temp);
+			WIN32_OP_D(m_overlay.Create(*this));
 		}
 
 		//todo sanity checks - don't drag when the entire content is visible, perhaps use a different icon when only vertical or horizontal drag is possible
@@ -122,13 +117,8 @@ private:
 		m_accX = m_accY = 0;
 		this->SetCapture();
 		this->SetTimer(KTimerID,KTimerPeriod);
-		
-		{
-			CSize radius(16,16);
-			CPoint center (p_point);
-			CRect rect(center - radius, center + radius);
-			m_overlay.SetWindowPos(HWND_TOPMOST,rect,SWP_SHOWWINDOW | SWP_NOACTIVATE);
-		}
+
+		m_overlay.ShowHere(p_point);
 	}
 
 	void EndDrag() {
@@ -152,7 +142,12 @@ private:
 	LRESULT OnTimer(UINT,WPARAM p_wp,LPARAM,BOOL& bHandled) {
 		switch(p_wp) {
 		case KTimerID:
-			this->MoveViewOriginDelta(ProcessMiddleDragDelta(CPoint(GetCursorPos()) - m_base));
+		{
+			CPoint ptCursor;
+			if (GetCursorPos(&ptCursor)) {
+				this->MoveViewOriginDelta(ProcessMiddleDragDelta(ptCursor - m_base));
+			}
+		}
 			return 0;
 		default:
 			bHandled = FALSE;

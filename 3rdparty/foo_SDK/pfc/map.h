@@ -1,4 +1,5 @@
 #pragma once
+#include "avltree.h"
 
 namespace pfc {
 	PFC_DECLARE_EXCEPTION(exception_map_entry_not_found,exception,"Map entry not found");
@@ -238,12 +239,20 @@ namespace pfc {
 		typedef typename t_content::const_iterator const_iterator;
 		typedef typename t_content::iterator iterator;
 
+		typedef typename t_content::forward_iterator forward_iterator;
+		typedef typename t_content::forward_const_iterator forward_const_iterator;
+
 		iterator first() throw() {return m_data._first_var();}
 		iterator last() throw() {return m_data._last_var();}
 		const_iterator first() const throw() {return m_data.first();}
 		const_iterator last() const throw() {return m_data.last();}
 		const_iterator cfirst() const throw() {return m_data.first();}
 		const_iterator clast() const throw() {return m_data.last();}
+
+		forward_iterator begin() { return first(); }
+		forward_const_iterator begin() const { return first(); }
+		forward_iterator end() { return forward_iterator(); }
+		forward_const_iterator end() const { return forward_const_iterator(); }
 
 		template<typename _t_key> iterator find(const _t_key & key) {return m_data.find(t_search_query<_t_key>(key));}
 		template<typename _t_key> const_iterator find(const _t_key & key) const {return m_data.find(t_search_query<_t_key>(key));}

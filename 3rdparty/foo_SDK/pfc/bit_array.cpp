@@ -1,4 +1,8 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "bit_array.h"
+#include "bit_array_impl.h"
+#include "bit_array_impl_part2.h"
+#include "sort.h"
 
 namespace pfc {
 	void bit_array::for_each(bool value, size_t base, size_t max, std::function<void(size_t)> f) const {
@@ -95,7 +99,7 @@ namespace pfc {
 		if (count==0) return start;
 		else if (count<0) {
 			size_t idx;
-			if (!_findNearestDown( start, idx ) || m_content[idx] < start+count) return start + count;
+			if (!_findNearestDown( start, idx ) || (t_ssize)m_content[idx] < (t_ssize)start+count) return start + count;
 			return m_content[idx];
 		} else { // count > 0
 			size_t idx;

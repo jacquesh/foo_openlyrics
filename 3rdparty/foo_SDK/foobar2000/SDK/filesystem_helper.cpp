@@ -257,3 +257,15 @@ namespace foobar2000_io {
 	}
 #endif
 }
+
+pfc::string8 file_path_canonical(const char* src) {
+	pfc::string8 ret;
+	filesystem::g_get_canonical_path(src, ret);
+	return ret;
+}
+
+pfc::string8 file_path_display(const char* src) {
+	pfc::string8 ret;
+	filesystem::g_get_display_path(src, ret);
+	return ret;
+}

@@ -8,6 +8,8 @@
 
 namespace ThreadUtils {
 
+    typedef std::function<bool(pfc::eventHandle_t, double) > waitFunc_t;
+
 	// Serialize access to some resource to a single thread
 	// Execute blocking/nonabortable methods in with proper abortability (detach on abort and move on)
 	class cmdThread {
@@ -17,12 +19,13 @@ namespace ThreadUtils {
 		typedef std::function<void (abort_callback&) > funcAbortable_t;
         
     protected:
-        std::function<void () > makeWorker() {
+        std::function<void () > makeWorker(waitFunc_t wf = pfc::event::g_wait_for) {
             auto q = m_queue;
             auto x = m_atExit;
-            return [q, x] {
+            return [q, x, wf] {
                 for ( ;; ) {
                     func_t f;
+                    wf(q->get_event_handle(), -1);
                     if (!q->get(f)) break;
                     try { f(); } catch(...) {}
                 }
@@ -33,7 +36,7 @@ namespace ThreadUtils {
                 }
             };
         };
-        std::function<void () > makeWorker2( std::function<void()> updater, double interval) {
+        std::function<void () > makeWorker2( std::function<void()> updater, double interval, waitFunc_t wf = pfc::event::g_wait_for) {
             auto q = m_queue;
             auto x = m_atExit;
             return [=] {
@@ -43,7 +46,7 @@ namespace ThreadUtils {
                         bool bWorkReady = false;
                         double left = interval - t.query();
                         if ( left > 0 ) {
-                            if (q->wait_read( left )) bWorkReady = true;
+                            if (wf(q->get_event_handle(), left)) bWorkReady = true;
                         }
                         
                         if (!bWorkReady) {
@@ -54,6 +57,7 @@ namespace ThreadUtils {
                     }
                     
                     func_t f;
+                    wf(q->get_event_handle(), -1);
                     if (!q->get(f)) break;
                     try { f(); } catch(...) {}
                 }

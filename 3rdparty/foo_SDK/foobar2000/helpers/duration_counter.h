@@ -1,7 +1,7 @@
 #pragma once
 
-#include <foobar2000/SDK/dsp.h>
-//#include <pfc/map.h>
+#include <SDK/dsp.h>
+#include <pfc/map.h>
 
 //! Duration counter class - accumulates duration using sample values, without any kind of rounding error accumulation.
 class duration_counter {

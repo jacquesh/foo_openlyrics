@@ -1,4 +1,6 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "wildcard.h"
+#include "string_base.h"
 
 static bool test_recur(const char * fn,const char * rm,bool b_sep)
 {

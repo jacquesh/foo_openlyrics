@@ -24,7 +24,9 @@ namespace PaintUtils {
 	namespace TrackBar {
 		void DrawThumb(HTHEME theme,HDC dc,int state,const RECT * rcThumb, const RECT * rcUpdate);
 		void DrawTrack(HTHEME theme,HDC dc,const RECT * rcTrack, const RECT * rcUpdate);
-		void DrawTrackVolume(HTHEME theme,HDC dc,const RECT * rcTrack, const RECT * rcUpdate);
+		void DrawTrack2(HDC dc, const CRect& rcTrack, const CRect& rcUpdate, COLORREF highlight, COLORREF shadow);
+		void DrawTrackVolume(HTHEME theme,HDC dc,const CRect & rcTrack, const CRect & rcUpdate);
+		void DrawTrackVolume2(HDC dc, const CRect& rcTrack, const CRect& rcUpdate, COLORREF highlight, COLORREF shadow);
 	};
 
 	void DrawSmoothedLine(HDC dc, CPoint p1, CPoint p2, COLORREF col, double width);

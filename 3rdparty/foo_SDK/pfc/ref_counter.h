@@ -1,5 +1,9 @@
 #pragma once
 
+#include "traits.h"
+#include "lockless.h"
+#include "primitives.h"
+
 namespace pfc {
 
 	class NOVTABLE refcounted_object_root

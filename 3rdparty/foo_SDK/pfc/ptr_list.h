@@ -1,13 +1,12 @@
 #pragma once
+#include "list.h"
 
 namespace pfc {
 
 	template<class T, class B = list_t<T*> >
-	class ptr_list_t : public B
-	{
+	class ptr_list_t : public B {
 	public:
-		ptr_list_t() {}
-		ptr_list_t(const ptr_list_t<T> & p_source) {*this = p_source;}
+		typedef ptr_list_t<T, B> self_t;
 
 		void free_by_idx(t_size n) {free_mask(bit_array_one(n));}
 		void free_all() {this->remove_all_ex(free);}
@@ -33,8 +32,6 @@ namespace pfc {
 	template<typename T,t_size N>
 	class ptr_list_hybrid_t : public ptr_list_t<T,list_hybrid_t<T*,N> > {
 	public:
-		ptr_list_hybrid_t() {}
-		ptr_list_hybrid_t(const ptr_list_hybrid_t<T,N> & p_source) {*this = p_source;}
 	};
 
 	typedef ptr_list_t<void> ptr_list;

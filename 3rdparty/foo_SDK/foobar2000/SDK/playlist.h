@@ -596,7 +596,7 @@ public:
 class NOVTABLE playlist_callback_single
 {
 public:
-	virtual void on_items_added(t_size p_base, const pfc::list_base_const_t<metadb_handle_ptr> & p_data,const bit_array & p_selection)=0;//inside any of these methods, you can call playlist APIs to get exact info about what happened (but only methods that read playlist state, not those that modify it)
+	virtual void on_items_added(t_size p_base, metadb_handle_list_cref p_data,const bit_array & p_selection)=0;//inside any of these methods, you can call playlist APIs to get exact info about what happened (but only methods that read playlist state, not those that modify it)
 	virtual void on_items_reordered(const t_size * p_order,t_size p_count)=0;//changes selection too; doesnt actually change set of items that are selected or item having focus, just changes their order
 	virtual void on_items_removing(const bit_array & p_mask,t_size p_old_count,t_size p_new_count)=0;//called before actually removing them
 	virtual void on_items_removed(const bit_array & p_mask,t_size p_old_count,t_size p_new_count)=0;
@@ -650,7 +650,7 @@ public:
 		playlist_manager::get()->modify_callback(this,p_flags);
 	}
 	//dummy implementations - avoid possible pure virtual function calls!
-	void on_items_added(t_size p_playlist,t_size p_start, const pfc::list_base_const_t<metadb_handle_ptr> & p_data,const bit_array & p_selection) {}
+	void on_items_added(t_size p_playlist,t_size p_start, metadb_handle_list_cref p_data,const bit_array & p_selection) {}
 	void on_items_reordered(t_size p_playlist,const t_size * p_order,t_size p_count) {}
 	void on_items_removing(t_size p_playlist,const bit_array & p_mask,t_size p_old_count,t_size p_new_count) {}
 	void on_items_removed(t_size p_playlist,const bit_array & p_mask,t_size p_old_count,t_size p_new_count) {}
@@ -690,7 +690,7 @@ protected:
 	}
 
 	//dummy implementations - avoid possible pure virtual function calls!
-	void on_items_added(t_size p_base, const pfc::list_base_const_t<metadb_handle_ptr> & p_data,const bit_array & p_selection) {}
+	void on_items_added(t_size p_base, metadb_handle_list_cref p_data,const bit_array & p_selection) {}
 	void on_items_reordered(const t_size * p_order,t_size p_count) {}
 	void on_items_removing(const bit_array & p_mask,t_size p_old_count,t_size p_new_count) {}
 	void on_items_removed(const bit_array & p_mask,t_size p_old_count,t_size p_new_count) {}
@@ -888,7 +888,7 @@ protected:
 	bool is_playlist_command_available(t_uint32 what) const {
 		auto api = playlist_manager::get();
 		const t_size active = api->get_active_playlist();
-		if (active == ~0) return false;
+		if (active == SIZE_MAX) return false;
 		return (api->playlist_lock_get_filter_mask(active) & what) == 0;
 	}
 private:

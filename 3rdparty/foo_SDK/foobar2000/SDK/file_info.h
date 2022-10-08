@@ -1,3 +1,4 @@
+#pragma once
 //! Structure containing ReplayGain scan results from some playable object, also providing various helper methods to manipulate those results.
 struct replaygain_info
 {
@@ -82,12 +83,14 @@ public:
 	//! Retrieves audio duration, in seconds. \n
 	//! Note that the reported duration should not be assumed to be the exact length of the track -\n
 	//! with many popular audio formats, exact duration is impossible to determine without performing a full decode pass;\n
-	//! with other formats, the decoded data may be shorter than reported due to truncation other damage.
+	//! with other formats, the decoded data may be shorter than reported due to truncation other damage. \n
+	//! Length of 0 indicates unknown or infinite (no seekbar shown).
 	virtual double		get_length() const = 0;
 	//! Sets audio duration, in seconds. \n
 	//! Note that the reported duration should not be assumed to be the exact length of the track -\n
 	//! with many popular audio formats, exact duration is impossible to determine without performing a full decode pass;\n
-	//! with other formats, the decoded data may be shorter than reported due to truncation other damage.
+	//! with other formats, the decoded data may be shorter than reported due to truncation other damage. \n
+	//! Length of 0 indicates unknown or infinite (no seekbar shown).
 	virtual void		set_length(double p_length) = 0;
 
 	//! Sets ReplayGain information.
@@ -212,12 +215,15 @@ public:
 	inline t_int64 info_get_bitrate() const {return info_get_int("bitrate");}
 	inline void info_set_bitrate(t_int64 val) {info_set_int("bitrate",val);}
 
+	void info_set_channels(uint32_t);
+	void info_set_channels_ex(uint32_t channels, uint32_t mask);
+
 	void info_set_wfx_chanMask(uint32_t val);
 	uint32_t info_get_wfx_chanMask() const;
 
 	bool is_encoding_lossy() const;
 	bool is_encoding_overkill() const;
-
+	bool is_encoding_float() const;
 
 	void info_calculate_bitrate(t_filesize p_filesize,double p_length);
 
@@ -239,6 +245,7 @@ public:
 	static bool g_is_meta_equal(const file_info & p_item1,const file_info & p_item2);
 	static bool g_is_meta_equal_debug(const file_info & p_item1,const file_info & p_item2);
 	static bool g_is_info_equal(const file_info & p_item1,const file_info & p_item2);
+	static bool g_is_meta_subset_debug(const file_info& superset, const file_info& subset);
 
 	//! Unsafe - does not check whether the field already exists and will result in duplicates if it does - call only when appropriate checks have been applied externally.
 	t_size	__meta_add_unsafe_ex(const char * p_name,t_size p_name_length,const char * p_value,t_size p_value_length) {return meta_set_nocheck_ex(p_name,p_name_length,p_value,p_value_length);}
@@ -257,6 +264,7 @@ public:
 	typedef pfc::string::comparatorCaseInsensitiveASCII field_name_comparator;
 
 	static bool field_name_equals(const char * n1, const char * n2) {return field_name_comparator::compare(n1, n2) == 0;}
+	static bool field_value_equals(const file_info& i1, size_t meta1, const file_info& i2, size_t meta2);
 
 	void to_console() const;
 	void to_formatter(pfc::string_formatter&) const;
@@ -270,6 +278,8 @@ public:
 	//! Returns ESTIMATED audio chunk spec from what has been put in the file_info. \n
 	//! Provided for convenience. Do not rely on it for processing decoded data.
 	audio_chunk::spec_t audio_chunk_spec() const; 
+	
+	void set_audio_chunk_spec(audio_chunk::spec_t);
 protected:
 	file_info() {}
 	~file_info() {}

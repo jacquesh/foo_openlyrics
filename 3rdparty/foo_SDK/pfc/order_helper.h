@@ -60,6 +60,7 @@ public:
 	inline void swap(t_size ptr1,t_size ptr2) {pfc::swap_t(m_data[ptr1],m_data[ptr2]);}
 
 	const t_size * get_ptr() const {return m_data.get_ptr();}
+	t_size* get_ptr() { return m_data.get_ptr(); }
 
 	//! Insecure - may deadlock or crash on invalid permutation content. In theory faster than walking the permutation, but still O(n).
 	static t_size g_find_reverse(const t_size * order,t_size val);

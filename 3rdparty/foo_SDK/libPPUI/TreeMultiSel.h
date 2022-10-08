@@ -26,18 +26,14 @@ public:
 		NOTIFY_HANDLER_EX(m_ID, TVN_SELCHANGED, OnSelChangedFilter)
 		NOTIFY_HANDLER_EX(m_ID, NM_SETFOCUS, OnFocus)
 		NOTIFY_HANDLER_EX(m_ID, NM_KILLFOCUS, OnFocus)
+		NOTIFY_HANDLER_EX(m_ID, NM_CUSTOMDRAW, OnCustomDraw)
 	END_MSG_MAP()
 
 	const unsigned m_ID;
 
 	// Retrieves selected items - on order of appearance in the view
 	selectionOrdered_t GetSelectionOrdered(CTreeViewCtrl tree) const {
-		HTREEITEM first = tree.GetFirstVisibleItem();
-		for(;;) {
-			HTREEITEM prev = tree.GetPrevVisibleItem(first);
-			if (prev == NULL) break;
-			first = prev;
-		}
+		HTREEITEM first = tree.GetRootItem();
 		selectionOrdered_t ret; ret.reserve( m_selection.size() );
 		for(HTREEITEM walk = first; walk != NULL; walk = tree.GetNextVisibleItem(walk)) {
 			if (m_selection.count(walk) > 0) ret.push_back( walk );
@@ -157,7 +153,10 @@ public:
 	}
 private:
 	LRESULT OnFocus(LPNMHDR hdr) {
-		if (m_selection.size() > 0) {
+		if ( m_selection.size() > 100 ) {
+			CTreeViewCtrl tree(hdr->hwndFrom);
+			tree.RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
+		} else if (m_selection.size() > 0) {
 			CTreeViewCtrl tree(hdr->hwndFrom);
 			CRgn rgn; rgn.CreateRectRgn(0,0,0,0);
 			for(auto walk = m_selection.begin(); walk != m_selection.end(); ++walk) {
@@ -288,6 +287,23 @@ private:
 		}
 		UpdateItem(tree, item);
 	}
+
+	LRESULT OnCustomDraw(LPNMHDR hdr) {
+		NMTVCUSTOMDRAW* info = (NMTVCUSTOMDRAW*)hdr;
+		switch (info->nmcd.dwDrawStage) {
+		case CDDS_ITEMPREPAINT:
+			if (this->IsItemSelected((HTREEITEM)info->nmcd.dwItemSpec)) {
+				info->nmcd.uItemState |= CDIS_SELECTED;
+			} else {
+				info->nmcd.uItemState &= ~(CDIS_FOCUS | CDIS_SELECTED);
+			}
+			return CDRF_DODEFAULT;
+		case CDDS_PREPAINT:
+			return CDRF_NOTIFYITEMDRAW;
+		default:
+			return CDRF_DODEFAULT;
+		}
+	}
 public:
 	void SelectSingleItem(CTreeViewCtrl tree, HTREEITEM item) {
 		m_selStart = item;
@@ -296,25 +312,31 @@ public:
 	}
 
 	void ApplySelection(CTreeViewCtrl tree, selection_t const & newSel) {
-		CRgn updateRgn; WIN32_OP_D( updateRgn.CreateRectRgn(0,0,0,0) != NULL );
+		CRgn updateRgn;
 		bool changed = false;
-		for(auto walk = m_selection.begin(); walk != m_selection.end(); ++walk) {
-			if (newSel.count(*walk) == 0) {
-				changed = true;
-				CRect rc;
-				if (tree.GetItemRect(*walk, rc, TRUE)) {
-					CRgn temp; WIN32_OP_D( temp.CreateRectRgnIndirect( rc ) );
-					WIN32_OP_D( updateRgn.CombineRgn(temp, RGN_OR) != ERROR );
+		if (newSel.size() != m_selection.size() && newSel.size() + m_selection.size() > 100) {
+			// don't bother with regions
+			changed = true;
+		} else {
+			WIN32_OP_D(updateRgn.CreateRectRgn(0, 0, 0, 0) != NULL);
+			for (auto walk = m_selection.begin(); walk != m_selection.end(); ++walk) {
+				if (newSel.count(*walk) == 0) {
+					changed = true;
+					CRect rc;
+					if (tree.GetItemRect(*walk, rc, TRUE)) {
+						CRgn temp; WIN32_OP_D(temp.CreateRectRgnIndirect(rc));
+						WIN32_OP_D(updateRgn.CombineRgn(temp, RGN_OR) != ERROR);
+					}
 				}
 			}
-		}
-		for(auto walk = newSel.begin(); walk != newSel.end(); ++walk) {
-			if (m_selection.count(*walk) == 0) {
-				changed = true;
-				CRect rc;
-				if (tree.GetItemRect(*walk, rc, TRUE)) {
-					CRgn temp; WIN32_OP_D( temp.CreateRectRgnIndirect( rc ) );
-					WIN32_OP_D( updateRgn.CombineRgn(temp, RGN_OR) != ERROR );
+			for (auto walk = newSel.begin(); walk != newSel.end(); ++walk) {
+				if (m_selection.count(*walk) == 0) {
+					changed = true;
+					CRect rc;
+					if (tree.GetItemRect(*walk, rc, TRUE)) {
+						CRgn temp; WIN32_OP_D(temp.CreateRectRgnIndirect(rc));
+						WIN32_OP_D(updateRgn.CombineRgn(temp, RGN_OR) != ERROR);
+					}
 				}
 			}
 		}
@@ -338,12 +360,15 @@ public:
 
 	void DeselectAll(CTreeViewCtrl tree) {
 		if (m_selection.size() == 0) return;
-		CRgn updateRgn; WIN32_OP_D( updateRgn.CreateRectRgn(0,0,0,0) != NULL );
-		for(auto walk = m_selection.begin(); walk != m_selection.end(); ++walk) {
-			CRect rc;
-			if (tree.GetItemRect(*walk, rc, TRUE)) {
-				CRgn temp; WIN32_OP_D( temp.CreateRectRgnIndirect( rc ) );
-				WIN32_OP_D( updateRgn.CombineRgn(temp, RGN_OR) != ERROR );
+		CRgn updateRgn; 
+		if (m_selection.size() <= 100) {
+			WIN32_OP_D(updateRgn.CreateRectRgn(0, 0, 0, 0) != NULL);
+			for (auto walk = m_selection.begin(); walk != m_selection.end(); ++walk) {
+				CRect rc;
+				if (tree.GetItemRect(*walk, rc, TRUE)) {
+					CRgn temp; WIN32_OP_D(temp.CreateRectRgnIndirect(rc));
+					WIN32_OP_D(updateRgn.CombineRgn(temp, RGN_OR) != ERROR);
+				}
 			}
 		}
 		m_selection.clear();

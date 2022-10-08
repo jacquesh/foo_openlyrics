@@ -1,19 +1,10 @@
 #pragma once
 #include <math.h>
 
-#define audio_sample_size 32
-
-#if audio_sample_size == 32
-typedef float audio_sample;
-#define audio_sample_asm dword
-#elif audio_sample_size == 64
-typedef double audio_sample;
-#define audio_sample_asm qword
-#else
-#error wrong audio_sample_size
+#ifdef _MSC_VER
+#include <intrin.h>
 #endif
 
-#define audio_sample_bytes (audio_sample_size/8)
 
 namespace pfc {
 	// made a class so it can be redirected to an alternate class more easily than with namespacing
@@ -22,19 +13,44 @@ namespace pfc {
 	public:
 
 		//! p_source/p_output can point to same buffer
-		static void scale(const audio_sample * p_source, t_size p_count, audio_sample * p_output, audio_sample p_scale);
-		static void convert_to_int16(const audio_sample * p_source, t_size p_count, t_int16 * p_output, audio_sample p_scale);
-		static void convert_to_int32(const audio_sample * p_source, t_size p_count, t_int32 * p_output, audio_sample p_scale);
-		static audio_sample convert_to_int16_calculate_peak(const audio_sample * p_source, t_size p_count, t_int16 * p_output, audio_sample p_scale);
-		static void convert_from_int16(const t_int16 * p_source, t_size p_count, audio_sample * p_output, audio_sample p_scale);
-		static void convert_from_int32(const t_int32 * p_source, t_size p_count, audio_sample * p_output, audio_sample p_scale);
-		static audio_sample convert_to_int32_calculate_peak(const audio_sample * p_source, t_size p_count, t_int32 * p_output, audio_sample p_scale);
-		static audio_sample calculate_peak(const audio_sample * p_source, t_size p_count);
-		static void remove_denormals(audio_sample * p_buffer, t_size p_count);
-		static void add_offset(audio_sample * p_buffer, audio_sample p_delta, t_size p_count);
+		static void convert_to_int16(const float* p_source, t_size p_count, t_int16 * p_output, float p_scale);
+		static void convert_to_int16(const double* p_source, t_size p_count, t_int16* p_output, double p_scale);
+		static void convert_to_int32(const float* p_source, t_size p_count, t_int32 * p_output, float p_scale);
+		static void convert_to_int32(const double* p_source, t_size p_count, t_int32* p_output, double p_scale);
+		static void convert_from_int16(const t_int16 * p_source, t_size p_count, float * p_output, float p_scale);
+		static void convert_from_int16(const t_int16* p_source, t_size p_count, double * p_output, double p_scale);
+		static void convert_from_int32(const t_int32* p_source, t_size p_count, float* p_output, float p_scale);
+		static void convert_from_int32(const t_int32* p_source, t_size p_count, double* p_output, double p_scale);
+
+		static float calculate_peak(const float * p_source, t_size p_count);
+		static double calculate_peak(const double * p_source, t_size p_count);
+		
+		static void remove_denormals(float * p_buffer, t_size p_count);
+		static void remove_denormals(double * p_buffer, t_size p_count);
+
+		
+		static void add_offset(float * p_buffer, float p_delta, size_t p_count);
+		static void add_offset(double * p_buffer, double p_delta, size_t p_count);
+
+		static void scale(const float* p_source, size_t p_count, float * p_output, float p_scale);
+		static void scale(const double* p_source, size_t p_count, double * p_output, double p_scale);
+
+		static void convert(const float* in, float* out, size_t count);
+		static void convert(const float* in, float* out, size_t count, float scale);
+		static void convert(const float* in, double* out, size_t count);
+		static void convert(const float* in, double* out, size_t count, double scale);
+		static void convert(const double* in, float* out, size_t count);
+		static void convert(const double* in, float* out, size_t count, double scale);
+		static void convert(const double* in, double* out, size_t count);
+		static void convert(const double* in, double* out, size_t count, double scale);
+
+		inline static t_int64 rint64(float val) { return (t_int64)llroundf(val); }
+		inline static t_int32 rint32(float val) { return (t_int32)lroundf(val); }
+		inline static t_int64 rint64(double val) { return (t_int64)llround(val); }
+		inline static t_int32 rint32(double val) { return (t_int32)lround(val); }
 
 		static inline t_uint64 time_to_samples(double p_time, t_uint32 p_sample_rate) {
-			return (t_uint64)floor((double)p_sample_rate * p_time + 0.5);
+			return (t_uint64)pfc::rint64((double)p_sample_rate * p_time);
 		}
 
 		static inline double samples_to_time(t_uint64 p_samples, t_uint32 p_sample_rate) {
@@ -42,49 +58,14 @@ namespace pfc {
 			return (double)p_samples / (double)p_sample_rate;
 		}
 
-#if defined(_MSC_VER) && defined(_M_IX86)
-		inline static t_int64 rint64(audio_sample val) {
-			t_int64 rv;
-			_asm {
-				fld val;
-				fistp rv;
-			}
-			return rv;
-		}
-#if defined(_M_IX86_FP) && _M_IX86_FP >= 1
-		static inline t_int32 rint32(float p_val) {
-			return (t_int32)_mm_cvtss_si32(_mm_load_ss(&p_val));
-		}
-#else
-		inline static t_int32 rint32(audio_sample val) {
-			t_int32 rv;
-			_asm {
-				fld val;
-				fistp rv;
-			}
-			return rv;
-		}
-#endif
-
-#elif defined(_MSC_VER) && defined(_M_X64)
-		inline static t_int64 rint64(audio_sample val) { return (t_int64)floor(val + 0.5); }
-		static inline t_int32 rint32(float p_val) {
-			return (t_int32)_mm_cvtss_si32(_mm_load_ss(&p_val));
-		}
-#else
-		inline static t_int64 rint64(audio_sample val) { return (t_int64)floor(val + 0.5); }
-		inline static t_int32 rint32(audio_sample val) { return (t_int32)floor(val + 0.5); }
-#endif
-
-
-		static inline audio_sample gain_to_scale(double p_gain) { return (audio_sample)pow(10.0, p_gain / 20.0); }
+		static inline double gain_to_scale(double p_gain) { return pow(10.0, p_gain / 20.0); }
 		static inline double scale_to_gain(double scale) { return 20.0*log10(scale); }
 
-		static const audio_sample float16scale;
+		static const float float16scale;
 
-		static audio_sample decodeFloat24ptr(const void * sourcePtr);
-		static audio_sample decodeFloat24ptrbs(const void * sourcePtr);
-		static audio_sample decodeFloat16(uint16_t source);
+		static float decodeFloat24ptr(const void * sourcePtr);
+		static float decodeFloat24ptrbs(const void * sourcePtr);
+		static float decodeFloat16(uint16_t source);
 
 		static unsigned bitrate_kbps( uint64_t fileSize, double duration );
 	}; // class audio_math

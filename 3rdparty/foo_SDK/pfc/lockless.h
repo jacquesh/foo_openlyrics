@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
@@ -8,7 +7,8 @@ namespace pfc {
 
 	class threadSafeInt {
 	public:
-		typedef long t_val;
+        typedef long val_t;
+		typedef val_t t_val;
 
 		threadSafeInt(t_val p_val = 0) : m_val(p_val) {}
 		long operator++() throw() { return inc(); }
@@ -17,12 +17,16 @@ namespace pfc {
 		long operator--(int) throw() { return dec() + 1; }
 		operator t_val() const throw() { return m_val; }
 
-		t_val exchange(t_val newVal) {
+        static val_t exchangeHere( volatile val_t & here, val_t newVal ) {
 #ifdef _MSC_VER
-			return InterlockedExchange(&m_val, newVal);
+            return InterlockedExchange(&here, newVal);
 #else
-			return __sync_lock_test_and_set(&m_val, newVal);
+            return __sync_lock_test_and_set(&here, newVal);
 #endif
+		}
+
+		t_val exchange(t_val newVal) {
+            return exchangeHere( m_val, newVal );
 		}
 	private:
 		t_val inc() {
@@ -48,25 +52,4 @@ namespace pfc {
 
 	void yield(); // forward declaration
 
-	//! Minimalist class to call some function only once. \n
-	//! Presumes low probability of concurrent run() calls actually happening, \n
-	//! but frequent calls once already initialized, hence only using basic volatile bool check. \n
-	//! If using a modern compiler you might want to use std::call_once instead. \n
-	//! The called function is not expected to throw exceptions.
-	class runOnceLock {
-	public:
-		void run(std::function<void()> f) {
-			if (m_done) return;
-			if (m_once.exchange(1) == 0) {
-				f();
-				m_done = true;
-			} else {
-				while (!m_done) yield();
-			}
-		}
-	private:
-		threadSafeInt m_once;
-		volatile bool m_done = false;
-
-	};
 }

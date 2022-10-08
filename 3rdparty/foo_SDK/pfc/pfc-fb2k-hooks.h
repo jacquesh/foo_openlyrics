@@ -1,9 +1,10 @@
 #pragma once
 
 namespace pfc {
-	void crashImpl();
+	[[noreturn]] void crashImpl();
+	[[noreturn]] void crashHook();
+#ifdef _WIN32
 	BOOL winFormatSystemErrorMessageImpl(pfc::string_base & p_out, DWORD p_code);
-
-	void crashHook();
 	BOOL winFormatSystemErrorMessageHook(pfc::string_base & p_out, DWORD p_code);
+#endif
 }

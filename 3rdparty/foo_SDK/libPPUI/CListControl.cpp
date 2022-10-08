@@ -3,11 +3,17 @@
 #include "PaintUtils.h"
 #include "CListControlUserOptions.h"
 #include "GDIUtils.h"
+#include "DarkMode.h"
+
+#define PrepLayoutCache_Debug 0
+#define Scroll_Debug 0
 
 CListControlUserOptions * CListControlUserOptions::instance = nullptr;
 
 CRect CListControlImpl::GetClientRectHook() const {
-	CRect temp; if (!GetClientRect(temp)) temp.SetRectEmpty(); return temp;
+	CRect temp; 
+	if ( m_hWnd == NULL || !GetClientRect(temp)) temp.SetRectEmpty(); 
+	return temp;
 }
 
 bool CListControlImpl::UserEnabledSmoothScroll() const {
@@ -61,12 +67,16 @@ void CListControlImpl::EnsureVisibleRectAbs(const CRect & p_rect) {
 }
 void CListControlImpl::EnsureItemVisible(t_size p_item, bool bUser) {
 	m_ensureVisibleUser = bUser;
+	PFC_ASSERT(p_item < GetItemCount());
+	if (this->PrepLayoutCache(m_viewOrigin, p_item, p_item+1 )) {
+		RefreshSliders(); Invalidate();
+	}
 	EnsureVisibleRectAbs(GetItemRectAbs(p_item));
 	m_ensureVisibleUser = false;
 }
-void CListControlImpl::EnsureHeaderVisible(int p_group) {
+void CListControlImpl::EnsureHeaderVisible2(size_t atItem) {
 	CRect rect;
-	if (GetGroupHeaderRectAbs(p_group,rect)) EnsureVisibleRectAbs(rect);
+	if (GetGroupHeaderRectAbs2(atItem,rect)) EnsureVisibleRectAbs(rect);
 }
 
 void CListControlImpl::RefreshSlider(bool p_vertical) {
@@ -91,6 +101,10 @@ void CListControlImpl::RefreshSlider(bool p_vertical) {
 		}	
 	}
 
+#if Scroll_Debug
+	pfc::debugLog() << "RefreshSlider vertical=" << p_vertical << ", nPage=" << si.nPage << ", nMin=" << si.nMin << ", nMax=" << si.nMax << ", nPos=" << si.nPos;
+#endif
+
 	SetScrollInfo(p_vertical ? SB_VERT : SB_HORZ, &si);
 }
 
@@ -103,27 +117,28 @@ int CListControlImpl::GetScrollThumbPos(int which) {
 	SCROLLINFO si = {};
 	si.cbSize = sizeof(si);
 	si.fMask = SIF_TRACKPOS;
-	GetScrollInfo(which,&si);
+	WIN32_OP_D( GetScrollInfo(which,&si) );
 	return si.nTrackPos;
 }
 
-namespace {
-	class ResolveGroupHelper {
-	public:
-		ResolveGroupHelper(const CListControlImpl & p_control) : m_control(p_control) {}
-		int operator[](t_size p_index) const {return m_control.GetItemGroup(p_index);}
-	private:
-		const CListControlImpl & m_control;
-	};
+bool CListControlImpl::ResolveGroupRangeCached(size_t itemInGroup, size_t& outBegin, size_t& outEnd) const {
+	auto end = this->m_groupHeaders.upper_bound(itemInGroup);
+	if (end == this->m_groupHeaders.begin()) return false;
+	auto begin = end; --begin;
+	outBegin = *begin;
+	if (end == this->m_groupHeaders.end()) outEnd = this->GetItemCount();
+	else outEnd = *end;
+	return true;
 }
 
-bool CListControlImpl::ResolveGroupRange(int p_id,t_size & p_base,t_size & p_count) const {
-
-	return pfc::binarySearch<>::runGroup(ResolveGroupHelper(*this),0,GetItemCount(),p_id,p_base,p_count);
-
-
-	//return pfc::bsearch_range_t(GetItemCount(),ResolveGroupHelper(*this),pfc::compare_t<int,int>,p_id,p_base,p_count);
+size_t CListControlImpl::ResolveGroupRange2(t_size p_base) const {
+	const auto id = this->GetItemGroup(p_base);
+	const size_t count = this->GetItemCount();
+	size_t walk = p_base + 1;
+	while (walk < count && GetItemGroup(walk) == id) ++walk;
+	return walk - p_base;
 }
+
 
 static int HandleScroll(WORD p_code,int p_offset,int p_page, int p_line, int p_bottom, int p_thumbpos) {
 	switch(p_code) {
@@ -154,10 +169,15 @@ static CPoint ClipPointToRect(CPoint const & p_pt,CRect const & p_rect) {
 
 void CListControlImpl::MoveViewOriginNoClip(CPoint p_target) {
 	UpdateWindow();
+	PrepLayoutCache(p_target);
 	const CPoint old = m_viewOrigin;
 	m_viewOrigin = p_target;
 
 	if (m_viewOrigin != old) {
+#if PrepLayoutCache_Debug
+		pfc::debugLog() << "MoveViewOriginNoClip: m_viewOrigin=" << m_viewOrigin.x << "," << m_viewOrigin.y;
+#endif
+		
 		if (m_viewOrigin.x != old.x) SetScrollPos(SB_HORZ,m_viewOrigin.x);
 		if (m_viewOrigin.y != old.y) SetScrollPos(SB_VERT,m_viewOrigin.y);
 
@@ -181,6 +201,7 @@ CPoint CListControlImpl::ClipViewOrigin(CPoint p_origin) const {
 	return ClipPointToRect(p_origin,GetValidViewOriginArea());
 }
 void CListControlImpl::MoveViewOrigin(CPoint p_target) {
+	PrepLayoutCache(p_target);
 	MoveViewOriginNoClip(ClipViewOrigin(p_target));
 }
 
@@ -232,7 +253,7 @@ int CListControlImpl::HandleWheel(int & p_accum,int p_delta, bool bHoriz) {
 	*/
 }
 
-LRESULT CListControlImpl::OnVWheel(UINT,WPARAM p_wp,LPARAM p_lp,BOOL&) {
+LRESULT CListControlImpl::OnVWheel(UINT,WPARAM p_wp,LPARAM,BOOL&) {
 	const CRect client = GetClientRectHook(), view = this->GetViewAreaRectAbs();
 	int deltaPixels = HandleWheel(m_wheelAccumY,(short)HIWORD(p_wp), false);
 
@@ -253,20 +274,47 @@ LRESULT CListControlImpl::OnVWheel(UINT,WPARAM p_wp,LPARAM p_lp,BOOL&) {
 	}
 	return 0;
 }
-LRESULT CListControlImpl::OnHWheel(UINT,WPARAM p_wp,LPARAM p_lp,BOOL&) {
-	const CRect client = GetClientRectHook();
+LRESULT CListControlImpl::OnHWheel(UINT,WPARAM p_wp,LPARAM,BOOL&) {
+	// const CRect client = GetClientRectHook();
 	int deltaPixels = HandleWheel(m_wheelAccumX,(short)HIWORD(p_wp), true);
 	MoveViewOriginDelta(CPoint(-deltaPixels,0));
 	return 0;
 }
 
+// WM_VSCROLL special fix
+// We must expect SCROLLINFO to go out of sync with layout, due to group partitioning happening as the user scrolls
+// SetScrollInfo() is apparently disregarded while the user is scrolling, causing nonsensical behavior if we live update it as we discover new groups
+// When handling input, we must take the position as % of the set scrollbar range and map it to our coordinates - even though it is mappable directly if no groups etc are in use
 LRESULT CListControlImpl::OnVScroll(UINT,WPARAM p_wp,LPARAM,BOOL&) {
-	int target = HandleScroll(LOWORD(p_wp),m_viewOrigin.y,GetVisibleRectAbs().Height(),GetItemHeight(),GetViewAreaRectAbs().bottom,GetScrollThumbPos(SB_VERT));
-	MoveViewOrigin(CPoint(m_viewOrigin.x,target));
+	SCROLLINFO si = {};
+	si.cbSize = sizeof(si);
+	si.fMask = SIF_ALL;
+	WIN32_OP_D(GetScrollInfo(SB_VERT, &si));
+	int thumb = si.nTrackPos; // HIWORD(p_wp);
+	auto bottom = GetViewAreaRectAbs().bottom;
+	auto visible = GetVisibleHeight();
+
+	if (si.nMax < si.nMin) return 0;
+	double p = (double)(thumb - si.nMin) / (double)(si.nMax + 1 - si.nMin);
+	thumb = pfc::rint32(p * bottom);
+	int target = HandleScroll(LOWORD(p_wp), m_viewOrigin.y, visible, GetItemHeight(), bottom, thumb);
+
+#if Scroll_Debug
+	pfc::debugLog() << "OnVScroll thumb=" << thumb << ", target=" << target << ", bottom=" << bottom << ", visible=" << visible << ", p=" << p;
+#endif
+	MoveViewOrigin(CPoint(m_viewOrigin.x, target));
+
 	return 0;
 }
+
+// ====== Logitech scroll bug explanation ======
+// With Logitech wheel hscroll, we must use WPARAM position, not GetScrollInfo() value.
+// However this is wrong, we'll get nonsense if scroll range doesn't fit in 16-bit!
+// As a workaround, we use GetScrollInfo() value for vscroll (good)
+// and workaround Logitech bug by using WPARAM position with hscroll (practically impossible to overflow)
 LRESULT CListControlImpl::OnHScroll(UINT,WPARAM p_wp,LPARAM,BOOL&) {
-	int target = HandleScroll(LOWORD(p_wp),m_viewOrigin.x,GetVisibleRectAbs().Width(),GetItemHeight() /*fixme*/,GetViewAreaRectAbs().right,GetScrollThumbPos(SB_HORZ));
+	int thumb = HIWORD(p_wp); // GetScrollThumbPos(SB_HORZ);
+	int target = HandleScroll(LOWORD(p_wp),m_viewOrigin.x,GetVisibleRectAbs().Width(),GetItemHeight() /*fixme*/,GetViewAreaRectAbs().right,thumb);
 	MoveViewOrigin(CPoint(target,m_viewOrigin.y));
 	return 0;
 }
@@ -299,7 +347,8 @@ LRESULT CListControlImpl::OnGesture(UINT,WPARAM,LPARAM lParam,BOOL& bHandled) {
 	return 0;
 }
 
-LRESULT CListControlImpl::OnSize(UINT,WPARAM,LPARAM p_lp,BOOL&) {
+LRESULT CListControlImpl::OnSize(UINT,WPARAM,LPARAM,BOOL&) {
+	this->PrepLayoutCache(m_viewOrigin);
 	OnSizeAsync_Trigger();
 	RefreshSliders();
 	return 0;
@@ -317,68 +366,27 @@ void CListControlImpl::PaintContent(CRect rcPaint, HDC dc) {
 	renderDC = bufferDC;
 	this->RenderBackground(renderDC, rcPaint);
 		
-	{
-		const CPoint pt = GetViewOffset();
-		OffsetWindowOrgScope offsetScope(renderDC, pt);
-		CRect renderRect = rcPaint; renderRect.OffsetRect(pt);
-		RenderRect(renderRect,renderDC);
-	}
+	RenderRect(rcPaint, renderDC);
 }
 
-void CListControlImpl::OnPrintClient(HDC dc, UINT uFlags) {
+void CListControlImpl::OnPrintClient(HDC dc, UINT) {
 	CRect rcClient; this->GetClientRect( rcClient );
 	PaintContent( rcClient, dc );
 }
 
-LRESULT CListControlImpl::OnPaint(UINT,WPARAM,LPARAM,BOOL&) {
-	CPaintDC paintDC(*this);
-
-	PaintContent( paintDC.m_ps.rcPaint, paintDC.m_hDC );
-
-	return 0;
-}
-
-namespace {
-	class comparator_rect {
-	public:
-		static int compare(const CRect & p_rect1,const CRect & p_rect2) {
-			if (p_rect1.bottom <= p_rect2.top) return -1;
-			else if (p_rect1.top >= p_rect2.bottom) return 1;
-			else return 0;
-		}
-	};
-
-	static int RectPointCompare(const CRect & p_item1,const int p_y) {
-		if (p_item1.bottom <= p_y) return -1;
-		else if (p_item1.top > p_y) return 1;
-		else return 0;
+void CListControlImpl::OnPaint(CDCHandle target) {
+	auto toggle = pfc::autoToggle(m_paintInProgress, true);
+	if (target) {
+		CRect rcClient; this->GetClientRect(rcClient);
+		PaintContent(rcClient, target);
+	} else {
+		CPaintDC paintDC(*this);
+		PaintContent(paintDC.m_ps.rcPaint, paintDC.m_hDC);
 	}
-
-	class RectSearchHelper_Items {
-	public:
-		RectSearchHelper_Items(const CListControlImpl & p_control) : m_control(p_control) {}
-		CRect operator[](t_size p_index) const {
-			return m_control.GetItemRectAbs(p_index);
-		}
-	private:
-		const CListControlImpl & m_control;
-	};
-	class RectSearchHelper_Groups {
-	public:
-		RectSearchHelper_Groups(const CListControlImpl & p_control) : m_control(p_control) {}
-		CRect operator[](t_size p_index) const {
-			CRect rect;
-			if (!m_control.GetGroupHeaderRectAbs((int)(p_index + 1),rect)) rect.SetRectEmpty();
-			return rect;
-		}
-	private:
-		const CListControlImpl & m_control;
-	};
 }
 
 bool CListControlImpl::GetItemRange(const CRect & p_rect,t_size & p_base,t_size & p_count) const {
-	CRect temp(p_rect); temp.OffsetRect( GetViewOffset() );
-	return GetItemRangeAbs(temp, p_base, p_count);
+	return GetItemRangeAbs(this->RectClientToAbs(p_rect), p_base, p_count);
 }
 
 
@@ -390,91 +398,395 @@ bool CListControlImpl::GetItemRangeAbsInclHeaders(const CRect & p_rect,t_size & 
 }
 
 bool CListControlImpl::GetItemRangeAbs(const CRect & p_rect,t_size & p_base,t_size & p_count) const {
-	if (p_rect.right < 0 || p_rect.left >= GetItemWidth()) return false;
+	const size_t count = GetItemCount();
+	if (p_rect.right < 0 || p_rect.left >= GetItemWidth() || count == 0) return false;
 
-	return pfc::binarySearch<comparator_rect>::runGroup(RectSearchHelper_Items(*this),0,GetItemCount(),p_rect,p_base,p_count);
+	size_t top = IndexFromPointAbs(CPoint(0, p_rect.top));
+	size_t bottom = IndexFromPointAbs(CPoint(0, p_rect.bottom));
+	if (top == SIZE_MAX) return false;
+	if (bottom > count-1) bottom = count - 1;
+	p_base = top;
+	p_count = bottom - top + 1;
+	PFC_ASSERT(p_base + p_count <= count);
+	return true;
 }
 
 void CListControlImpl::RenderRect(const CRect & p_rect,CDCHandle p_dc) {
-	const CRect rectAbs = p_rect;
-
 	t_size base, count;
-	if (GetItemRangeAbs(rectAbs,base,count)) {
+	if (GetItemRange(p_rect,base,count)) {
 		for(t_size walk = 0; walk < count; ++walk) {
-			CRect rcUpdate, rcItem = GetItemRectAbs(base+walk);
+			size_t atItem = base + walk;
+			if (m_groupHeaders.count(atItem) > 0) {
+				CRect rcHeader, rcUpdate;
+				if (GetGroupHeaderRectAbs2(atItem, rcHeader) ) {
+					rcHeader = RectAbsToClient(rcHeader);
+					if (rcUpdate.IntersectRect(rcHeader, p_rect)) {
+						DCStateScope dcState(p_dc);
+						if (p_dc.IntersectClipRect(rcUpdate) != NULLREGION) {
+							try {
+								RenderGroupHeader2(atItem, rcHeader, rcUpdate, p_dc);
+							} catch (...) {
+								PFC_ASSERT(!"Should not get here");
+							}
+						}
+					}
+				}
+			}
+
+			CRect rcUpdate, rcItem = GetItemRect(atItem);
 			if (rcUpdate.IntersectRect(rcItem,p_rect)) {
 				DCStateScope dcState(p_dc);
 				if (p_dc.IntersectClipRect(rcUpdate) != NULLREGION) {
 					try {
-						RenderItem(base+walk,rcItem,rcUpdate,p_dc);
-					} catch(std::exception const & e) {
-						(void) e;
-						// console::complain("List Control: Item rendering failure", e);
+						RenderItem(atItem,rcItem,rcUpdate,p_dc);
+					} catch(...) {
+						PFC_ASSERT(!"Should not get here");
 					}
+				}
+			}
+		}
+
+		if ( this->m_groupHeaders.size() > 0 ) {
+			auto iter = m_groupHeaders.upper_bound(base);
+			if (iter != m_groupHeaders.begin()) {
+				--iter;
+				while ( iter != m_groupHeaders.end() && *iter < base + count) {
+					auto iter2 = iter; ++iter2;
+					
+					size_t begin = *iter;
+					size_t end;
+					if (iter2 == m_groupHeaders.end()) end = this->GetItemCount();
+					else end = *iter2;
+
+					CRect rc;
+					rc.top = this->GetItemOffsetAbs(begin);
+					rc.bottom = this->GetItemBottomOffsetAbs(end-1);
+					rc.left = 0;
+					rc.right = this->GetItemWidth();
+					rc = this->RectAbsToClient(rc);
+					CRect rcUpdate;
+					if (rcUpdate.IntersectRect(rc, p_rect)) {
+						DCStateScope dcState(p_dc);
+						if (p_dc.IntersectClipRect(rcUpdate) != NULLREGION) {
+							try {
+								this->RenderGroupOverlay(begin, rc, rcUpdate, p_dc);
+							} catch (...) {
+								PFC_ASSERT(!"Should not get here");
+							}
+						}
+					}
+
+
+					iter = iter2;
 				}
 			}
 		}
 	}
 
-	if (pfc::binarySearch<comparator_rect>::runGroup(RectSearchHelper_Groups(*this),0,GetGroupCount(),rectAbs,base,count)) {
-		for(t_size walk = 0; walk < count; ++walk) {
-			CRect rcHeader, rcUpdate;
-			const int id = (int)(base+walk+1);
-			if (GetGroupHeaderRectAbs(id,rcHeader) && rcUpdate.IntersectRect(rcHeader,p_rect)) {
-				DCStateScope dcState(p_dc);
-				if (p_dc.IntersectClipRect(rcUpdate) != NULLREGION) {
-					try {
-						RenderGroupHeader(id,rcHeader,rcUpdate,p_dc);
-					} catch(std::exception const & e) {
-						(void) e;
-						// console::complain("List Control: Group header rendering failure", e);
-					}
-				}
-			}
-		}
-	}
-
-	RenderOverlay(p_rect,p_dc);
+	RenderOverlay2(p_rect,p_dc);
 }
 
-CRect CListControlImpl::GetItemRect(t_size p_item) const {
-	CRect rcItem = GetItemRectAbs(p_item);
-	rcItem.OffsetRect( - GetViewOffset() );
-	return rcItem;
-}
-bool CListControlImpl::GetGroupHeaderRect(int p_group,CRect & p_rect) const {
-	if (!GetGroupHeaderRectAbs(p_group,p_rect)) return false;
-	p_rect.OffsetRect( - GetViewOffset() );
+bool CListControlImpl::GetGroupOverlayRectAbs(size_t atItem, CRect& outRect) {
+	auto iter = m_groupHeaders.upper_bound(atItem);
+	if (iter == m_groupHeaders.begin()) return false;
+	auto iter2 = iter; --iter;
+
+	size_t begin = *iter;
+	size_t end;
+	if (iter2 == m_groupHeaders.end()) end = this->GetItemCount();
+	else end = *iter2;
+
+	CRect rc;
+
+	rc.top = this->GetItemOffsetAbs(begin);
+	rc.bottom = this->GetItemBottomOffsetAbs(end - 1);
+	rc.left = 0;
+	rc.right = this->GetItemWidth();
+
+	outRect = rc;
 	return true;
 }
 
-int CListControlImpl::GetViewAreaHeight() const {
-	const t_size itemCount = GetItemCount();
-	int subAreaBase = 0;
-	if (itemCount > 0) {
-		subAreaBase = GetItemRectAbs(itemCount - 1).bottom;
+void CListControlImpl::MinGroupHeight2ChangedForGroup(groupID_t groupID, bool reloadWhole) {
+	for (auto iter = m_groupHeaders.begin(); iter != m_groupHeaders.end(); ++iter) {
+		if (groupID == GetItemGroup(*iter)) {
+			this->MinGroupHeight2Changed(*iter, reloadWhole);
+		}
 	}
-	return subAreaBase;
+}
+
+void CListControlImpl::UpdateGroupOverlayByID(groupID_t groupID, int xFrom, int xTo) {
+	t_size base, count;
+	if (GetItemRangeAbs(GetVisibleRectAbs(), base, count)) {
+		bool on = false; // Have to walk whole range - there may be multiple groups with the same ID because fuck you
+		for (size_t walk = 0; walk < count; ++walk) {
+			bool test = (groupID == GetItemGroup(base + walk));
+			if (test && !on) {
+				CRect rc;
+				if (GetGroupOverlayRectAbs(base + walk, rc)) {
+					if (xFrom < xTo) {
+						rc.left = xFrom; rc.right = xTo;						
+					}
+					this->InvalidateRect(this->RectAbsToClient(rc));
+				}
+			}
+
+			on = test;
+		}
+	}
+}
+
+CRect CListControlImpl::GetItemRect(t_size p_item) const {
+	return this->RectAbsToClient(GetItemRectAbs(p_item));
+}
+
+bool CListControlImpl::GetGroupHeaderRect2(size_t atItem,CRect & p_rect) const {
+	CRect temp;
+	if (!GetGroupHeaderRectAbs2(atItem,temp)) return false;
+	p_rect = RectAbsToClient(temp);
+	return true;
+}
+
+size_t CListControlImpl::FindGroupBaseCached(size_t itemFor) const {
+	auto iter = m_groupHeaders.upper_bound(itemFor);
+	if (iter == m_groupHeaders.begin()) return 0;
+	--iter;
+	return *iter;
+}
+
+size_t CListControlImpl::FindGroupBase(size_t itemFor) const {
+	return this->FindGroupBase(itemFor, this->GetItemGroup(itemFor));
+}
+
+size_t CListControlImpl::FindGroupBase(size_t itemFor, groupID_t id) const {
+	size_t walk = itemFor;
+	while (walk > 0) {
+		size_t prev = walk - 1;
+		if (this->GetItemGroup(prev) != id) break;
+		walk = prev;
+	}
+	return walk;
+}
+
+bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t indexHi) {
+	const size_t count = GetItemCount();
+	if (count == 0) return false;
+#if PrepLayoutCache_Debug
+	pfc::debugLog() << "PrepLayoutCache entry";
+	pfc::debugLog() << "PrepLayoutCache: count=" << count << " knownGroups=" << this->m_groupHeaders.size();
+#endif
+	const int clientHeight = pfc::max_t<int>(this->GetClientRectHook().Height(), 100);
+
+	// Always walk 2*clientHeight, with area above and below
+	int yMax = -1, yBase = 0;
+	size_t baseItem = 0, endItem = SIZE_MAX;
+	if (indexLo == SIZE_MAX) {
+		// Preemptively partition the whole view. Doing anything else causes scrollbar mayhem in corner cases.
+		
+		// yBase = pfc::max_t<int>(ptOrigin.y - clientHeight / 2, 0);
+		// yMax = yBase + clientHeight * 2;
+		// baseItem = pfc::min_t<size_t>(this->IndexFromPointAbs(yBase), count - 1);
+	} else {
+		size_t extraItems = (size_t)(clientHeight / GetItemHeight());
+		if (indexLo < extraItems) baseItem = 0;
+		else indexLo = baseItem - extraItems;
+
+		if (indexHi == SIZE_MAX) {
+			endItem = baseItem + extraItems;
+		} else {
+			endItem = indexHi + extraItems;
+		}
+		if (endItem > count) endItem = count;
+	}
+
+
+
+	size_t item = baseItem;
+	{
+		const auto group = this->GetItemGroup(baseItem);
+		if (group != 0) {
+			size_t hdr = this->FindGroupBase(baseItem, group);
+			if (hdr < baseItem) {
+				item = hdr;
+			}
+		}
+	}
+
+#if PrepLayoutCache_Debug
+	if (yMax != -1) {
+		pfc::debugLog() << "PrepLayoutCache: yBase=" << yBase << " yMax=" << yMax;
+	}
+	if (indexLo != SIZE_MAX) {
+		pfc::string_formatter msg;
+		msg << "PrepLayoutCache: indexLo=" << indexLo;
+		if (indexHi != SIZE_MAX) {
+			msg << " indexHi=" << indexHi;
+		}
+		pfc::outputDebugLine(msg);
+	}
+	pfc::debugLog() << "PrepLayoutCache: baseItem=" << baseItem;
+#endif
+	
+	size_t anchorIdx = this->IndexFromPointAbs(ptOrigin.y);
+	int anchorDelta = 0;
+	bool anchorIsFirstInGroup = IsItemFirstInGroupCached(anchorIdx);
+	if (anchorIdx != SIZE_MAX) {
+		anchorDelta = ptOrigin.y - GetItemOffsetAbs(anchorIdx);
+	}
+
+#if PrepLayoutCache_Debug
+	pfc::debugLog() << "PrepLayoutCache: anchorIdx=" << anchorIdx << " anchorDelta=" << anchorDelta << " anchorIsFirstInGroup=" << anchorIsFirstInGroup;
+#endif
+
+	bool bChanged = false;
+	int gh = -1;
+	int ih = -1;
+	int yWalk = yBase;
+	groupID_t prevGroup = 0;
+	if (item > 1) prevGroup = this->GetItemGroup(item - 1);
+	for (; item < count; ++item) {
+		int yDelta = 0;
+		auto group = this->GetItemGroup(item);
+		if (group != prevGroup) {
+			if (m_groupHeaders.insert(item).second) bChanged = true;
+			if (gh < 0) gh = GetGroupHeaderHeight();
+			yDelta += gh;
+		} else {
+			if (m_groupHeaders.erase(item) > 0) bChanged = true;
+		}
+		prevGroup = group;
+
+		auto iter = m_varItemHeights.find(item);
+		int varHeight = this->GetItemHeight2(item);
+		if (varHeight < 0) {
+			if (iter != m_varItemHeights.end()) {
+				m_varItemHeights.erase(iter);
+				bChanged = true;
+			}
+			if (ih < 0) ih = this->GetItemHeight();
+			yDelta += ih;
+		} else {
+			if (iter == m_varItemHeights.end()) {
+				m_varItemHeights[item] = varHeight;
+				bChanged = true;
+			} else if ( iter->second != varHeight ) {
+				iter->second = varHeight;
+				bChanged = true;
+			}
+		
+			yDelta += varHeight;
+		}
+
+		if (item >= endItem) {
+			break;
+		}
+		if (item >= baseItem && yMax != -1) {
+			yWalk += yDelta;
+			if (yWalk > yMax) break;
+		}
+	}
+
+#if PrepLayoutCache_Debug
+	pfc::debugLog() << "PrepLayoutCache: bChanged=" << bChanged << " knownGroups=" << m_groupHeaders.size() << " knownVarHeights=" << m_varItemHeights.size();
+#endif
+
+	if (bChanged) {
+		if (anchorIdx != SIZE_MAX) {
+			int fix = GetItemOffsetAbs(anchorIdx) + anchorDelta;
+
+			// View would begin exactly with an item that became a first item in a group?
+			if (anchorDelta == 0 && !anchorIsFirstInGroup && IsItemFirstInGroupCached(anchorIdx)) {
+				if (gh < 0) gh = GetGroupHeaderHeight();
+				fix -= gh;
+			}
+
+#if PrepLayoutCache_Debug
+			pfc::debugLog() << "PrepLayoutCache: fixing origin: " << ptOrigin.y << " to " << fix;
+#endif
+
+			ptOrigin.y = fix;
+			if (&ptOrigin != &m_viewOrigin && m_hWnd != NULL) {
+#if PrepLayoutCache_Debug
+				pfc::debugLog() << "PrepLayoutCache: invalidating view";
+#endif
+				Invalidate();
+			}
+		}
+	}
+
+	if ( bChanged ) {
+		// DO NOT update sliders from here, causes mayhem, SetScrollInfo() in mid-scroll is not really handled
+		// this->RefreshSliders();
+	}
+	return bChanged;
+}
+
+int CListControlImpl::GetViewAreaHeight() const {
+	auto ret = GetItemOffsetAbs(GetItemCount());
+#if Scroll_Debug
+	PFC_DEBUGLOG << "GetViewAreaHeight: " << ret;
+#endif
+	return ret;
+}
+
+int CListControlImpl::GetItemBottomOffsetAbs(size_t item) const {
+	return GetItemOffsetAbs(item) + GetItemHeightCached(item);
+}
+
+int CListControlImpl::GetItemOffsetAbs(size_t item) const {
+	// Also valid with item == GetItemCount()
+	size_t varcount = 0;
+	int acc = 0;
+	for (auto iter = m_varItemHeights.begin(); iter != m_varItemHeights.end(); ++iter) {
+		if (iter->first >= item) break;
+		if (iter->second > 0) acc += iter->second;
+		++varcount;
+	}
+	if (varcount < item) {
+		acc += GetItemHeight() * (int) (item - varcount);
+	}
+
+	int gh = -1;
+	for (auto iter = m_groupHeaders.begin(); iter != m_groupHeaders.end(); ++iter) {
+		if (*iter > item) break;
+		if (gh < 0) gh = GetGroupHeaderHeight();
+		acc += gh;
+	}
+
+	return acc;
+}
+
+int CListControlImpl::GetItemContentHeightCached(size_t item) const {
+	auto iter = m_varItemHeights.find(item);
+	if (iter == m_varItemHeights.end()) return GetItemHeight();
+	else return this->GetItemHeight2Content( item, iter->second );
+}
+
+int CListControlImpl::GetItemHeightCached(size_t item) const {
+	auto iter = m_varItemHeights.find(item);
+	if (iter == m_varItemHeights.end()) return GetItemHeight();
+	else return iter->second;
 }
 
 CRect CListControlImpl::GetItemRectAbs(t_size p_item) const {
+	PFC_ASSERT(p_item < GetItemCount());
+	// const int normalHeight = GetItemHeight();
 	CRect rcItem;
-	const int itemHeight = GetItemHeight(), itemWidth = GetItemWidth(), groupHeight = GetGroupHeaderHeight(), itemGroup = GetItemGroup(p_item);
-	rcItem.top = (int)p_item * itemHeight + groupHeight * itemGroup;
-	rcItem.bottom = rcItem.top + itemHeight;
+	rcItem.top = GetItemOffsetAbs(p_item);
+	rcItem.bottom = rcItem.top + GetItemContentHeightCached(p_item);
 	rcItem.left = 0;
-	rcItem.right = rcItem.left + itemWidth;
+	rcItem.right = rcItem.left + GetItemWidth();
 	return rcItem;
 }
-bool CListControlImpl::GetGroupHeaderRectAbs(int p_group,CRect & p_rect) const {
-	if (p_group == 0) return false;
-	t_size itemBase, itemCount;
-	if (!ResolveGroupRange(p_group,itemBase,itemCount)) return false;
-	const int itemHeight = GetItemHeight(), itemWidth = GetItemWidth(), groupHeight = GetGroupHeaderHeight();
-	p_rect.bottom = (int) itemBase * itemHeight + groupHeight * p_group;
-	p_rect.top = p_rect.bottom - groupHeight;
+
+bool CListControlImpl::GetGroupHeaderRectAbs2(size_t atItem,CRect & p_rect) const {
+
+	if (m_groupHeaders.count(atItem) == 0) return false;
+
+	p_rect.bottom = GetItemOffsetAbs(atItem);
+	p_rect.top = p_rect.bottom - GetGroupHeaderHeight();
 	p_rect.left = 0;
-	p_rect.right = p_rect.left + itemWidth;
+	p_rect.right = GetItemWidth();
 	return true;
 }
 
@@ -489,18 +801,9 @@ CRect CListControlImpl::GetViewAreaRect() const {
 	return ret;
 }
 
-t_size CListControlImpl::GetGroupCount() const {
-	const t_size itemCount = GetItemCount();
-	if (itemCount > 0) {
-		return (t_size) GetItemGroup(itemCount-1);
-	} else {
-		return 0;
-	}
-}
-
-void CListControlImpl::UpdateGroupHeader(int p_id) {
+void CListControlImpl::UpdateGroupHeader2(size_t atItem) {
 	CRect rect;
-	if (GetGroupHeaderRect(p_id,rect)) {
+	if (GetGroupHeaderRect2(atItem,rect)) {
 		InvalidateRect(rect);
 	}
 }
@@ -529,22 +832,38 @@ void CListControlImpl::UpdateItems(const pfc::bit_array & p_mask) {
 	}
 }
 
+std::pair<size_t, size_t> CListControlImpl::GetVisibleRange() const {
+	const size_t total = GetItemCount();
+	CRect rcVisible = this->GetVisibleRectAbs();
+	size_t lo = this->IndexFromPointAbs(rcVisible.top);
+	PFC_ASSERT(lo != SIZE_MAX);
+	if (lo == SIZE_MAX) lo = 0; // should not happen
+	size_t hi = this->IndexFromPointAbs(rcVisible.bottom);
+	if (hi < total) ++hi;
+	else hi = total;
+	return { lo, hi };
+}
+
+bool CListControlImpl::IsItemVisible(size_t which) const {
+	CRect rcVisible = this->GetVisibleRectAbs();
+	CRect rcItem = this->GetItemRectAbs(which);
+	return rcItem.top >= rcVisible.top && rcItem.bottom <= rcVisible.bottom;
+}
+
 void CListControlImpl::UpdateItemsAndHeaders(const pfc::bit_array & p_mask) {
 	t_size base,count;
-	int groupWalk = 0;
+	groupID_t groupWalk = 0;
 	if (GetItemRangeAbsInclHeaders(GetVisibleRectAbs(),base,count)) {
 		const t_size max = base+count;
 		CRgn updateRgn; updateRgn.CreateRectRgn(0,0,0,0);
 		bool found = false;
 		for(t_size walk = p_mask.find_first(true,base,max); walk < max; walk = p_mask.find_next(true,walk,max)) {
 			found = true;
-			const int groupId = GetItemGroup(walk);
+			const groupID_t groupId = GetItemGroup(walk);
 			if (groupId != groupWalk) {
-				if (groupId > 0) {
-					CRect rect;
-					if (GetGroupHeaderRect(groupId,rect)) {
-						AddUpdateRect(updateRgn,rect);
-					}
+				CRect rect;
+				if (GetGroupHeaderRect2(walk,rect)) {
+					AddUpdateRect(updateRgn,rect);
 				}
 				groupWalk = groupId;
 			}
@@ -568,7 +887,18 @@ CRect CListControlImpl::GetValidViewOriginArea() const {
 
 void CListControlImpl::OnViewAreaChanged(CPoint p_originOverride) {
 	const CPoint oldViewOrigin = m_viewOrigin;
+
+	PrepLayoutCache(p_originOverride);
+
 	m_viewOrigin = ClipPointToRect(p_originOverride,GetValidViewOriginArea());
+
+	if (m_viewOrigin != p_originOverride) {
+		// Did clip from the requested?
+		PrepLayoutCache(m_viewOrigin);
+	}
+#if PrepLayoutCache_Debug
+	pfc::debugLog() << "OnViewAreaChanged: m_viewOrigin=" << m_viewOrigin.x << "," << m_viewOrigin.y;
+#endif
 
 	RefreshSliders();
 
@@ -579,21 +909,54 @@ void CListControlImpl::OnViewAreaChanged(CPoint p_originOverride) {
 	}
 }
 
-bool CListControlImpl::ItemFromPointAbs(CPoint const & p_pt,t_size & p_item) const {
-	if (p_pt.x < 0 || p_pt.x >= GetItemWidth()) return false;
-	t_size dummy;
-	return GetItemRangeAbs(CRect(p_pt,p_pt + CPoint(1,1)),p_item,dummy);
+size_t CListControlImpl::IndexFromPointAbs(CPoint pt) const {
+	if (pt.x < 0 || pt.x >= GetItemWidth()) return SIZE_MAX;
+	return IndexFromPointAbs(pt.y);
 }
 
-bool CListControlImpl::GroupHeaderFromPointAbs(CPoint const & p_pt,int & p_group) const {
-	if (p_pt.x < 0 || p_pt.x >= GetItemWidth()) return false;
-	t_size result;
+size_t CListControlImpl::IndexFromPointAbs(int ptY) const {
+	const size_t count = GetItemCount();
+	if (count == 0) return SIZE_MAX;
+	
+	class wrapper {
+	public:
+		wrapper(const CListControlImpl & o) : owner(o) {}
+		int operator[] (size_t idx) const {
+			// Return LAST line of this item
+			return owner.GetItemBottomOffsetAbs(idx)-1;
+		}
+		const CListControlImpl & owner;
+	};
 
-	if (!pfc::binarySearch<comparator_rect>::run(RectSearchHelper_Groups(*this),0,GetGroupCount(),CRect(p_pt,p_pt + CSize(1,1)),result)) return false;
+	wrapper w(*this);
+	size_t result = SIZE_MAX;
+	pfc::binarySearch<>::run(w, 0, count, ptY, result);
+	PFC_ASSERT(result != SIZE_MAX);
+	return result;
+}
 
+bool CListControlImpl::ItemFromPointAbs(CPoint const & p_pt,t_size & p_item) const {
+	size_t idx = IndexFromPointAbs(p_pt);
+	if (idx >= GetItemCount()) return false;
+	CRect rc = this->GetItemRectAbs(idx);
+	if (!rc.PtInRect(p_pt)) return false;
+	p_item = idx;
+	return true;
+}
 
-	//if (!pfc::bsearch_t(GetGroupCount(),RectSearchHelper_Groups(*this),RectCompare,CRect(p_pt,p_pt),result)) return false;
-	p_group = (int) (result + 1);
+size_t CListControlImpl::ItemFromPointAbs(CPoint const& p_pt) const {
+	size_t ret = SIZE_MAX;
+	ItemFromPointAbs(p_pt, ret);
+	return ret;
+}
+
+bool CListControlImpl::GroupHeaderFromPointAbs2(CPoint const & p_pt,size_t & atItem) const {
+	size_t idx = IndexFromPointAbs(p_pt);
+	if (idx == SIZE_MAX) return false;
+	CRect rc;
+	if (!this->GetGroupHeaderRectAbs2(idx, rc)) return false;
+	if (!rc.PtInRect(p_pt)) return false;
+	atItem = idx;
 	return true;
 }
 
@@ -608,8 +971,25 @@ CTheme & CListControlImpl::themeFor(const char * what) {
 	return ret;
 }
 
+void CListControlImpl::SetDarkMode(bool v) {
+	if (m_darkMode != v) {
+		m_darkMode = v;
+		RefreshDarkMode();
+	}
+}
+
+void CListControlImpl::RefreshDarkMode() {
+	if (m_hWnd != NULL) {
+		// GOD DAMNIT: Should use ItemsView, but only Explorer fixes scrollbars
+		DarkMode::ApplyDarkThemeCtrl(m_hWnd, m_darkMode, L"Explorer");
+	}
+}
+
 LRESULT CListControlImpl::OnCreatePassThru(UINT,WPARAM,LPARAM,BOOL& bHandled) {
-	::SetWindowTheme(*this, _T("explorer"), NULL);
+
+	RefreshDarkMode();
+	
+	
 	OnViewAreaChanged();
 
 	if (m_gestureAPI.IsAvailable()) {
@@ -621,7 +1001,7 @@ LRESULT CListControlImpl::OnCreatePassThru(UINT,WPARAM,LPARAM,BOOL& bHandled) {
 	return 0;
 }
 bool CListControlImpl::IsSameItemOrHeaderAbs(const CPoint & p_point1, const CPoint & p_point2) const {
-	t_size item1, item2; int group1, group2;
+	t_size item1, item2;
 	if (ItemFromPointAbs(p_point1, item1)) {
 		if (ItemFromPointAbs(p_point2,item2)) {
 			return item1 == item2;
@@ -629,9 +1009,9 @@ bool CListControlImpl::IsSameItemOrHeaderAbs(const CPoint & p_point1, const CPoi
 			return false;
 		}
 	}
-	if (GroupHeaderFromPointAbs(p_point1, group1)) {
-		if (GroupHeaderFromPointAbs(p_point2, group2)) {
-			return group1 == group2;
+	if (GroupHeaderFromPointAbs2(p_point1, item1)) {
+		if (GroupHeaderFromPointAbs2(p_point2, item2)) {
+			return item1 == item2;
 		} else {
 			return false;
 		}
@@ -656,11 +1036,9 @@ void CListControlImpl::ListHandleResize() {
 	m_sizeAsyncPending = false;
 }
 
-void CListControlImpl::AddGroupHeaderToUpdateRgn(HRGN p_rgn, int id) const {
-	if (id > 0) {
-		CRect rcHeader;
-		if (GetGroupHeaderRect(id,rcHeader)) AddUpdateRect(p_rgn,rcHeader);
-	}
+void CListControlImpl::AddGroupHeaderToUpdateRgn2(HRGN p_rgn, size_t atItem) const {
+	CRect rcHeader;
+	if (GetGroupHeaderRect2(atItem,rcHeader)) AddUpdateRect(p_rgn,rcHeader);
 }
 void CListControlImpl::AddItemToUpdateRgn(HRGN p_rgn, t_size p_index) const {
 	if (p_index < this->GetItemCount()) {
@@ -669,38 +1047,51 @@ void CListControlImpl::AddItemToUpdateRgn(HRGN p_rgn, t_size p_index) const {
 }
 
 COLORREF CListControlImpl::GetSysColorHook(int colorIndex) const {
-	return GetSysColor(colorIndex);
+	if (m_darkMode) {
+		return DarkMode::GetSysColor(colorIndex);
+	} else {
+		return GetSysColor(colorIndex);
+	}
 }
 
-LRESULT CListControlImpl::OnEraseBkgnd(UINT,WPARAM wp,LPARAM,BOOL&) {
-#ifndef CListControl_ScrollWindowFix
-	const CRect rcClient = GetClientRectHook();
-	PaintUtils::FillRectSimple((HDC)wp,rcClient,GetColor(ui_color_background));
-#endif
-	return 1;
+BOOL CListControlImpl::OnEraseBkgnd(CDCHandle dc) {
+	
+	if (paintInProgress()) return FALSE;
+
+	CRect rcClient; WIN32_OP_D(GetClientRect(rcClient)); // SPECIAL CASE: No GetClientRectHook() here, fill physical client area, not logical
+	PaintUtils::FillRectSimple(dc,rcClient,this->GetSysColorHook(COLOR_WINDOW));
+
+	return TRUE;
 }
 
 t_size CListControlImpl::InsertIndexFromPointEx(const CPoint & pt, bool & bInside) const {
 	bInside = false;
-	t_size insertMark = ~0;
-	t_size itemIdx; int groupId;
-	CPoint test(pt); test += GetViewOffset();
-	test.x = GetItemWidth() / 2;
-	if (test.y >= GetViewAreaHeight()) {
+	int y_abs = pt.y + GetViewOffset().y;
+	
+	if (y_abs >= GetViewAreaHeight()) {
 		return GetItemCount();
-	} else if (ItemFromPointAbs(test,itemIdx)) {
-		const CRect rc = GetItemRectAbs(itemIdx);
-		if (test.y > rc.top + MulDiv(rc.Height(),2,3)) itemIdx++;
-		else if (test.y >= rc.top + MulDiv(rc.Height(),1,3)) bInside = true;
-		return itemIdx;
-	} else if (GroupHeaderFromPointAbs(test,groupId)) {
-		t_size base,count;
-		if (ResolveGroupRange(groupId,base,count)) {
-			return base;
+	}
+	size_t itemIdx = IndexFromPointAbs(y_abs);
+	if (itemIdx == SIZE_MAX) return SIZE_MAX;
+
+	{
+		CRect rc;
+		if (!this->GetGroupHeaderRectAbs2(itemIdx, rc)) {
+			if (y_abs >= rc.top && y_abs <= rc.bottom) {
+				bInside = false;
+				return itemIdx;
+			}
 		}
 	}
-	return ~0;
+	if (itemIdx != SIZE_MAX) {
+		const CRect rc = GetItemRectAbs(itemIdx);
+		if (y_abs > rc.top + MulDiv(rc.Height(), 2, 3)) itemIdx++;
+		else if (y_abs >= rc.top + MulDiv(rc.Height(), 1, 3)) bInside = true;
+		return itemIdx;
+	}
+	return SIZE_MAX;
 }
+
 t_size CListControlImpl::InsertIndexFromPoint(const CPoint & pt) const {
 	bool dummy; return InsertIndexFromPointEx(pt,dummy);
 }
@@ -720,7 +1111,7 @@ COLORREF CListControlImpl::GridColor() {
 void CListControlImpl::RenderItemBackground(CDCHandle p_dc,const CRect & p_itemRect,size_t p_item, uint32_t bkColor) {
 	switch( this->m_rowStyle ) {
 	case rowStylePlaylistDelimited:
-		PaintUtils::RenderItemBackground(p_dc,p_itemRect,p_item+GetItemGroup(p_item),bkColor);
+		PaintUtils::RenderItemBackground(p_dc,p_itemRect,p_item,bkColor);
 		{
 			auto blend = BlendGridColor(bkColor);
 			CDCPen pen(p_dc, blend);
@@ -731,7 +1122,7 @@ void CListControlImpl::RenderItemBackground(CDCHandle p_dc,const CRect & p_itemR
 		}
 		break;
 	case rowStylePlaylist:
-		PaintUtils::RenderItemBackground(p_dc,p_itemRect,p_item+GetItemGroup(p_item),bkColor);
+		PaintUtils::RenderItemBackground(p_dc,p_itemRect,p_item,bkColor);
 		break;
 	case rowStyleGrid:
 		PaintUtils::FillRectSimple(p_dc, p_itemRect, bkColor );
@@ -749,19 +1140,16 @@ void CListControlImpl::RenderItemBackground(CDCHandle p_dc,const CRect & p_itemR
 }
 
 void CListControlImpl::RenderGroupHeaderBackground(CDCHandle p_dc,const CRect & p_headerRect,int p_group) {
+	(void)p_group;
 	const t_uint32 bkColor = GetSysColorHook(colorBackground);
-	t_size index = 0;
-	t_size base, count;
-	if (p_group > 0 && ResolveGroupRange(p_group,base,count)) {
-		index = base + (t_size) p_group - 1;
-	}
+	size_t pretendIndex = 0;
 	switch( this->m_rowStyle ) {
 	default:
 		PaintUtils::FillRectSimple( p_dc, p_headerRect, bkColor );
 		break;
 	case rowStylePlaylistDelimited:
 	case rowStylePlaylist:
-		PaintUtils::RenderItemBackground(p_dc,p_headerRect,index,bkColor);
+		PaintUtils::RenderItemBackground(p_dc,p_headerRect,pretendIndex,bkColor);
 		break;
 	}
 }
@@ -777,15 +1165,15 @@ void CListControlImpl::RenderItem(t_size p_item,const CRect & p_itemRect,const C
 	RenderItemText(p_item,p_itemRect,p_updateRect,p_dc, true);
 }
 
-void CListControlImpl::RenderGroupHeader(int p_group,const CRect & p_headerRect,const CRect & p_updateRect,CDCHandle p_dc) {
-	this->RenderGroupHeaderBackground(p_dc, p_headerRect, p_group );
+void CListControlImpl::RenderGroupHeader2(size_t baseItem,const CRect & p_headerRect,const CRect & p_updateRect,CDCHandle p_dc) {
+	this->RenderGroupHeaderBackground(p_dc, p_headerRect, 0 );
 
 	DCStateScope backup(p_dc);
 	p_dc.SetBkMode(TRANSPARENT);
 	p_dc.SetBkColor(GetSysColorHook(colorBackground));
 	p_dc.SetTextColor(GetSysColorHook(colorHighlight));
 
-	RenderGroupHeaderText(p_group,p_headerRect,p_updateRect,p_dc);
+	RenderGroupHeaderText2(baseItem,p_headerRect,p_updateRect,p_dc);
 }
 
 
@@ -832,25 +1220,6 @@ LRESULT CListControlFontOps::OnGetFont(UINT,WPARAM,LPARAM,BOOL&) {
 	return (LRESULT)(HFONT)m_font;
 }
 
-void CListControlImpl::SetCaptureEx(CaptureProc_t proc) {
-	this->m_captureProc = proc; SetCapture();
-}
-
-LRESULT CListControlImpl::MousePassThru(UINT msg, WPARAM wp, LPARAM lp) {
-	auto p = m_captureProc; // create local ref in case something in mid-captureproc clears it
-	if ( p ) {
-		CPoint pt(lp);
-		if (!p(msg, (DWORD) wp, pt ) ) {
-			ReleaseCapture();
-			m_captureProc = nullptr;
-		}
-		return 0;
-	}
-
-	SetMsgHandled(FALSE);
-	return 0;
-}
-
 LRESULT CListControlImpl::OnGetDlgCode(UINT, WPARAM wp, LPARAM) {
 	switch(wp) {
 	case VK_RETURN:
@@ -861,19 +1230,27 @@ LRESULT CListControlImpl::OnGetDlgCode(UINT, WPARAM wp, LPARAM) {
 	}
 }
 
-void CListControlImpl::CreateInDialog(CWindow wndDialog, UINT replaceControlID ) {
-	CWindow lstReplace = wndDialog.GetDlgItem(replaceControlID);
-	PFC_ASSERT( lstReplace != NULL );
-	auto status = lstReplace.SendMessage(WM_GETDLGCODE, VK_RETURN );
+HWND CListControlImpl::CreateInDialog(CWindow wndDialog, UINT replaceControlID, CWindow lstReplace) {
+	// No longer used
+	// SetDarkMode(DarkMode::IsDialogDark(wndDialog, WM_CTLCOLORLISTBOX));
+
+	PFC_ASSERT(lstReplace != NULL);
+	auto status = lstReplace.SendMessage(WM_GETDLGCODE, VK_RETURN);
 	m_dlgWantEnter = (status & DLGC_WANTMESSAGE);
 	CRect rc;
 	CWindow wndPrev = wndDialog.GetNextDlgTabItem(lstReplace, TRUE);
-	WIN32_OP_D( lstReplace.GetWindowRect(&rc) );
-	WIN32_OP_D( wndDialog.ScreenToClient(rc) );
-	WIN32_OP_D( lstReplace.DestroyWindow() );
-	WIN32_OP_D( this->Create(wndDialog, &rc, 0, 0, WS_EX_STATICEDGE, replaceControlID) );
-	if (wndPrev != NULL ) this->SetWindowPos(wndPrev, 0,0,0,0, SWP_NOSIZE | SWP_NOMOVE );
+	WIN32_OP_D(lstReplace.GetWindowRect(&rc));
+	WIN32_OP_D(wndDialog.ScreenToClient(rc));
+	WIN32_OP_D(lstReplace.DestroyWindow());
+	WIN32_OP_D(this->Create(wndDialog, &rc, 0, 0, WS_EX_STATICEDGE, replaceControlID));
+	if (wndPrev != NULL) this->SetWindowPos(wndPrev, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	// this->BringWindowToTop();
 	this->SetFont(wndDialog.GetFont());
+	return m_hWnd;
+}
+
+HWND CListControlImpl::CreateInDialog(CWindow wndDialog, UINT replaceControlID ) {
+	return this->CreateInDialog(wndDialog, replaceControlID, wndDialog.GetDlgItem(replaceControlID));
 }
 
 
@@ -947,43 +1324,161 @@ HRESULT CListControlImpl::DoDragDrop(LPDATAOBJECT pDataObj, LPDROPSOURCE pDropSo
 	return ret;
 }
 
-void CListControlImpl::OnKillFocus(CWindow) {
-	if (m_captureProc) {
-		ReleaseCapture();
-		m_captureProc = nullptr;
-	}
-	SetMsgHandled(FALSE);
+
+CPoint CListControlImpl::PointAbsToClient(CPoint pt) const {
+	return pt - GetViewOffset();
 }
 
-void CListControlImpl::OnWindowPosChanged(LPWINDOWPOS arg) {
-	if ( arg->flags & SWP_HIDEWINDOW ) {
-		if (m_captureProc) {
-			ReleaseCapture();
-			m_captureProc = nullptr;
+CPoint CListControlImpl::PointClientToAbs(CPoint pt) const {
+	return pt + GetViewOffset();
+}
+
+CRect CListControlImpl::RectAbsToClient(CRect rc) const {
+	CRect ret;
+#if 1
+	ret = rc;
+	ret.OffsetRect(-GetViewOffset());
+#else
+	ret.TopLeft() = PointAbsToClient(rc.TopLeft());
+	ret.BottomRight() = PointAbsToClient(rc.BottomRight());
+#endif
+	return ret;
+}
+
+CRect CListControlImpl::RectClientToAbs(CRect rc) const {
+	CRect ret;
+#if 1
+	ret = rc;
+	ret.OffsetRect(GetViewOffset());
+#else
+	ret.TopLeft() = PointClientToAbs(rc.TopLeft());
+	ret.BottomRight() = PointAbsToClient(rc.BottomRight());
+#endif
+	return ret;
+}
+
+bool CListControlImpl::ItemFromPoint(CPoint const & p_pt, t_size & p_item) const {
+	return ItemFromPointAbs( PointClientToAbs( p_pt ), p_item);
+}
+
+void CListControlImpl::ReloadData() {
+	this->m_varItemHeights.clear();
+	this->m_groupHeaders.clear();
+	OnViewAreaChanged(); 
+}
+
+void CListControlImpl::ReloadItems(pfc::bit_array const & mask) { 
+	bool bReLayout = false;
+	mask.for_each(true, 0, GetItemCount(), [this, &bReLayout] (size_t idx) {
+		int hNew = this->GetItemHeight2(idx);
+		int hOld = -1;
+		{
+			auto iter = m_varItemHeights.find(idx);
+			if (iter != m_varItemHeights.end()) hOld = iter->second;
 		}
-	}
-	SetMsgHandled(FALSE);
-}
-
-void CListControlHeaderImpl::RenderItemBackground(CDCHandle p_dc,const CRect & p_itemRect,size_t item, uint32_t bkColor) {
-	if ( ! this->DelimitColumns() ) {
-		__super::RenderItemBackground(p_dc, p_itemRect, item, bkColor);
+		if (hNew != hOld) {
+			m_varItemHeights[idx] = hNew;
+			bReLayout = true;
+		}
+	});
+	if (bReLayout) {
+		OnViewAreaChanged();
 	} else {
-		auto cnt = this->GetColumnCount();
-		uint32_t x = 0;
-		for( size_t walk = 0; walk < cnt; ) {
-			auto span = this->GetSubItemSpan( item, walk );
-			PFC_ASSERT( span > 0 );
-			uint32_t width = 0;
-			for( size_t walk2 = 0; walk2 < span; ++ walk2 ) {
-				width += this->GetSubItemWidth( walk + walk2 );
+		UpdateItems(mask);
+	}
+	
+}
+
+void CListControlImpl::MinGroupHeight2Changed(size_t itemInGroup, bool reloadWhole) {
+	size_t lo, hi;
+	if (ResolveGroupRangeCached(itemInGroup, lo, hi)) {
+		if (reloadWhole) {
+			CRect rc;
+			if (this->GetGroupOverlayRectAbs(itemInGroup, rc)) {
+				this->InvalidateRect(this->RectAbsToClient(rc));
 			}
-			CRect rc = p_itemRect;
-			rc.left = x;
-			x += width;
-			rc.right = x;
-			__super::RenderItemBackground(p_dc, rc, item, bkColor);
-			walk += span;
+			{
+				pfc::bit_array_range range(lo, hi-lo);
+				this->ReloadItems(range);
+			}
+		} else {
+			this->ReloadItem(hi - 1);
 		}
 	}
+}
+
+bool CListControlImpl::IsItemFirstInGroupCached(size_t item) const {
+	return m_groupHeaders.count(item) > 0;
+}
+
+bool CListControlImpl::IsItemFirstInGroup(size_t item) const {
+	if (item == 0) return true;
+	return GetItemGroup(item) != GetItemGroup(item - 1);
+}
+bool CListControlImpl::IsItemLastInGroup(size_t item) const {
+	size_t next = item + 1;
+	if (next >= GetItemCount()) return true;
+	return GetItemGroup(item) != GetItemGroup(next);
+}
+
+int CListControlImpl::GetItemHeight2(size_t which) const {
+	if (!IsItemLastInGroup(which)) return -1;
+
+	const int minGroupHeight = this->GetMinGroupHeight2(which);
+	if (minGroupHeight <= 0) return -1;
+
+	const int heightNormal = this->GetItemHeight();
+
+	const size_t base = FindGroupBase(which);
+	
+	const int groupHeightWithout = (which > base ? (this->GetItemOffsetAbs(which) - this->GetItemOffsetAbs(base)) : 0);
+	
+	const int minItemHeight = minGroupHeight - groupHeightWithout; // possibly negative
+
+	if (minItemHeight > heightNormal) return minItemHeight;
+	else return -1; // use normal	
+}
+
+void CListControlImpl::wndSetDarkMode(CWindow wndListControl, bool bDark) { 
+	wndListControl.SendMessage(DarkMode::msgSetDarkMode(), bDark ? 1 : 0);
+}
+
+LRESULT CListControlImpl::OnSetDark(UINT, WPARAM wp, LPARAM) {
+	switch (wp) {
+	case 0:
+		this->SetDarkMode(false);
+		break;
+	case 1:
+		this->SetDarkMode(true);
+		break;
+	}
+	return 1;
+}
+
+void CListControlImpl::OnItemRemoved(size_t which) {
+	this->OnItemsRemoved(pfc::bit_array_one(which), GetItemCount() + 1);
+}
+
+
+UINT CListControlImpl::msgSetDarkMode() {
+	return DarkMode::msgSetDarkMode();
+}
+
+void CListControlImpl::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	(void)nRepCnt; (void)nFlags;
+	switch (nChar) {
+	case VK_LEFT:
+		MoveViewOriginDelta(CPoint(-MulDiv(16, m_dpi.cx, 96), 0));
+		break;
+	case VK_RIGHT:
+		MoveViewOriginDelta(CPoint(MulDiv(16, m_dpi.cx, 96), 0));
+		break;
+	default:
+		SetMsgHandled(FALSE); break;
+	}
+}
+
+void CListControlImpl::OnItemsInserted(size_t at, size_t count, bool bSelect) {
+	size_t newCount = this->GetItemCount();
+	this->OnItemsInsertedEx(pfc::bit_array_range(at, count, true), newCount - count, newCount, bSelect);
 }

@@ -25,7 +25,7 @@ private:
 		::SetLayeredWindowAttributes(*this,ColorKey,0,LWA_COLORKEY);
 		return 0;
 	}
-	LRESULT OnEraseBkgnd(UINT,WPARAM p_wp,LPARAM,BOOL& bHandled) {
+	LRESULT OnEraseBkgnd(UINT,WPARAM p_wp,LPARAM,BOOL&) {
 		CRect rcClient;
 		WIN32_OP_D( GetClientRect(rcClient) );
 		CDCHandle((HDC)p_wp).FillSolidRect(rcClient,ColorKey);

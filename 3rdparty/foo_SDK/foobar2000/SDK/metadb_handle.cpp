@@ -28,7 +28,21 @@ bool metadb_handle::format_title_legacy(titleformat_hook * p_hook,pfc::string_ba
 }
 
 
-
+bool metadb_handle::g_should_reload_ex(const t_filestats& p_old_stats, const t_filestats& p_new_stats, t_filetimestamp p_readtime) {
+	if (p_new_stats.m_timestamp == filetimestamp_invalid) {
+		return p_readtime != filetimestamp_invalid;//SNAFU: some locations don't have timestamps at all, let's always accept hints for those when readtime is valid
+	} else if (p_old_stats.m_timestamp == filetimestamp_invalid) {
+		return true;
+	} else if (p_new_stats.m_timestamp > p_old_stats.m_timestamp) {
+		return true;
+	} else if (p_new_stats.m_timestamp < p_old_stats.m_timestamp) {
+		//special case - file has possibly been replaced with older version - check read time
+		if (p_readtime == filetimestamp_invalid) return false;
+		else return p_readtime > p_old_stats.m_timestamp;
+	} else {//timestamps match
+		return false;
+	}
+}
 bool metadb_handle::g_should_reload(const t_filestats & p_old_stats,const t_filestats & p_new_stats,bool p_fresh)
 {
 	if (p_new_stats.m_timestamp == filetimestamp_invalid) return p_fresh;
@@ -100,6 +114,18 @@ metadb_info_container::ptr metadb_handle::get_full_info_ref( abort_callback & ab
 	return obj;
 }
 
+t_filestats2 metadb_info_container::stats2_() {
+	t_filestats2 ret;
+	metadb_info_container_v2::ptr v2;
+	if (v2 &= this) ret = v2->stats2();
+	else {
+		auto & s = this->stats();
+		ret.m_size = s.m_size;
+		ret.m_timestamp = s.m_timestamp;
+	}
+	return ret;
+}
+
 namespace fb2k {
 	pfc::string_formatter formatTrackList( metadb_handle_list_cref lst ) {
 		pfc::string_formatter ret;
@@ -125,4 +151,41 @@ namespace fb2k {
 		item->format_title(NULL,ret,script,NULL);
 		return ret;
 	}
+}
+
+t_filestats2 metadb_handle::get_stats2_() const {
+	metadb_handle_v2::ptr v2;
+	if (v2 &= const_cast<metadb_handle*>(this)) return v2->get_stats2();
+	else return t_filestats2::from_legacy(this->get_filestats());
+}
+
+metadb_v2_rec_t metadb_handle::query_v2_() {
+#if FOOBAR2000_TARGET_VERSION >= 81
+	return static_cast<const metadb_handle_v2*>(this)->query_v2();
+#else
+	metadb_handle_v2::ptr v2;
+	if (v2 &= this) return v2->query_v2();
+
+	metadb_v2_rec_t ret;
+	this->get_browse_info_ref(ret.info, ret.infoBrowse);
+	return ret;
+#endif
+}
+
+void metadb_handle::formatTitle_v2_(const metadb_v2_rec_t& rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter) {
+#if FOOBAR2000_TARGET_VERSION >= 81
+	static_cast<metadb_handle_v2*>(this)->formatTitle_v2(rec, p_hook, p_out, p_script, p_filter);
+#else
+	metadb_handle_v2::ptr v2;
+	if (v2 &= this) {
+		v2->formatTitle_v2(rec, p_hook, p_out, p_script, p_filter); return;
+	}
+
+	// closest approximate using old APIs
+	if (rec.info.is_valid()) {
+		this->format_title_from_external_info(rec.info->info(), p_hook, p_out, p_script, p_filter);
+	} else {
+		this->format_title(p_hook, p_out, p_script, p_filter);
+	}
+#endif
 }

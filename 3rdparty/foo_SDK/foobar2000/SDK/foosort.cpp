@@ -19,7 +19,8 @@ namespace {
 		}
 
 		size_t myrand(size_t cnt) {
-			return genrand->genrand(cnt);
+			PFC_ASSERT(cnt == (uint32_t)cnt);
+			return genrand->genrand((uint32_t)cnt);
 		}
 
 		void squaresort(t_size const p_base, t_size const p_count) {

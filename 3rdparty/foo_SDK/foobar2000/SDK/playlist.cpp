@@ -788,7 +788,7 @@ t_size playlist_manager::playlist_get_selected_count(t_size p_playlist,bit_array
 namespace {
 	class enum_items_callback_find_item : public playlist_manager::enum_items_callback {
 	public:
-		enum_items_callback_find_item(metadb_handle_ptr p_lookingFor) : m_result(pfc_infinite), m_lookingFor(p_lookingFor) {}
+		enum_items_callback_find_item(metadb_handle_ptr p_lookingFor) : m_lookingFor(p_lookingFor) {}
 		t_size result() const {return m_result;}
 		bool on_item(t_size p_index,const metadb_handle_ptr & p_location,bool b_selected) {
 			if (p_location == m_lookingFor) {
@@ -800,11 +800,11 @@ namespace {
 		}
 	private:
 		metadb_handle_ptr m_lookingFor;
-		t_size m_result;
+		size_t m_result = SIZE_MAX;
 	};
 	class enum_items_callback_find_item_selected : public playlist_manager::enum_items_callback {
 	public:
-		enum_items_callback_find_item_selected(metadb_handle_ptr p_lookingFor) : m_result(pfc_infinite), m_lookingFor(p_lookingFor) {}
+		enum_items_callback_find_item_selected(metadb_handle_ptr p_lookingFor) : m_lookingFor(p_lookingFor) {}
 		t_size result() const {return m_result;}
 		bool on_item(t_size p_index,const metadb_handle_ptr & p_location,bool b_selected) {
 			if (b_selected && p_location == m_lookingFor) {
@@ -816,7 +816,7 @@ namespace {
 		}
 	private:
 		metadb_handle_ptr m_lookingFor;
-		t_size m_result;
+		size_t m_result = SIZE_MAX;
 	};
 }
 
@@ -877,13 +877,13 @@ void playlist_manager::on_file_rechaptered(const char * path, metadb_handle_list
 	const size_t numPlaylists = this->get_playlist_count();
 	for( size_t walkPlaylist = 0; walkPlaylist < numPlaylists; ++ walkPlaylist ) {
 		if (!playlist_lock_is_present(walkPlaylist)) {
-			auto itemCount = [=] () -> unsigned {
+			auto itemCount = [=] {
 				return this->playlist_get_item_count( walkPlaylist );
 			};
-			auto itemHandle = [=] ( unsigned item ) -> metadb_handle_ptr {
+			auto itemHandle = [=] ( size_t item ) -> metadb_handle_ptr {
 				return this->playlist_get_item_handle( walkPlaylist, item );
 			};
-			auto itemMatch = [=] ( unsigned item ) -> bool {
+			auto itemMatch = [=] ( size_t item ) -> bool {
 				return metadb::path_compare(path, itemHandle(item)->get_path()) == 0;
 			};
 			auto itemMatch2 = [=] ( metadb_handle_ptr item ) -> bool {
@@ -894,7 +894,7 @@ void playlist_manager::on_file_rechaptered(const char * path, metadb_handle_list
 
 				if (itemMatch( walkItem )) {
 					pfc::avltree_t<uint32_t> subsongs;
-					unsigned base = walkItem;
+					auto base = walkItem;
 					bool bSel = false;
 					for( ++walkItem ; walkItem < itemCount() ; ++ walkItem ) {
 						auto handle = itemHandle( walkItem );

@@ -74,7 +74,7 @@ namespace file_win32_helpers {
 	}
 
 	void writeOverlapped(HANDLE handle, HANDLE myEvent, t_filesize & position, const void * in, size_t inBytes, abort_callback & abort) {
-		const enum {writeMAX = 16*1024*1024};
+		enum {writeMAX = 16*1024*1024};
 		size_t done = 0;
 		while(done < inBytes) {
 			size_t delta = inBytes - done;
@@ -85,7 +85,7 @@ namespace file_win32_helpers {
 		}
 	}
 	void writeStreamOverlapped(HANDLE handle, HANDLE myEvent, const void * in, size_t inBytes, abort_callback & abort) {
-		const enum {writeMAX = 16*1024*1024};
+		enum {writeMAX = 16*1024*1024};
 		size_t done = 0;
 		while(done < inBytes) {
 			size_t delta = inBytes - done;
@@ -140,7 +140,7 @@ namespace file_win32_helpers {
 		throw exception_aborted();
 	}
 	size_t readOverlapped(HANDLE handle, HANDLE myEvent, t_filesize & position, void * out, size_t outBytes, abort_callback & abort) {
-		const enum {readMAX = 16*1024*1024};
+		enum {readMAX = 16*1024*1024};
 		size_t done = 0;
 		while(done < outBytes) {
 			size_t delta = outBytes - done;
@@ -154,7 +154,7 @@ namespace file_win32_helpers {
 	}
 
 	size_t readStreamOverlapped(HANDLE handle, HANDLE myEvent, void * out, size_t outBytes, abort_callback & abort) {
-		const enum {readMAX = 16*1024*1024};
+		enum {readMAX = 16*1024*1024};
 		size_t done = 0;
 		while(done < outBytes) {
 			size_t delta = outBytes - done;

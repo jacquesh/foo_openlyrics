@@ -46,6 +46,9 @@ public:
 	bool remove(const GUID & p_what) {
 		return m_content.remove(p_what);
 	}
+	void remove_all() {
+		m_content.remove_all();
+	}
 private:
 	pfc::map_t<GUID,album_art_data_ptr> m_content;
 };
@@ -142,6 +145,7 @@ private:
 //! album_art_path_list implementation helper
 class album_art_path_list_impl : public album_art_path_list {
 public:
+	album_art_path_list_impl(const char* single) { m_data.set_size(1); m_data[0] = single; }
 	template<typename t_in> album_art_path_list_impl(const t_in & in) {pfc::list_to_array(m_data, in);}
 	const char * get_path(t_size index) const {return m_data[index];}
 	t_size get_count() const {return m_data.get_size();}

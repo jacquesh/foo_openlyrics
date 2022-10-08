@@ -7,7 +7,8 @@ namespace pfc {
 	void base64_encode_from_string( pfc::string_base & out, const char * in );
 	t_size base64_decode_estimate(const char * text);
 	void base64_decode(const char * text, void * out);
-	
+	mem_block base64_decode(const char* text);
+
 	template<typename t_buffer> void base64_decode_array(t_buffer & out, const char * text) {
 		PFC_STATIC_ASSERT( sizeof(out[0]) == 1 );
 		out.set_size_discard( base64_decode_estimate(text) );

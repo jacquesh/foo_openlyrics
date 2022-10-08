@@ -1,3 +1,4 @@
+#pragma once
 #include <pthread.h>
 
 namespace pfc {
@@ -14,7 +15,7 @@ namespace pfc {
 		operator pthread_mutexattr_t & () {return attr;}
 		pthread_mutexattr_t attr;
 	private:
-		mutexAttr(const mutexAttr&); void operator=(const mutexAttr&);
+		mutexAttr(const mutexAttr&) = delete; void operator=(const mutexAttr&) = delete;
 	};
     
     class mutexBase {
@@ -24,6 +25,7 @@ namespace pfc {
         
         void enter() throw() {lock();}
         void leave() throw() {unlock();}
+        bool tryEnter() throw() {return pthread_mutex_trylock(&obj) == 0; }
 
         void create( const pthread_mutexattr_t * attr );
         void create( const mutexAttr & );
@@ -35,8 +37,8 @@ namespace pfc {
     private:
         pthread_mutex_t obj;
         
-        void operator=( const mutexBase & );
-        mutexBase( const mutexBase & );
+        void operator=( const mutexBase & ) = delete;
+        mutexBase( const mutexBase & ) = delete;
     };
     
 
@@ -60,15 +62,8 @@ namespace pfc {
     };
     
     
-    class mutexScope {
-    public:
-        mutexScope( mutexBase * m ) throw() : m_mutex(m) { m_mutex->enter(); }
-        mutexScope( mutexBase & m ) throw() : m_mutex(&m) { m_mutex->enter(); }
-        ~mutexScope( ) throw() {m_mutex->leave();}
-    private:
-        void operator=( const mutexScope & ); mutexScope( const mutexScope & );
-        mutexBase * m_mutex;
-    };
+    
+    typedef mutexBase mutexBase_t;
     
     
     class readWriteLockAttr {
@@ -83,7 +78,8 @@ namespace pfc {
         pthread_rwlockattr_t attr;
         
     private:
-        readWriteLockAttr( const readWriteLockAttr &); void operator=(const readWriteLockAttr & );
+        readWriteLockAttr(const readWriteLockAttr&) = delete;
+        void operator=(const readWriteLockAttr & ) = delete;
     };
 
     class readWriteLockBase {
@@ -102,7 +98,8 @@ namespace pfc {
     private:
         pthread_rwlock_t obj;
         
-        void operator=( const readWriteLockBase & ); readWriteLockBase( const readWriteLockBase & );
+        void operator=( const readWriteLockBase & ) = delete;
+        readWriteLockBase( const readWriteLockBase & ) = delete;
     };
     
     
@@ -113,34 +110,10 @@ namespace pfc {
     };
 
 
-    class _readWriteLock_scope_read {
-    public:
-        _readWriteLock_scope_read( readWriteLockBase & lock ) : m_lock( lock ) { m_lock.enterRead(); }
-        ~_readWriteLock_scope_read() {m_lock.leaveRead();}
-    private:
-        _readWriteLock_scope_read( const _readWriteLock_scope_read &);
-        void operator=( const _readWriteLock_scope_read &);
-        readWriteLockBase & m_lock;
-    };
-    class _readWriteLock_scope_write {
-    public:
-        _readWriteLock_scope_write( readWriteLockBase & lock ) : m_lock( lock ) { m_lock.enterWrite(); }
-        ~_readWriteLock_scope_write() {m_lock.leaveWrite();}
-    private:
-        _readWriteLock_scope_write( const _readWriteLock_scope_write &);
-        void operator=( const _readWriteLock_scope_write &);
-        readWriteLockBase & m_lock;
-    };
+
 }
 
 
 
 typedef pfc::mutexRecur critical_section;
 typedef pfc::mutexRecurStatic critical_section_static;
-typedef pfc::mutexScope c_insync;
-
-#define insync(X) c_insync blah____sync(X)
-
-
-#define inReadSync( X ) ::pfc::_readWriteLock_scope_read _asdf_l_readWriteLock_scope_read( X )
-#define inWriteSync( X ) ::pfc::_readWriteLock_scope_write _asdf_l_readWriteLock_scope_write( X )

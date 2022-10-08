@@ -17,7 +17,7 @@ public:
 	//! @param p_title Title of dialog to show (UTF-8 encoded string).
 	//! @param p_title_length Length limit of the title string, in bytes (actual string may be shorter if null terminator is encountered before). Set this to infinite to use plain null-terminated strings.
 	//! @param p_icon Icon of the dialog - can be set to icon_information, icon_error or icon_query.
-	virtual void show_ex(const char * p_msg,unsigned p_msg_length,const char * p_title,unsigned p_title_length,t_icon p_icon = icon_information) = 0;
+	virtual void show_ex(const char * p_msg,size_t p_msg_length,const char * p_title,size_t p_title_length,t_icon p_icon = icon_information) = 0;
 
 	//! Activates the popup dialog; returns immediately (the dialog remains visible); helper function built around show_ex(), takes null terminated strings with no length limit parameters.
 	//! @param p_msg Message to show (UTF-8 encoded string).
@@ -26,7 +26,7 @@ public:
 	inline void show(const char * p_msg,const char * p_title,t_icon p_icon = icon_information) {show_ex(p_msg,UINT_MAX,p_title,UINT_MAX,p_icon);}
 
 	//! Static helper function instantiating the service and activating the message dialog. See show_ex() for description of parameters.
-	static void g_show_ex(const char * p_msg,unsigned p_msg_length,const char * p_title,unsigned p_title_length,t_icon p_icon = icon_information);
+	static void g_show_ex(const char * p_msg,size_t p_msg_length,const char * p_title,size_t p_title_length,t_icon p_icon = icon_information);
 	//! Static helper function instantiating the service and activating the message dialog. See show() for description of parameters.
 	static inline void g_show(const char * p_msg,const char * p_title,t_icon p_icon = icon_information) {g_show_ex(p_msg,UINT_MAX,p_title,UINT_MAX,p_icon);}
 
@@ -53,7 +53,7 @@ class NOVTABLE popup_message_v2 : public service_base {
 	FB2K_MAKE_SERVICE_COREAPI(popup_message_v2);
 public:
 	virtual void show(HWND parent, const char * msg, t_size msg_length, const char * title, t_size title_length) = 0;
-	void show(HWND parent, const char * msg, const char * title) {show(parent, msg, ~0, title, ~0);}
+	void show(HWND parent, const char * msg, const char * title) {show(parent, msg, SIZE_MAX, title, SIZE_MAX);}
 
 	static void g_show(HWND parent, const char * msg, const char * title = "Information");
 	static void g_complain(HWND parent, const char * whatFailed, const char * msg);

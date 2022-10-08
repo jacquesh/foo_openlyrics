@@ -3,8 +3,6 @@
 
 #include "PaintUtils.h"
 #include "gdiplus_helpers.h"
-// #include <helpers/win32_misc.h>
-// #include <ATLHelpers/GDIUtils.h>
 
 #include "GDIUtils.h"
 #include "win32_op.h"
@@ -170,46 +168,62 @@ namespace PaintUtils {
 				DrawThemeBackground(theme,dc,TKP_TRACK,TKS_NORMAL,rcTrack,rcUpdate);
 			}
 		}
-
-		void DrawTrackVolume(HTHEME theme,HDC p_dc,const RECT * rcTrack, const RECT * rcUpdate) {
-			CMemoryDC dc(p_dc,CRect(rcUpdate));
+		void DrawTrack2(HDC p_dc, const CRect& rcTrack, const CRect& rcUpdate, COLORREF clrHighlight, COLORREF clrShadow) {
+			CMemoryDC dc(p_dc, rcUpdate);
 			CRect rc(*rcTrack);
-			CRect update(*rcUpdate);
 
-			WIN32_OP_D( dc.BitBlt(update.left,update.top,update.Width(),update.Height(),p_dc,update.left,update.top,SRCCOPY) );
-
-
-			
-			/*CDCHandle dc(p_dc);
-			CPen pen; pen.CreatePen(PS_SOLID,1, GetSysColor(COLOR_GRAYTEXT));
-			SelectObjectScope scope(dc, pen);
-			dc.MoveTo(rc.left,rc.bottom);
-			dc.LineTo(rc.right,rc.bottom);
-			dc.LineTo(rc.right,rc.top);
-			dc.LineTo(rc.left,rc.bottom);*/
-			
-			//DrawTrack(theme,dc,rcTrack,rcUpdate);
+			WIN32_OP_D(dc.BitBlt(rcUpdate.left, rcUpdate.top, rcUpdate.Width(), rcUpdate.Height(), p_dc, rcUpdate.left, rcUpdate.top, SRCCOPY));
 
 			try {
-				Gdiplus::Point points[] = { Gdiplus::Point(rc.left, rc.bottom), Gdiplus::Point(rc.right, rc.bottom), Gdiplus::Point(rc.right, rc.top) } ;
+				Gdiplus::Point points[] = { Gdiplus::Point(rc.left, rc.bottom), Gdiplus::Point(rc.right, rc.bottom), Gdiplus::Point(rc.right, rc.top), Gdiplus::Point(rc.left, rc.top)};
 				GdiplusErrorHandler eh;
 				Gdiplus::Graphics graphics(dc);
 				eh << graphics.GetLastStatus();
 				Gdiplus::Color c;
-				c.SetFromCOLORREF( GetSysColor(COLOR_BTNHIGHLIGHT) );
+				c.SetFromCOLORREF(clrHighlight);
 				Gdiplus::Pen penHL(c);
-				c.SetFromCOLORREF( GetSysColor(COLOR_BTNSHADOW) );
+				c.SetFromCOLORREF(clrShadow);
+				Gdiplus::Pen penSH(c);
+				eh << graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+				eh << graphics.DrawLine(&penHL, points[0], points[1]);
+				eh << graphics.DrawLine(&penHL, points[1], points[2]);
+				eh << graphics.DrawLine(&penSH, points[2], points[3]);
+				eh << graphics.DrawLine(&penSH, points[3], points[0]);
+			} catch (std::exception const& e) {
+				(void)e;
+				// console::print(e.what());
+			}
+		}
+		void DrawTrackVolume2(HDC p_dc, const CRect& rcTrack, const CRect& rcUpdate, COLORREF clrHighlight, COLORREF clrShadow) {
+			CMemoryDC dc(p_dc, rcUpdate);
+			CRect rc(rcTrack);
+
+			WIN32_OP_D(dc.BitBlt(rcUpdate.left, rcUpdate.top, rcUpdate.Width(), rcUpdate.Height(), p_dc, rcUpdate.left, rcUpdate.top, SRCCOPY));
+
+			try {
+				Gdiplus::Point points[] = { Gdiplus::Point(rc.left, rc.bottom), Gdiplus::Point(rc.right, rc.bottom), Gdiplus::Point(rc.right, rc.top) };
+				GdiplusErrorHandler eh;
+				Gdiplus::Graphics graphics(dc);
+				eh << graphics.GetLastStatus();
+				Gdiplus::Color c;
+				c.SetFromCOLORREF(clrHighlight);
+				Gdiplus::Pen penHL(c);
+				c.SetFromCOLORREF(clrShadow);
 				Gdiplus::Pen penSH(c);
 				eh << graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
 				//graphics.DrawPolygon(&pen,points,tabsize(points));
-				eh << graphics.DrawLine(&penSH, points[0], points[0] + Gdiplus::Point(0,-1));
+				eh << graphics.DrawLine(&penSH, points[0], points[0] + Gdiplus::Point(0, -1));
 				eh << graphics.DrawLine(&penHL, points[0], points[1]);
 				eh << graphics.DrawLine(&penHL, points[1], points[2]);
-				eh << graphics.DrawLine(&penSH, points[2], points[0] + Gdiplus::Point(0,-1));
-			} catch(std::exception const & e) {
-				(void) e;
+				eh << graphics.DrawLine(&penSH, points[2], points[0] + Gdiplus::Point(0, -1));
+			} catch (std::exception const& e) {
+				(void)e;
 				// console::print(e.what());
 			}
+		}
+		void DrawTrackVolume(HTHEME theme,HDC p_dc,const CRect & rcTrack, const CRect & rcUpdate) {
+			(void)theme; // disregarded
+			DrawTrackVolume2(p_dc, rcTrack, rcUpdate, GetSysColor(COLOR_BTNHIGHLIGHT), GetSysColor(COLOR_BTNSHADOW));
 		}
 	}
 
@@ -390,7 +404,6 @@ namespace PaintUtils {
 			while(src[walk] != 0 && IsControlChar(src[walk])) ++walk;
 		}
 	}
-	static const unsigned Marker_Dim = '<', Marker_Highlight = '>';
 	
 	pfc::string TextOutColors_ImportScript(pfc::string script) {
 		pfc::string_formatter temp; TextOutColors_ImportScript(temp, script.ptr()); return temp.get_ptr();

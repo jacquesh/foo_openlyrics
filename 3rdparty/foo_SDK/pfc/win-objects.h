@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ref_counter.h"
+
 namespace pfc {
 	BOOL winFormatSystemErrorMessage(pfc::string_base & p_out,DWORD p_code);
 
@@ -26,29 +28,9 @@ namespace pfc {
 	HWND findOwningPopup(HWND wnd);
 }
 
-
-
-class format_win32_error {
-public:
-	format_win32_error(DWORD p_code);
-
-	const char * get_ptr() const {return m_buffer.get_ptr();}
-	operator const char*() const {return m_buffer.get_ptr();}
-private:
-	pfc::string8 m_buffer;
-};
-
-class format_hresult {
-public:
-	format_hresult(HRESULT p_code);
-	format_hresult(HRESULT p_code, const char * msgOverride);
-
-	const char * get_ptr() const {return m_buffer.get_ptr();}
-	operator const char*() const {return m_buffer.get_ptr();}
-private:
-	void stamp_hex(HRESULT p_code);
-	pfc::string_formatter m_buffer;
-};
+pfc::string8 format_win32_error(DWORD code);
+pfc::string8 format_hresult(HRESULT code);
+pfc::string8 format_hresult(HRESULT code, const char * msgOverride);
 
 class exception_win32 : public std::exception {
 public:
@@ -168,12 +150,28 @@ public:
     // Two-wait event functions, return 0 on timeout, 1 on evt1 set, 2 on evt2 set
     static int g_twoEventWait( win32_event & ev1, win32_event & ev2, double timeout );
     static int g_twoEventWait( HANDLE ev1, HANDLE ev2, double timeout );
+
+	// Multi-wait. Returns SIZE_MAX on timeout, 0 based event index if either event becomes set.
+	static size_t g_multiWait(const HANDLE* events, size_t count, double timeout);
 private:
 	win32_event(const win32_event&) = delete;
 	void operator=(const win32_event &) = delete;
 
 	HANDLE m_handle;
 };
+
+namespace pfc {
+	typedef HANDLE eventHandle_t;
+
+	static const eventHandle_t eventInvalid = NULL;
+
+	class event : public win32_event {
+	public:
+		event() { create(true, false); }
+
+		HANDLE get_handle() const { return win32_event::get(); }
+	};
+}
 
 void uSleepSeconds(double p_time,bool p_alertable);
 
@@ -223,6 +221,8 @@ private:
 	HGDIOBJ m_obj;
 };
 
+// WARNING: Windows is known to truncate the coordinates to float32 internally instead of retaining original int
+// With large values, this OffsetWindowOrgEx behaves erratically
 class OffsetWindowOrgScope {
 public:
 	OffsetWindowOrgScope(HDC dc, const POINT & pt) throw() : m_dc(dc), m_pt(pt) {
@@ -332,10 +332,5 @@ namespace pfc {
 
 #ifdef PFC_WINDOWS_DESKTOP_APP
 	void winSetThreadDescription(HANDLE hThread, const wchar_t * desc);
-
-#if PFC_DEBUG
-#define PFC_SET_THREAD_DESCRIPTION(msg) ::pfc::winSetThreadDescription(GetCurrentThread(), L##msg);
-#define PFC_SET_THREAD_DESCRIPTION_SUPPORTED
-#endif // PFC_DEBUG
 #endif // PFC_WINDOWS_DESKTOP_APP
 }

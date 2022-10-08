@@ -77,7 +77,7 @@ HGLOBAL IDataObjectUtils::HGlobalFromMemblock(const void * ptr,t_size size) {
 
 HRESULT IDataObjectUtils::ExtractDataObjectContent(pfc::com_ptr_t<IDataObject> obj, UINT format, DWORD aspect, LONG index, pfc::array_t<t_uint8> & out) {
 	FORMATETC fmt = {};
-	fmt.cfFormat = format; fmt.dwAspect = aspect; fmt.lindex = index;
+	fmt.cfFormat = (CLIPFORMAT)format; fmt.dwAspect = aspect; fmt.lindex = index;
 	fmt.tymed = TYMED_HGLOBAL /* | TYMED_ISTREAM*/;
 
 	STGMEDIUM med = {};
@@ -121,7 +121,7 @@ HRESULT IDataObjectUtils::ExtractDataObjectContent(pfc::com_ptr_t<IDataObject> o
 
 HRESULT IDataObjectUtils::ExtractDataObjectContentTest(pfc::com_ptr_t<IDataObject> obj, UINT format, DWORD aspect, LONG index) {
 	FORMATETC fmt = {};
-	fmt.cfFormat = format; fmt.dwAspect = aspect; fmt.lindex = index;
+	fmt.cfFormat = (CLIPFORMAT)format; fmt.dwAspect = aspect; fmt.lindex = index;
 	for(t_uint32 walk = 0; walk < 32; ++walk) {
 		const DWORD tymed = 1 << walk;
 		if ((ExtractDataObjectContent_SupportedTymeds & tymed) != 0) {
@@ -160,7 +160,7 @@ HRESULT IDataObjectUtils::ExtractDataObjectString(pfc::com_ptr_t<IDataObject> ob
 HRESULT IDataObjectUtils::SetDataObjectContent(pfc::com_ptr_t<IDataObject> obj, UINT format, DWORD aspect, LONG index, const void * data, t_size dataSize) {
 	STGMEDIUM med = {};
 	FORMATETC fmt = {};
-	fmt.cfFormat = format; fmt.dwAspect = aspect; fmt.lindex = index; fmt.tymed = TYMED_HGLOBAL;
+	fmt.cfFormat = (CLIPFORMAT)format; fmt.dwAspect = aspect; fmt.lindex = index; fmt.tymed = TYMED_HGLOBAL;
 	HRESULT state;
 	if (FAILED(state = DataBlockToSTGMEDIUM(data,dataSize,&med,TYMED_HGLOBAL,false))) return state;
 	return obj->SetData(&fmt,&med,TRUE);

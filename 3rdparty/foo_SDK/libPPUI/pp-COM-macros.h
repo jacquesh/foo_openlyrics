@@ -1,6 +1,6 @@
 #pragma once
 
-#define COM_QI_BEGIN() HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid,void ** ppvObject) { if (ppvObject == NULL) return E_INVALIDARG;
+#define COM_QI_BEGIN() HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid,void ** ppvObject) override { if (ppvObject == NULL) return E_INVALIDARG;
 #define COM_QI_ENTRY(IWhat) { if (iid == __uuidof(IWhat)) {IWhat * temp = this; temp->AddRef(); * ppvObject = temp; return S_OK;} }
 #define COM_QI_ENTRY_(IWhat, IID) { if (iid == IID) {IWhat * temp = this; temp->AddRef(); * ppvObject = temp; return S_OK;} }
 #define COM_QI_END() * ppvObject = NULL; return E_NOINTERFACE; }

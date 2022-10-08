@@ -22,9 +22,23 @@ namespace service_impl_helper {
 template<typename class1_t, typename class2_t>
 class service_multi_inherit : public class1_t, public class2_t {
 	typedef service_multi_inherit<class1_t, class2_t> self_t;
+
+	template<typename sub1_t, typename sub2_t>
+	inline static bool service_query_this(service_ptr& out, const GUID& guid, service_multi_inherit<sub1_t, sub2_t>* in) {
+		return service_multi_inherit<sub1_t, sub2_t>::handle_service_query(out, guid, in);
+	}
+
+	template<typename class_t>
+	inline static bool service_query_this(service_ptr& out, const GUID& guid, class_t* in) {
+		return service_base::handle_service_query(out, guid, in);
+	}
 public:
+
+	// template<typename sub1_t, typename sub2_t>
+
+
 	static bool handle_service_query(service_ptr & out, const GUID & guid, self_t * in) {
-		return service_base::handle_service_query(out, guid, (class1_t*) in) || service_base::handle_service_query(out, guid, (class2_t*) in);
+		return service_query_this(out, guid, (class1_t*) in) || service_query_this(out, guid, (class2_t*) in);
 	}
 
 	service_base * as_service_base() { return class1_t::as_service_base(); }
@@ -48,7 +62,7 @@ template<typename class_t> class implement_service_query : public class_t
 public:
 	template<typename ... arg_t> implement_service_query( arg_t && ... arg ) : base_t( std::forward<arg_t>(arg) ... ) {}
 
-	bool service_query(service_ptr_t<service_base> & p_out, const GUID & p_guid) {
+	bool service_query(service_ptr_t<service_base> & p_out, const GUID & p_guid) override {
 		return this->handle_service_query( p_out, p_guid, this );
 	}
 };

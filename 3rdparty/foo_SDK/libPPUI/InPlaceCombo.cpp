@@ -9,12 +9,9 @@
 #include "win32_utility.h"
 #include "listview_helper.h" // ListView_GetColumnCount
 #include "clipboard.h"
+#include "DarkMode.h"
 
 #include <forward_list>
-
-#ifndef WM_MOUSEHWHEEL
-#define WM_MOUSEHWHEEL 0x20E
-#endif
 
 using namespace InPlaceEdit;
 
@@ -37,11 +34,13 @@ namespace {
 		parent.PostMessage(MSG_COMPLETION, code, 0);
 	}
 
+#if 0
 	static void GAbortEditing(t_uint32 code) {
 		for (auto walk = g_editboxes.begin(); walk != g_editboxes.end(); ++walk) {
 			GAbortEditing(*walk, code);
 		}
 	}
+#endif
 
 	static bool IsSamePopup(CWindow wnd1, CWindow wnd2) {
 		return pfc::findOwningPopup(wnd1) == pfc::findOwningPopup(wnd2);
@@ -128,7 +127,7 @@ namespace {
 			on_editbox_destruction(m_hWnd);
 			SetMsgHandled(FALSE);
 		}
-		int OnCreate(LPCREATESTRUCT lpCreateStruct) {
+		int OnCreate(LPCREATESTRUCT) {
 			OnCreation();
 			SetMsgHandled(FALSE);
 			return 0;
@@ -160,6 +159,7 @@ namespace {
 		}
 
 		void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+			(void)nRepCnt;
 			m_suppressChar = nFlags & 0xFF;
 			switch (nChar) {
 			case VK_TAB:
@@ -222,6 +222,8 @@ namespace {
 
 				WIN32_OP(edit.Create(*this, rcClient, NULL, style, 0, ID_MYEDIT) != NULL);
 				edit.SetFont(parent.GetFont());
+
+				if ((m_flags & KFlagDark) != 0) DarkMode::DarkenComboLite(edit);
 
 				m_edit.SubclassWindow(edit);
 				m_edit.OnCreation();
@@ -296,7 +298,7 @@ namespace {
 			ShowWindow(SW_HIDE);
 			GetParent().UpdateWindow();
 		}
-		LRESULT OnMsgCompletion(UINT, WPARAM wParam, LPARAM lParam) {
+		LRESULT OnMsgCompletion(UINT, WPARAM wParam, LPARAM) {
 			PFC_ASSERT(m_initialized);
 			if ((wParam & KEditMaskReason) != KEditLostFocus) {
 				GetParent().SetFocus();
@@ -308,7 +310,7 @@ namespace {
 			}
 			return 0;
 		}
-		void OnComboMsg(UINT code, int, CWindow source) {
+		void OnComboMsg(UINT code, int, CWindow) {
 			if (m_initialized && (code == CBN_SELENDOK || code == CBN_SELENDCANCEL) ) {
 				PostMessage(MSG_COMPLETION, InPlaceEdit::KEditLostFocus, 0);
 			}

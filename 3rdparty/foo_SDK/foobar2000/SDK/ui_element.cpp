@@ -59,7 +59,7 @@ service_ptr_t<ui_element_config> ui_element_config::g_create(const GUID & id, st
 service_ptr_t<ui_element_config> ui_element_config::g_create(stream_reader * in, t_size bytes, abort_callback & abort) {
 	if (bytes < sizeof(GUID)) throw exception_io_data_truncation();
 	GUID id; 
-	{ stream_reader_formatter<> in(*in,abort); in >> id;}
+	{ stream_reader_formatter<> str(*in,abort); str >> id;}
 	return g_create(id,in,bytes - sizeof(GUID),abort);
 }
 
@@ -220,4 +220,38 @@ ui_element_replace_dialog_notify::ptr ui_element_replace_dialog_notify::create(s
 	auto obj = fb2k::service_new<ui_element_replace_dialog_notify_impl>();
 	obj->reply = reply;
 	return obj;
+}
+
+bool ui_config_manager::is_dark_mode() {
+	t_ui_color clr = 0xFFFFFF;
+	if (this->query_color(ui_color_darkmode, clr)) return clr == 0;
+	return false;
+}
+
+#ifdef _WIN32
+t_ui_color ui_config_manager::getSysColor(int sysColorIndex) {
+	GUID guid = ui_color_from_sys_color_index(sysColorIndex);
+	if (guid != pfc::guid_null) {
+		t_ui_color ret = 0;
+		if (query_color(guid, ret)) return ret;
+	}
+	return GetSysColor(sysColorIndex);
+}
+#endif
+
+ui_config_callback_impl::ui_config_callback_impl() {
+#if FOOBAR2000_TARGET_VERSION >= 81
+	ui_config_manager::get()->add_callback(this); 
+#else
+	auto api = ui_config_manager::tryGet();
+	if (api.is_valid()) api->add_callback(this);
+#endif
+}
+ui_config_callback_impl::~ui_config_callback_impl() { 
+#if FOOBAR2000_TARGET_VERSION >= 81
+	ui_config_manager::get()->remove_callback(this); 
+#else
+	auto api = ui_config_manager::tryGet();
+	if (api.is_valid()) api->remove_callback(this);
+#endif
 }

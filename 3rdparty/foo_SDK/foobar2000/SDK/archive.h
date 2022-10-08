@@ -46,7 +46,7 @@ namespace foobar2000_io {
 
 	//! Root class for archive implementations. Derive from this instead of from archive directly.
 	class NOVTABLE archive_impl : public archive_v3 {
-	private:
+	protected:
 		//do not override these
 		bool get_canonical_path(const char * path,pfc::string_base & out);
 		bool is_our_path(const char * path);
@@ -61,6 +61,7 @@ namespace foobar2000_io {
 		void list_directory(const char * p_path,directory_callback & p_out,abort_callback & p_abort);
 		void get_stats(const char * p_path,t_filestats & p_stats,bool & p_is_writeable,abort_callback & p_abort);
 		void list_extensions(pfc::string_base & out) override { out = get_archive_type(); }
+		bool supports_content_types() override { return false; }
 	protected:
 		//override these
 		virtual const char * get_archive_type()=0;//eg. "zip", must be lowercase

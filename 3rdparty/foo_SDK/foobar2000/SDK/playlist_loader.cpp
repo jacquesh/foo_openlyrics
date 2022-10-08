@@ -25,7 +25,7 @@ bool playlist_loader::g_try_load_playlist(file::ptr fileHint,const char * p_path
 
 	filesystem::g_get_canonical_path(p_path,filepath);
 	
-	pfc::string_extension extension(filepath);
+	auto extension = pfc::string_extension(filepath);
 
 	service_ptr_t<file> l_file = fileHint;
 
@@ -198,10 +198,14 @@ namespace {
 			v2 &= owner;
 
 			if ( is_subdirectory ) {
-				if (v2.is_valid()) {
-					v2->list_directory_ex(url, *this, flags(), p_abort);
-				} else {
-					owner->list_directory(url, *this, p_abort );
+				try {
+					if (v2.is_valid()) {
+						v2->list_directory_ex(url, *this, flags(), p_abort);
+					} else {
+						owner->list_directory(url, *this, p_abort);
+					}
+				} catch (exception_io const& e) {
+					FB2K_console_formatter() << "Error walking directory (" << e << "): " << url;
 				}
 			} else {
 				// In fb2k 1.4 the default filesystem is v2 and performs hidden file checks
@@ -256,13 +260,27 @@ static void process_path_internal(const char * p_path,const service_ptr_t<file> 
 				if ( v2 &= fs ) v2->list_directory_ex(p_path, results, results.flags(), abort );
 				else fs->list_directory(p_path, results, abort);
 				for( auto i = results.m_entries.first(); i.is_valid(); ++i ) {
-					process_path_internal(i->m_path, 0, callback, abort, playlist_loader_callback::entry_directory_enumerated, i->m_stats );
+					try {
+						process_path_internal(i->m_path, 0, callback, abort, playlist_loader_callback::entry_directory_enumerated, i->m_stats);
+					} catch (exception_aborted) {
+						throw;
+					} catch (std::exception const& e) {
+						FB2K_console_formatter() << "Error walking path (" << e << "): " << file_path_display(i->m_path);
+					} catch (...) {
+						FB2K_console_formatter() << "Error walking path (bad exception): " << file_path_display(i->m_path);
+					}
 				}
-				return;
-			} catch(exception_aborted) {throw;}
-			catch(...) {
-				//do nothing, fall thru
-				//fixme - catch only filesystem exceptions?
+				return; // successfully enumerated directory - go no further
+			} catch(exception_aborted) {
+				throw;
+			} catch (exception_io_not_directory) {
+				// disregard
+			} catch(exception_io_not_found) {
+				// disregard
+			} catch (std::exception const& e) {
+				FB2K_console_formatter() << "Error walking directory (" << e << "): " << p_path;
+			} catch (...) {
+				FB2K_console_formatter() << "Error walking directory (bad exception): " << p_path;
 			}
 		}
 
@@ -317,7 +335,7 @@ void playlist_loader::g_process_path(const char * p_filename,playlist_loader_cal
 {
 	TRACK_CALL_TEXT("playlist_loader::g_process_path");
 
-	file_path_canonical filename(p_filename);
+	auto filename = file_path_canonical(p_filename);
 
 	process_path_internal(filename,0,callback,abort, type,filestats_invalid);
 }
@@ -331,7 +349,7 @@ void playlist_loader::g_save_playlist(const char * p_filename,const pfc::list_ba
 		service_ptr_t<file> r;
 		filesystem::g_open(r,filename,filesystem::open_mode_write_new,p_abort);
 
-		pfc::string_extension ext(filename);
+		auto ext = pfc::string_extension(filename);
 		
 		service_enum_t<playlist_loader> e;
 		service_ptr_t<playlist_loader> l;

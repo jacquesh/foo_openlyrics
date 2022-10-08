@@ -6,7 +6,7 @@ static const uint8_t mask_tab[6] = { 0x80,0xE0,0xF0,0xF8,0xFC,0xFE };
 
 static const uint8_t val_tab[6] = { 0,0xC0,0xE0,0xF0,0xF8,0xFC };
 
-size_t utf8_char_len_from_header(char p_c) throw()
+size_t utf8_char_len_from_header(char p_c) noexcept
 {
 	size_t cnt = 0;
 	for (;;)
@@ -18,7 +18,7 @@ size_t utf8_char_len_from_header(char p_c) throw()
 	return cnt + 1;
 
 }
-size_t utf8_decode_char(const char *p_utf8, unsigned & wide) throw() {
+size_t utf8_decode_char(const char *p_utf8, unsigned & wide) noexcept {
 	const uint8_t * utf8 = (const uint8_t*)p_utf8;
 	const size_t max = 6;
 
@@ -60,7 +60,7 @@ size_t utf8_decode_char(const char *p_utf8, unsigned & wide) throw() {
 	return cnt;
 }
 
-size_t utf8_decode_char(const char *p_utf8, unsigned & wide, size_t max) throw()
+size_t utf8_decode_char(const char *p_utf8, unsigned & wide, size_t max) noexcept
 {
 	const uint8_t * utf8 = (const uint8_t*)p_utf8;
 
@@ -109,7 +109,7 @@ size_t utf8_decode_char(const char *p_utf8, unsigned & wide, size_t max) throw()
 }
 
 
-size_t utf8_encode_char(unsigned wide, char * target) throw()
+size_t utf8_encode_char(unsigned wide, char * target) noexcept
 {
 	size_t count;
 
@@ -161,7 +161,7 @@ size_t utf8_encode_char(unsigned wide, char * target) throw()
 	return count;
 }
 
-size_t utf16_encode_char(unsigned cur_wchar, char16_t * out) throw()
+size_t utf16_encode_char(unsigned cur_wchar, char16_t * out) noexcept
 {
 	if (cur_wchar < 0x10000) {
 		*out = (char16_t)cur_wchar; return 1;
@@ -177,7 +177,7 @@ size_t utf16_encode_char(unsigned cur_wchar, char16_t * out) throw()
 	}
 }
 
-size_t utf16_decode_char(const char16_t * p_source, unsigned * p_out, size_t p_source_length) throw() {
+size_t utf16_decode_char(const char16_t * p_source, unsigned * p_out, size_t p_source_length) noexcept {
 	if (p_source_length == 0) { *p_out = 0; return 0; } else if (p_source_length == 1) {
 		*p_out = p_source[0];
 		return 1;
@@ -210,13 +210,13 @@ unsigned utf8_get_char(const char * src)
 }
 
 
-size_t utf8_char_len(const char * s, size_t max) throw()
+size_t utf8_char_len(const char * s, size_t max) noexcept
 {
 	unsigned dummy;
 	return utf8_decode_char(s, dummy, max);
 }
 
-size_t skip_utf8_chars(const char * ptr, size_t count) throw()
+size_t skip_utf8_chars(const char * ptr, size_t count) noexcept
 {
 	size_t num = 0;
 	for (; count && ptr[num]; count--)
@@ -242,4 +242,23 @@ bool is_valid_utf8(const char * param, size_t max) {
 		}
 	}
 	return true;
+}
+
+bool is_canonical_utf8(const char * param, size_t max) {
+    char scratch[6];
+    size_t walk = 0;
+    while (walk < max && param[walk] != 0) {
+        size_t d;
+        unsigned c;
+        d = utf8_decode_char(param + walk, c, max - walk);
+        if (d == 0) return false; // bad UTF-8
+        walk += d;
+        if (walk > max) {
+            // should not get here
+            return false;
+        }
+        if (utf8_encode_char(c, scratch) != d) return false;
+    }
+    return true;
+
 }

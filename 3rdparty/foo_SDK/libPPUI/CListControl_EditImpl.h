@@ -42,7 +42,7 @@ protected:
 		PFC_ASSERT( count == this->GetColumnCount() );
 		if ( this->IsHeaderEnabled() ) {
 			pfc::array_t<int> temp; temp.set_size(count);
-			WIN32_OP_D( this->GetHeaderCtrl().GetOrderArray(temp.get_size(), temp.get_ptr()) );
+			WIN32_OP_D( this->GetHeaderCtrl().GetOrderArray((int) temp.get_size(), temp.get_ptr()) );
 			for(t_size walk = 0; walk < count; ++walk) out[walk] = (t_size) temp[walk];
 		} else {
 			for(t_size walk = 0; walk < count; ++walk) out[walk] = walk;
@@ -50,6 +50,20 @@ protected:
 	}
 
 	void TableEdit_OnColorsChanged() {}
+	bool TableEdit_GetDarkMode() const override {
+		return this->GetDarkMode();
+	}
+	t_uint32 TableEdit_GetEditFlags(t_size item, t_size subItem) const override {
+		auto ret = __super::TableEdit_GetEditFlags(item, subItem);
+		if (this->GetCellTypeSupported()) {
+			auto cell = this->GetCellType(item, subItem);
+			if (cell != nullptr) ret |= cell->EditFlags();
+		}
+		return ret;
+	}
+	void RequestEditItem(size_t item, size_t subItem) override {
+		this->TableEdit_Start(item, subItem);
+	}
 private:
 	LRESULT OnCtlColor(UINT,WPARAM wp,LPARAM lp,BOOL&) {
 		CDCHandle dc((HDC)wp);

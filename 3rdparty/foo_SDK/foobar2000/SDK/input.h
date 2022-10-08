@@ -144,6 +144,20 @@ public:
 	//! arg2 points to double position in seconds.
 	//! Return 1 if position was written to arg2, 0 if n/a.
 	static const GUID query_position;
+
+    struct continue_stream_t {
+        file::ptr reader;
+        const char * path;
+    };
+    //! Tells the decoder to continue decoding from another URL, without flushing etc. Mainly used by HLS streams.
+    //! arg2: continue_stream_t
+    //! Return 1 to acknowledge, 0 if unsupported.
+    //! A call to decode_initialize() will follow if you return 1; perform actual file open from there.
+    static const GUID continue_stream;
+
+	//! Asks whether it is OK to externally rewrite tags on this file without closing and reopening the decoder. \n
+	//! Return true if the decoder reads all relevant content in open() without leaving the file open afterwards.
+	static const GUID is_tag_write_safe;
 };
 
 //! Class providing interface for writing metadata and replaygain info to files. Also see: file_info. \n

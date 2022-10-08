@@ -14,6 +14,11 @@ public:
 	bool AllowDrawThemeText() override { return true; }
 };
 
+class CListCell_Edit: public CListCell_Text {
+public:
+	bool ClickToEdit() { return true; }
+};
+
 class CListCell_TextColors : public CListCell_Text {
 public:
 	void DrawContent( DrawContentArg_t const & ) override;
@@ -80,6 +85,8 @@ public:
 	void DrawContent(DrawContentArg_t const &) override;
 	const char * Theme() override { return "COMBOBOX"; }
 	LONG AccRole() override;
+	uint32_t EditFlags() override;
+	bool ClickToEdit() { return true; }
 };
 
 void RenderButton( HTHEME theme, CDCHandle dc, CRect rcButton, CRect rcUpdate, uint32_t cellState );

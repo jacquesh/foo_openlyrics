@@ -18,11 +18,11 @@ void metadb::handle_replace_path_canonical(metadb_handle_ptr & p_out,const char 
 }
 
 
-metadb_io::t_load_info_state metadb_io::load_info(metadb_handle_ptr p_item,t_load_info_type p_type,HWND p_parent_window,bool p_show_errors) {
+metadb_io::t_load_info_state metadb_io::load_info(metadb_handle_ptr p_item,t_load_info_type p_type,fb2k::hwnd_t p_parent_window,bool p_show_errors) {
 	return load_info_multi(pfc::list_single_ref_t<metadb_handle_ptr>(p_item),p_type,p_parent_window,p_show_errors);
 }
 
-metadb_io::t_update_info_state metadb_io::update_info(metadb_handle_ptr p_item,file_info & p_info,HWND p_parent_window,bool p_show_errors)
+metadb_io::t_update_info_state metadb_io::update_info(metadb_handle_ptr p_item,file_info & p_info,fb2k::hwnd_t p_parent_window,bool p_show_errors)
 {
 	file_info * blah = &p_info;
 	return update_info_multi(pfc::list_single_ref_t<metadb_handle_ptr>(p_item),pfc::list_single_ref_t<file_info*>(blah),p_parent_window,p_show_errors);
@@ -71,7 +71,7 @@ bool metadb::g_get_random_handle(metadb_handle_ptr & p_out) {
 }
 
 
-void metadb_io_v2::update_info_async_simple(const pfc::list_base_const_t<metadb_handle_ptr> & p_list,const pfc::list_base_const_t<const file_info*> & p_new_info, HWND p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) {
+void metadb_io_v2::update_info_async_simple(const pfc::list_base_const_t<metadb_handle_ptr> & p_list,const pfc::list_base_const_t<const file_info*> & p_new_info, fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) {
 	update_info_async(p_list,new service_impl_t<file_info_filter_impl>(p_list,p_new_info),p_parent_window,p_op_flags,p_notify);
 }
 
@@ -109,4 +109,32 @@ metadb_hint_list_v3::ptr metadb_hint_list_v3::create() {
 	metadb_hint_list_v3::ptr ret;
 	ret ^= metadb_hint_list::create();
 	return ret;
+}
+
+void metadb_io_callback_dynamic::register_callback() {
+	metadb_io_v3::get()->register_callback(this);
+}
+
+void metadb_io_callback_dynamic::unregister_callback() {
+	metadb_io_v3::get()->unregister_callback(this);
+}
+
+void metadb_io_callback_v2_dynamic::register_callback() {
+	metadb_io_v5::get()->register_callback_v2(this);
+}
+
+void metadb_io_callback_v2_dynamic::unregister_callback() {
+	metadb_io_v5::get()->unregister_callback_v2(this);
+}
+
+bool metadb_io_callback_v2_dynamic::try_register_callback() {
+	auto api = metadb_io_v5::tryGet();
+	if (api.is_empty()) return false;
+	api->register_callback_v2(this);
+	return true;
+}
+
+void metadb_io_callback_v2_dynamic::try_unregister_callback() {
+	auto api = metadb_io_v5::tryGet();
+	if (api.is_valid()) api->unregister_callback_v2(this);
 }

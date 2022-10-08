@@ -183,3 +183,18 @@ const char * album_art_ids::capitalized_name_of( const GUID & id) {
 	}
 	return nullptr;
 }
+
+bool album_art_path_list::equals(album_art_path_list const& v1, album_art_path_list const& v2) {
+	const size_t n = v1.get_count();
+	if (n != v2.get_count()) return false;
+	for (size_t w = 0; w < n; ++w) {
+		if (metadb::path_compare(v1.get_path(w), v2.get_path(w)) != 0) return false;
+	}
+	return true;
+}
+
+bool album_art_path_list::equals(ptr const& v1, ptr const& v2) {
+	if (v1.is_valid() != v2.is_valid()) return false;
+	if (v1.is_empty() && v2.is_empty()) return true;
+	return equals(*v1, *v2);
+}

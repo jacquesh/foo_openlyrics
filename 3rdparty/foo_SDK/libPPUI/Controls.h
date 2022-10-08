@@ -14,7 +14,7 @@ public:
 		MSG_WM_SETTEXT(OnSetText)
 	END_MSG_MAP()
 private:
-	int OnSetText(LPCTSTR lpstrText) {
+	int OnSetText(LPCTSTR) {
 		Invalidate();
 		SetMsgHandled(FALSE);
 		return 0;
@@ -40,7 +40,7 @@ private:
 		m_font = font;
 		if (bRedraw) this->Invalidate();
 	}
-	int OnSetText(LPCTSTR lpstrText) {
+	int OnSetText(LPCTSTR) {
 		this->Invalidate();this->SetMsgHandled(FALSE); return 0;
 	}
 	CFontHandle m_font;
@@ -59,7 +59,7 @@ public:
 
 	void SetThemePart(int id) {m_id = id; if (m_hWnd != NULL) Invalidate();}
 private:
-	int OnSetText(LPCTSTR lpstrText) {
+	int OnSetText(LPCTSTR) {
 		Invalidate();
 		SetMsgHandled(FALSE);
 		return 0;
@@ -93,7 +93,7 @@ public:
 		return _T("foobar2000:separator");
 	}
 private:
-	void OnEnable(BOOL bEnable) {
+	void OnEnable(BOOL) {
 		Invalidate();
 	}
 	void OnPaint(CDCHandle dc);

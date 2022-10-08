@@ -22,6 +22,7 @@ namespace InPlaceEdit {
 		KFlagNumberSigned = 1 << 5,
 		
 		KFlagCombo = 1 << 8, // FOR INTERNAL USE
+		KFlagDark = 1 << 9
 	};
 	
 	typedef std::function< void (unsigned) > reply_t;

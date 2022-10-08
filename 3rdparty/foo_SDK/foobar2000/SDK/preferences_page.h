@@ -1,3 +1,5 @@
+#pragma once
+
 //! Implementing this service will generate a page in preferences dialog. Use preferences_page_factory_t template to register. \n
 //! In 1.0 and newer you should always derive from preferences_page_v3 rather than from preferences_page directly.
 class NOVTABLE preferences_page : public service_base {
@@ -100,6 +102,9 @@ public:
 
 		//! \since 1.4.1
 		needs_rescan_library = 32,
+
+        //! \since 2.0
+        dark_mode_supported = 1 << 16,
 	};
 };
 

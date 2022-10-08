@@ -1,10 +1,11 @@
 #pragma once
 
-#ifndef _MSC_VER
-#include <stdlib.h>
-#endif
-
 namespace pfc {
+    
+    void alignedAlloc( void* & ptr, size_t & ptrSize, size_t newSize, size_t alignBytes);
+    void * alignedAlloc( size_t size, size_t align );
+    void alignedFree( void * ptr );
+    
 	template<unsigned alignBytes = 16>
 	class mem_block_aligned {
 	public:
@@ -19,36 +20,12 @@ namespace pfc {
 		size_t get_size() const {return m_size;}
 
 		void resize(size_t s) {
-			if (s == m_size) {
-				// nothing to do
-			} else if (s == 0) {
-				_free(m_ptr);
-				m_ptr = NULL;
-			} else {
-				void * ptr;
-#ifdef _MSC_VER
-				if (m_ptr == NULL) ptr = _aligned_malloc(s, alignBytes);
-				else ptr = _aligned_realloc(m_ptr, s, alignBytes);
-				if ( ptr == NULL ) throw std::bad_alloc();
-#else
-#ifdef __ANDROID__
-                if ((ptr = memalign( alignBytes, s )) == NULL) throw std::bad_alloc();
-#else
-                if (posix_memalign( &ptr, alignBytes, s ) < 0) throw std::bad_alloc();
-#endif
-                if (m_ptr != NULL) {
-                    memcpy( ptr, m_ptr, min_t<size_t>( m_size, s ) );
-                    _free( m_ptr );
-                }
-#endif
-				m_ptr = ptr;
-			}
-			m_size = s;
+            alignedAlloc( m_ptr, m_size, s, alignBytes );
 		}
 		void set_size(size_t s) {resize(s);}
 		
 		~mem_block_aligned() {
-            _free(m_ptr);
+            alignedFree(m_ptr);
         }
 
 		self_t const & operator=(self_t const & other) {
@@ -68,7 +45,7 @@ namespace pfc {
 			other.m_ptr = NULL; other.m_size = 0;
 		}
 		self_t const & operator=(self_t && other) {
-			_free(m_ptr);
+			alignedFree(m_ptr);
 			m_ptr = other.m_ptr;
 			m_size = other.m_size;
 			other.m_ptr = NULL; other.m_size = 0;
@@ -76,14 +53,6 @@ namespace pfc {
 		}
         
 	private:
-        static void _free(void * ptr) {
-#ifdef _MSC_VER
-            _aligned_free(ptr);
-#else
-            free(ptr);
-#endif
-        }
-        
 		void * m_ptr;
 		size_t m_size;
 	};

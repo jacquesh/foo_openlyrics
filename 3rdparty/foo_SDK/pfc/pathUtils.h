@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include "stringNew.h"
+#include "string_base.h"
 
 namespace pfc {
 	namespace io {

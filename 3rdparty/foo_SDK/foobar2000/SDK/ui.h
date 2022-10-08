@@ -196,6 +196,14 @@ public:
 	virtual void register_callback(ui_selection_callback * callback, t_uint32 flags) = 0;
 };
 
+//! \since 2.0
+class NOVTABLE ui_selection_manager_v3 : public ui_selection_manager_v2 {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(ui_selection_manager_v3, ui_selection_manager_v2)
+public:
+	virtual void add_callback_scope(ui_selection_callback* cb,const GUID & scope) = 0;
+	virtual bool is_scope_watched(const GUID& scope) = 0;
+};
+
 class ui_selection_callback {
 public:
 	virtual void on_selection_changed(metadb_handle_list_cref p_selection) = 0;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "list.h"
+
 namespace pfc {
 
 	typedef list_base_const_t<const char*> string_list_const;
@@ -23,6 +25,7 @@ namespace pfc {
 		template<typename t_what> string_list_impl & operator|=(const string_list_impl & p_source) {_append(p_source); return *this;}
 		template<typename t_what> string_list_impl & operator+=(const t_what & p_source) {pfc::append_t(m_data, p_source); return *this;}
 
+		void set_item(size_t idx, const char* str) { m_data[idx] = str; }
 	private:
 		template<typename t_what> void _append(const t_what & p_source) {
 			const t_size toadd = p_source.get_size(), base = m_data.get_size();

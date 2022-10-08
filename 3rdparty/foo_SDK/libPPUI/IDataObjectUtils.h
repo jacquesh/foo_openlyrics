@@ -114,14 +114,14 @@ namespace IDataObjectUtils {
 				return S_OK;
 			} PP_COM_CATCH;
 		}
-		HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC * pFormatetc, DWORD advf, IAdviseSink * pAdvSink, DWORD * pdwConnection) override {return OLE_E_ADVISENOTSUPPORTED;}
-		HRESULT STDMETHODCALLTYPE DUnadvise(DWORD dwConnection) override {return OLE_E_ADVISENOTSUPPORTED;}
-		HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA ** ppenumAdvise) override {return OLE_E_ADVISENOTSUPPORTED;}
+		HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC* pFormatetc, DWORD advf, IAdviseSink* pAdvSink, DWORD* pdwConnection) override { (void)pFormatetc; (void)advf; (void)pAdvSink; (void)pdwConnection; return OLE_E_ADVISENOTSUPPORTED; }
+		HRESULT STDMETHODCALLTYPE DUnadvise(DWORD dwConnection) override { (void)dwConnection; return OLE_E_ADVISENOTSUPPORTED; }
+		HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA** ppenumAdvise) override { (void)ppenumAdvise; return OLE_E_ADVISENOTSUPPORTED; }
 	protected:
 		typedef pfc::array_t<uint8_t> data_t;
 		virtual HRESULT RenderData(UINT format,DWORD aspect,LONG dataIndex, data_t & out) const {
 			FORMATETC fmt = {};
-			fmt.cfFormat = format; fmt.dwAspect = aspect; fmt.lindex = dataIndex;
+			fmt.cfFormat = (CLIPFORMAT)format; fmt.dwAspect = aspect; fmt.lindex = dataIndex;
 			const pfc::array_t<t_uint8> * entry = m_entries.query_ptr(fmt);
 			if (entry != NULL) {
 				out = * entry;
@@ -131,7 +131,7 @@ namespace IDataObjectUtils {
 		}
 		virtual HRESULT RenderDataTest(UINT format,DWORD aspect,LONG dataIndex) const {
 			FORMATETC fmt = {};
-			fmt.cfFormat = format; fmt.dwAspect = aspect; fmt.lindex = dataIndex;
+			fmt.cfFormat = (CLIPFORMAT)format; fmt.dwAspect = aspect; fmt.lindex = dataIndex;
 			if (m_entries.have_item(fmt)) return S_OK;
 			return DV_E_FORMATETC;
 		}
@@ -141,7 +141,7 @@ namespace IDataObjectUtils {
 			FORMATETC fmt = {};
 			fmt.dwAspect = DVASPECT_CONTENT;
 			fmt.lindex = -1;
-			fmt.cfFormat = code;
+			fmt.cfFormat = (CLIPFORMAT)code;
 			for(t_size medWalk = 0; medWalk < 32; ++medWalk) {
 				const DWORD med = 1 << medWalk;
 				if ((DataBlockToSTGMEDIUM_SupportedTymeds & med) != 0) {
@@ -210,6 +210,7 @@ namespace IDataObjectUtils {
 		}
         
         HRESULT STDMETHODCALLTYPE StartOperation(IBindCtx *pbcReserved) override {
+			(void)pbcReserved;
 			m_inOperation = TRUE;
 			return S_OK;
 		}
@@ -221,6 +222,7 @@ namespace IDataObjectUtils {
 		}
         
         HRESULT STDMETHODCALLTYPE EndOperation(HRESULT hResult,IBindCtx *pbcReserved,DWORD dwEffects) override {
+			(void)hResult; (void)pbcReserved; (void)dwEffects;
 			m_inOperation = FALSE;
 			return S_OK;
 		}

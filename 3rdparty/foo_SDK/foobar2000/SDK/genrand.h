@@ -2,8 +2,9 @@
 class NOVTABLE genrand_service : public service_base
 {
 public:
-	//! Seeds the PRNG with specified value.
-	virtual void seed(unsigned val) = 0;
+	//! Seeds the PRNG with specified value. \n
+	//! Default value of zero seeds automatically using available system functions.
+	virtual void seed(unsigned val = 0) = 0;
 	//! Returns random value N, where 0 <= N < range.
 	virtual unsigned genrand(unsigned range)=0;
 

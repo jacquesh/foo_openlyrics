@@ -1,4 +1,5 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "filehandle.h"
 
 #ifndef _WIN32
 #include <unistd.h>

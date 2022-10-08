@@ -1,18 +1,10 @@
 #pragma once
 
+#include "primitives.h"
+
 namespace pfc {
 
 	GUID GUID_from_text(const char * text);
-
-	class print_guid
-	{
-	public:
-		print_guid(const GUID & p_guid);
-		inline operator const char * () const {return m_data;}
-		inline const char * get_ptr() {return m_data;}
-	private:
-		char m_data[64];
-	};
 
 	inline int guid_compare(const GUID & g1,const GUID & g2) {return memcmp(&g1,&g2,sizeof(GUID));}
 
@@ -30,12 +22,15 @@ namespace pfc {
 	inline GUID xorGUID(const GUID & v1, const GUID & v2) {
 		GUID temp; memxor(&temp, &v1, &v2, sizeof(GUID)); return temp;
 	}
-
-	class format_guid_cpp : public string_formatter {
-	public:
-		format_guid_cpp(const GUID & guid);
-	};
     
+    string8 format_guid_cpp( const GUID & );
+    string8 print_guid( const GUID & );
+
     GUID createGUID();
-	uint64_t halveGUID( const GUID & id );
+	uint64_t halveGUID( const GUID & );
+    
+    struct predicateGUID {
+        inline bool operator() ( const GUID & v1, const GUID & v2 ) const {return guid_compare(v1, v2) > 0;}
+    };
+
 }

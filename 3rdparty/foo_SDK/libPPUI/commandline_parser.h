@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef _WIN32
+#error blargh
+#endif
+
 class commandline_parser
 {
 public:

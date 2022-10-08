@@ -13,6 +13,10 @@ protected:
 	void open(const GUID & p_owner,bool p_decode,t_size p_param1,const void * p_param2,t_size p_param2size,abort_callback & p_abort) {throw exception_io_data();}
 public:
 
+	//! Prototype of function that must be implemented by packet_decoder implementation but is not accessible through packet_decoder interface itself.
+	//! Returns true if this is not the preferred decoder for this format, another one should be used if found.
+	static bool g_is_supported_partially(const GUID& p_owner, t_size p_param1, const void* p_param2, t_size p_param2size) { return false; }
+
 
 	//! Forwards additional information about stream being decoded. \n
 	//! Calling: this must be called immediately after packet_decoder object is created, before any other methods are called.\n
@@ -45,7 +49,7 @@ public:
 	//! Static helper, creates a packet_decoder instance and initializes it with specific decoder setup data.
 	static void g_open(service_ptr_t<packet_decoder> & p_out,bool p_decode,const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size,abort_callback & p_abort);
 
-	static const GUID owner_MP4,owner_matroska,owner_MP3,owner_MP2,owner_MP1,owner_MP4_ALAC,owner_ADTS,owner_ADIF, owner_Ogg, owner_MP4_AMR, owner_MP4_AMR_WB, owner_MP4_AC3, owner_MP4_EAC3;
+    static const GUID owner_MP4,owner_matroska,owner_MP3,owner_MP2,owner_MP1,owner_MP4_ALAC,owner_ADTS,owner_ADIF, owner_Ogg, owner_MP4_AMR, owner_MP4_AMR_WB, owner_MP4_AC3, owner_MP4_EAC3, owner_MP4_FLAC;
 
 	struct matroska_setup
 	{
@@ -115,28 +119,39 @@ public:
 	FB2K_MAKE_SERVICE_INTERFACE(packet_decoder_streamparse,packet_decoder);
 };
 
-class NOVTABLE packet_decoder_entry : public service_base
-{
+class NOVTABLE packet_decoder_entry : public service_base {
+	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(packet_decoder_entry);
 public:
 	virtual bool is_our_setup(const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size) = 0;
 	virtual void open(service_ptr_t<packet_decoder> & p_out,bool p_decode,const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size,abort_callback & p_abort) = 0;
 
-	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(packet_decoder_entry);
+	//! Returns true if this is not the preferred decoder for this format, another one should be used if found.
+	bool is_supported_partially_(const GUID& p_owner, t_size p_param1, const void* p_param2, t_size p_param2size);
+};
+
+class NOVTABLE packet_decoder_entry_v2 : public packet_decoder_entry {
+	FB2K_MAKE_SERVICE_INTERFACE(packet_decoder_entry_v2, packet_decoder_entry);
+public:
+	//! Returns true if this is not the preferred decoder for this format, another one should be used if found.
+	virtual bool is_supported_partially(const GUID& p_owner, t_size p_param1, const void* p_param2, t_size p_param2size) = 0;
 };
 
 
 template<class T>
-class packet_decoder_entry_impl_t : public packet_decoder_entry
+class packet_decoder_entry_impl_t : public packet_decoder_entry_v2
 {
 public:
-	bool is_our_setup(const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size) {
+	bool is_our_setup(const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size) override {
 		return T::g_is_our_setup(p_owner,p_param1,p_param2,p_param2size);
 	}
-	void open(service_ptr_t<packet_decoder> & p_out,bool p_decode,const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size,abort_callback & p_abort) {
+	void open(service_ptr_t<packet_decoder> & p_out,bool p_decode,const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size,abort_callback & p_abort) override {
 		PFC_ASSERT(is_our_setup(p_owner,p_param1,p_param2,p_param2size));
 		service_ptr_t<T> instance = new service_impl_t<T>();
 		instance->open(p_owner,p_decode,p_param1,p_param2,p_param2size,p_abort);
 		p_out = instance.get_ptr();
+	}
+	bool is_supported_partially(const GUID& p_owner, t_size p_param1, const void* p_param2, t_size p_param2size) override {
+		return T::g_is_supported_partially(p_owner, p_param1, p_param2, p_param2size);
 	}
 };
 

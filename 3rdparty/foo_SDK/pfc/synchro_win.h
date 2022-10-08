@@ -15,9 +15,10 @@ public:
 #endif
 	}
 	inline void destroy() throw() {DeleteCriticalSection(&sec);}
+	inline bool tryEnter() throw() { return !!TryEnterCriticalSection(&sec); }
 private:
-	_critical_section_base(const _critical_section_base&);
-	void operator=(const _critical_section_base&);
+	_critical_section_base(const _critical_section_base&) = delete;
+	void operator=(const _critical_section_base&) = delete;
 };
 
 // Static-lifetime critical section, no cleanup - valid until process termination
@@ -31,63 +32,15 @@ public:
 
 // Regular critical section, intended for any lifetime scopes
 class critical_section : public _critical_section_base {
-private:
-	CRITICAL_SECTION sec;
 public:
 	critical_section() {create();}
 	~critical_section() {destroy();}
 };
 
-template<typename lock_t>
-class c_insync_
-{
-private:
-	lock_t& m_section;
-public:
-	c_insync_(lock_t * p_section) throw() : m_section(*p_section) {m_section.enter();}
-	c_insync_(lock_t & p_section) throw() : m_section(p_section) {m_section.enter();}
-	~c_insync_() throw() {m_section.leave();}
-};
-
-typedef c_insync_<_critical_section_base> c_insync;
-
-// Old typedef for backwards compat
-#define insync(X) c_insync blah____sync(X)
-// New typedef
-#define PFC_INSYNC(X) c_insync_<decltype(X)> blah____sync(X)
-
-
 namespace pfc {
-
 
 // Read write lock - Vista-and-newer friendly lock that allows concurrent reads from a resource that permits such
 // Warning, non-recursion proof
-#if _WIN32_WINNT < 0x600
-
-// Inefficient fallback implementation for pre Vista OSes
-class readWriteLock {
-public:
-	readWriteLock() {}
-	void enterRead() {
-		m_obj.enter();
-	}
-	void enterWrite() {
-		m_obj.enter();
-	}
-	void leaveRead() {
-		m_obj.leave();
-	}
-	void leaveWrite() {
-		m_obj.leave();
-	}
-private:
-	critical_section m_obj;
-
-	readWriteLock( const readWriteLock & ) = delete;
-	void operator=( const readWriteLock & ) = delete;
-};
-
-#else
 class readWriteLock {
 public:
 	readWriteLock() : theLock() {
@@ -112,31 +65,8 @@ private:
 
 	SRWLOCK theLock;
 };
-#endif
 
-class _readWriteLock_scope_read {
-public:
-	_readWriteLock_scope_read( readWriteLock & lock ) : m_lock( lock ) { m_lock.enterRead(); }
-	~_readWriteLock_scope_read() {m_lock.leaveRead();}
-private:
-	_readWriteLock_scope_read( const _readWriteLock_scope_read &) = delete;
-	void operator=( const _readWriteLock_scope_read &) = delete;
-	readWriteLock & m_lock;
-};
-class _readWriteLock_scope_write {
-public:
-	_readWriteLock_scope_write( readWriteLock & lock ) : m_lock( lock ) { m_lock.enterWrite(); }
-	~_readWriteLock_scope_write() {m_lock.leaveWrite();}
-private:
-	_readWriteLock_scope_write( const _readWriteLock_scope_write &) = delete;
-	void operator=( const _readWriteLock_scope_write &) = delete;
-	readWriteLock & m_lock;
-};
-
-#define inReadSync( X ) ::pfc::_readWriteLock_scope_read _asdf_l_readWriteLock_scope_read( X )
-#define inWriteSync( X ) ::pfc::_readWriteLock_scope_write _asdf_l_readWriteLock_scope_write( X )
-
+typedef ::_critical_section_base mutexBase_t;
 typedef ::critical_section mutex;
-typedef ::c_insync mutexScope;
 
 }

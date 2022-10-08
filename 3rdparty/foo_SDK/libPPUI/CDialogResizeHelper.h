@@ -18,6 +18,7 @@ public:
 	inline void set_min_size(unsigned x, unsigned y) { min_x = x; min_y = y; }
 	inline void set_max_size(unsigned x, unsigned y) { max_x = x; max_y = y; }
 
+	bool m_autoSizeGrip = true;
 
 	BEGIN_MSG_MAP_EX(CDialogResizeHelper)
 		if (uMsg == WM_INITDIALOG) OnInitDialog(hWnd);

@@ -6,6 +6,7 @@ PFC_DECLARE_EXCEPTION(exception_output_device_not_found, pfc::exception, "Audio 
 PFC_DECLARE_EXCEPTION(exception_output_module_not_found, exception_output_device_not_found, "Output module not found")
 PFC_DECLARE_EXCEPTION(exception_output_invalidated, pfc::exception, "Audio device invalidated")
 PFC_DECLARE_EXCEPTION(exception_output_device_in_use, pfc::exception, "Audio device in use")
+PFC_DECLARE_EXCEPTION(exception_output_unsupported_stream_format, pfc::exception, "Unsupported audio stream format")
 
 
 // =======================================================
@@ -172,6 +173,12 @@ public:
     virtual size_t update_v2();
 };
 
+//! \since 1.6
+class output_v5 : public output_v4 {
+	FB2K_MAKE_SERVICE_INTERFACE(output_v5, output_v4);
+public:
+	virtual unsigned get_forced_channel_mask() { return 0; }
+};
 
 class NOVTABLE output_entry : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(output_entry);
@@ -186,7 +193,7 @@ public:
 	virtual const char * get_name() = 0;
 
 	//! Obsolete, do not use.
-	virtual void advanced_settings_popup(HWND p_parent,POINT p_menupoint) = 0;
+	virtual void advanced_settings_popup(HWND p_parent, POINT p_menupoint) {}
 
 	enum {
 		flag_needs_bitdepth_config = 1 << 0,
@@ -252,7 +259,7 @@ public:
 template<class T>
 class output_factory_t : public service_factory_single_t<output_entry_impl_t<T> > {};
 
-class output_impl : public output_v4 {
+class output_impl : public output_v5 {
 protected:
 	output_impl() : m_incoming_ptr(0) {}
 	virtual void on_update() = 0;

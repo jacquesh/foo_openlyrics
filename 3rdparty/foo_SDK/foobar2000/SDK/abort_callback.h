@@ -1,5 +1,4 @@
-#ifndef _foobar2000_sdk_abort_callback_h_
-#define _foobar2000_sdk_abort_callback_h_
+#pragma once
 
 namespace foobar2000_io {
 
@@ -42,7 +41,7 @@ public:
     
 	//! Waits for an event. Returns true if event is now signaled, false if the specified period has elapsed and the event did not become signaled. \n
 	//! Throws exception_aborted if aborted.
-	bool waitForEvent( pfc::eventHandle_t evtHandle, double timeOut );
+    bool waitForEvent( pfc::eventHandle_t evtHandle, double timeOut );
 	//! Waits for an event. Returns true if event is now signaled, false if the specified period has elapsed and the event did not become signaled. \n
 	//! Throws exception_aborted if aborted.
 	bool waitForEvent(pfc::event& evt, double timeOut);
@@ -80,22 +79,28 @@ private:
 	pfc::event m_event;
 };
 
-#ifdef _WIN32
+    
+class abort_callback_usehandle : public abort_callback {
+public:
+    abort_callback_usehandle( abort_callback_event handle ) : m_handle(handle) {}
+    
+    bool is_aborting() const;
+    abort_callback_event get_abort_event() const { return m_handle; }
+private:
+    const abort_callback_event m_handle;
+};
+    
 //! Dummy abort_callback that never gets aborted. \n
 //! Slightly more efficient than the regular one especially when you need to regularly create temporary instances of it.
 class abort_callback_dummy : public abort_callback {
 public:
+	abort_callback_dummy() : m_event(GetInfiniteWaitEvent()) {}
 	bool is_aborting() const { return false; }
 
-	abort_callback_event get_abort_event() const { return GetInfiniteWaitEvent();}
+	abort_callback_event get_abort_event() const { return m_event;}
+private:
+	const abort_callback_event m_event;
 };
-#else
-
-// FIX ME come up with a scheme to produce a persistent infinite wait filedescriptor on non Windows
-// Could use /dev/null but still need to open it on upon object creation which defeats the purpose
-typedef abort_callback_impl abort_callback_dummy;
-
-#endif
 
 }
 typedef foobar2000_io::abort_callback_event fb2k_event_handle;
@@ -115,5 +120,3 @@ namespace fb2k {
 	// A shared abort_callback_dummy instance
 	extern abort_callback_dummy noAbort;
 }
-
-#endif //_foobar2000_sdk_abort_callback_h_

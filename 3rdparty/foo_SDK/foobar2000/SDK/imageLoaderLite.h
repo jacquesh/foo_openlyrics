@@ -34,6 +34,7 @@ namespace fb2k {
 
 		//! Parses the image data just enough to hand over basic info about what's inside. \n
 		//! Much faster than load(). \n
+		//! Throws exceptions on failure. \n
 		//! Supports all formats recognized by load().
 		virtual imageInfo_t getInfo(const void * data, size_t bytes, abort_callback & aborter = fb2k::noAbort) = 0;
 
@@ -47,3 +48,6 @@ namespace fb2k {
 		}
 	};
 }
+
+#define FB2K_GETOPENFILENAME_PICTUREFILES "Picture files|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp"
+#define FB2K_GETOPENFILENAME_PICTUREFILES_ALL FB2K_GETOPENFILENAME_PICTUREFILES "|All files|*.*"

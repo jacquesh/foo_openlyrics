@@ -7,6 +7,5 @@ HRESULT InitializeEditAC(HWND edit, const char * values, DWORD opts = ACO_AUTOAP
 HRESULT InitializeSimpleAC(HWND edit, IUnknown * vals, DWORD opts);
 pfc::com_ptr_t<IUnknown> CreateACList(pfc::const_iterator<pfc::string8> valueEnum);
 pfc::com_ptr_t<IUnknown> CreateACList(pfc::const_iterator<const char *> valueEnum);
-pfc::com_ptr_t<IUnknown> CreateACList(pfc::const_iterator<pfc::string> valueEnum);
 pfc::com_ptr_t<IUnknown> CreateACList();
 void CreateACList_AddItem(IUnknown * theList, const char * item);

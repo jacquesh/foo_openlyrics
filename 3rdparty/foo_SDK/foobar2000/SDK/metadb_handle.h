@@ -11,7 +11,23 @@ public:
 	virtual file_info const & info() = 0;
 	virtual t_filestats const & stats() = 0;
 	virtual bool isInfoPartial() = 0;
+
+	t_filestats2 stats2_();
 };
+
+
+//! \since 2.0
+class metadb_info_container_v2 : public metadb_info_container {
+	FB2K_MAKE_SERVICE_INTERFACE(metadb_info_container_v2, metadb_info_container);
+public:
+	virtual t_filestats2 const & stats2() = 0;
+};
+
+struct metadb_v2_rec_t {
+	metadb_info_container::ptr info, infoBrowse;
+	service_ptr reserved;
+};
+
 
 //! A metadb_handle object represents interface to reference-counted file_info cache entry for the specified location.\n
 //! To obtain a metadb_handle to specific location, use metadb::handle_create(). To obtain a list of metadb_handle objects corresponding to specific path (directory, playlist, multitrack file, etc), use relevant playlist_incoming_item_filter methods (recommended), or call playlist_loader methods directly.\n
@@ -33,9 +49,9 @@ public:
 	virtual bool format_title(titleformat_hook * p_hook,pfc::string_base & p_out,const service_ptr_t<titleformat_object> & p_script,titleformat_text_filter * p_filter) = 0;
 
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual void metadb_lock() = 0;
+    FB2K_DEPRECATED virtual void metadb_lock() = 0;
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual void metadb_unlock() = 0;
+    FB2K_DEPRECATED virtual void metadb_unlock() = 0;
 	
 	//! Returns last seen file stats, filestats_invalid if unknown.
 	virtual t_filestats get_filestats() const = 0;
@@ -50,7 +66,7 @@ public:
 	virtual bool get_info(file_info & p_info) const = 0;
 
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual bool get_info_locked(const file_info * & p_info) const = 0;
+    FB2K_DEPRECATED virtual bool get_info_locked(const file_info * & p_info) const = 0;
 	
 	//! Obsolete, use get_info_ref() family of methods instead. \n
 	//! Queries whether cached info about item referenced by this metadb_handle object is already available.\n
@@ -62,15 +78,15 @@ public:
 	virtual bool get_info_async(file_info & p_info) const = 0;	
 
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual bool get_info_async_locked(const file_info * & p_info) const = 0;
+    FB2K_DEPRECATED virtual bool get_info_async_locked(const file_info * & p_info) const = 0;
 
 	//! Renders information about item referenced by this metadb_handle object, using external file_info data.
 	virtual void format_title_from_external_info(const file_info & p_info,titleformat_hook * p_hook,pfc::string_base & p_out,const service_ptr_t<titleformat_object> & p_script,titleformat_text_filter * p_filter) = 0;
 
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual bool format_title_nonlocking(titleformat_hook * p_hook,pfc::string_base & p_out,const service_ptr_t<titleformat_object> & p_script,titleformat_text_filter * p_filter) = 0;
+    FB2K_DEPRECATED virtual bool format_title_nonlocking(titleformat_hook * p_hook,pfc::string_base & p_out,const service_ptr_t<titleformat_object> & p_script,titleformat_text_filter * p_filter) = 0;
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual void format_title_from_external_info_nonlocking(const file_info & p_info,titleformat_hook * p_hook,pfc::string_base & p_out,const service_ptr_t<titleformat_object> & p_script,titleformat_text_filter * p_filter) = 0;
+    FB2K_DEPRECATED virtual void format_title_from_external_info_nonlocking(const file_info & p_info,titleformat_hook * p_hook,pfc::string_base & p_out,const service_ptr_t<titleformat_object> & p_script,titleformat_text_filter * p_filter) = 0;
 
 #if FOOBAR2000_TARGET_VERSION >= 76
 	//! \since 1.0
@@ -82,7 +98,7 @@ public:
 
 	//! \since 1.0
 	//! OBSOLETE, DO NOT CALL
-	__declspec(deprecated) virtual bool get_browse_info_locked(const file_info * & p_info, t_filetimestamp & ts) const = 0;
+    FB2K_DEPRECATED virtual bool get_browse_info_locked(const file_info * & p_info, t_filetimestamp & ts) const = 0;
 #endif
 #if FOOBAR2000_TARGET_VERSION >= 78
 	//! \since 1.3
@@ -115,6 +131,8 @@ public:
 	metadb_info_container::ptr get_full_info_ref( abort_callback & aborter ) const;
 #endif
 
+	t_filestats2 get_stats2_() const;
+	
 	//! \since 1.3
 	//! Helper using get_browse_info_ref(). \n
 	//! Retrieves primary info + browse info merged together. \n
@@ -125,6 +143,7 @@ public:
 
 
 	static bool g_should_reload(const t_filestats & p_old_stats,const t_filestats & p_new_stats,bool p_fresh);
+	static bool g_should_reload_ex(const t_filestats& p_old_stats, const t_filestats& p_new_stats, t_filetimestamp p_readtime);
 	bool should_reload(const t_filestats & p_new_stats,bool p_fresh) const;
 	
 
@@ -146,7 +165,21 @@ public:
 	//! Internal method, do not use
 	inline const char * _get_path() const { return get_path(); }
 
+	metadb_v2_rec_t query_v2_();
+	void formatTitle_v2_(const metadb_v2_rec_t& rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter);
+
 	FB2K_MAKE_SERVICE_INTERFACE(metadb_handle,service_base);
+};
+
+//! \since 2.0
+class metadb_handle_v2 : public metadb_handle {
+	FB2K_MAKE_SERVICE_INTERFACE(metadb_handle_v2, metadb_handle);
+public:
+	typedef metadb_v2_rec_t rec_t;
+
+	virtual rec_t query_v2() const = 0;
+	virtual t_filestats2 get_stats2() const = 0;
+	virtual void formatTitle_v2(const rec_t& rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter) = 0;
 };
 
 typedef service_ptr_t<metadb_handle> metadb_handle_ptr;
@@ -170,7 +203,7 @@ namespace metadb_handle_list_helper {
 	void sort_by_pointer(pfc::list_base_t<metadb_handle_ptr> & p_list);
 	t_size bsearch_by_pointer(const pfc::list_base_const_t<metadb_handle_ptr> & p_list,const metadb_handle_ptr & val);
 
-	double calc_total_duration(const pfc::list_base_const_t<metadb_handle_ptr> & p_list);
+	double calc_total_duration(metadb_handle_list_cref p_list);
 
 	void sort_by_path(pfc::list_base_t<metadb_handle_ptr> & p_list);
 

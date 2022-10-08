@@ -1,7 +1,10 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "audio_sample.h"
+#include "primitives.h"
+#include "byte_order.h"
 
 namespace pfc {
-    audio_sample audio_math::decodeFloat24ptr(const void * sourcePtr) {
+	float audio_math::decodeFloat24ptr(const void * sourcePtr) {
 		PFC_STATIC_ASSERT(pfc::byte_order_is_little_endian);
 		union {
 			uint8_t bytes[4];
@@ -14,7 +17,7 @@ namespace pfc {
 		u.bytes[3] = s[2];
 		return u.v;
 	}
-	audio_sample audio_math::decodeFloat24ptrbs(const void * sourcePtr) {
+	float audio_math::decodeFloat24ptrbs(const void * sourcePtr) {
 		PFC_STATIC_ASSERT(pfc::byte_order_is_little_endian);
 		union {
 			uint8_t bytes[4];
@@ -28,7 +31,7 @@ namespace pfc {
 		return u.v;
 	}
 
-	audio_sample audio_math::decodeFloat16(uint16_t source) {
+	float audio_math::decodeFloat16(uint16_t source) {
 		const unsigned fractionBits = 10;
 		const unsigned widthBits = 16;
 		typedef uint16_t source_t;

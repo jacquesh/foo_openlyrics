@@ -715,6 +715,21 @@ bool file::is_eof(abort_callback & p_abort) {
 }
 
 
+t_filetimestamp foobar2000_io::import_DOS_time(uint32_t v) {
+#ifdef _WIN32
+	FILETIME ft = {};
+	if (DosDateTimeToFileTime(HIWORD(v), LOWORD(v), &ft)) {
+		FILETIME ft2 = {};
+		if (LocalFileTimeToFileTime(&ft, &ft2)) {
+			return ((uint64_t)ft2.dwHighDateTime << 32) | (uint64_t)ft2.dwLowDateTime;
+		}
+		
+	}
+#endif
+	// FIX ME
+	return filetimestamp_invalid;
+}
+
 t_filetimestamp foobar2000_io::filetimestamp_from_system_timer()
 {
     return pfc::fileTimeNow();
@@ -896,6 +911,9 @@ PFC_NORETURN void foobar2000_io::exception_io_from_win32(DWORD p_code) {
 		throw exception_io("Source and destination must be on the same device");
 	case 0x80310000:
 		throw exception_io("Drive locked by BitLocker");
+	case ERROR_INVALID_FUNCTION:
+		// Happens when trying to link files on FAT32 etc
+		throw exception_io_unsupported_feature();
 	default:
 		throw exception_io_win32_ex(p_code);
 	}
@@ -1051,10 +1069,10 @@ pfc::string stream_reader::read_string(abort_callback & p_abort) {
 	return read_string_ex(len,p_abort);
 }
 pfc::string stream_reader::read_string_ex(t_size p_len,abort_callback & p_abort) {
-	pfc::rcptr_t<pfc::string8> temp; temp.new_t();
-	read_object(temp->lock_buffer(p_len),p_len,p_abort);
-	temp->unlock_buffer();
-	return pfc::string::t_data(temp);
+	pfc::string temp;
+	read_object(temp.lock_buffer(p_len),p_len,p_abort);
+	temp.unlock_buffer();
+	return temp;
 }
 
 
@@ -1184,13 +1202,15 @@ bool foobar2000_io::matchContentType_MP3( const char * type) {
     return matchContentType(type,"audio/mp3") || matchContentType(type,"audio/mpeg") || matchContentType(type,"audio/mpg") || matchContentType(type,"audio/x-mp3") || matchContentType(type,"audio/x-mpeg") || matchContentType(type,"audio/x-mpg");
 }
 bool foobar2000_io::matchContentType_MP4( const char * type ) {
-    return matchContentType(type, "audio/mp4") || matchContentType(type, "audio/x-mp4")
+    return matchContentType_MP4audio(type)
     || matchContentType(type, "video/mp4") ||  matchContentType(type, "video/x-mp4")
     || matchContentType(type, "application/mp4") ||  matchContentType(type, "application/x-mp4");
     
 }
 bool foobar2000_io::matchContentType_MP4audio( const char * type ) {
-    return matchContentType(type, "audio/mp4") || matchContentType(type, "audio/x-mp4");
+    // Gerbera uses audio/x-m4a instead of audio/mp4 ....
+    return matchContentType(type, "audio/mp4") || matchContentType(type, "audio/x-mp4") ||
+        matchContentType(type, "audio/m4a") || matchContentType(type, "audio/x-m4a");
 }
 bool foobar2000_io::matchContentType_Ogg( const char * type) {
     return matchContentType(type, "application/ogg") || matchContentType(type, "application/x-ogg") || matchContentType(type, "audio/ogg") || matchContentType(type, "audio/x-ogg");
@@ -1524,61 +1544,123 @@ bool file_dynamicinfo_v2::get_dynamic_info(class file_info & p_out) {
 	return this->get_dynamic_info_v2(p_out, dummy);
 }
 
-void file::flushFileBuffers_(abort_callback&a) {
-	file_lowLevelIO::ptr f;
-	if ( f &= this ) f->flushFileBuffers(a);
-}
-
 size_t file::lowLevelIO_(const GUID & guid, size_t arg1, void * arg2, size_t arg2size, abort_callback & abort) {
-	size_t retval = 0;
+	{
+		file_v2::ptr f;
+		if (f &= this) return f->lowLevelIO(guid, arg1, arg2, arg2size, abort);
+	}
+	{
 	file_lowLevelIO::ptr f;
-	if (f &= this) retval = f->lowLevelIO(guid, arg1, arg2, arg2size, abort);
-	return retval;
+		if (f &= this) return f->lowLevelIO(guid, arg1, arg2, arg2size, abort);
+}
+	return 0;
 }
 
-bool file_lowLevelIO::flushFileBuffers(abort_callback & abort) {
-	return this->lowLevelIO( guid_flushFileBuffers, 0, nullptr, 0, abort) != 0;
+bool file::flushFileBuffers(abort_callback & abort) {
+	return this->lowLevelIO_(file_lowLevelIO::guid_flushFileBuffers, 0, nullptr, 0, abort) != 0;
 }
 
-bool file_lowLevelIO::getFileTimes(filetimes_t & out, abort_callback & a) {
-	return this->lowLevelIO(guid_getFileTimes, 0, &out, sizeof(out), a) != 0;
+bool file::getFileTimes(filetimes_t & out, abort_callback & a) {
+	return this->lowLevelIO_(file_lowLevelIO::guid_getFileTimes, 0, &out, sizeof(out), a) != 0;
 }
 
-bool file_lowLevelIO::setFileTimes(filetimes_t const & in, abort_callback & a) {
-	return this->lowLevelIO(guid_setFileTimes, 0, (void*)&in, sizeof(in), a) != 0;
+bool file::setFileTimes(filetimes_t const & in, abort_callback & a) {
+	return this->lowLevelIO_(file_lowLevelIO::guid_setFileTimes, 0, (void*)&in, sizeof(in), a) != 0;
 }
 
 bool file::g_copy_creation_time(service_ptr_t<file> from, service_ptr_t<file> to, abort_callback& a) {
-	file_lowLevelIO::ptr llFrom, llTo;
 	bool rv = false;
-	if (llTo &= to) {
-		if (llFrom &= from) {
-			file_lowLevelIO::filetimes_t filetimes;
-			if (llFrom->getFileTimes(filetimes, a)) {
-				if (filetimes.creation != filetimestamp_invalid) {
-					file_lowLevelIO::filetimes_t ft2;
-					ft2.creation = filetimes.creation;
-					rv = llTo->setFileTimes(ft2, a);
-				}
-			}
-		}
+	auto ft = from->get_time_created(a);
+	if (ft != filetimestamp_invalid) {
+		filetimes_t ft2;
+		ft2.creation = ft;
+		rv = to->setFileTimes(ft2, a);
 	}
 	return rv;
 }
 bool file::g_copy_timestamps(file::ptr from, file::ptr to, abort_callback& a) {
-	file_lowLevelIO::ptr llFrom, llTo;
-	if ( llTo &= to ) {
-		if (llFrom &= from) {
-			file_lowLevelIO::filetimes_t filetimes = {};
-			if (llFrom->getFileTimes(filetimes, a)) {
-				return llTo->setFileTimes(filetimes, a);
-			}
+	{
+		filetimes_t filetimes = {};
+		if (from->getFileTimes(filetimes, a)) {
+			return to->setFileTimes(filetimes, a);
 		}
-		file_lowLevelIO::filetimes_t filetimes = {};
-		filetimes.lastWrite = from->get_timestamp(a);
-		if ( filetimes.lastWrite != filetimestamp_invalid ) {
-			return llTo->setFileTimes(filetimes, a);
 		}
+	filetimes_t filetimes = {};
+	auto stats = from->get_stats2_(stats2_timestamp | stats2_timestampCreate, a);
+	if (stats.m_timestamp != filetimestamp_invalid || stats.m_timestampCreate != filetimestamp_invalid) {
+		filetimes.lastWrite = stats.m_timestamp; filetimes.creation = stats.m_timestampCreate;
+		return to->setFileTimes(filetimes, a);
 	}
 	return false;
+}
+
+t_filestats2 file::get_stats2_(uint32_t f, abort_callback& a) {
+	t_filestats2 ret;
+
+	file_v2::ptr v2;
+	if (v2 &= this) {
+		ret = v2->get_stats2(f, a);
+		PFC_ASSERT(ret.is_file());
+	} else {
+		if (f & stats2_size) ret.m_size = this->get_size(a);
+		if (f & stats2_timestamp) ret.m_timestamp = this->get_timestamp(a);
+		ret.set_file();
+		ret.set_remote(this->is_remote());
+		// we do not know if it's readonly or not, can_write() tells us if the file was open for writing, not if it can possibly be opened for writing
+	}
+	return ret;
+}
+
+pfc::string8 t_filestats2::format_attribs(uint32_t attr, const char* delim) {
+	pfc::string8 ret;
+	if (attr != 0) {
+		const char* arr[5] = {};
+		size_t w = 0;
+		ret.prealloc(64);
+		if (attr & attr_readonly) {
+			arr[w++] = "read-only";
+		}
+		if (attr & attr_folder) {
+			arr[w++] = "folder";
+		}
+		if (attr & attr_hidden) {
+			arr[w++] = "hidden";
+		}
+		if (attr & attr_system) {
+			arr[w++] = "system";
+		}
+		if (attr & attr_remote) {
+			arr[w++] = "remote";
+		}
+		PFC_ASSERT(w <= PFC_TABSIZE(arr));
+		for (size_t f = 0; f < w; ++f) {
+			if (f > 0) ret += delim;
+			ret += arr[f];
+		}
+	}
+	return ret;
+}
+
+t_filetimestamp file::get_time_created(abort_callback& a) {
+	t_filetimestamp ret;
+	ret = get_stats2_(stats2_timestampCreate, a).m_timestampCreate;
+	if (ret != filetimestamp_invalid) return ret;
+
+	filetimes_t ft;
+	if (this->getFileTimes(ft, a)) return ft.creation;
+	return filetimestamp_invalid;
+}
+
+service_ptr file::get_metadata_(abort_callback& a) {
+	service_ptr ret;
+
+	{
+		file_get_metadata::ptr getter;
+		if (getter &= this) ret = getter->get_metadata(a);
+	}
+	{
+		file_v2::ptr getter;
+		if (getter &= this) ret = getter->get_metadata(a);
+	}
+	return ret;
 }

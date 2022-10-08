@@ -1,4 +1,7 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "sort.h"
+#include "bit_array_impl.h"
+#include "ref_counter.h"
 
 #if defined(_M_IX86) || defined(_M_IX64)
 #include <intrin.h>

@@ -84,6 +84,39 @@ namespace pfc {
 		bool operator!=(const t_self & other) const throw() {return this->m_content != other.m_content;}
 	};
 
+	template<typename item_t> class forward_iterator {
+		iterator<item_t> m_iter;
+	public:
+		typedef forward_iterator<item_t> self_t;
+		void operator++() { ++m_iter; }
+
+		item_t& operator*() const throw() { return *m_iter; }
+		item_t* operator->() const throw() { return &*m_iter; }
+
+		bool operator==(const self_t& other) const { return m_iter == other.m_iter; }
+		bool operator!=(const self_t& other) const { return m_iter != other.m_iter; }
+
+		forward_iterator() {}
+		forward_iterator(iterator<item_t>&& i) : m_iter(std::move(i)) {}
+	};
+
+
+	template<typename item_t> class forward_const_iterator {
+		const_iterator<item_t> m_iter;
+	public:
+		typedef forward_const_iterator<item_t> self_t;
+		void operator++() { ++m_iter; }
+
+		const item_t& operator*() const throw() { return *m_iter; }
+		const item_t* operator->() const throw() { return &*m_iter; }
+
+		bool operator==(const self_t& other) const { return m_iter == other.m_iter; }
+		bool operator!=(const self_t& other) const { return m_iter != other.m_iter; }
+
+		forward_const_iterator() {}
+		forward_const_iterator(const_iterator<item_t>&& i) : m_iter(std::move(i)) {}
+	};
+
 	template<typename t_comparator = comparator_default>
 	class comparator_list {
 	public:
@@ -136,5 +169,25 @@ namespace pfc {
 				++iter1; ++iter2;
 			}
 		}
+	};
+}
+
+namespace std {
+
+	template<typename item_t>
+	struct iterator_traits< pfc::forward_iterator< item_t > > {
+		typedef ptrdiff_t difference_type;
+		typedef item_t value_type;
+		typedef value_type* pointer;
+		typedef value_type& reference;
+		typedef std::forward_iterator_tag iterator_category;
+	};
+	template<typename item_t>
+	struct iterator_traits< pfc::forward_const_iterator< item_t > > {
+		typedef ptrdiff_t difference_type;
+		typedef item_t value_type;
+		typedef const value_type* pointer;
+		typedef const value_type& reference;
+		typedef std::forward_iterator_tag iterator_category;
 	};
 }

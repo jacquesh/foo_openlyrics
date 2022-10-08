@@ -7,13 +7,14 @@ Configurations with "FB2K" suffix disable compilation of pfc-fb2k-hooks.cpp allo
 */
 
 namespace pfc {
-	void crashImpl();
-	BOOL winFormatSystemErrorMessageImpl(pfc::string_base & p_out, DWORD p_code);
-
-	void crashHook() {
+	[[noreturn]] void crashImpl();
+	[[noreturn]] void crashHook() {
 		crashImpl();
 	}
+#ifdef _WIN32
+	BOOL winFormatSystemErrorMessageImpl(pfc::string_base & p_out, DWORD p_code);
 	BOOL winFormatSystemErrorMessageHook(pfc::string_base & p_out, DWORD p_code) {
 		return winFormatSystemErrorMessageImpl(p_out, p_code);
 	}
+#endif
 }

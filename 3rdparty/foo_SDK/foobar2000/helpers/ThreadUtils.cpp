@@ -72,15 +72,32 @@ namespace ThreadUtils {
 		const HANDLE handles[2] = {ev, abort.get_abort_event()};
 		MultiWait_MsgLoop(handles, 2);
 		abort.check();
+	
 	}
+	t_size MultiWaitAbortable_MsgLoop2(const HANDLE* ev, t_size evCount, abort_callback& abort) {
+		abort.check();
+		const size_t evCountEx = evCount + 1;
+		HANDLE handles1[16];
+		pfc::array_staticsize_t<HANDLE> handles2;
+		HANDLE* pHandles = handles1;
+		if (evCountEx > 16) {
+			handles2.set_size_discard(evCountEx);
+			pHandles = handles2.get_ptr();
+		}
+		pHandles[0] = abort.get_abort_event();
+		pfc::memcpy_t(pHandles + 1, ev, evCount);
+		DWORD status = MultiWait_MsgLoop(pHandles, (DWORD) evCountEx);
+		abort.check();
+		size_t ret = (size_t)(status - WAIT_OBJECT_0 - 1);
+		PFC_ASSERT(ret < evCount);
+		return ret;
+	}
+
 	t_size MultiWaitAbortable_MsgLoop(const HANDLE * ev, t_size evCount, abort_callback & abort) {
-		abort.check();
-		pfc::array_t<HANDLE> handles; handles.set_size(evCount + 1);
-		handles[0] = abort.get_abort_event();
-		pfc::memcpy_t(handles.get_ptr() + 1, ev, evCount);
-		DWORD status = MultiWait_MsgLoop(handles.get_ptr(), handles.get_count());
-		abort.check();
-		return (size_t)(status - WAIT_OBJECT_0);
+		// Retval is 1-based!
+		// Originally a bug, now kept for compatibility if someone relies on this
+		// Use MultiWaitAbortable_MsgLoop2() instead
+		return MultiWaitAbortable_MsgLoop2(ev, evCount, abort) + 1;
 	}
 
 	void SleepAbortable_MsgLoop(abort_callback & abort, DWORD timeout) {
@@ -131,6 +148,12 @@ namespace ThreadUtils {
 			}
 			now = GetTickCount();
 		}
+	}
+
+	bool pfcWaitMsgLoop(HANDLE ev, double timeout) {
+		DWORD ms = pfc::event::g_calculate_wait_time(timeout);
+		DWORD status = MultiWait_MsgLoop(&ev, 1, ms);
+		return status == WAIT_OBJECT_0;
 	}
 
 #endif // FOOBAR2000_DESKTOP_WINDOWS

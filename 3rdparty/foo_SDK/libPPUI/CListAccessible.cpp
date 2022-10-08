@@ -220,18 +220,22 @@ void CListAccessible::AccLocationChange() {
 }
 
 HRESULT IAccessible_CListControl::GetTypeInfoCount(UINT * pcTInfo) {
+	(void)pcTInfo;
 	return E_NOTIMPL;
 }
 
 HRESULT IAccessible_CListControl::GetTypeInfo(UINT iTInfo, LCID lcid, ITypeInfo ** ppTInfo) {
+	(void)iTInfo; (void)lcid; (void)ppTInfo;
 	return E_NOTIMPL;
 }
 
 HRESULT IAccessible_CListControl::GetIDsOfNames(REFIID riid, LPOLESTR *rgszNames, UINT cNames, LCID lcid, DISPID *rgDispId) {
+	(void)riid; (void)rgszNames; (void)cNames; (void)lcid; (void)rgDispId;
 	return E_NOTIMPL;
 }
 
 HRESULT IAccessible_CListControl::Invoke(DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS * pDispParams, VARIANT * pVarResult, EXCEPINFO * pExcepInfo, UINT * puArgErr) {
+	(void)dispIdMember; (void)riid; (void)lcid; (void)wFlags; (void)pDispParams; (void)pVarResult; (void)pExcepInfo; (void)puArgErr;
 	return E_NOTIMPL;
 }
 
@@ -412,6 +416,7 @@ HRESULT IAccessible_CListControl::get_accHelpTopic(BSTR *pszHelpFile, VARIANT va
 }
 HRESULT IAccessible_CListControl::get_accKeyboardShortcut(VARIANT varChild, BSTR *pszKeyboardShortcut)
 {
+	(void)varChild;
 	if (pszKeyboardShortcut == NULL)
 		return E_INVALIDARG;
 	return S_FALSE;
@@ -612,7 +617,7 @@ HRESULT IAccessible_CListControl::accNavigate(long navDir, VARIANT varStart, VAR
 	if (m_owner.IsEmpty()) return E_FAIL;
 	VariantClear(pvarEndUpAt);
 	pvarEndUpAt->vt = VT_EMPTY;
-	if (varStart.vt = VT_EMPTY || varStart.lVal == CHILDID_SELF)
+	if (varStart.vt == VT_EMPTY || varStart.lVal == CHILDID_SELF)
 	{
 		switch (navDir)
 		{
@@ -731,9 +736,11 @@ HRESULT IAccessible_CListControl::accDoDefaultAction(VARIANT varChild)
 	return S_OK;
 }
 HRESULT IAccessible_CListControl::put_accName(VARIANT varChild, BSTR szName) {
+	(void)varChild; (void)szName;
 	return DISP_E_MEMBERNOTFOUND;
 }
 HRESULT IAccessible_CListControl::put_accValue(VARIANT varChild, BSTR szValue) {
+	(void)varChild; (void)szValue;
 	return DISP_E_MEMBERNOTFOUND;
 }
 

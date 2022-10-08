@@ -55,9 +55,6 @@
     <ClCompile Include="string_conv.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stringNew.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="threads.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,6 +68,27 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="win-objects.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bigmem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crashWithMessage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string-compare.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string-lite.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string-conv-lite.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SmartStrStr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="splitString2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -135,9 +153,6 @@
     <ClInclude Include="guid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="instance_tracker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="int_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -183,9 +198,6 @@
     <ClInclude Include="pool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pp-gettickcount.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="pp-winapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -220,12 +232,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="string_list.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="string8_impl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="stringNew.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="syncd_storage.h">
@@ -265,6 +271,63 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fpu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="once.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string-lite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bigmem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mem_block.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="platform-objects.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="killswitch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="synchro_nix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string-interface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pfc-lite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string-part.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string-compare.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string-conv-lite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="instance_tracker_legacy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmartStrStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fixed_map.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="splitString2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string_simple.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

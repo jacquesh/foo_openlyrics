@@ -11,15 +11,16 @@ namespace InPlaceEdit {
 		virtual void TableEdit_SetField(t_size item, t_size subItem, const char * value) = 0;
 		virtual HWND TableEdit_GetParentWnd() const = 0;
 		virtual bool TableEdit_Advance(t_size & item, t_size & subItem, t_uint32 whathappened);
-		virtual bool TableEdit_CanAdvanceHere( size_t item, size_t subItem, uint32_t whatHappened ) const { return true; }
+		virtual bool TableEdit_CanAdvanceHere(size_t item, size_t subItem, uint32_t whatHappened) const { (void)item; (void)subItem; (void)whatHappened; return true; }
 		virtual void TableEdit_Finished() {}
 		virtual t_size TableEdit_GetItemCount() const = 0;
 		virtual t_size TableEdit_GetColumnCount() const = 0;
 		virtual void TableEdit_SetItemFocus(t_size item, t_size subItem) = 0;
-		virtual bool TableEdit_IsColumnEditable(t_size subItem) const { return true; }
+		virtual bool TableEdit_IsColumnEditable(t_size subItem) const { (void)subItem; return true; }
 		virtual void TableEdit_GetColumnOrder(t_size * out, t_size count) const { order_helper::g_fill(out, count); }
-		virtual t_uint32 TableEdit_GetEditFlags(t_size item, t_size subItem) const { return 0; }
-		virtual bool TableEdit_GetAutoComplete(t_size item, t_size subItem, pfc::com_ptr_t<IUnknown> & out) { return false; }
+		virtual t_uint32 TableEdit_GetEditFlags(t_size item, t_size subItem) const { (void)item; (void)subItem; return 0; }
+		virtual bool TableEdit_GetDarkMode() const { return false; }
+		virtual bool TableEdit_GetAutoComplete(t_size item, t_size subItem, pfc::com_ptr_t<IUnknown>& out) { (void)item; (void)subItem; (void)out; return false; }
 
 		struct autoComplete_t {
 			pfc::com_ptr_t<IUnknown> data;
@@ -40,7 +41,7 @@ namespace InPlaceEdit {
 
 		virtual combo_t TableEdit_GetCombo(size_t item, size_t sub);
 
-		void TableEdit_Start(t_size item, t_size subItem);
+		HWND TableEdit_Start(t_size item, t_size subItem);
 		void TableEdit_Abort(bool forwardContent);
 		bool TableEdit_IsActive() const { return !!m_taskKill; }
 	protected:
@@ -55,10 +56,10 @@ namespace InPlaceEdit {
 		t_size PositionToColumn(t_size pos) const;
 		t_size EditableColumnCount() const;
 		void GrabColumnOrder(pfc::array_t<t_size> & buffer) const { buffer.set_size(TableEdit_GetColumnCount()); TableEdit_GetColumnOrder(buffer.get_ptr(), buffer.get_size()); }
-		void _ReStart();
+		HWND _ReStart();
 
-		t_size m_editItem, m_editSubItem;
-		t_uint32 m_editFlags;
+		t_size m_editItem = SIZE_MAX, m_editSubItem = SIZE_MAX;
+		t_uint32 m_editFlags = 0;
 		pfc::rcptr_t<pfc::string8> m_editData;
 		std::shared_ptr< combo_t > m_editDataCombo;
 

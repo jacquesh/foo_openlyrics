@@ -120,7 +120,7 @@ public:
 	void open(const char * inPath, file::ptr inReader, abort_callback & aborter);
 	void close();
 
-	winLocalFileScope() : m_isTemp() {}
+	winLocalFileScope() {}
 	winLocalFileScope(const char * inPath, file::ptr inReader, abort_callback & aborter) : m_isTemp() {
 		open(inPath, inReader, aborter);
 	}
@@ -130,8 +130,9 @@ public:
 	}
 
 	const wchar_t * Path() const { return m_path.c_str(); }
+	bool isTemp() const { return m_isTemp; }
 private:
-	bool m_isTemp;
+	bool m_isTemp = false;
 	std::wstring m_path;
 };
 

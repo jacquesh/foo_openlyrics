@@ -1,9 +1,10 @@
 #pragma once
 
+#include "string_base.h"
+
 #if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
 
 #define PFC_HAVE_PROFILER
-#include <Windows.h>
 
 #include <intrin.h>
 namespace pfc {
@@ -43,17 +44,8 @@ namespace pfc {
 #ifdef _WIN32
 
 namespace pfc {
-	// ALWAYS define 64bit tickcount - don't cause mayhem if different modules are compiled for different Windows versions
 	typedef uint64_t tickcount_t;
-	inline tickcount_t getTickCount() {
-		LARGE_INTEGER count;
-		LARGE_INTEGER freq;
-		QueryPerformanceCounter(&count);
-		QueryPerformanceFrequency(&freq);
-		double seconds = double(count.QuadPart) / double(freq.QuadPart);
-		double millis = seconds * 1000;
-		return tickcount_t(millis);
-	}
+	inline tickcount_t getTickCount() { return GetTickCount64(); }
 
 class hires_timer {
 public:

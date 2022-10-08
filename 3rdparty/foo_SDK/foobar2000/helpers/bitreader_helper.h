@@ -15,6 +15,19 @@ namespace bitreader_helper {
 		}
 		return ret;
 	}
+    inline static void write_bit( uint8_t * p_stream, size_t p_offset, size_t bit ) {
+        size_t bshift = 7 - (p_offset&7);
+        size_t mask = (size_t)1 << bshift;
+        uint8_t & b = p_stream[p_offset>>3];
+        b = (b & ~mask) | ((bit&1) << bshift);
+    }
+    inline static void write_int( uint8_t * p_stream, size_t p_base, size_t p_width, size_t p_value) {
+        size_t offset = p_base;
+        size_t val = p_value;
+        for( size_t bit = 0; bit < p_width; ++ bit ) {
+            write_bit( p_stream, offset++, val >> (p_width - bit - 1));
+        }
+    }
 
 class bitreader
 {
@@ -29,16 +42,29 @@ public:
 		m_bitptr += p_bits;
 	}
 
+	
 	template<typename t_ret>
-	t_ret read_t(t_size p_bits) {
+	t_ret peek_t(t_size p_bits) const {
+		size_t ptr = m_bitptr;
 		t_ret ret = 0;
 		for(t_size bit=0;bit<p_bits;bit++)
 		{
 			ret <<= 1;
-			ret |= (m_ptr[m_bitptr>>3] >> (7-(m_bitptr&7)))&1;
-			m_bitptr++;
+			ret |= (m_ptr[ptr >>3] >> (7-(ptr &7)))&1;
+			ptr++;
 		}
 		return ret;
+	}
+
+	template<typename t_ret>
+	t_ret read_t(t_size p_bits) {
+		t_ret ret = peek_t<t_ret>(p_bits);
+		skip(p_bits);
+		return ret;
+	}
+
+	size_t peek(size_t bits) const {
+		return peek_t<size_t>(bits);
 	}
 
 	t_size read(t_size p_bits) {return read_t<t_size>(p_bits);}
@@ -105,6 +131,10 @@ public:
 		m_reader.skip(p_bits);
 	}
 
+	size_t peek(size_t bits) {
+		if (bits > m_remaining) throw exception_io_data_truncation();
+		return m_reader.peek(bits);
+	}
 	t_size read(t_size p_bits)
 	{
 		if (p_bits > m_remaining) throw exception_io_data_truncation();

@@ -42,8 +42,8 @@ void CListControlTruncationTooltipImpl::TooltipRemove() {
 }
 
 void CListControlTruncationTooltipImpl::TooltipRemoveCheck() {
-	CPoint pt = GetCursorPos();
-	if (ScreenToClient(&pt)) {
+	CPoint pt; ;
+	if (GetCursorPos(&pt) && ScreenToClient(&pt)) {
 		TooltipRemoveCheck( MAKELPARAM( pt.x, pt.y ) );
 	}
 }
@@ -87,18 +87,19 @@ LRESULT CListControlTruncationTooltipImpl::OnMouseMovePassThru(UINT,WPARAM,LPARA
 
 
 bool CListControlTruncationTooltipImpl::IsRectPartiallyObscuredAbs(CRect const & r) const {
-	CRect cl = this->GetClientRectHook(); cl.OffsetRect( this->GetViewOffset() );
+	const CRect cl = GetVisibleRectAbs();
 	return r.right > cl.right || r.top < cl.top || r.bottom > cl.bottom;
 }
 
 bool CListControlTruncationTooltipImpl::IsRectFullyVisibleAbs(CRect const & r) {
-	CRect cl = this->GetClientRectHook(); cl.OffsetRect( this->GetViewOffset() );
+	const CRect cl = GetVisibleRectAbs();
 	return r.left >= cl.left && r.right <= cl.right && r.top >= cl.top && r.bottom <= cl.bottom;
 }
 
 bool CListControlTruncationTooltipImpl::GetTooltipData(CPoint pt, pfc::string_base & outText, CRect & outRC, CFontHandle & outFont) const {
-	t_size item; int group;
+	t_size item;
 	if (ItemFromPointAbs(pt, item)) {
+		PFC_ASSERT(item < GetItemCount());
 		const CRect itemRectAbs = this->GetItemRectAbs(item);
 		/*if (this->IsHeaderEnabled()) */{
 			t_uint32 cbase = 0;
@@ -124,14 +125,14 @@ bool CListControlTruncationTooltipImpl::GetTooltipData(CPoint pt, pfc::string_ba
 				cbase += width;
 			}
 		}
-	} else if (GroupHeaderFromPointAbs(pt, group)) {
+	} else if (GroupHeaderFromPointAbs2(pt, item)) {
 		CRect rc;
-		if (GetGroupHeaderRectAbs(group, rc) && rc.PtInRect(pt)) {
-			const t_uint32 estWidth = GetOptimalGroupHeaderWidth(group);
+		if (GetGroupHeaderRectAbs2(item, rc) && rc.PtInRect(pt)) {
+			const t_uint32 estWidth = GetOptimalGroupHeaderWidth2( item );
 			CRect rcText = rc; rcText.right = rcText.left + estWidth;
 			if (estWidth > (t_uint32)rc.Width() || (IsRectPartiallyObscuredAbs(rcText) && rcText.PtInRect(pt))) {
 				pfc::string_formatter label;
-				if (GetGroupHeaderText(group, label)) {
+				if (GetGroupHeaderText2(item, label)) {
 					outFont = GetGroupHeaderFont(); outRC = rc; outText = label; 
 					return true;
 				}
@@ -145,8 +146,8 @@ LRESULT CListControlTruncationTooltipImpl::OnHover(UINT,WPARAM wp,LPARAM lp,BOOL
 		return 0;
 	}
 	if (wp & (MK_LBUTTON | MK_RBUTTON | MK_MBUTTON)) return 0;
-	const CPoint viewOffset = GetViewOffset();
-	CPoint pt ( lp ); pt += viewOffset;
+	
+	const CPoint pt = PointClientToAbs(CPoint(lp));
 
 	CFontHandle font;
 	CRect rc;
@@ -162,8 +163,7 @@ LRESULT CListControlTruncationTooltipImpl::OnHover(UINT,WPARAM wp,LPARAM lp,BOOL
 }
 
 void CListControlTruncationTooltipImpl::TooltipActivateAbs(const char * label, const CRect & rect)  {
-	CRect temp(rect);
-	temp.OffsetRect( - GetViewOffset() );
+	CRect temp = RectAbsToClient(rect);
 	ClientToScreen(temp);
 	TooltipActivate(label,temp);
 }

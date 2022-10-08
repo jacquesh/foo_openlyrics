@@ -37,6 +37,7 @@ public:
 	static t_size g_multiskip(const service_ptr_t<file> & p_file,t_filesize & p_size_skipped,abort_callback & p_abort);
 	static void g_remove(const service_ptr_t<file> & p_file,t_filesize & p_size_removed,abort_callback & p_abort);
 	static void g_remove_ex(tag_write_callback & p_callback,const service_ptr_t<file> & p_file,t_filesize & p_size_removed,abort_callback & p_abort);
+	static uint32_t g_tagsize(const void* pHeader10bytes);
 
 	FB2K_MAKE_SERVICE_COREAPI(tag_processor_id3v2);
 };

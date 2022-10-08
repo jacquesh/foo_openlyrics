@@ -16,6 +16,15 @@ public:
 	virtual bool sanitize_file( const char * path, bool bMinimizeSize, abort_callback & aborter ) = 0;
 };
 
+//! \since 1.6 series
+class NOVTABLE file_format_sanitizer_v2 : public file_format_sanitizer {
+	FB2K_MAKE_SERVICE_INTERFACE(file_format_sanitizer_v2, file_format_sanitizer);
+public:
+	//! Perform additional cleanups in the file after an encode pass has finished. \n
+	//! Mainly meant to mitigate extremely annoying design of FLAC encoder.
+	virtual void after_encode(const char* path, abort_callback& aborter) = 0;
+};
+
 //! Utility service to perform sanitization of generic ID3v2 tags. Called by format-specific implementations of file_format_sanitizer.
 class NOVTABLE file_format_sanitizer_stdtags : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT( file_format_sanitizer_stdtags );

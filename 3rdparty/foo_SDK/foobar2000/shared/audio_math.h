@@ -1,6 +1,22 @@
-#ifndef audio_sample_size
-#error PFC not included?
+#pragma once
+
+#if defined(_M_X64) || defined(_M_ARM64)
+#define audio_sample_size 64
+#else
+#define audio_sample_size 32
 #endif
+
+#if audio_sample_size == 32
+typedef float audio_sample;
+#define audio_sample_asm dword
+#elif audio_sample_size == 64
+typedef double audio_sample;
+#define audio_sample_asm qword
+#else
+#error wrong audio_sample_size
+#endif
+
+#define audio_sample_bytes (audio_sample_size/8)
 
 /*
 PROBLEM: 

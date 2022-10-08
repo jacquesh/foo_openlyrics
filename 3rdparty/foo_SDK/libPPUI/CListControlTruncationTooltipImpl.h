@@ -17,7 +17,7 @@ public:
 		NOTIFY_CODE_HANDLER(TTN_SHOW,OnTTShow);
 	END_MSG_MAP()
 
-	void OnViewOriginChange(CPoint p_delta) {TParent::OnViewOriginChange(p_delta);TooltipRemove();}
+	void OnViewOriginChange(CPoint p_delta) override {TParent::OnViewOriginChange(p_delta);TooltipRemove();}
 	void TooltipRemove(); 
 protected:
 	virtual bool GetTooltipData( CPoint ptAbs, pfc::string_base & text, CRect & rc, CFontHandle & font) const;
@@ -40,7 +40,7 @@ private:
 	void TooltipRemoveCheck(LPARAM pos);
 	void TooltipRemoveCheck();
 	void TooltipUpdateFont();
-	void OnSetFont(bool) {TooltipUpdateFont();}
+	void OnSetFont(bool) override {TooltipUpdateFont();}
 	bool IsRectFullyVisibleAbs(CRect const & r);
 	bool IsRectPartiallyObscuredAbs(CRect const & r) const;
 	CRect m_tooltipRect;

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "cuesheet_index_list.h"
 
 #ifndef _MSC_VER

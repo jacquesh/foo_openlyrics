@@ -1,4 +1,5 @@
 #pragma once
+#include "iterators.h"
 
 namespace pfc {	
 
@@ -31,6 +32,8 @@ namespace pfc {
 		typedef chain_list_v2_t<t_item> t_self;
 		typedef ::pfc::iterator<t_item> iterator;
 		typedef ::pfc::const_iterator<t_item> const_iterator;
+		typedef ::pfc::forward_iterator<t_item> forward_iterator;
+		typedef ::pfc::forward_const_iterator<t_item> forward_const_iterator;
 		typedef __chain_list_elem<t_item> t_elem;
 
 		chain_list_v2_t() {}
@@ -77,6 +80,11 @@ namespace pfc {
 		const_iterator last() const {return const_iterator(m_last);}
 		const_iterator cfirst() const {return const_iterator(m_first);}
 		const_iterator clast() const {return const_iterator(m_last);}
+
+		forward_iterator begin() { return first(); }
+		forward_const_iterator begin() const { return first(); }
+		forward_iterator end() {return forward_iterator(); }
+		forward_const_iterator end() const { return forward_const_iterator(); }
 
 		void remove_single(const_iterator const & p_iter) {
 			PFC_ASSERT(p_iter.is_valid());

@@ -1,4 +1,5 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+
 
 #ifndef _WIN32
 #include <stdio.h>
@@ -6,10 +7,18 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
+#include <math.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
+
+#include "nix-objects.h"
+#include "string_base.h"
+#include "array.h"
+#include "debug.h"
+#include "timers.h"
+#include "filehandle.h"
 
 namespace pfc {
     void nixFormatError( string_base & str, int code ) {
@@ -57,6 +66,7 @@ namespace pfc {
         _init(code);
     }
     void exception_nix::_init(int code) {
+        PFC_ASSERT( code != EINTR );
         m_code = code;
         nixFormatError(m_msg, code);
     }
@@ -123,8 +133,29 @@ namespace pfc {
             // POLLERR ignored in events, only used in revents
             f.revents = 0;
         }
-        int status = poll(v.get_ptr(), (int)count, timeOutMS);
-        if (status < 0) throw exception_nix();
+        hires_timer timer;
+        int countdown = timeOutMS;
+        if (countdown > 0) timer.start();
+        int status;
+        for ( ;; ) {
+            status = poll(v.get_ptr(), (int)count, countdown);
+            if (status >= 0) break;
+
+            int e = errno;
+            if (e == EINTR) {
+                if (countdown < 0) continue; // infinite
+                if (countdown > 0) {
+                    countdown = timeOutMS - rint32( timer.query() );
+                    if (countdown > 0) continue;
+                }
+                // should not really get here
+                status = 0;
+                break;
+            } else {
+                throw exception_nix(e);
+            }
+            
+        }
         
         Reads.clear(); Writes.clear(); Errors.clear();
         
@@ -188,6 +219,20 @@ namespace pfc {
     bool nix_event::g_wait_for( int p_event, double p_timeout_seconds ) {
         return fdWaitRead( p_event, p_timeout_seconds );
     }
+    size_t nix_event::g_multiWait( const pfc::eventHandle_t * events, size_t count, double timeout ) {
+        fdSelect sel;
+        for( size_t i = 0; i < count; ++ i ) {
+            sel.Reads += events[i];
+        }
+        int state = sel.Select( timeout );
+        if (state < 0) throw exception_nix();
+        if (state == 0) return SIZE_MAX;
+        for( size_t i = 0; i < count; ++ i ) {
+            if ( sel.Reads[ events[i] ] ) return i;
+        }
+        crash(); // should not get here
+        return SIZE_MAX;
+    }
     int nix_event::g_twoEventWait( int h1, int h2, double timeout ) {
         fdSelect sel;
         sel.Reads += h1;
@@ -219,6 +264,9 @@ namespace pfc {
         timeval tv = {};
         gettimeofday(&tv, NULL);
         return importTimeval(tv);
+    }
+    tickcount_t getTickCount() {
+        return rint64(nixGetTime() * 1000.f);
     }
     
     bool nixReadSymLink( string_base & strOut, const char * path ) {

@@ -21,13 +21,14 @@ namespace listview_helper {
 		item.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
 		
 		LRESULT ret = SendMessage(p_listview,LVM_INSERTITEM,0,(LPARAM)&item);
-		if (ret < 0) return ~0;
+		PFC_ASSERT(ret >= 0);
+		if (ret < 0) return UINT_MAX;
 		else return (unsigned) ret;
 	}
 
 	unsigned insert_item2(HWND p_listview, unsigned p_index, const char * col0, const char * col1, LPARAM p_param) {
 		unsigned i = insert_item( p_listview, p_index, col0, p_param );
-		if (i != ~0) {
+		if (i != UINT_MAX) {
 			set_item_text( p_listview, i, 1, col1 );
 		}
 		return i;
@@ -35,7 +36,7 @@ namespace listview_helper {
 
 	unsigned insert_item3(HWND p_listview, unsigned p_index, const char * col0, const char * col1, const char * col2, LPARAM p_param) {
 		unsigned i = insert_item( p_listview, p_index, col0, p_param );
-		if (i != ~0) {
+		if (i != UINT_MAX) {
 			set_item_text( p_listview, i, 1, col1 );
 			set_item_text( p_listview, i, 2, col2 );
 		}
@@ -56,6 +57,7 @@ namespace listview_helper {
 		data.pszText = const_cast<TCHAR*>(os_string_temp.get_ptr());
 		
 		LRESULT ret = SendMessage(p_listview,LVM_INSERTCOLUMN,p_index,(LPARAM)&data);
+		PFC_ASSERT(ret >= 0);
 		if (ret < 0) return UINT_MAX;
 		else return (unsigned) ret;
 	}
@@ -151,6 +153,23 @@ void ListView_GetContextMenuPoint(HWND p_list,POINT p_coords,POINT & p_point,int
 		info.pt = client;
 		p_selection = ListView_HitTest(p_list,&info);
 	}
+}
+
+int ListView_GetFirstSelection(HWND p_listview) {
+	return ListView_GetNextItem(p_listview, -1, LVNI_SELECTED);
+}
+
+int ListView_GetSingleSelection(HWND p_listview) {
+	if (ListView_GetSelectedCount(p_listview) != 1) return -1;
+	return ListView_GetFirstSelection(p_listview);
+}
+
+int ListView_GetFocusItem(HWND p_listview) {
+	return ListView_GetNextItem(p_listview, -1, LVNI_FOCUSED);
+}
+
+bool ListView_IsItemSelected(HWND p_listview, int p_index) {
+	return ListView_GetItemState(p_listview, p_index, LVIS_SELECTED) != 0;
 }
 
 int ListView_GetColumnCount(HWND listView) {

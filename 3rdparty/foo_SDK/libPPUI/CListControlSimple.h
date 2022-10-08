@@ -35,6 +35,8 @@ public:
 		if ( item < m_lines.size() ) {
 			m_lines[item].text[subItem] = text;
 			if ( bRedraw ) ReloadItem( item );
+		} else {
+			PFC_ASSERT(!"CListControlSimple: item index out of range, call SetItemCount() first");
 		}
 	}
 	bool GetSubItemText(size_t item, size_t subItem, pfc::string_base & out) const override {
@@ -117,14 +119,14 @@ public:
 
 		{
 			line_t val;
-			m_lines.insert( m_lines.begin(), count, val );
+			m_lines.insert( m_lines.begin() + insertAt, count, val );
 		}
 
 		this->OnItemsInserted( insertAt, count, false );
 		return insertAt;
 	}
 protected:
-	void OnSelectionChanged(pfc::bit_array const & affected, pfc::bit_array const & status) {
+	void OnSelectionChanged(pfc::bit_array const & affected, pfc::bit_array const & status) override {
 		__super::OnSelectionChanged(affected, status);
 		if ( onSelChange ) onSelChange();
 	}

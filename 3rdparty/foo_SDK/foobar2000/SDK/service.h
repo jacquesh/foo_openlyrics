@@ -406,11 +406,11 @@ public:
 	//! Decrements reference count; deletes the object if reference count reaches zero. This is normally not called directly but managed by service_ptr_t<> template. \n
 	//! Implemented by service_impl_* classes.
 	//! @returns New reference count. For debug purposes only, in certain conditions return values may be unreliable.
-	virtual int service_release() throw() = 0;
+	virtual int service_release() noexcept = 0;
 	//! Increments reference count. This is normally not called directly but managed by service_ptr_t<> template. \n
 	//! Implemented by service_impl_* classes.
 	//! @returns New reference count. For debug purposes only, in certain conditions return values may be unreliable.
-	virtual int service_add_ref() throw() = 0;
+	virtual int service_add_ref() noexcept = 0;
 	//! Queries whether the object supports specific interface and retrieves a pointer to that interface. This is normally not called directly but managed by service_query_t<> function template. \n
 	//! Checks the parameter against GUIDs of interfaces supported by this object, if the GUID is one of supported interfaces, p_out is set to service_base pointer that can be static_cast<>'ed to queried interface and the method returns true; otherwise the method returns false. \n
 	//! Implemented by service_impl_* classes. \n
@@ -658,6 +658,7 @@ private:
 
 template<typename t_interface>
 class service_enum_t {
+	typedef service_enum_t<t_interface> self_t;
 public:
 	service_enum_t() : m_index(0) {
 		pfc::assert_same_type<t_interface,typename t_interface::t_interface_entrypoint>();
@@ -705,11 +706,29 @@ public:
 	service_ptr_t<t_interface> operator*() const {
 		return get();
 	}
+
+	// ==== modern for loop support ====
+	// Instead of using service_enum_t<> / service_ptr_t<>, use:
+	// for( auto ptr : someclass::enumerate() ) { ... }
+	self_t begin() const {
+		self_t ret = *this;
+		ret.m_index = 0;
+		return ret;
+	}
+	self_t end() const {
+		self_t ret = *this;
+		ret.m_index = ret.m_helper.get_count();
+		return ret;
+	}
+	bool operator==(self_t const& other) const {return m_index == other.m_index;}
+	bool operator!=(self_t const& other) const { return m_index != other.m_index; }
+
+
 private:
 	bool _next(service_ptr_t<t_interface> & p_out) {
 		return m_helper.create(p_out,m_index++);
 	}
-	unsigned m_index;
+	size_t m_index;
 	service_class_helper_t<t_interface> m_helper;
 };
 
@@ -734,7 +753,7 @@ namespace fb2k {
 	}
 
 	//! Modern get-std-api helper. \n
-	//! Returns true on scucess (ret ptr is valid), false on failure (API not found).
+	//! Returns true on success (ret ptr is valid), false on failure (API not found).
 	template<typename api_t>
 	bool std_api_try_get( service_ptr_t<api_t> & ret ) {
 		typedef typename api_t::t_interface_entrypoint entrypoint_t;
@@ -838,8 +857,13 @@ public:
 #define FB2K_SERVICE_FACTORY_ATTR __attribute__ (( __used__ ))
 #endif
 
-#define FB2K_SERVICE_FACTORY( TYPE ) static ::service_factory_single_t< TYPE > g_##TYPE##factory FB2K_SERVICE_FACTORY_ATTR;
-#define FB2K_SERVICE_FACTORY_DYNAMIC( TYPE ) static ::service_factory_t< TYPE > g_##TYPE##factory FB2K_SERVICE_FACTORY_ATTR;
+#define _FB2K_CONCAT(a, b) _FB2K_CONCAT_INNER(a, b)
+#define _FB2K_CONCAT_INNER(a, b) a ## b
+
+#define _FB2K_UNIQUE_NAME(base) _FB2K_CONCAT(base, __COUNTER__)
+
+#define FB2K_SERVICE_FACTORY( TYPE ) static ::service_factory_single_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) FB2K_SERVICE_FACTORY_ATTR;
+#define FB2K_SERVICE_FACTORY_DYNAMIC( TYPE ) static ::service_factory_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) FB2K_SERVICE_FACTORY_ATTR;
 
 
 #define FB2K_FOR_EACH_SERVICE(type, call) {service_enum_t<typename type::t_interface_entrypoint> e; service_ptr_t<type> ptr; while(e.next(ptr)) {ptr->call;} }

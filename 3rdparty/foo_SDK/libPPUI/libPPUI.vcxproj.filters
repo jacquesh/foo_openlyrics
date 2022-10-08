@@ -9,9 +9,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Resources">
-      <UniqueIdentifier>{b5bb0d58-0b1e-442d-a84d-09288c375185}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -33,9 +30,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CButtonLite.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ppresources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="win32_op.h">
@@ -75,9 +69,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="IDataObjectUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SmartStrStr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CListControlUserOptions.h">
@@ -167,6 +158,36 @@
     <ClInclude Include="commandline_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gdi-types-portable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmartStrStr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DarkMode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DarkModeEx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CContainedWindowSimple.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CListControl-Subst.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ImplementOnFinalMessage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CMiddleDragOverlay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ReStyleWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageEncoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -205,9 +226,6 @@
     <ClCompile Include="IDataObjectUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SmartStrStr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="InPlaceEdit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -244,17 +262,24 @@
     <ClCompile Include="InPlaceCombo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gdiplus_helpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GDIUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DarkMode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CListControl-Subst.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageEncoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="libPPUI-license.txt" />
     <Text Include="libPPUI-readme.txt" />
-    <Text Include="IDI_SCROLL.txt">
-      <Filter>Resources</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="IDI_SCROLL.ico">
-      <Filter>Resources</Filter>
-    </Image>
   </ItemGroup>
 </Project>

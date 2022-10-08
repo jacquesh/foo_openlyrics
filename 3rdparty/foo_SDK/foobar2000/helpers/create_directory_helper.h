@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-//#include <pfc/stringNew.h>
 
 #ifdef FOOBAR2000_MODERN
 #include "metadb_compat.h"

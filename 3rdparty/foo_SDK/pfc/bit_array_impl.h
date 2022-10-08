@@ -1,4 +1,5 @@
 #pragma once
+#include "array.h"
 
 namespace pfc {
 	template<typename T>

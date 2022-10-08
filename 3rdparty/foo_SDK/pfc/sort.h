@@ -1,5 +1,7 @@
 #pragma once
 
+#include "array.h"
+
 namespace pfc {
 
 	void swap_void(void * item1,void * item2,t_size width);

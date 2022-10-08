@@ -1,7 +1,15 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+
+#include "timers.h"
+#include "debug.h"
 
 #if defined(_WIN32) && defined(PFC_HAVE_PROFILER)
 #include <ShlObj.h>
+#endif
+
+#ifndef _WIN32
+#include "nix-objects.h"
+#include <time.h>
 #endif
 
 namespace pfc {
@@ -41,7 +49,7 @@ static void profilerMsg(const char* msg) {
             pfc::string8 temp = msg;
             temp += "\r\n";
             DWORD written = 0;
-            WriteFile(hWriteTo, temp.c_str(), temp.length(), &written, NULL);
+            WriteFile(hWriteTo, temp.c_str(), (DWORD) temp.length(), &written, NULL);
         }
     }
 #endif
@@ -51,9 +59,9 @@ static void profilerMsg(const char* msg) {
 profiler_static::~profiler_static()
 {
 	try {
-		pfc::string_fixed_t<511> message;
-		message << "profiler: " << pfc::format_pad_left<pfc::string_fixed_t<127> >(48,' ',name) << " - " << 
-			pfc::format_pad_right<pfc::string_fixed_t<128> >(16,' ',pfc::format_uint(total_time) ) << " cycles";
+		pfc::string8 message;
+		message << "profiler: " << pfc::format_pad_left(48,' ',name) << " - " << 
+			pfc::format_pad_right(16,' ',pfc::format_uint(total_time) ) << " cycles";
 
 		if (num_called > 0) {
 			message << " (executed " << num_called << " times, " << (total_time / num_called) << " average)";
@@ -105,6 +113,16 @@ profiler_static::~profiler_static()
 		GetSystemTimeAsFileTime((FILETIME*)&ret);
 		return ret;
 #else
+        
+#if defined( __APPLE__ ) && defined(TIME_UTC)
+        if (__builtin_available(iOS 13.0, macOS 10.15, *)) {
+            struct timespec ts;
+            timespec_get(&ts, TIME_UTC);
+            return fileTimeUtoW(ts);
+        }
+#endif
+
+        // Generic inaccurate method
 		return fileTimeUtoW(time(NULL));
 #endif
 	}

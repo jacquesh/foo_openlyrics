@@ -56,6 +56,16 @@ public:
 	virtual void listColumnsChanged(ctx_t) {}
 
 	virtual bool listEditCanAdvanceHere(ctx_t, size_t item, size_t subItem, uint32_t whatHappened) {(void) item; (void) subItem, (void) whatHappened; return true;}
+
+	virtual uint32_t listQueryDragDropTypes(ctx_t) const { return 0; }
+	virtual DWORD listDragDropAccept(ctx_t, IDataObject* obj, bool& showDropMark) { return DROPEFFECT_NONE; }
+	virtual pfc::com_ptr_t<IDataObject> listMakeDataObject(ctx_t) {return nullptr;}
+	virtual void listOnDrop(ctx_t,IDataObject* obj, CPoint pt) {}
+	virtual DWORD listDragDropSourceEffects(ctx_t) { return DROPEFFECT_MOVE | DROPEFFECT_COPY; }
+	virtual void listDragDropSourceSucceeded(ctx_t,DWORD effect) {}
+
+	virtual CListControl::groupID_t listItemGroup(ctx_t, size_t) { return 0; }
+	virtual pfc::string8 listGroupText(ctx_t, size_t /*baseItem*/) { return ""; }
 };
 
 class IListControlOwnerDataCells {
@@ -68,9 +78,9 @@ public:
 };
 
 class CListControlOwnerData : public CListControlComplete {
-	IListControlOwnerDataSource * const m_host;
 public:
-
+	IListControlOwnerDataSource* const m_host;
+	size_t m_listControlOwnerDataTag = 0;
 	CListControlOwnerData( IListControlOwnerDataSource * h) : m_host(h) {}
 
 	BEGIN_MSG_MAP_EX(CListControlOwnerData)
@@ -101,7 +111,9 @@ public:
 	}
 
 	uint32_t QueryDragDropTypes() const override {
-		return (m_host->listCanReorderItems(this)) ? dragDrop_reorder : 0;
+		uint32_t ret = (m_host->listCanReorderItems(this)) ? dragDrop_reorder : 0;
+		ret |= m_host->listQueryDragDropTypes(this);
+		return ret;
 	}
 
 	void RequestReorder( const size_t * order, size_t count) override {
@@ -125,9 +137,16 @@ public:
 		return __super::AllowTypeFindInCell( item, subItem ) && m_host->listAllowTypeFindHere( this, item, subItem );
 	}
 
+	groupID_t GetItemGroup(t_size p_item) const override {
+		return m_host->listItemGroup(this, p_item);
+	}
+	bool GetGroupHeaderText2(size_t baseItem, pfc::string_base& out) const override {
+		out = m_host->listGroupText(this, baseItem);
+		return true;
+	}
 protected:
-	void OnFocusChanged(size_t newFocus) override {
-		__super::OnFocusChanged(newFocus);
+	void OnFocusChanged(size_t oldFocus, size_t newFocus) override {
+		__super::OnFocusChanged(oldFocus, newFocus);
 		m_host->listFocusChanged(this);
 	}
 	void OnSelectionChanged(pfc::bit_array const & affected, pfc::bit_array const & status) {
@@ -148,7 +167,9 @@ protected:
 	}
 
 	t_uint32 TableEdit_GetEditFlags(t_size item, t_size subItem) const override {
-		return m_host->listGetEditFlags( this, item, subItem );
+		auto ret = __super::TableEdit_GetEditFlags(item, subItem);
+		ret |= m_host->listGetEditFlags( this, item, subItem );
+		return ret;
 	}
 
 	combo_t TableEdit_GetCombo(size_t item, size_t subItem) override {
@@ -170,6 +191,17 @@ protected:
 	bool IsSubItemGrayed(size_t item, size_t subItem) override {
 		return __super::IsSubItemGrayed(item, subItem) || m_host->listIsSubItemGrayed(this, item, subItem);
 	}
+
+	DWORD DragDropAccept(IDataObject* obj, bool& showDropMark) override { return m_host->listDragDropAccept(this, obj, showDropMark); }
+	pfc::com_ptr_t<IDataObject> MakeDataObject() override {
+		auto ret = m_host->listMakeDataObject(this);
+		if (ret.is_empty()) ret = __super::MakeDataObject();
+		return ret;
+	}
+	void OnDrop(IDataObject* obj, CPoint pt) override { return m_host->listOnDrop(this, obj, pt); }
+	DWORD DragDropSourceEffects() override { return m_host->listDragDropSourceEffects(this); }
+	void DragDropSourceSucceeded(DWORD effect) override { m_host->listDragDropSourceSucceeded(this, effect); }
+
 private:
 	bool TableEdit_CanAdvanceHere( size_t item, size_t subItem, uint32_t whatHappened ) const override {
 		return m_host->listEditCanAdvanceHere(this, item, subItem, whatHappened);

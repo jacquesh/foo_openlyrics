@@ -10,6 +10,7 @@ struct hasher_md5_result {
 	t_uint64 xorHalve() const;
 	GUID asGUID() const;
 	pfc::string8 asString() const;
+    GUID toGUID() const;
 
 	static hasher_md5_result null() {hasher_md5_result h = {}; return h;}
 };

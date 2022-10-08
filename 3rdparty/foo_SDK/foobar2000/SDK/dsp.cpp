@@ -86,7 +86,7 @@ void dsp_chunk_list::remove_bad_chunks()
 		if (!chunk->is_valid())
 		{
 #if PFC_DEBUG
-			uDebugLog() << "Removing bad chunk: " << chunk->formatChunkSpec();
+			FB2K_console_formatter() << "Removing bad chunk: " << chunk->formatChunkSpec();
 #endif
 			chunk->reset();
 			remove_by_idx(idx);
@@ -535,6 +535,22 @@ bool dsp_entry_v2::show_config_popup(dsp_preset & p_data,HWND p_parent) {
 	if (temp == p_data) return false;
 	p_data = temp;
 	return true;
+}
+
+void resampler_manager::make_chain_(dsp_chain_config& outChain, unsigned rateFrom, unsigned rateTo, float qualityScale) {
+	resampler_manager_v2::ptr v2;
+	if (v2 &= this) {
+		v2->make_chain(outChain, rateFrom, rateTo, qualityScale);
+	} else {
+		outChain.remove_all();
+		auto obj = this->get_resampler(rateFrom, rateTo);
+		if (obj.is_valid()) {
+			dsp_preset_impl p;
+			if (obj->create_preset(p, rateTo, qualityScale)) {
+				outChain.add_item(p);
+			}
+		}
+	}
 }
 
 #endif // FOOBAR2000_HAVE_DSP

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "array.h"
+
 namespace pfc {
 
 	namespace stringcvt {
@@ -159,7 +161,7 @@ namespace pfc {
 				return alloc_prioritizes_speed ? estimate_utf8_to_wide_quick(source, sourceLen) : estimate_utf8_to_wide(source,sourceLen);
 			}
 			inline t_size estimate_size(const char * source) {
-				return alloc_prioritizes_speed ? estimate_utf8_to_wide_quick(source) : estimate_utf8_to_wide(source,~0);
+				return alloc_prioritizes_speed ? estimate_utf8_to_wide_quick(source) : estimate_utf8_to_wide(source,SIZE_MAX);
 			}
 			char_buffer_t<wchar_t,t_alloc> m_buffer;
 		};
@@ -433,12 +435,12 @@ namespace pfc {
 			string_codepage_from_utf8(const string_codepage_from_utf8 & p_source) : m_buffer(p_source.m_buffer) {}
 			string_codepage_from_utf8(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {convert(p_codepage,p_source,p_source_size);}
 			
-			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {
+			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {
 				string_wide_from_utf8 temp;
 				temp.convert(p_source,p_source_size);
 				t_size size = estimate_wide_to_codepage(p_codepage,temp,SIZE_MAX);
 				m_buffer.set_size(size);
-				convert_wide_to_codepage(p_codepage,m_buffer.get_ptr_var(),size,temp,~0);
+				convert_wide_to_codepage(p_codepage,m_buffer.get_ptr_var(),size,temp,SIZE_MAX);
 			}
 
 			operator const char * () const {return get_ptr();}

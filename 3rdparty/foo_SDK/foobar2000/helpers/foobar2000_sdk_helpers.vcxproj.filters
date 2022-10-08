@@ -119,6 +119,12 @@
     <ClCompile Include="text_file_loader_v2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="image_load_save.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DarkMode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitreader_helper.h">
@@ -335,6 +341,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="file_readonly.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="winmm-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="image_load_save.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="audio_render_float.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DarkMode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

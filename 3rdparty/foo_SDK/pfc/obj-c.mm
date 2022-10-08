@@ -56,6 +56,53 @@ namespace pfc {
 			f();
 		}
 	}
-}
+    
+    void appleDebugLog( const char * str ) {
+        NSLog(@"%s\n", str );
+    }
+    
+    bool appleRecycleFile( const char * path ) {
+        @autoreleasepool {
+            NSFileManager * manager = [NSFileManager defaultManager];
+            NSURL * url = [NSURL fileURLWithPath: [NSString stringWithUTF8String: path] ];
+            if (@available(iOS 11.0, *)) {
+                NSError * error = nil;
+                if ([manager trashItemAtURL: url resultingItemURL: nil error: &error]) {
+                    return true;
+                }
+                if ([error.domain isEqualToString: NSCocoaErrorDomain] && error.code == NSFeatureUnsupportedError) {
+                    // trashcan not supported, fall thru
+                } else {
+                    // failed to remove
+                    return false;
+                }
+            }
+            return [manager removeItemAtURL: url error: nil];
+        }
+    }
+    void appleSetThreadDescription( const char * str ) {
+        @autoreleasepool {
+            [NSThread currentThread].name = [NSString stringWithUTF8String: str];
+        }
+    }
 
+    pfc::string8 unicodeNormalizeD(const char * str) {
+        @autoreleasepool {
+            pfc::string8 ret;
+            NSString * v = [[NSString stringWithUTF8String: str] decomposedStringWithCanonicalMapping];
+            if ( v ) ret = v.UTF8String;
+            else ret = str;
+            return ret;
+        }
+    }
+    pfc::string8 unicodeNormalizeC(const char * str) {
+        @autoreleasepool {
+            pfc::string8 ret;
+            NSString * v = [[NSString stringWithUTF8String: str] precomposedStringWithCanonicalMapping];
+            if ( v ) ret = v.UTF8String;
+            else ret = str;
+            return ret;
+        }
+    }
+}
 #endif

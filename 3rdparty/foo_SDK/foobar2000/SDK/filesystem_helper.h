@@ -39,27 +39,8 @@ namespace foobar2000_io {
 }
 
 
-//helper
-class file_path_canonical {
-public:
-	file_path_canonical(const char * src) {filesystem::g_get_canonical_path(src,m_data);}
-	operator const char * () const {return m_data.get_ptr();}
-	const char * get_ptr() const {return m_data.get_ptr();}
-	t_size get_length() const {return m_data.get_length();}
-private:
-	pfc::string8 m_data;
-};
-
-class file_path_display {
-public:
-	file_path_display(const char * src) {filesystem::g_get_display_path(src,m_data);}
-	operator const char * () const {return m_data.get_ptr();}
-	const char * get_ptr() const {return m_data.get_ptr();}
-	t_size get_length() const {return m_data.get_length();}
-private:
-	pfc::string8 m_data;
-};
-
+pfc::string8 file_path_canonical(const char* src);
+pfc::string8 file_path_display(const char* src);
 
 
 class stream_reader_memblock_ref : public stream_reader

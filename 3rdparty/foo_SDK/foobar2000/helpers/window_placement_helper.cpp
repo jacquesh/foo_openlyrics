@@ -40,7 +40,7 @@ static bool test_rect(const RECT * rc) {
 }
 
 
-bool cfg_window_placement::read_from_window(HWND window)
+bool cfg_window_placement_common::read_from_window(HWND window)
 {
 	WINDOWPLACEMENT wp = {};
 	if (g_is_enabled()) {
@@ -65,31 +65,23 @@ bool cfg_window_placement::read_from_window(HWND window)
 	return m_data.length == sizeof(m_data);
 }
 
-void cfg_window_placement::on_window_creation_silent(HWND window) {
-	PFC_ASSERT(!m_windows.have_item(window));
-	m_windows.add_item(window);
-}
-bool cfg_window_placement::on_window_creation(HWND window, bool allowHidden)
-{
+bool cfg_window_placement_common::apply_to_window(HWND window, bool allowHidden) {
 	bool ret = false;
-	PFC_ASSERT(!m_windows.have_item(window));
-	m_windows.add_item(window);
-
 	if (g_is_enabled())
 	{
-		if (m_data.length==sizeof(m_data) && test_rect(&m_data.rcNormalPosition))
+		if (m_data.length == sizeof(m_data) && test_rect(&m_data.rcNormalPosition))
 		{
-			if ( allowHidden || m_data.showCmd != SW_HIDE ) {
-				if ( m_data.showCmd == SW_HIDE && (m_data.flags & WPF_RESTORETOMAXIMIZED) ) {
+			if (allowHidden || m_data.showCmd != SW_HIDE) {
+				if (m_data.showCmd == SW_HIDE && (m_data.flags & WPF_RESTORETOMAXIMIZED)) {
 					// Special case of hidden-from-maximized
 					auto fix = m_data;
 					fix.showCmd = SW_SHOWMINIMIZED;
-					if (SetWindowPlacement(window,&fix)) {
+					if (SetWindowPlacement(window, &fix)) {
 						ShowWindow(window, SW_HIDE);
 						ret = true;
 					}
 				} else {
-					if (SetWindowPlacement(window,&m_data)) {
+					if (SetWindowPlacement(window, &m_data)) {
 						ret = true;
 					}
 				}
@@ -100,6 +92,17 @@ bool cfg_window_placement::on_window_creation(HWND window, bool allowHidden)
 	return ret;
 }
 
+void cfg_window_placement::on_window_creation_silent(HWND window) {
+	PFC_ASSERT(!m_windows.have_item(window));
+	m_windows.add_item(window);
+}
+bool cfg_window_placement::on_window_creation(HWND window, bool allowHidden) {
+	
+	PFC_ASSERT(!m_windows.have_item(window));
+	m_windows.add_item(window);
+	return apply_to_window(window, allowHidden);
+}
+
 
 void cfg_window_placement::on_window_destruction(HWND window)
 {
@@ -107,6 +110,12 @@ void cfg_window_placement::on_window_destruction(HWND window)
 	{
 		read_from_window(window);
 		m_windows.remove_item(window);
+	}
+}
+
+void cfg_window_placement_common::get_data_raw(stream_writer* p_stream, abort_callback& p_abort) {
+	if (m_data.length == sizeof(m_data)) {
+		p_stream->write_object(&m_data, sizeof(m_data), p_abort);
 	}
 }
 
@@ -121,25 +130,16 @@ void cfg_window_placement::get_data_raw(stream_writer * p_stream,abort_callback 
 			}
 		}
 
-		if (m_data.length == sizeof(m_data)) {
-			p_stream->write_object(&m_data,sizeof(m_data),p_abort);
-		}
+		cfg_window_placement_common::get_data_raw(p_stream, p_abort);
 	}
 }
 
-void cfg_window_placement::set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {
-	if (p_sizehint == 0) return;
+void cfg_window_placement_common::set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {
 	WINDOWPLACEMENT temp;
-	try {
-		p_stream->read_object(&temp,sizeof(temp),p_abort);
-	} catch(exception_io_data) {return;}
-	if (temp.length == sizeof(temp)) m_data = temp;
-}
-
-
-cfg_window_placement::cfg_window_placement(const GUID & p_guid) : cfg_var(p_guid)
-{
-	memset(&m_data,0,sizeof(m_data));
+	if (p_sizehint == sizeof(temp)) {
+		p_stream->read_object(&temp, sizeof(temp), p_abort);
+		if (temp.length == sizeof(temp)) m_data = temp;
+	}
 }
 
 

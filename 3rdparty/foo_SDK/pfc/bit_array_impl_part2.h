@@ -1,4 +1,7 @@
 #pragma once
+#include "avltree.h"
+#include "bsearch_inline.h"
+#include "array.h"
 
 namespace pfc {
 	//! Generic variable bit array implementation. \n

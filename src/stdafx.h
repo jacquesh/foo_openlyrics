@@ -5,5 +5,6 @@
 #include <chrono>
 #include <numeric>
 #include <optional>
+#include <string>
 #include <string_view>
 #pragma warning(pop)

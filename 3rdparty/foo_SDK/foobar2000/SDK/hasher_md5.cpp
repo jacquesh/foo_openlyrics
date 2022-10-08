@@ -39,5 +39,9 @@ t_uint64 hasher_md5_result::xorHalve() const {
 }
 
 pfc::string8 hasher_md5_result::asString() const {
-	return pfc::format_hexdump( this->m_data, sizeof(m_data), "").get_ptr();
+	return pfc::format_hexdump( this->m_data, sizeof(m_data), "");
+}
+
+GUID hasher_md5_result::toGUID() const {
+    return hasher_md5::guid_from_result( *this );
 }

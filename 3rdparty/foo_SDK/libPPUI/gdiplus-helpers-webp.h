@@ -4,14 +4,14 @@
 
 // Presumes prior #include of webp/decode.h
 
-static bool IsImageWebP(const void * ptr, size_t bytes) {
+inline bool IsImageWebP(const void * ptr, size_t bytes) {
 	if (bytes < 12) return false;
 	return memcmp(ptr, "RIFF", 4) == 0 && memcmp((const char*)ptr + 8, "WEBP", 4) == 0;
 }
 
 
 // WebP-aware GdiplusImageFromMem
-static Gdiplus::Image * GdiplusImageFromMem2(const void * ptr, size_t bytes) {
+static std::unique_ptr<Gdiplus::Image> GdiplusImageFromMem2(const void * ptr, size_t bytes) {
 	GdiplusErrorHandler EH;
 	using namespace Gdiplus;
 	if (IsImageWebP(ptr, bytes)) {
@@ -27,7 +27,7 @@ static Gdiplus::Image * GdiplusImageFromMem2(const void * ptr, size_t bytes) {
 		pfc::onLeaving scope([decodedData] {WebPFree(decodedData); });
 		if (decodedData == nullptr || w <= 0 || h <= 0) throw std::runtime_error("WebP decoding failure");
 
-		pfc::ptrholder_t<Bitmap> ret = new Gdiplus::Bitmap(w, h, pf);
+		std::unique_ptr<Bitmap> ret ( new Gdiplus::Bitmap(w, h, pf) );
 		EH << ret->GetLastStatus();
 		Rect rc(0, 0, w, h);
 		Gdiplus::BitmapData bitmapData;
@@ -40,7 +40,7 @@ static Gdiplus::Image * GdiplusImageFromMem2(const void * ptr, size_t bytes) {
 			source += pfBytes * w;
 		}
 		EH << ret->UnlockBits(&bitmapData);
-		return ret.detach();
+		return ret;
 	}
 	return GdiplusImageFromMem(ptr, bytes);
 }

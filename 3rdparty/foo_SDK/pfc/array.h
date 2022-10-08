@@ -1,5 +1,9 @@
 #pragma once
 
+#include <utility> // std::forward
+
+#include "alloc.h"
+
 namespace pfc {
 
 	template<typename t_item, template<typename> class t_alloc = alloc_standard> class array_t;
@@ -82,6 +86,13 @@ namespace pfc {
 		template<typename t_source> bool is_owned(const t_source & p_item) {return pfc::is_pointer_in_range(get_ptr(),get_size(),&p_item);}
 
 		template<typename t_out> void enumerate(t_out & out) const { for(t_size walk = 0; walk < m_size; ++walk) out(m_array[walk]); }
+
+		// Modern for loop support
+		t_item* begin() { return get_ptr(); }
+		t_item* end() { return get_ptr() + get_size(); }
+		const t_item* begin() const { return get_ptr(); }
+		const t_item* end() const { return get_ptr() + get_size(); }
+
 	private:
 		void release_() {
 			m_size = 0;
@@ -280,6 +291,12 @@ namespace pfc {
 		void move_from(t_self & other) {
 			m_alloc.move_from(other.m_alloc);
 		}
+		
+		// Modern for loop support
+		t_item* begin() { return get_ptr(); }
+		t_item* end() { return get_ptr() + get_size(); }
+		const t_item* begin() const { return get_ptr(); }
+		const t_item* end() const { return get_ptr() + get_size(); }
 	private:
 		t_alloc<t_item> m_alloc;
 	};

@@ -17,34 +17,34 @@ public:
 	LRESULT AccGetObject(WPARAM wp,LPARAM lp);
 	CWindow AccGetWnd() const {return m_wnd;}
 	virtual size_t AccGetItemCount() const {return 0;}
-	virtual LONG AccGetItemRole( size_t index ) const {return ROLE_SYSTEM_LISTITEM;}
-	virtual void AccGetItemName(size_t index, pfc::string_base & out) const {out = "";}
+	virtual LONG AccGetItemRole(size_t index) const { (void)index; return ROLE_SYSTEM_LISTITEM; }
+	virtual void AccGetItemName(size_t index, pfc::string_base& out) const { (void)index; out = ""; }
 	virtual void AccGetName(pfc::string_base & out) const;
-	virtual size_t AccGetFocusItem() const {return ~0;}
-	virtual bool AccIsItemSelected(size_t index) const {return false;}
-	virtual bool AccIsItemChecked( size_t index ) const { return false; }
-	virtual bool AccIsItemVisible(size_t index) const {return false;}
-	virtual bool AccGetItemDefaultAction(pfc::string_base & out) const {return false;}
-	virtual bool AccExecuteItemDefaultAction(size_t index) {return false;}
-	virtual void AccSetSelection(pfc::bit_array const & affected, pfc::bit_array const & state) {}
-	virtual void AccSetFocusItem(size_t index) {}
-	virtual bool AccGetItemRect(size_t index, CRect & out) const {return false;}
-	virtual bool AccGetItemDescription(size_t index, pfc::string_base & out) const {return false;}
-	virtual size_t AccItemHitTest(CPoint const & pt) const {return ~0;}
+	virtual size_t AccGetFocusItem() const {return SIZE_MAX;}
+	virtual bool AccIsItemSelected(size_t index) const { (void)index; return false; }
+	virtual bool AccIsItemChecked(size_t index) const { (void)index; return false; }
+	virtual bool AccIsItemVisible(size_t index) const { (void)index; return false; }
+	virtual bool AccGetItemDefaultAction(pfc::string_base& out) const { (void)out; return false; }
+	virtual bool AccExecuteItemDefaultAction(size_t index) { (void)index; return false; }
+	virtual void AccSetSelection(pfc::bit_array const& affected, pfc::bit_array const& state) { (void)affected; (void)state; }
+	virtual void AccSetFocusItem(size_t index) { (void)index; }
+	virtual bool AccGetItemRect(size_t index, CRect& out) const { (void)index; (void)out; return false; }
+	virtual bool AccGetItemDescription(size_t index, pfc::string_base& out) const { (void)index; (void)out; return false; }
+	virtual size_t AccItemHitTest(CPoint const& pt) const { (void)pt; return SIZE_MAX; }
 	
-	virtual DWORD AccGetOtherRole(size_t index) {return 0;}
+	virtual DWORD AccGetOtherRole(size_t index) { (void)index; return 0; }
 	virtual size_t AccGetOtherCount() const {return 0;}
-	virtual void AccGetOtherName(size_t index, pfc::string_base & out) const {out = "";}
-	virtual size_t AccGetFocusOther() const {return ~0;}
-	virtual void AccSetFocusOther(size_t index) {}
-	virtual bool AccIsOtherVisible(size_t index) const {return false;}
-	virtual bool AccGetOtherDescription(size_t index, pfc::string_base & out) const {return false;}
-	virtual size_t AccOtherHitTest(CPoint const & pt) const {return ~0;}
-	virtual bool AccIsOtherFocusable(size_t index) const {return false;}
-	virtual bool AccGetOtherDefaultAction(size_t index, pfc::string_base & out) const {return false;}
-	virtual bool AccExecuteOtherDefaultAction(size_t index) {return false;}
-	virtual bool AccGetOtherRect(size_t index, CRect & out) const {return false;}
-	virtual CWindow AccGetOtherChildWnd(size_t index) const {return NULL;}
+	virtual void AccGetOtherName(size_t index, pfc::string_base& out) const { (void)index; out = ""; }
+	virtual size_t AccGetFocusOther() const {return SIZE_MAX;}
+	virtual void AccSetFocusOther(size_t index) { (void)index; }
+	virtual bool AccIsOtherVisible(size_t index) const { (void)index; return false; }
+	virtual bool AccGetOtherDescription(size_t index, pfc::string_base& out) const { (void)index; (void)out; return false; }
+	virtual size_t AccOtherHitTest(CPoint const& pt) const { (void)pt; return SIZE_MAX; }
+	virtual bool AccIsOtherFocusable(size_t index) const { (void)index; return false; }
+	virtual bool AccGetOtherDefaultAction(size_t index, pfc::string_base& out) const { (void)index; (void)out; return false; }
+	virtual bool AccExecuteOtherDefaultAction(size_t index) { (void)index; return false; }
+	virtual bool AccGetOtherRect(size_t index, CRect& out) const { (void)index; (void)out; return false; }
+	virtual CWindow AccGetOtherChildWnd(size_t index) const { (void)index; return NULL; }
 
 	void AccItemNamesChanged( pfc::bit_array const & mask);
 	void AccReloadItems(pfc::bit_array const & mask );
@@ -178,12 +178,12 @@ protected:
 		this->SetFocusItem(index); 
 	}
 	
-	void OnFocusChangedGroup(int iGroup) override {
-		TBaseClass::OnFocusChangedGroup(iGroup);
-		AccFocusOtherChanged((size_t)iGroup);
+	void OnFocusChangedGroup2(size_t baseItem) override {
+		TBaseClass::OnFocusChangedGroup2(baseItem);
+		AccFocusOtherChanged((size_t)baseItem + 1);
 	}
-	void OnFocusChanged(size_t f) override {
-		TBaseClass::OnFocusChanged(f);
+	void OnFocusChanged(size_t o, size_t f) override {
+		TBaseClass::OnFocusChanged(o, f);
 		AccFocusItemChanged(f);
 	}
 
@@ -196,23 +196,25 @@ protected:
 	virtual DWORD AccGetOtherRole(size_t index) {return index > 0 ? ROLE_SYSTEM_GROUPING : ROLE_SYSTEM_WINDOW;}//FIXME?
 	virtual bool AccGetOtherDescription(size_t index, pfc::string_base & out) const {return false;}//FIXME??
 
-	size_t AccGetOtherCount() const {return 1 + this->GetGroupCount();}
+	size_t AccGetOtherCount() const {return 1 + this->GetItemCount();}
 	void AccGetOtherName(size_t index, pfc::string_base & out) const override {
 		if (index == 0) out = "Columns Header";
-		else if (!this->GetGroupHeaderText((int)index, out)) out = "";
+		else if (!this->GetGroupHeaderText2(index-1, out)) out = "";
 	}
 	size_t AccGetFocusOther() const override {
-		int focus = this->GetGroupFocus();
-		if (focus > 0) return (size_t) focus;
+		size_t focus = this->GetGroupFocus2();
+		if (focus != SIZE_MAX) return focus + 1;
 		else return SIZE_MAX;
 	}
 	void AccSetFocusOther(size_t index) override {
-		if (index > 0) this->SetGroupFocus((int)index);
+		if (index > 0) {
+			this->SetGroupFocusByItem(index-1);
+		}
 	}
 	bool AccIsOtherVisible(size_t index) const override {
 		if (index == 0) return true;
 		CRect rc;
-		if (!this->GetGroupHeaderRect((int)index,rc)) return false;
+		if (!this->GetGroupHeaderRect2(index-1,rc)) return false;
 		return IsRectVisible(rc);
 	}
 	
@@ -229,9 +231,9 @@ protected:
 				}
 			}
 		}
-		int group;
-		if (this->GroupHeaderFromPoint(pt,group)) return (size_t) group;
-		return ~0;
+		size_t groupBase;
+		if (this->GroupHeaderFromPoint2(pt, groupBase)) return groupBase+1;
+		return SIZE_MAX;
 	}
 	bool AccIsOtherFocusable(size_t index) const {return index > 0;}
 	bool AccGetOtherDefaultAction(size_t index, pfc::string_base & out) const {return false;}
@@ -247,7 +249,7 @@ protected:
 			if (!this->GetClientRect(client)) return false;
 			return !! out.IntersectRect(rc, client);
 		} else {
-			return this->GetGroupHeaderRect((int)index, out);
+			return this->GetGroupHeaderRect2(index-1, out);
 		}
 	}
 	LONG AccGetItemRole( size_t index ) const override {

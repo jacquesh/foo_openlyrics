@@ -2,7 +2,8 @@
 
 bool tag_processor_id3v2::g_get(service_ptr_t<tag_processor_id3v2> & p_out)
 {
-	return service_enum_t<tag_processor_id3v2>().first(p_out);
+	p_out = get();
+	return true;
 }
 
 void tag_processor_id3v2::g_remove(const service_ptr_t<file> & p_file,t_uint64 & p_size_removed,abort_callback & p_abort) {
@@ -57,6 +58,25 @@ t_size tag_processor_id3v2::g_multiskip(const service_ptr_t<file> & p_file,t_fil
 	p_size_skipped = offset;
 	return count;
 }
+
+uint32_t tag_processor_id3v2::g_tagsize(const void* pHeader10bytes) {
+	const uint8_t* tmp = (const uint8_t*)pHeader10bytes;
+	if ( 0 != memcmp(tmp, "ID3", 3) || (tmp[5] & 0x0F) != 0 || ((tmp[6] | tmp[7] | tmp[8] | tmp[9]) & 0x80) != 0 ) {
+		return 0;
+	}
+
+	int FooterPresent = tmp[5] & 0x10;
+
+	uint32_t ret;
+	ret = tmp[6] << 21;
+	ret += tmp[7] << 14;
+	ret += tmp[8] << 7;
+	ret += tmp[9];
+	ret += 10;
+	if (FooterPresent) ret += 10;
+	return ret;
+}
+
 void tag_processor_id3v2::g_skip(const service_ptr_t<file> & p_file,t_uint64 & p_size_skipped,abort_callback & p_abort) {
 	g_skip_at(p_file, 0, p_size_skipped, p_abort);
 }
@@ -73,25 +93,12 @@ void tag_processor_id3v2::g_skip_at(const service_ptr_t<file> & p_file,t_filesiz
 		return;
 	}
 
-	if ( 
-		0 != memcmp ( tmp, "ID3", 3) ||
-		( tmp[5] & 0x0F ) != 0 || 
-		((tmp[6] | tmp[7] | tmp[8] | tmp[9]) & 0x80) != 0 
-		) {
-		p_file->seek ( p_base, p_abort );
+	uint32_t ret = g_tagsize(tmp);
+	if (ret == 0) {
+		p_file->seek(p_base, p_abort);
 		p_size_skipped = 0;
 		return;
 	}
-
-	int FooterPresent     = tmp[5] & 0x10;
-
-	t_uint32 ret;
-	ret  = tmp[6] << 21;
-	ret += tmp[7] << 14;
-	ret += tmp[8] <<  7;
-	ret += tmp[9]      ;
-	ret += 10;
-	if ( FooterPresent ) ret += 10;
 
 	try {
 		p_file->seek ( p_base + ret, p_abort );
@@ -102,5 +109,4 @@ void tag_processor_id3v2::g_skip_at(const service_ptr_t<file> & p_file,t_filesiz
 	}
 
 	p_size_skipped = ret;
-
 }

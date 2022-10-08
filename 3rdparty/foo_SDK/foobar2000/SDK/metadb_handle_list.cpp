@@ -56,7 +56,7 @@ namespace {
 	class tfhook_sort : public titleformat_hook {
 	public:
 		tfhook_sort() {
-			m_API->seed((unsigned)__rdtsc());
+			m_API->seed();
 		}
 		bool process_field(titleformat_text_out * p_out,const char * p_name,t_size p_name_length,bool & p_found_flag) {
 			return false;
@@ -195,8 +195,6 @@ void metadb_handle_list_helper::sort_by_path_quick(metadb_handle_list_ref p_list
 
 void metadb_handle_list_helper::sort_by_pointer(metadb_handle_list_ref p_list)
 {
-	//it seems MSVC71 /GL does something highly retarded here
-	//p_list.sort_t(pfc::compare_t<metadb_handle_ptr,metadb_handle_ptr>);
 	p_list.sort();
 }
 
@@ -269,10 +267,8 @@ void metadb_handle_list_helper::sorted_by_pointer_extract_difference(metadb_hand
 double metadb_handle_list_helper::calc_total_duration(metadb_handle_list_cref p_list)
 {
 	double ret = 0;
-	t_size n, m = p_list.get_count();
-	for(n=0;n<m;n++)
-	{
-		double temp = p_list.get_item(n)->get_length();
+	for (auto handle : p_list) {
+		double temp = handle->get_length();
 		if (temp > 0) ret += temp;
 	}
 	return ret;

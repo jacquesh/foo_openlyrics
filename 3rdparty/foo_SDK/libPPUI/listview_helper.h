@@ -24,22 +24,10 @@ namespace listview_helper
 
 };
 
-static int ListView_GetFirstSelection(HWND p_listview) {
-	return ListView_GetNextItem(p_listview,-1,LVNI_SELECTED);
-}
-
-static int ListView_GetSingleSelection(HWND p_listview) {
-	if (ListView_GetSelectedCount(p_listview) != 1) return -1;
-	return ListView_GetFirstSelection(p_listview);
-}
-
-static int ListView_GetFocusItem(HWND p_listview) {
-	return ListView_GetNextItem(p_listview,-1,LVNI_FOCUSED);
-}
-
-static bool ListView_IsItemSelected(HWND p_listview,int p_index) {
-	return ListView_GetItemState(p_listview,p_index,LVIS_SELECTED) != 0;
-}
+int ListView_GetFirstSelection(HWND p_listview);
+int ListView_GetSingleSelection(HWND p_listview);
+int ListView_GetFocusItem(HWND p_listview);
+bool ListView_IsItemSelected(HWND p_listview, int p_index);
 
 void ListView_GetContextMenuPoint(HWND p_list,LPARAM p_coords,POINT & p_point,int & p_selection);
 void ListView_GetContextMenuPoint(HWND p_list,POINT p_coords,POINT & p_point,int & p_selection);

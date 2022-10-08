@@ -1,4 +1,5 @@
-#include "pfc.h"
+#include "pfc-lite.h"
+#include "string_base.h"
 
 namespace pfc {
 //utf8 stuff
@@ -52,15 +53,15 @@ static bool check_end_of_string(const char * ptr)
 	return !*ptr;
 }
 
-unsigned strcpy_utf8_truncate(const char * src,char * out,unsigned maxbytes)
+size_t strcpy_utf8_truncate(const char * src,char * out,size_t maxbytes)
 {
-	unsigned rv = 0 , ptr = 0;
+	size_t rv = 0 , ptr = 0;
 	if (maxbytes>0)
 	{	
 		maxbytes--;//for null
 		while(!check_end_of_string(src) && maxbytes>0)
 		{
-            unsigned delta = (unsigned)utf8_char_len(src);
+            size_t delta = utf8_char_len(src);
             if (delta>maxbytes || delta==0) break;
 			maxbytes -= delta;
             do 
@@ -74,7 +75,7 @@ unsigned strcpy_utf8_truncate(const char * src,char * out,unsigned maxbytes)
 	return rv;
 }
 
-t_size strlen_utf8(const char * p,t_size num) throw()
+t_size strlen_utf8(const char * p,t_size num) noexcept
 {
 	unsigned w;
 	t_size d;
@@ -90,7 +91,7 @@ t_size strlen_utf8(const char * p,t_size num) throw()
 	return ret;
 }
 
-t_size utf8_chars_to_bytes(const char * string,t_size count) throw()
+t_size utf8_chars_to_bytes(const char * string,t_size count) noexcept
 {
 	t_size bytes = 0;
 	while(count)
