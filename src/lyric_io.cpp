@@ -382,12 +382,19 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
         for(auto iter=source_handles.begin(); iter!=source_handles.end(); /*omitted*/)
         {
             LyricUpdateHandle& src_handle = *iter;
+
+            bool is_complete = src_handle.wait_for_complete(100);
+            // It's critically important that we wait for update handle completion above,
+            // *then* check for any pending results, *then* erase the handle if it is actually complete.
+            // If not, we could get a result while in the wait for completion and then if we immediately
+            // erase it without checking and passing out results, we'll sometimes miss passing valid
+            // search results out to the UI (in a manner dependent on the relative thread executions).
+
             while(src_handle.has_result())
             {
                 handle.set_result(src_handle.get_result(), false);
             }
 
-            bool is_complete = src_handle.wait_for_complete(100);
             if(is_complete)
             {
                 iter = source_handles.erase(iter);
