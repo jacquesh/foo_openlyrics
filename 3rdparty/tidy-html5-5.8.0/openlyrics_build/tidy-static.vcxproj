@@ -1,5 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -18,10 +18,70 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\access.c" />
+    <ClCompile Include="..\src\alloc.c" />
+    <ClCompile Include="..\src\attrdict.c" />
+    <ClCompile Include="..\src\attrs.c" />
+    <ClCompile Include="..\src\buffio.c" />
+    <ClCompile Include="..\src\charsets.c" />
+    <ClCompile Include="..\src\clean.c" />
+    <ClCompile Include="..\src\config.c" />
+    <ClCompile Include="..\src\entities.c" />
+    <ClCompile Include="..\src\fileio.c" />
+    <ClCompile Include="..\src\gdoc.c" />
+    <ClCompile Include="..\src\istack.c" />
+    <ClCompile Include="..\src\language.c" />
+    <ClCompile Include="..\src\lexer.c" />
+    <ClCompile Include="..\src\mappedio.c" />
+    <ClCompile Include="..\src\message.c" />
+    <ClCompile Include="..\src\messageobj.c" />
+    <ClCompile Include="..\src\parser.c" />
+    <ClCompile Include="..\src\pprint.c" />
+    <ClCompile Include="..\src\sprtf.c" />
+    <ClCompile Include="..\src\streamio.c" />
+    <ClCompile Include="..\src\tagask.c" />
+    <ClCompile Include="..\src\tags.c" />
+    <ClCompile Include="..\src\tidylib.c" />
+    <ClCompile Include="..\src\tmbstr.c" />
+    <ClCompile Include="..\src\utf8.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\tidy.h" />
+    <ClInclude Include="..\include\tidybuffio.h" />
+    <ClInclude Include="..\include\tidyenum.h" />
+    <ClInclude Include="..\include\tidyplatform.h" />
+    <ClInclude Include="..\src\access.h" />
+    <ClInclude Include="..\src\attrdict.h" />
+    <ClInclude Include="..\src\attrs.h" />
+    <ClInclude Include="..\src\charsets.h" />
+    <ClInclude Include="..\src\clean.h" />
+    <ClInclude Include="..\src\config.h" />
+    <ClInclude Include="..\src\entities.h" />
+    <ClInclude Include="..\src\fileio.h" />
+    <ClInclude Include="..\src\forward.h" />
+    <ClInclude Include="..\src\gdoc.h" />
+    <ClInclude Include="..\src\language.h" />
+    <ClInclude Include="..\src\language_en.h" />
+    <ClInclude Include="..\src\lexer.h" />
+    <ClInclude Include="..\src\mappedio.h" />
+    <ClInclude Include="..\src\message.h" />
+    <ClInclude Include="..\src\messageobj.h" />
+    <ClInclude Include="..\src\parser.h" />
+    <ClInclude Include="..\src\pprint.h" />
+    <ClInclude Include="..\src\sprtf.h" />
+    <ClInclude Include="..\src\streamio.h" />
+    <ClInclude Include="..\src\tags.h" />
+    <ClInclude Include="..\src\tidy-int.h" />
+    <ClInclude Include="..\src\tmbstr.h" />
+    <ClInclude Include="..\src\utf8.h" />
+    <ClInclude Include="..\src\version.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{07CF01C0-B887-499D-AD9C-799CB6A9FE64}</ProjectGuid>
+    <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>pugixml</RootNamespace>
+    <ProjectGuid>{7172cdeb-2391-41c4-883d-bd2c7b60c715}</ProjectGuid>
+    <RootNamespace>tidystatic</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -35,7 +95,7 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -48,7 +108,7 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -70,106 +130,90 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>vs2022\$(Platform)_$(Configuration)Static\</OutDir>
-    <IntDir>vs2022\$(Platform)_$(Configuration)Static\</IntDir>
-    <TargetName>pugixml</TargetName>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>vs2022\$(Platform)_$(Configuration)Static\</OutDir>
-    <IntDir>vs2022\$(Platform)_$(Configuration)Static\</IntDir>
-    <TargetName>pugixml</TargetName>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>vs2022\$(Platform)_$(Configuration)Static\</OutDir>
-    <IntDir>vs2022\$(Platform)_$(Configuration)Static\</IntDir>
-    <TargetName>pugixml</TargetName>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>vs2022\$(Platform)_$(Configuration)Static\</OutDir>
-    <IntDir>vs2022\$(Platform)_$(Configuration)Static\</IntDir>
-    <TargetName>pugixml</TargetName>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MinimalRebuild>false</MinimalRebuild>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
-      <MinimalRebuild>false</MinimalRebuild>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>
+      </SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>
+      </SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\pugiconfig.hpp" />
-    <ClInclude Include="..\src\pugixml.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\pugixml.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -31,6 +31,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add 'Search manually' to the playlist context menu\n"
     "- Add 'Edit lyrics' to the playlist context menu\n"
     "- Add 'Mark as instrumental' to the playlist context menu\n"
+    "- Add 64-bit build configuration\n"
     "- Move the playlist context menu entries into the OpenLyrics submenu\n"
     "- Improve clarity of the confirmation text for 'Mark as instrumental'\n"
     "- Delay lyric search when results aren't visible (e.g fb2k is minimised)\n"

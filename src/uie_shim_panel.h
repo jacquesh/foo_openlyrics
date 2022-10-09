@@ -20,7 +20,7 @@ public:
         TPanel::g_get_name(out);
     }
 
-    t_size get_supported_bools() const override
+    uint32_t get_supported_bools() const override
     {
         return 0;
     }
@@ -30,8 +30,8 @@ public:
         return false;
     }
 
-    void on_colour_changed(t_size mask) const override {}
-    void on_bool_changed(t_size mask) const override {}
+    void on_colour_changed(uint32_t mask) const override {}
+    void on_bool_changed(uint32_t mask) const override {}
 };
 
 template<typename TPanel>
