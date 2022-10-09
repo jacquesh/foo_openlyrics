@@ -49,7 +49,7 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
         return {};
     }
 
-    cJSON* song_arr = cJSON_GetObjectItem(song_obj, "list");
+    cJSON* song_arr = cJSON_GetObjectItem(song_obj, "itemlist");
     if((song_arr == nullptr) || (song_arr->type != cJSON_Array))
     {
         LOG_INFO("No valid 'list' property available");
@@ -74,35 +74,12 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
         }
 
         const char* result_artist = nullptr;
-        const char* result_album = nullptr;
         const char* result_title = nullptr;
 
-        cJSON* artist_list_item = cJSON_GetObjectItem(song_item, "singer");
-        if((artist_list_item != nullptr) && (artist_list_item->type == cJSON_Array))
+        cJSON* artist_item = cJSON_GetObjectItem(song_item, "singer");
+        if((artist_item != nullptr) && (artist_item->type == cJSON_String))
         {
-            int artist_list_len = cJSON_GetArraySize(artist_list_item);
-            if(artist_list_len > 0)
-            {
-                cJSON* artist_item = cJSON_GetArrayItem(artist_list_item, 0);
-                if((artist_item != nullptr) && (artist_item->type == cJSON_Object))
-                {
-                    cJSON* artist_name = cJSON_GetObjectItem(artist_item, "name");
-                    if((artist_name != nullptr) && (artist_name->type == cJSON_String))
-                    {
-                        result_artist = artist_name->valuestring;
-                    }
-                }
-            }
-        }
-
-        cJSON* album_item = cJSON_GetObjectItem(song_item, "album");
-        if((album_item != nullptr) && (album_item->type == cJSON_Object))
-        {
-            cJSON* album_title_item = cJSON_GetObjectItem(album_item, "name");
-            if((album_title_item != nullptr) && (album_title_item->type == cJSON_String))
-            {
-                result_album = album_title_item->valuestring;
-            }
+            result_artist = artist_item->valuestring;
         }
 
         cJSON* title_item = cJSON_GetObjectItem(song_item, "name");
@@ -121,7 +98,6 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
         LyricDataRaw data = {};
         data.source_id = src_guid;
         if(result_artist != nullptr) data.artist = result_artist;
-        if(result_album != nullptr) data.album = result_album;
         if(result_title != nullptr) data.title = result_title;
         data.lookup_id = song_id_item->valuestring;
         output.push_back(std::move(data));
@@ -132,7 +108,7 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json, const
 
 std::vector<LyricDataRaw> QQMusicLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
-    std::string url = "http://c.y.qq.com/soso/fcgi-bin/client_search_cp?p=1&n=10&new_json=1&cr=1&format=json&inCharset=utf-8&outCharset=utf-8&w=" + urlencode(artist) + '+' + urlencode(album) + '+' + urlencode(title);
+    std::string url = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?inCharset=utf-8&outCharset=utf-8&key=" + urlencode(artist) + '+' + urlencode(title);
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;
