@@ -120,7 +120,6 @@ namespace {
     };
 
     HWND LyricPanel::get_wnd() { return *this; }
-    void LyricPanel::initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL) }
     void LyricPanel::set_configuration(ui_element_config::ptr config) { m_config = config; }
     ui_element_config::ptr LyricPanel::get_configuration() { return m_config; }
 
@@ -137,6 +136,22 @@ namespace {
         m_lyrics(),
         m_callback(p_callback)
     {
+    }
+
+    void LyricPanel::initialize_window(HWND parent)
+    {
+        const _U_RECT rect = nullptr;
+        const TCHAR* window_name = nullptr;
+        const DWORD style = WS_CHILD | /*WS_VISIBLE |*/ WS_CLIPCHILDREN | WS_CLIPSIBLINGS; // Copied from atlwin.h's CControlWinTraits, used because we're implement CWindowImpl<>
+
+        // NOTE: We specifically need to exclude the WS_VISIBLE style (which causes the window
+        //       to be created already-visible) because including it results in ColumnsUI
+        //       logging a warning that the "panel was visible on creation".
+        //       It would seem that even without this style and without us making the panel
+        //       visible after creation, fb2k does this for us already.
+        //       See: https://github.com/jacquesh/foo_openlyrics/issues/132
+
+        WIN32_OP(Create(parent, rect, window_name, style) != NULL)
     }
 
     void LyricPanel::notify(const GUID& what, t_size /*param1*/, const void* /*param2*/, t_size /*param2size*/)

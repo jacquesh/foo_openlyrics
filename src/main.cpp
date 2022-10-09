@@ -40,6 +40,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix 'Invalid path syntax' error when saving lyrics to network share\n"
     "- Fix manual search results sometimes not showing up in the result list\n"
     "- Fix 'Collapse multiple instances of the same line' option being ignored\n"
+    "- Fix ColumnsUI warning that the openlyrics panel is visible on creation\n"
     "- Update ColumnsUI SDK to version 7.0.0 beta 2\n"
     "- Update foobar2k SDK to version 20220810\n"
     "- Change preferences nomenclature from 'ID3 tags' to 'Metadata tags'\n"
