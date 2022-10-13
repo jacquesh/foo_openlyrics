@@ -35,6 +35,8 @@ jobs:
         release_name="foo_openlyrics-${release_version}"
         echo "Release version ${release_version}"
         mkdir -p build_component_staging\x64
+        pwd
+        ls -lah
         pushd build_component_staging
         cp "..\build\Release\foo_openlyrics.dll" "."
         cp "..\build\x64\Release\foo_openlyrics.dll" "x64\"
