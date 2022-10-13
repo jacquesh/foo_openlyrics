@@ -45,7 +45,7 @@ jobs:
         pushd build_symbols_staging
         cp "../build/Release/foo_openlyrics.dll" "x86/"
         cp "../build/Release/foo_openlyrics.pdb" "x86/"
-        cp "...build/x64/Release/foo_openlyrics.dll" "x64/"
+        cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
         cp "../build/x64/Release/foo_openlyrics.pdb" "x64/"
         7z a "../${release_name}-with_debug_symbols.zip" "."
         popd
