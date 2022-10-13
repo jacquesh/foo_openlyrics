@@ -36,18 +36,18 @@ jobs:
         echo "Release version ${release_version}"
         mkdir -p build_component_staging/x64
         pushd build_component_staging
-        cp "..\build\Release\foo_openlyrics.dll" "."
-        cp "..\build\x64\Release\foo_openlyrics.dll" "x64\"
-        7z a -tzip "..\${release_name}.fb2k-component" "."
+        cp "../build/Release/foo_openlyrics.dll" "."
+        cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
+        7z a -tzip "../${release_name}.fb2k-component" "."
         popd
         mkdir -p build_symbols_staging/x86
         mkdir -p build_symbols_staging/x64
         pushd build_symbols_staging
-        cp "..\build\Release\foo_openlyrics.dll" "x86\"
-        cp "..\build\Release\foo_openlyrics.pdb" "x86\"
-        cp "..\build\x64\Release\foo_openlyrics.dll" "x64\"
-        cp "..\build\x64\Release\foo_openlyrics.pdb" "x64\"
-        7z a "..\${release_name}-with_debug_symbols.zip" "."
+        cp "../build/Release/foo_openlyrics.dll" "x86/"
+        cp "../build/Release/foo_openlyrics.pdb" "x86/"
+        cp "...build/x64/Release/foo_openlyrics.dll" "x64/"
+        cp "../build/x64/Release/foo_openlyrics.pdb" "x64/"
+        7z a "../${release_name}-with_debug_symbols.zip" "."
         popd
         echo "RELEASE_VERSION=${release_version}" >> $GITHUB_ENV
         echo "RELEASE_NAME=${release_name}" >> $GITHUB_ENV
