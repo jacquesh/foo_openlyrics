@@ -1148,7 +1148,11 @@ namespace {
                             }
                         }
 
-                        int exec_result = (int)ShellExecute(get_wnd(), _T("explore"), pathstr.c_str(), nullptr, nullptr, SW_SHOWMAXIMIZED);
+                        // Passing nullptr as the operation invokes the default "verb" for that object (as if the user had double-clicked on it in explorer).
+                        // See Raymond Chen's "The default verb is not necessarily 'open'": https://devblogs.microsoft.com/oldnewthing/20070430-00/?p=27063
+                        // This is important to ensure that the directory is opened in the default file explorer, if users have defined one other
+                        // than Windows Explorer (e.g https://github.com/derceg/explorerplusplus)
+                        int exec_result = (int)ShellExecute(get_wnd(), nullptr, pathstr.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
                         if(exec_result <= 32)
                         {
                             LOG_WARN("Failed to open lyric file directory: %d", exec_result);
