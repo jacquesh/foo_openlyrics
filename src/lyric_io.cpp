@@ -26,7 +26,7 @@ bool io::save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_over
 
 
     std::string text;
-    if(preferences::saving::merge_equivalent_lrc_lines())
+    if(lyrics.IsTimestamped() && preferences::saving::merge_equivalent_lrc_lines())
     {
         LyricData merged_lyrics = lyrics;
         const auto lexicographic_sort = [](const auto& lhs, const auto& rhs){ return lhs.text < rhs.text; };

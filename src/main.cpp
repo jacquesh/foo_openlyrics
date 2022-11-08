@@ -29,6 +29,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Fix always opening lyrics in explorer instead of the default file browser\n"
+    "- Fix LRC line-merge options reordering lines when saving unsynced lyrics\n"
     "\n";
     out += "Version 1.3 (2022-10-13):\n"
     "- Add 'Search manually' to the playlist context menu\n"
