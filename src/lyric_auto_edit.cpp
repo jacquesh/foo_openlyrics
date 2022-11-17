@@ -141,7 +141,17 @@ std::optional<LyricData> auto_edit::RemoveRepeatedBlankLines(const LyricData& ly
 std::optional<LyricData> auto_edit::RemoveAllBlankLines(const LyricData& lyrics)
 {
     LyricData new_lyrics = lyrics;
-    auto line_is_empty = [](const LyricDataLine& line) { return line.text.find_first_not_of(' ') == std::tstring::npos; };
+    auto line_is_empty = [](const LyricDataLine& line)
+    {
+        if(line.text.empty())
+        {
+            return true;
+        }
+
+        const auto is_not_whitespace = [](wchar_t c) { return std::iswspace(c) == 0; };
+        const auto first_not_whitespace = std::find_if(line.text.begin(), line.text.end(), is_not_whitespace);
+        return first_not_whitespace == line.text.end();
+    };
     auto new_end = std::remove_if(new_lyrics.lines.begin(), new_lyrics.lines.end(), line_is_empty);
     int lines_removed = std::distance(new_end, new_lyrics.lines.end());
     new_lyrics.lines.erase(new_end, new_lyrics.lines.end());

@@ -32,6 +32,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix LRC line-merge options reordering lines when saving unsynced lyrics\n"
     "- Fix manual search always failing if no track is playing\n"
     "- Fix bulk search not saving lyrics when auto-save is disabled\n"
+    "- Fix 'Remove all blank lines' skipping lines with certain blank characters\n"
     "\n";
     out += "Version 1.3 (2022-10-13):\n"
     "- Add 'Search manually' to the playlist context menu\n"
