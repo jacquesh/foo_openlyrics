@@ -173,7 +173,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         assert((m_next_search_index >= 0) && (m_next_search_index < m_tracks_to_search.size()));
 
         metadb_handle_ptr track = m_tracks_to_search[m_next_search_index];
-        m_child_update.emplace(LyricUpdateHandle::Type::AutoSearch, track, m_child_abort);
+        m_child_update.emplace(LyricUpdateHandle::Type::ManualSearch, track, m_child_abort);
 
         io::search_for_lyrics(m_child_update.value(), false);
 

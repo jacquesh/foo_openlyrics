@@ -513,6 +513,13 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
             LOG_ERROR("Failed to save downloaded lyrics: %s", e.what());
         }
     }
+    else
+    {
+        LOG_INFO("Skipping lyric save. User-requested: %s, Autosave: %s, Local: %s",
+                user_requested ? "yes" : "no",
+                should_autosave ? "yes" : "no",
+                loaded_from_local_src ? "yes" : "no");
+    }
 
     return {std::move(lyrics)};
 }
