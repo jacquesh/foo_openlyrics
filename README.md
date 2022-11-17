@@ -1,5 +1,8 @@
 # foo_openlyrics
 
+[![](.github/readme/bmc-button.png)](https://www.buymeacoffee.com/jacquesheunis)
+[![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/jacquesheunis/donate)
+
 An open-source lyrics plugin for [foobar2000](https://www.foobar2000.org/) that includes its own UI panel for displaying and sources for downloading lyrics that are not available locally. It is intended to be a replacement for LyricShowPanel3 so it is fully-featured and supports lyric searching, saving and editing directly from within foobar2000.
 
 ## Features
