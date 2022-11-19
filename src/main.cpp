@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "1.4"
+#define OPENLYRICS_VERSION "1.5-dev"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -27,6 +27,9 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Source available at https://github.com/jacquesh/foo_openlyrics\n";
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
+    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- TODO\n"
+    "\n";
     out += "Version 1.4 (2022-11-19):\n"
     "- Fix always opening lyrics in explorer instead of the default file browser\n"
     "- Fix LRC line-merge options reordering lines when saving unsynced lyrics\n"
