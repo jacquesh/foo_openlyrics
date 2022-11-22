@@ -80,11 +80,11 @@ bool LyricSourceRemote::is_local() const
     return false;
 }
 
-std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr track, abort_callback& abort)
+std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& track_info, abort_callback& abort)
 {
-    std::string artist = track_metadata(track, "artist");
-    std::string album = track_metadata(track, "album");
-    std::string title = track_metadata(track, "title");
+    std::string artist = track_metadata(track_info, "artist");
+    std::string album = track_metadata(track_info, "album");
+    std::string title = track_metadata(track_info, "title");
 
     if(preferences::searching::exclude_trailing_brackets())
     {

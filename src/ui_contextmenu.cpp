@@ -71,8 +71,9 @@ public:
 
                 const auto async_search = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
+                    const metadb_v2_rec_t track_info = track->query_v2_();
                     std::string dialog_title = "Track lyrics";
-                    std::string track_title = track_metadata(track, "title");
+                    std::string track_title = track_metadata(track_info, "title");
                     if(!track_title.empty())
                     {
                         dialog_title = '\'';
@@ -80,7 +81,7 @@ public:
                         dialog_title += "' lyrics";
                     }
 
-                    LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, abort);
+                    LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
                     io::search_for_lyrics(update, true);
                     bool success = update.wait_for_complete(30'000);
                     if(success)
@@ -125,7 +126,7 @@ public:
                 if(data.get_count() == 0) break;
                 metadb_handle_ptr track = data.get_item(0);
 
-                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, fb2k::noAbort/*TODO*/);
+                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, track->query_v2_(), fb2k::noAbort/*TODO*/);
                 if(are_there_any_lyric_panels())
                 {
                     SpawnManualLyricSearch(core_api::get_main_window(), *update);
@@ -142,17 +143,18 @@ public:
                 if(data.get_count() == 0) break;
                 metadb_handle_ptr track = data.get_item(0);
 
-                const auto async_instrumental = [track](threaded_process_status& /*status*/, abort_callback& abort)
+                const auto async_edit = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
-                    LyricUpdateHandle search_update(LyricUpdateHandle::Type::AutoSearch, track, abort);
+                    const metadb_v2_rec_t track_info = track->query_v2_();
+                    LyricUpdateHandle search_update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
                     io::search_for_lyrics(search_update, true);
                     bool success = search_update.wait_for_complete(30'000);
                     if(success)
                     {
                         LyricData lyrics = search_update.get_result();
-                        fb2k::inMainThread2([lyrics, track]()
+                        fb2k::inMainThread2([lyrics, track, track_info]()
                         {
-                            auto edit_update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, track, fb2k::noAbort);
+                            auto edit_update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, track, track_info, fb2k::noAbort);
 
                             if(are_there_any_lyric_panels())
                             {
@@ -167,7 +169,7 @@ public:
                     }
                 };
 
-                threaded_process::g_run_modeless(threaded_process_callback_lambda::create(async_instrumental),
+                threaded_process::g_run_modeless(threaded_process_callback_lambda::create(async_edit),
                                                  threaded_process::flag_show_delayed | threaded_process::flag_show_abort,
                                                  core_api::get_main_window(),
                                                  "Retrieving saved lyrics...");
@@ -176,19 +178,11 @@ public:
             case cmd_mark_instrumental:
             {
                 size_t track_count = data.get_count();
-                std::vector<metadb_handle_ptr> all_tracks;
-                all_tracks.reserve(track_count);
-                for(size_t i=0; i<track_count; i++)
-                {
-                    metadb_handle_ptr track = data.get_item(i);
-                    all_tracks.push_back(track);
-                }
-
                 std::string msg;
                 if(track_count == 1)
                 {
                     msg = "This will delete the lyrics stored locally for the selected track ";
-                    std::string track_str = get_track_friendly_string(all_tracks[0]);
+                    std::string track_str = get_track_friendly_string(data[0]->query_v2_());
                     if(!track_str.empty())
                     {
                         msg += "(" + track_str + ") ";
@@ -198,7 +192,7 @@ public:
                 else
                 {
                     msg = "This will delete the lyrics stored locally for the ";
-                    msg += std::to_string(all_tracks.size());
+                    msg += std::to_string(track_count);
                     msg += " selected tracks and mark those tracks as instrumental. OpenLyrics will no longer search for lyrics for those tracks automatically so it will not show any lyrics for those tracks until you explicitly request a search for it.\n\nAre you sure you want to proceed?";
                 }
                 popup_message_v3::query_t query = {};
@@ -213,12 +207,35 @@ public:
                     break;
                 }
 
-                const auto async_instrumental = [all_tracks](threaded_process_status& /*status*/, abort_callback& abort)
+                pfc::list_t<metadb_handle_ptr> data_copy;
+                data_copy.add_items(data);
+                const auto async_instrumental = [data_copy, track_count](threaded_process_status& /*status*/, abort_callback& abort)
                 {
                     size_t failure_count = 0;
-                    for(metadb_handle_ptr track : all_tracks)
+
+                    pfc::array_t<metadb_v2_rec_t> all_track_info;
+                    all_track_info.resize(track_count);
+
+                    metadb_v2::ptr meta;
+                    if(metadb_v2::tryGet(meta)) // metadb_v2 is only available from fb2k v2.0 onwards
                     {
-                        LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, abort);
+                        const auto fill_track_info = [&all_track_info](size_t idx, const metadb_v2_rec_t& rec) { all_track_info[idx] = rec; };
+                        meta->queryMultiParallel_(data_copy, fill_track_info);
+                    }
+                    else
+                    {
+                        for(size_t i=0; i<track_count; i++)
+                        {
+                            all_track_info[i] = data_copy[i]->query_v2_();
+                        }
+                    }
+
+                    for(size_t i=0; i<track_count; i++)
+                    {
+                        metadb_handle_ptr track = data_copy.get_item(i);
+                        const metadb_v2_rec_t& track_info = all_track_info[i];
+
+                        LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
                         io::search_for_lyrics(update, true);
                         bool success = update.wait_for_complete(30'000);
                         if(success)
@@ -236,13 +253,13 @@ public:
                         search_avoidance_force_avoidance(track);
                     }
 
-                    fb2k::inMainThread2([failure_count, total_count = all_tracks.size()]()
+                    fb2k::inMainThread2([failure_count, track_count]()
                     {
                         std::string msg;
                         if(failure_count == 0)
                         {
                             msg += "Successfully marked all ";
-                            msg += std::to_string(total_count);
+                            msg += std::to_string(track_count);
                             msg += " tracks as instrumental";
                         }
                         else
@@ -250,7 +267,7 @@ public:
                             msg += "Failed to mark ";
                             msg += std::to_string(failure_count);
                             msg += " (of ";
-                            msg += std::to_string(total_count);
+                            msg += std::to_string(track_count);
                             msg += ") tracks as instrumental! See the log for details.";
                         }
 

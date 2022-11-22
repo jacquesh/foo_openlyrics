@@ -94,7 +94,7 @@ namespace {
         void DrawTimestampedLyricsVertical(HDC dc, CRect client_area);
         void DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area);
 
-        void InitiateLyricSearch(metadb_handle_ptr track);
+        void InitiateLyricSearch();
 
         ui_element_config::ptr m_config;
         abort_callback_impl m_child_abort;
@@ -102,6 +102,7 @@ namespace {
         bool m_timerRunning = false;
 
         metadb_handle_ptr m_now_playing;
+        metadb_v2_rec_t m_now_playing_info;
         std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
         bool m_search_pending = false;
@@ -166,6 +167,7 @@ namespace {
     void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     {
         m_now_playing = track;
+        m_now_playing_info = track->query_v2_();
         m_manual_scroll_distance = 0;
         m_search_pending = true;
 
@@ -181,6 +183,7 @@ namespace {
     void LyricPanel::on_playback_stop(play_control::t_stop_reason /*reason*/)
     {
         m_now_playing = nullptr;
+        m_now_playing_info = {};
         m_lyrics = {};
         m_auto_search_avoided = false;
         StopTimer();
@@ -420,9 +423,9 @@ namespace {
         //       metadb.h (in foo_SDK) -> metadb_display_field_provider
         //       which exists to let you hook into the title format process and add new fields.
 
-        std::string artist = track_metadata(m_now_playing, "artist");
-        std::string album = track_metadata(m_now_playing, "album");
-        std::string title = track_metadata(m_now_playing, "title");
+        std::string artist = track_metadata(m_now_playing_info, "artist");
+        std::string album = track_metadata(m_now_playing_info, "album");
+        std::string title = track_metadata(m_now_playing_info, "title");
 
         int total_height = 0;
         std::tstring artist_line;
@@ -873,7 +876,7 @@ namespace {
                 //       again at least once, possibly finding something if there are new active sources.
                 if(search_avoidance_allows_search(m_now_playing))
                 {
-                    InitiateLyricSearch(m_now_playing);
+                    InitiateLyricSearch();
                 }
                 else
                 {
@@ -1060,14 +1063,14 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
-                    InitiateLyricSearch(m_now_playing);
+                    InitiateLyricSearch();
                 } break;
 
                 case ID_SEARCH_LYRICS_MANUAL:
                 {
                     if(m_now_playing == nullptr) break;
 
-                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_child_abort);
+                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_now_playing_info, m_child_abort);
                     SpawnManualLyricSearch(get_wnd(), *update);
                     m_update_handles.push_back(std::move(update));
                 } break;
@@ -1102,7 +1105,7 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
-                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_child_abort);
+                    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
                     SpawnLyricEditor(get_wnd(), m_lyrics, *update);
                     m_update_handles.push_back(std::move(update));
                 } break;
@@ -1165,7 +1168,7 @@ namespace {
                     if(m_now_playing == nullptr) break;
 
                     std::string msg = "This will delete the lyrics stored locally for the current track ";
-                    std::string track_str = get_track_friendly_string(m_lyrics);
+                    std::string track_str = get_track_friendly_string(m_now_playing_info);
                     if(!track_str.empty())
                     {
                         msg += "(" + track_str + ") ";
@@ -1234,7 +1237,7 @@ namespace {
                     if(m_now_playing == nullptr) break;
 
                     std::string msg = "This will delete the lyrics stored locally for the current track";
-                    std::string track_str = get_track_friendly_string(m_lyrics);
+                    std::string track_str = get_track_friendly_string(m_now_playing_info);
                     if(!track_str.empty())
                     {
                         msg += "(" + track_str + ")";
@@ -1269,7 +1272,7 @@ namespace {
 
             if(updated_lyrics.has_value())
             {
-                LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, m_child_abort);
+                LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
                 update.set_started();
                 update.set_result(std::move(updated_lyrics.value()), true);
 
@@ -1289,7 +1292,7 @@ namespace {
     {
         if(m_now_playing == nullptr) return;
 
-        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_child_abort);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
         SpawnLyricEditor(get_wnd(), m_lyrics, *update);
         m_update_handles.push_back(std::move(update));
     }
@@ -1437,12 +1440,12 @@ namespace {
         WIN32_OP(KillTimer(PANEL_UPDATE_TIMER))
     }
 
-    void LyricPanel::InitiateLyricSearch(metadb_handle_ptr track)
+    void LyricPanel::InitiateLyricSearch()
     {
         m_lyrics = {};
         m_auto_search_avoided = false;
 
-        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, track, m_child_abort);
+        auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
         io::search_for_lyrics(*update, false);
         m_update_handles.push_back(std::move(update));
     }

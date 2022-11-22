@@ -190,9 +190,9 @@ static void ensure_utf8(LyricDataRaw& lyric)
 static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
     handle.set_started();
-    std::string tag_artist = track_metadata(handle.get_track(), "artist");
-    std::string tag_album = track_metadata(handle.get_track(), "album");
-    std::string tag_title = track_metadata(handle.get_track(), "title");
+    std::string tag_artist = track_metadata(handle.get_track_info(), "artist");
+    std::string tag_album = track_metadata(handle.get_track_info(), "album");
+    std::string tag_title = track_metadata(handle.get_track_info(), "title");
     LOG_INFO("Searching for lyrics for artist='%s', album='%s', title='%s'...", tag_artist.c_str(), tag_album.c_str(), tag_title.c_str());
 
     LyricDataRaw lyric_data_raw = {};
@@ -215,7 +215,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
             {
                 handle.set_remote_source_searched();
             }
-            std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_checked_abort());
+            std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
 
             for(LyricDataRaw& result : search_results)
             {
@@ -329,7 +329,7 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
         std::vector<LyricDataRaw> search_results;
         if(source->is_local())
         {
-            search_results = source->search(handle.get_track(), handle.get_checked_abort());
+            search_results = source->search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         }
         else
         {
@@ -405,7 +405,7 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
 
-        source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_checked_abort());
+        source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         LyricUpdateHandle& src_handle = source_handles.back();
 
         fb2k::splitTask([&src_handle, source, artist, album, title](){
@@ -562,8 +562,9 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     }
 }
 
-LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort) :
+LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
     m_track(track),
+    m_track_info(track_info),
     m_type(type),
     m_mutex({}),
     m_lyrics(),
@@ -681,6 +682,11 @@ abort_callback& LyricUpdateHandle::get_checked_abort()
 metadb_handle_ptr LyricUpdateHandle::get_track()
 {
     return m_track;
+}
+
+const metadb_v2_rec_t& LyricUpdateHandle::get_track_info()
+{
+    return m_track_info;
 }
 
 void LyricUpdateHandle::set_started()

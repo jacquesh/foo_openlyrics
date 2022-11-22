@@ -31,7 +31,7 @@ std::string get_track_friendly_string(const LyricData& lyrics)
     return get_friendly_string(lyrics.artist, lyrics.title);
 }
 
-std::string get_track_friendly_string(metadb_handle_ptr track)
+std::string get_track_friendly_string(const metadb_v2_rec_t& track_info)
 {
-    return get_friendly_string(track_metadata(track, "artist"), track_metadata(track, "title"));
+    return get_friendly_string(track_metadata(track_info, "artist"), track_metadata(track_info, "title"));
 }

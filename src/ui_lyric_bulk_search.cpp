@@ -41,16 +41,46 @@ private:
     std::optional<LyricUpdateHandle> m_child_update;
     abort_callback_impl m_child_abort;
 
-    const std::vector<metadb_handle_ptr> m_tracks_to_search;
+    struct TrackAndInfo
+    {
+        metadb_handle_ptr track;
+        metadb_v2_rec_t track_info;
+    };
+    std::vector<TrackAndInfo> m_tracks_to_search;
     size_t m_next_search_index;
 };
 
 static const UINT_PTR BULK_SEARCH_UPDATE_TIMER = 290110919;
 
-BulkLyricSearch::BulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search) :
-    m_tracks_to_search(tracks_to_search),
-    m_next_search_index(0)
+BulkLyricSearch::BulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
+    : m_next_search_index(0)
 {
+    const size_t track_count = tracks_to_search.size();
+    m_tracks_to_search.reserve(track_count);
+    for(metadb_handle_ptr handle : tracks_to_search)
+    {
+        m_tracks_to_search.push_back(TrackAndInfo{handle, {}});
+    }
+
+    metadb_v2::ptr meta;
+    if(metadb_v2::tryGet(meta)) // metadb_v2 is only available from fb2k v2.0 onwards
+    {
+        pfc::list_t<metadb_handle_ptr> track_info_query_list;
+        track_info_query_list.prealloc(track_count);
+        for(metadb_handle_ptr handle : tracks_to_search)
+        {
+            track_info_query_list.add_item(handle);
+        }
+        const auto fill_track_info = [this](size_t idx, const metadb_v2_rec_t& rec) { m_tracks_to_search[idx].track_info = rec; };
+        meta->queryMultiParallel_(track_info_query_list, fill_track_info);
+    }
+    else
+    {
+        for(size_t i=0; i<track_count; i++)
+        {
+            m_tracks_to_search[i].track_info = tracks_to_search[i]->query_v2_();
+        }
+    }
 }
 
 BulkLyricSearch::~BulkLyricSearch()
@@ -89,10 +119,10 @@ BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_SETSTEP, 1, 0);
     SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_SETRANGE32, 0, m_tracks_to_search.size());
 
-    for(metadb_handle_ptr handle : m_tracks_to_search)
+    for(const TrackAndInfo& track : m_tracks_to_search)
     {
-        std::tstring ui_title = to_tstring(track_metadata(handle, "title"));
-        std::tstring ui_artist = to_tstring(track_metadata(handle, "artist"));
+        std::tstring ui_title = to_tstring(track_metadata(track.track_info, "title"));
+        std::tstring ui_artist = to_tstring(track_metadata(track.track_info, "artist"));
 
         LVITEM item = {};
         item.mask = LVIF_TEXT;
@@ -172,8 +202,8 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
     {
         assert((m_next_search_index >= 0) && (m_next_search_index < m_tracks_to_search.size()));
 
-        metadb_handle_ptr track = m_tracks_to_search[m_next_search_index];
-        m_child_update.emplace(LyricUpdateHandle::Type::ManualSearch, track, m_child_abort);
+        const TrackAndInfo& track = m_tracks_to_search[m_next_search_index];
+        m_child_update.emplace(LyricUpdateHandle::Type::ManualSearch, track.track, track.track_info, m_child_abort);
 
         io::search_for_lyrics(m_child_update.value(), false);
 

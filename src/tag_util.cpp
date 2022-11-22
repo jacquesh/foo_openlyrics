@@ -115,10 +115,9 @@ bool tag_values_match(std::string_view tagA, std::string_view tagB)
     return (compute_edit_distance(tagA, tagB) <= MAX_TAG_EDIT_DISTANCE);
 }
 
-std::string track_metadata(metadb_handle_ptr track, std::string_view key)
+std::string track_metadata(const metadb_v2_rec_t& track, std::string_view key)
 {
-    const metadb_info_container::ptr& track_info_container = track->get_info_ref();
-    const file_info& track_info = track_info_container->info();
+    const file_info& track_info = track.info->info();
     return track_metadata(track_info, key);
 }
 

@@ -14,7 +14,7 @@ class LocalFileSource : public LyricSourceBase
     std::tstring_view friendly_name() const final { return _T("Local files"); }
     bool is_local() const final { return true; }
 
-    std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
@@ -24,9 +24,9 @@ class LocalFileSource : public LyricSourceBase
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
-std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort_callback& abort)
+std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort)
 {
-    std::string file_path_prefix = preferences::saving::filename(track);
+    std::string file_path_prefix = preferences::saving::filename(track, track_info);
 
     if(file_path_prefix.empty())
     {
@@ -49,9 +49,9 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, abort
                 LyricDataRaw result = {};
                 result.source_id = id();
                 result.source_path = file_path;
-                result.artist = track_metadata(track, "artist");
-                result.album = track_metadata(track, "album");
-                result.title = track_metadata(track, "title");
+                result.artist = track_metadata(track_info, "artist");
+                result.album = track_metadata(track_info, "album");
+                result.title = track_metadata(track_info, "title");
                 result.lookup_id = file_path;
                 output.push_back(std::move(result));
             }
@@ -118,7 +118,8 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
 std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
-    std::string output_path_str = preferences::saving::filename(track);
+    const metadb_v2_rec_t track_info = track->query_v2_();
+    std::string output_path_str = preferences::saving::filename(track, track_info);
     if(output_path_str.empty())
     {
         throw std::exception("Failed to determine save file path");

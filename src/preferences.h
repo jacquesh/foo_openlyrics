@@ -78,7 +78,7 @@ namespace preferences
         AutoSaveStrategy autosave_strategy();
         GUID save_source();
 
-        std::string filename(metadb_handle_ptr track);
+        std::string filename(metadb_handle_ptr track, const metadb_v2_rec_t& track_info);
 
         std::string_view untimed_tag();
         std::string_view timestamped_tag();

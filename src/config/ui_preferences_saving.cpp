@@ -101,7 +101,7 @@ GUID preferences::saving::save_source()
     }
 }
 
-std::string preferences::saving::filename(metadb_handle_ptr track)
+std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
     const char* name_format_str = cfg_save_filename_format.c_str();
     titleformat_object::ptr name_format_script;
@@ -113,12 +113,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track)
     }
 
     pfc::string8 formatted_name;
-    bool format_success = track->format_title(nullptr, formatted_name, name_format_script, nullptr);
-    if(!format_success)
-    {
-        LOG_WARN("Failed to format save file title using format: %s", name_format_str);
-        return "";
-    }
+    track->formatTitle_v2_(track_info, nullptr, formatted_name, name_format_script, nullptr);
     formatted_name = pfc::io::path::replaceIllegalNameChars(formatted_name);
 
     std::string dir_class_name = "(Unknown)";

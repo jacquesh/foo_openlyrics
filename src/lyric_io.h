@@ -33,7 +33,7 @@ public:
         Edit,
     };
 
-    LyricUpdateHandle(Type type, metadb_handle_ptr track, abort_callback& abort);
+    LyricUpdateHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
     LyricUpdateHandle(const LyricUpdateHandle& other) = delete;
     LyricUpdateHandle(LyricUpdateHandle&& other);
     ~LyricUpdateHandle();
@@ -48,6 +48,7 @@ public:
 
     abort_callback& get_checked_abort(); // Checks the abort flag (so it might throw) and returns it
     metadb_handle_ptr get_track();
+    const metadb_v2_rec_t& get_track_info();
 
     void set_started();
     void set_progress(std::string_view value);
@@ -66,6 +67,7 @@ private:
     };
 
     const metadb_handle_ptr m_track;
+    const metadb_v2_rec_t m_track_info;
     const Type m_type;
 
     CRITICAL_SECTION m_mutex;

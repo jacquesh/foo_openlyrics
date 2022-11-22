@@ -12,7 +12,7 @@ class ID3TagLyricSource : public LyricSourceBase
     std::tstring_view friendly_name() const final { return _T("Metadata tags"); }
     bool is_local() const final { return true; }
 
-    std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
@@ -23,19 +23,15 @@ class ID3TagLyricSource : public LyricSourceBase
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abort_callback& abort)
+std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& track_info, abort_callback& abort)
 {
     std::vector<LyricDataRaw> result;
-
-    // NOTE: We can't use track_metadata() for this because we need the *full* info.
-    //       Lyric tags are not usually available in the data that is loaded by default.
-    const metadb_info_container::ptr& track_info_container = track->get_full_info_ref(abort);
-    const file_info& track_info = track_info_container->info();
+    const file_info& info = track_info.info->info();
 
     for(const std::string& tag : preferences::searching::tags())
     {
         LOG_INFO("Searching for lyrics in tag: '%s'", tag.c_str());
-        size_t lyric_value_index = track_info.meta_find_ex(tag.c_str(), tag.length());
+        size_t lyric_value_index = info.meta_find_ex(tag.c_str(), tag.length());
         if(lyric_value_index == pfc::infinite_size)
         {
             continue;
@@ -44,14 +40,14 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, abo
         LyricDataRaw lyric = {};
         lyric.source_id = src_guid;
         lyric.source_path = tag;
-        lyric.artist = track_metadata(track, "artist");
-        lyric.album = track_metadata(track, "album");
-        lyric.title = track_metadata(track, "title");
+        lyric.artist = track_metadata(track_info, "artist");
+        lyric.album = track_metadata(track_info, "album");
+        lyric.title = track_metadata(track_info, "title");
 
-        size_t value_count = track_info.meta_enum_value_count(lyric_value_index);
+        size_t value_count = info.meta_enum_value_count(lyric_value_index);
         for(size_t i=0; i<value_count; i++)
         {
-            const char* value = track_info.meta_enum_value(lyric_value_index, i);
+            const char* value = info.meta_enum_value(lyric_value_index, i);
             lyric.text += value;
         }
 

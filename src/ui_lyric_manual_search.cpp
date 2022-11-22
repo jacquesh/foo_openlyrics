@@ -119,10 +119,10 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
     m_parent_update.set_started();
 
-    metadb_handle_ptr initial_track = m_parent_update.get_track();
-    std::string artist = track_metadata(initial_track, "artist");
-    std::string album = track_metadata(initial_track, "album");
-    std::string title = track_metadata(initial_track, "title");
+    const metadb_v2_rec_t& initial_track_info = m_parent_update.get_track_info();
+    std::string artist = track_metadata(initial_track_info, "artist");
+    std::string album = track_metadata(initial_track_info, "album");
+    std::string title = track_metadata(initial_track_info, "title");
 
     std::tstring artist_ui = to_tstring(artist);
     std::tstring album_ui = to_tstring(album);
@@ -299,7 +299,7 @@ void ManualLyricSearch::start_search()
     assert(!m_child_update.has_value());
     try
     {
-        m_child_update.emplace(m_parent_update.get_type(), m_parent_update.get_track(), m_child_abort);
+        m_child_update.emplace(m_parent_update.get_type(), m_parent_update.get_track(), m_parent_update.get_track_info(), m_child_abort);
     }
     catch(const std::exception& e)
     {

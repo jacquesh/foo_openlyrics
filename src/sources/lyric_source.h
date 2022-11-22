@@ -20,7 +20,7 @@ public:
     virtual std::tstring_view friendly_name() const = 0;
     virtual bool is_local() const = 0;
 
-    virtual std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) = 0;
+    virtual std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) = 0;
     virtual bool lookup(LyricDataRaw& data, abort_callback& abort) = 0;
 
     virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
@@ -36,7 +36,7 @@ class LyricSourceRemote : public LyricSourceBase
 {
 public:
     bool is_local() const final;
-    std::vector<LyricDataRaw> search(metadb_handle_ptr track, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
     std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
