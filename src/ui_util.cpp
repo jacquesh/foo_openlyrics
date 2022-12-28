@@ -26,11 +26,6 @@ static std::string get_friendly_string(std::string_view artist, std::string_view
     return result;
 }
 
-std::string get_track_friendly_string(const LyricData& lyrics)
-{
-    return get_friendly_string(lyrics.artist, lyrics.title);
-}
-
 std::string get_track_friendly_string(const metadb_v2_rec_t& track_info)
 {
     return get_friendly_string(track_metadata(track_info, "artist"), track_metadata(track_info, "title"));
