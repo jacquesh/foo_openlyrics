@@ -106,7 +106,7 @@ namespace {
 		}
 	}
 
-	class CInPlaceEditBox : public CContainedWindowSimpleT<CEdit> {
+	class CInPlaceEditBox : public CWindowImpl<CInPlaceEditBox, CEdit> {
 	public:
 		CInPlaceEditBox(uint32_t flags) : m_flags(flags) {}
 		BEGIN_MSG_MAP_EX(CInPlaceEditBox)

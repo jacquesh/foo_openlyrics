@@ -108,7 +108,7 @@ namespace {
 		}
 	}
 
-	class CInPlaceComboBox : public CContainedWindowSimpleT<CComboBox> {
+	class CInPlaceComboBox : public CWindowImpl<CInPlaceComboBox, CComboBox> {
 	public:
 		BEGIN_MSG_MAP_EX(CInPlaceComboBox)
 			//MSG_WM_CREATE(OnCreate)

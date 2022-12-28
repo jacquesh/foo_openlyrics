@@ -1,5 +1,8 @@
-#include "foobar2000.h"
-
+#include "foobar2000-sdk-pch.h"
+#include "console_manager.h"
+#include "console.h"
+#include "metadb_handle.h"
+#include "event_logger.h"
 
 void console::info(const char * p_message) {print(p_message);}
 void console::error(const char * p_message) {complain("Error", p_message);}
@@ -28,9 +31,9 @@ void console::complain(const char * what, std::exception const & e) {
 void console::print(const char* p_message)
 {
 	if (core_api::are_services_available()) {
-		service_ptr_t<console_receiver> ptr;
-		service_enum_t<console_receiver> e;
-		while(e.next(ptr)) ptr->print(p_message,~0);
+		for (auto p : console_receiver::enumerate()) {
+			p->print(p_message, SIZE_MAX);
+		}
 	}
 }
 
@@ -79,4 +82,26 @@ namespace {
 
 event_logger_recorder::ptr event_logger_recorder::create() {
 	return new service_impl_t<event_logger_recorder_impl>();
+}
+
+
+
+
+namespace console {
+	void addNotify(fb2k::console_notify* n) {
+		static_api_ptr_t<fb2k::console_manager>()->addNotify(n);
+	}
+	void removeNotify(fb2k::console_notify* n) {
+		static_api_ptr_t<fb2k::console_manager>()->removeNotify(n);
+	}
+	fb2k::arrayRef getLines() {
+		return static_api_ptr_t<fb2k::console_manager>()->getLines();
+	}
+	void clearBacklog() {
+		static_api_ptr_t<fb2k::console_manager>()->clearBacklog();
+	}
+
+	bool isVerbose() {
+		return static_api_ptr_t<fb2k::console_manager>()->isVerbose();
+	}
 }

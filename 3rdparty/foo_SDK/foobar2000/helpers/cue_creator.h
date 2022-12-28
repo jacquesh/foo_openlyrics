@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cuesheet_index_list.h"
+#include <SDK/file_info_impl.h>
 
 namespace cue_creator
 {

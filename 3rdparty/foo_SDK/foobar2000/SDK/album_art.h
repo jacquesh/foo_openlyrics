@@ -1,55 +1,26 @@
 #pragma once
 
 #include <functional>
+#include "commonObjects.h"
+#include "exception_io.h"
+#include "filesystem.h"
+#include "metadb.h"
 
-//! Common class for handling picture data. \n
-//! Type of contained picture data is unknown and to be determined according to memory block contents by code parsing/rendering the picture. Commonly encountered types are: BMP, PNG, JPEG and GIF. \n
-//! Implementation: use album_art_data_impl.
-class NOVTABLE album_art_data : public service_base {
-	FB2K_MAKE_SERVICE_INTERFACE(album_art_data, service_base);
-public:
-	//! Retrieves a pointer to a memory block containing the picture.
-	virtual const void * get_ptr() const = 0;
-	//! Retrieves size of the memory block containing the picture.
-	virtual t_size get_size() const = 0;
-
-	//! New code compat
-	size_t size() const { return get_size(); }
-	const void * data() const { return get_ptr(); }
-
-	//! Determine whether two album_art_data objects store the same picture data.
-	static bool equals(album_art_data const & v1, album_art_data const & v2) {
-		const t_size s = v1.get_size();
-		if (s != v2.get_size()) return false;
-		return memcmp(v1.get_ptr(), v2.get_ptr(),s) == 0;
-	}
-	static bool equals(ptr const& v1, ptr const& v2) {
-		if (v1.is_valid() != v2.is_valid()) return false;
-		if (v1.is_empty() && v2.is_empty()) return true;
-		return equals(*v1, *v2);
-	}
-
-	bool operator==(const album_art_data & other) const {return equals(*this,other);}
-	bool operator!=(const album_art_data & other) const {return !equals(*this,other);}
-};
-
-typedef service_ptr_t<album_art_data> album_art_data_ptr;
 namespace fb2k {
-	typedef album_art_data_ptr memBlockRef;
+    class image;
 }
-
 //! Namespace containing identifiers of album art types.
 namespace album_art_ids {
 	//! Front cover.
-	static const GUID cover_front = { 0xf1e66f4e, 0xfe09, 0x4b94, { 0x91, 0xa3, 0x67, 0xc2, 0x3e, 0xd1, 0x44, 0x5e } };
+	static constexpr GUID cover_front = { 0xf1e66f4e, 0xfe09, 0x4b94, { 0x91, 0xa3, 0x67, 0xc2, 0x3e, 0xd1, 0x44, 0x5e } };
 	//! Back cover.
-	static const GUID cover_back = { 0xcb552d19, 0x86d5, 0x434c, { 0xac, 0x77, 0xbb, 0x24, 0xed, 0x56, 0x7e, 0xe4 } };
+	static constexpr GUID cover_back = { 0xcb552d19, 0x86d5, 0x434c, { 0xac, 0x77, 0xbb, 0x24, 0xed, 0x56, 0x7e, 0xe4 } };
 	//! Picture of a disc or other storage media.
-	static const GUID disc = { 0x3dba9f36, 0xf928, 0x4fa4, { 0x87, 0x9c, 0xd3, 0x40, 0x47, 0x59, 0x58, 0x7e } };
+	static constexpr GUID disc = { 0x3dba9f36, 0xf928, 0x4fa4, { 0x87, 0x9c, 0xd3, 0x40, 0x47, 0x59, 0x58, 0x7e } };
 	//! Album-specific icon (NOT a file type icon).
-	static const GUID icon = { 0x74cdf5b4, 0x7053, 0x4b3d, { 0x9a, 0x3c, 0x54, 0x69, 0xf5, 0x82, 0x6e, 0xec } };
+	static constexpr GUID icon = { 0x74cdf5b4, 0x7053, 0x4b3d, { 0x9a, 0x3c, 0x54, 0x69, 0xf5, 0x82, 0x6e, 0xec } };
 	//! Artist picture.
-	static const GUID artist = { 0x9a654042, 0xacd1, 0x43f7, { 0xbf, 0xcf, 0xd3, 0xec, 0xf, 0xfe, 0x40, 0xfa } };
+	static constexpr GUID artist = { 0x9a654042, 0xacd1, 0x43f7, { 0xbf, 0xcf, 0xd3, 0xec, 0xf, 0xfe, 0x40, 0xfa } };
 
 	size_t num_types();
 	GUID query_type( size_t );
@@ -75,6 +46,10 @@ public:
 
 	bool have_entry( const GUID & what, abort_callback & abort );
 	bool query(const GUID & what, album_art_data::ptr & out, abort_callback & abort);
+    
+    //! Future compatiblity, load directly to fb2k::image
+    //! Might be eventually specialized for operating system supported formats
+    service_ptr_t<fb2k::image> query_image_(const GUID &, abort_callback&);
 };
 
 //! Class encapsulating access to album art stored in a media file. Use album_art_editor class to obtain album_art_editor_instance referring to specified media file.

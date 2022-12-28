@@ -6,6 +6,10 @@
 
 #define ATLASSERT_SUCCESS(X) {auto RetVal = (X); ATLASSERT( RetVal ); }
 
+#ifdef SubclassWindow // mitigate windowsx.h clash
+#undef SubclassWindow
+#endif
+
 class NoRedrawScope {
 public:
 	NoRedrawScope(HWND p_wnd) throw() : m_wnd(p_wnd) {
@@ -67,6 +71,7 @@ public:
 
 LRESULT RelayEraseBkgnd(HWND p_from, HWND p_to, HDC p_dc);
 void InjectParentEraseHandler(HWND);
+void InjectEraseHandler(HWND, HWND sendTo);
 void InjectParentCtlColorHandler(HWND);
 
 #define MSG_WM_ERASEBKGND_PARENT() \
@@ -167,14 +172,14 @@ public:
 	CCheckBox & operator=(HWND wnd) {m_hWnd = wnd; return *this; }
 };
 
-class CEditPPHooks : public CContainedWindowT<CEdit>, private CMessageMap {
+class CEditPPHooks : public CWindowImpl<CEditPPHooks, CEdit> {
 public:
 	bool HandleCtrlA = true, NoEscSteal = false, NoEnterSteal = false;
 
 	std::function<void ()> onEnterKey;
 	std::function<void ()> onEscKey;
 	
-	CEditPPHooks(CMessageMap * hookMM = nullptr, int hookMMID = 0) : CContainedWindowT<CEdit>(this, 0), m_hookMM(hookMM), m_hookMMID(hookMMID) {}
+	CEditPPHooks(CMessageMap * hookMM = nullptr, int hookMMID = 0) : m_hookMM(hookMM), m_hookMMID(hookMMID) {}
 
 	BEGIN_MSG_MAP_EX(CEditPPHooks)
 		MSG_WM_KEYDOWN(OnKeyDown)
@@ -292,60 +297,60 @@ private:
 };
 
 
-class CEditNoEscSteal : public CContainedWindowT<CEdit>, private CMessageMap {
+class CEditNoEscSteal : public CEdit {
 public:
-	CEditNoEscSteal() : CContainedWindowT<CEdit>(this, 0) {}
-	BEGIN_MSG_MAP_EX(CEditNoEscSteal)
-		MSG_WM_GETDLGCODE(OnEditGetDlgCode)
-	END_MSG_MAP()
+	void SubclassWindow(HWND wnd) {
+		this->Attach(wnd);
+		SubclassThisWindow(wnd);
+	}
+	static void SubclassThisWindow(HWND wnd) {
+		SetWindowSubclass(wnd, proc, 0, 0);
+	}
 private:
-	UINT OnEditGetDlgCode(LPMSG lpMsg) {
-		if (lpMsg == NULL) {
-			SetMsgHandled(FALSE); return 0;
-		} else {
-			switch(lpMsg->message) {
+	static LRESULT CALLBACK proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
+		if ( uMsg == WM_GETDLGCODE ) {
+			auto lpMsg = reinterpret_cast<LPMSG>(lParam);
+			if (lpMsg != NULL) {
+				switch(lpMsg->message) {
 				case WM_KEYDOWN:
 				case WM_SYSKEYDOWN:
 					switch(lpMsg->wParam) {
-						case VK_ESCAPE:
-							return 0;
-						default:
-							SetMsgHandled(FALSE); return 0;
+					case VK_ESCAPE:
+						return 0;
 					}
-				default:
-					SetMsgHandled(FALSE); return 0;
-
+				}
 			}
 		}
+		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 	}
 };
 
-class CEditNoEnterEscSteal : public CContainedWindowT<CEdit>, private CMessageMap {
+class CEditNoEnterEscSteal : public CEdit {
 public:
-	CEditNoEnterEscSteal() : CContainedWindowT<CEdit>(this, 0) {}
-	BEGIN_MSG_MAP_EX(CEditNoEscSteal)
-		MSG_WM_GETDLGCODE(OnEditGetDlgCode)
-	END_MSG_MAP()
+	void SubclassWindow(HWND wnd) {
+		this->Attach(wnd);
+		SubclassThisWindow(wnd);
+	}
+	static void SubclassThisWindow(HWND wnd) {
+		SetWindowSubclass(wnd, proc, 0, 0);
+	}
 private:
-	UINT OnEditGetDlgCode(LPMSG lpMsg) {
-		if (lpMsg == NULL) {
-			SetMsgHandled(FALSE); return 0;
-		} else {
-			switch(lpMsg->message) {
+	static LRESULT CALLBACK proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
+		if ( uMsg == WM_GETDLGCODE ) {
+			auto lpMsg = reinterpret_cast<LPMSG>(lParam);
+			if (lpMsg != NULL) {
+				switch(lpMsg->message) {
 				case WM_KEYDOWN:
 				case WM_SYSKEYDOWN:
 					switch(lpMsg->wParam) {
-						case VK_ESCAPE:
-						case VK_RETURN:
-							return 0;
-						default:
-							SetMsgHandled(FALSE); return 0;
+					case VK_RETURN:
+					case VK_ESCAPE:
+						return 0;
 					}
-				default:
-					SetMsgHandled(FALSE); return 0;
-
+				}
 			}
 		}
+		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 	}
 };
 
@@ -508,6 +513,3 @@ private:
 #else
 typedef CSRWlock CSRWorCS;
 #endif
-
-
-#include "CContainedWindowSimple.h"

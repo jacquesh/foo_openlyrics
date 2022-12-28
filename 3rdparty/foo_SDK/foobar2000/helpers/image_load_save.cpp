@@ -1,7 +1,9 @@
 #include "StdAfx.h"
 #include "image_load_save.h"
 #include <memory>
-#include "../SDK/imageLoaderLite.h"
+#include <SDK/imageLoaderLite.h>
+#include <SDK/popup_message.h>
+#include <SDK/album_art_helpers.h>
 
 namespace fb2k {
 	bool imageSaveDialog(album_art_data_ptr content, HWND wndParent, const char* initDir, bool bAsync) {
@@ -15,6 +17,7 @@ namespace fb2k {
 				ext = pfc::stringToLower( info.formatName );
 				if (nameCapitalized == "WEBP") nameCapitalized = "WebP";
 				pfc::string8 extmask;
+				if (ext == "jpeg-xl") ext = "jxl";
 				if (ext == "jpeg") {
 					ext = "jpg";
 					extmask = "*.jpg;*.jpeg";

@@ -1,4 +1,10 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "playlist_loader.h"
+#include "link_resolver.h"
+#include "archive.h"
+#include "file_info_impl.h"
+#include "input.h"
+#include "advconfig.h"
 
 #if FOOBAR2000_TARGET_VERSION >= 76
 static void process_path_internal(const char * p_path,const service_ptr_t<file> & p_reader,playlist_loader_callback::ptr callback, abort_callback & abort,playlist_loader_callback::t_entry_type type,const t_filestats & p_stats);
@@ -21,11 +27,12 @@ namespace {
 }
 
 bool playlist_loader::g_try_load_playlist(file::ptr fileHint,const char * p_path,playlist_loader_callback::ptr p_callback, abort_callback & p_abort) {
+	// Determine if this file is a playlist or not (which usually means that it's a media file)
 	pfc::string8 filepath;
 
 	filesystem::g_get_canonical_path(p_path,filepath);
 	
-	auto extension = pfc::string_extension(filepath);
+	pfc::string8 extension = filesystem::g_get_extension(filepath);
 
 	service_ptr_t<file> l_file = fileHint;
 
@@ -38,37 +45,45 @@ bool playlist_loader::g_try_load_playlist(file::ptr fileHint,const char * p_path
 		}
 	}
 
-	{
-		service_enum_t<playlist_loader> e;
+	service_enum_t<playlist_loader> e;
 
-		if (l_file.is_valid()) {
-			pfc::string8 content_type;
-			if (l_file->get_content_type(content_type)) {
-				service_ptr_t<playlist_loader> l;
-				e.reset(); while(e.next(l)) {
-					if (l->is_our_content_type(content_type)) {
-						try {
-							TRACK_CODE("playlist_loader::open",l->open(filepath,l_file,p_callback, p_abort));
-							return true;
-						} catch(exception_io_unsupported_format) {
-							l_file->reopen(p_abort);
-						}
-					}
-				}
+	if (l_file.is_valid()) {
+
+		// Important: in case of remote HTTP files, use actual connected path for matching file extensions, following any redirects.
+		// At least one internet radio station has been known to present .pls links that are 302 redirects to real streams, so they don't parse as playlists.
+		{
+			file_metadata_http::ptr meta;
+			if (meta &= l_file->get_metadata_(p_abort)) {
+				pfc::string8 realPath;
+				meta->get_connected_path(realPath);
+				extension = filesystem::g_get_extension(realPath);
 			}
 		}
 
-		if (extension.length()>0) {
-			playlist_loader::ptr l;
-			e.reset(); while(e.next(l)) {
-				if (stricmp_utf8(l->get_extension(),extension) == 0) {
-					if (l_file.is_empty()) filesystem::g_open_read(l_file,filepath,p_abort);
+		pfc::string8 content_type;
+		if (l_file->get_content_type(content_type)) {
+			for (auto l : e) {
+				if (l->is_our_content_type(content_type)) {
 					try {
-						TRACK_CODE("playlist_loader::open",l->open(filepath,l_file,p_callback,p_abort));
+						TRACK_CODE("playlist_loader::open",l->open(filepath,l_file,p_callback, p_abort));
 						return true;
 					} catch(exception_io_unsupported_format) {
 						l_file->reopen(p_abort);
 					}
+				}
+			}
+		}
+	}
+
+	if (extension.length()>0) {
+		for (auto l : e) {
+			if (stricmp_utf8(l->get_extension(),extension) == 0) {
+				if (l_file.is_empty()) filesystem::g_open_read(l_file,filepath,p_abort);
+				try {
+					TRACK_CODE("playlist_loader::open",l->open(filepath,l_file,p_callback,p_abort));
+					return true;
+				} catch(exception_io_unsupported_format) {
+					l_file->reopen(p_abort);
 				}
 			}
 		}
@@ -84,7 +99,18 @@ void playlist_loader::g_load_playlist_filehint(file::ptr fileHint,const char * p
 void playlist_loader::g_load_playlist(const char * p_path,playlist_loader_callback::ptr callback, abort_callback & abort) {
 	g_load_playlist_filehint(NULL,p_path,callback,abort);
 }
+namespace {
+	class MIC_impl : public metadb_info_container_v2 {
+	public:
+		t_filestats2 const& stats2() override { return m_stats; }
+		file_info const& info() override { return m_info; }
+		t_filestats const& stats() override { return m_stats.as_legacy(); }
+		bool isInfoPartial() override { return false; }
 
+		file_info_impl m_info;
+		t_filestats2 m_stats;
+	};
+}
 static void index_tracks_helper(const char * p_path,const service_ptr_t<file> & p_reader,const t_filestats & p_stats,playlist_loader_callback::t_entry_type p_type,playlist_loader_callback::ptr p_callback, abort_callback & p_abort,bool & p_got_input)
 {
 	TRACK_CALL_TEXT("index_tracks_helper");
@@ -111,8 +137,8 @@ static void index_tracks_helper(const char * p_path,const service_ptr_t<file> & 
 			return;
 		}
 
-		t_filestats stats = instance->get_file_stats(p_abort);
-
+		const auto stats = instance->get_stats2_(p_path, stats2_all, p_abort);
+	
 		t_uint32 subsong,subsong_count = instance->get_subsong_count();
 		bool bInfoGetError = false;
 		for(subsong=0;subsong<subsong_count;subsong++)
@@ -124,21 +150,28 @@ static void index_tracks_helper(const char * p_path,const service_ptr_t<file> & 
 			p_callback->handle_create(handle,make_playable_location(p_path,index));
 
 			p_got_input = true;
-			if (! bInfoGetError && p_callback->want_info(handle,p_type,stats,true) )
+			if (! bInfoGetError && p_callback->want_info(handle,p_type,stats.as_legacy(),true) )
 			{
-				file_info_impl info;
+				auto mic = fb2k::service_new<MIC_impl>();
+				mic->m_stats = stats;
 				try {
-					TRACK_CODE("get_info",instance->get_info(index,info,p_abort));
+					TRACK_CODE("get_info",instance->get_info(index,mic->m_info,p_abort));
 				} catch(...) {
 					bInfoGetError = true;
 				}
 				if (! bInfoGetError ) {
-					p_callback->on_entry_info(handle,p_type,stats,info,true);
+					playlist_loader_callback_v2::ptr v2;
+					if (v2 &= p_callback) {
+						v2->on_entry_info_v2(handle, p_type, mic, true);
+					} else {
+						p_callback->on_entry_info(handle, p_type, stats.as_legacy(), mic->m_info, true);
+					}
+					
 				}
 			}
 			else
 			{
-				p_callback->on_entry(handle,p_type,stats,true);
+				p_callback->on_entry(handle,p_type,stats.as_legacy(),true);
 			}
 		}
 	}
@@ -204,7 +237,7 @@ namespace {
 					} else {
 						owner->list_directory(url, *this, p_abort);
 					}
-				} catch (exception_io const& e) {
+				} catch (exception_io const & e) {
 					FB2K_console_formatter() << "Error walking directory (" << e << "): " << url;
 				}
 			} else {
@@ -284,24 +317,28 @@ static void process_path_internal(const char * p_path,const service_ptr_t<file> 
 			}
 		}
 
-		bool found = false;
-
-
 		{
 			archive_callback_impl archive_results(callback, abort);
-			service_enum_t<filesystem> e;
-			service_ptr_t<filesystem> f;
-			while(e.next(f)) {
+			for (auto f : filesystem::enumerate()) {
 				abort.check();
 				service_ptr_t<archive> arch;
-				if (f->service_query_t(arch) && arch->is_our_archive(p_path)) {
+				if ((arch &= f) && arch->is_our_archive(p_path)) {
 					if (p_reader.is_valid()) p_reader->reopen(abort);
 
 					try {
 						TRACK_CODE("archive::archive_list",arch->archive_list(p_path,p_reader,archive_results,true));
 						return;
 					} catch(exception_aborted) {throw;} 
-					catch(...) {}
+					catch(...) {
+						// Something failed hard
+						// Is is_our_archive() meaningful?
+						archive_v2::ptr arch2;
+						if (arch2 &= arch) {
+							// If yes, show errors
+							throw;
+						}
+						// Outdated archive implementation, preserve legacy behavior (try to open as non-archive)
+					}
 				}
 			} 
 		}
@@ -331,6 +368,51 @@ static void process_path_internal(const char * p_path,const service_ptr_t<file> 
 	}
 }
 
+namespace {
+	class plcallback_simple : public playlist_loader_callback {
+	public:
+		void on_progress(const char* p_path) override {}
+
+		void on_entry(const metadb_handle_ptr& p_item, t_entry_type p_type, const t_filestats& p_stats, bool p_fresh) override {
+			m_items += p_item;
+		}
+		bool want_info(const metadb_handle_ptr& p_item, t_entry_type p_type, const t_filestats& p_stats, bool p_fresh) override {
+			return p_item->should_reload(p_stats, p_fresh);
+		}
+
+		void on_entry_info(const metadb_handle_ptr& p_item, t_entry_type p_type, const t_filestats& p_stats, const file_info& p_info, bool p_fresh) override {
+			m_items += p_item;
+			m_hints->add_hint(p_item, p_info, p_stats, p_fresh);
+		}
+
+		void handle_create(metadb_handle_ptr& p_out, const playable_location& p_location) override {
+			m_metadb->handle_create(p_out, p_location);
+		}
+
+		bool is_path_wanted(const char* path, t_entry_type type) override { return true; }
+
+		bool want_browse_info(const metadb_handle_ptr& p_item, t_entry_type p_type, t_filetimestamp ts) override {
+			return true;
+		}
+		void on_browse_info(const metadb_handle_ptr& p_item, t_entry_type p_type, const file_info& info, t_filetimestamp ts) override {
+			metadb_hint_list_v2::ptr v2;
+			if (v2 &= m_hints) v2->add_hint_browse(p_item, info, ts);
+		}
+
+		~plcallback_simple() {
+			m_hints->on_done();
+		}
+		metadb_handle_list m_items;
+	private:
+		const metadb_hint_list::ptr m_hints = metadb_hint_list::create();
+		const metadb::ptr m_metadb = metadb::get();
+	};
+}
+void playlist_loader::g_path_to_handles_simple(const char* p_path, pfc::list_base_t<metadb_handle_ptr>& p_out, abort_callback& p_abort) {
+	auto cb = fb2k::service_new<plcallback_simple>();
+	g_process_path(p_path, cb, p_abort);
+	p_out = cb->m_items;
+}
 void playlist_loader::g_process_path(const char * p_filename,playlist_loader_callback::ptr callback, abort_callback & abort,playlist_loader_callback::t_entry_type type)
 {
 	TRACK_CALL_TEXT("playlist_loader::g_process_path");

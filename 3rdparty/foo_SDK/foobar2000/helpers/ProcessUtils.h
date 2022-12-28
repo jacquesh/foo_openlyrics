@@ -230,7 +230,7 @@ namespace ProcessUtils {
 		static pfc::string_formatter makePipeName() {
 			GUID id;
 			CoCreateGuid (&id);
-			return PFC_string_formatter() << "\\\\.\\pipe\\" << pfc::print_guid(id);
+			return pfc::format( "\\\\.\\pipe\\", pfc::print_guid(id));
 		}
 
 		static void myCreatePipeOut(HANDLE & in, HANDLE & out) {

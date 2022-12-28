@@ -1,4 +1,8 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+
+#include "contextmenu_manager.h"
+#include "menu_helpers.h"
+#include "playlist.h"
 
 #ifdef WIN32
 
@@ -74,21 +78,12 @@ void contextmenu_manager::win32_build_menu(HMENU menu,contextmenu_node * parent,
 	}
 }
 
-#endif
 
 bool contextmenu_manager::get_description_by_id(unsigned id,pfc::string_base & out) {
 	contextmenu_node * ptr = find_by_id(id);
 	if (ptr == NULL) return false;
 	return ptr->get_description(out);
 }
-bool contextmenu_manager::execute_by_id(unsigned id) {
-	contextmenu_node * ptr = find_by_id(id);
-	if (ptr == NULL) return false;
-	ptr->execute();
-	return true;
-}
-
-#ifdef WIN32
 
 void contextmenu_manager::win32_run_menu_popup(HWND parent,const POINT * pt)
 {
@@ -170,8 +165,9 @@ namespace {
 		bool check_string(const char * src)
 		{//check for existing mnemonics
 			const char * ptr = src;
-			while(ptr = strchr(ptr,'&'))
-			{
+			for( ;; ) {
+				ptr = strchr(ptr, '&');
+				if (ptr == nullptr) break;
 				if (ptr[1]=='&') ptr+=2;
 				else
 				{
@@ -261,7 +257,6 @@ void menu_helpers::win32_auto_mnemonics(HMENU menu)
 	}
 }
 
-#endif
 
 static bool test_key(unsigned k)
 {
@@ -416,3 +411,15 @@ bool keyboard_shortcut_manager::is_typing_message(const MSG * msg) {
 	if (msg->message != WM_KEYDOWN && msg->message != WM_SYSKEYDOWN) return false;
 	return is_typing_key_combo((uint32_t)msg->wParam, GetHotkeyModifierFlags());
 }
+
+#endif // _WIN32
+
+bool contextmenu_manager::execute_by_id(unsigned id) {
+    contextmenu_node * ptr = find_by_id(id);
+    if (ptr == NULL) return false;
+    ptr->execute();
+    return true;
+}
+
+void contextmenu_manager::g_create(service_ptr_t<contextmenu_manager>& p_out) { standard_api_create_t(p_out); }
+service_ptr_t<contextmenu_manager> contextmenu_manager::g_create() { service_ptr_t<contextmenu_manager> ret; standard_api_create_t(ret); return ret; }

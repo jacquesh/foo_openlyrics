@@ -24,7 +24,7 @@ public:
 
 		
 		// trivial DSP code: apply our gain to the audio data.
-		chunk->scale( audio_math::gain_to_scale( m_gain ) );
+		chunk->scale( (audio_sample)audio_math::gain_to_scale( m_gain ) );
 
 		// To retrieve the currently processed track, use get_cur_file().
 		// Warning: the track is not always known - it's up to the calling component to provide this data and in some situations we'll be working with data that doesn't originate from an audio file.

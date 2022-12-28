@@ -1,4 +1,8 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "main_thread_callback.h"
+#include "abort_callback.h"
+#include <memory>
+#include <pfc/synchro.h>
 
 
 void main_thread_callback::callback_enqueue() {
@@ -34,4 +38,15 @@ void fb2k::inMainThread2( std::function<void () > f ) {
 	} else {
 		inMainThread(f);
 	}
+}
+
+void fb2k::inMainThreadSynchronous(std::function<void() > f, abort_callback & abort) {
+	abort.check();
+	auto evt = std::make_shared<pfc::event>();
+	auto f2 = [f, evt] {
+		f();
+		evt->set_state(true);
+	};
+	inMainThread(f2);
+	abort.waitForEvent(*evt);
 }

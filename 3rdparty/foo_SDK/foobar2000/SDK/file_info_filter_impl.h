@@ -1,4 +1,6 @@
 #pragma once
+#include "file_info_filter.h"
+#include "file_info_impl.h"
 
 //! Generic implementation of file_info_filter_impl.
 class file_info_filter_impl : public file_info_filter {

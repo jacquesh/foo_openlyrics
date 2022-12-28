@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #include "mp3_utils.h"
 #include "bitreader_helper.h"
@@ -273,4 +273,9 @@ bool mp3_utils::ValidateFrameCRC(const t_uint8 * frameData, t_size frameSize) {
 bool mp3_utils::ParseMPEGFrameHeader(TMPEGFrameInfo & p_info, const void * bytes, size_t bytesAvail) {
 	if (bytesAvail < 4) return false; //FAIL, not a valid frame
 	return ParseMPEGFrameHeader(p_info, reinterpret_cast<const t_uint8*>(bytes));
+}
+
+bool mp3_utils::IsValidMPEGFrameHeader(const void* fourbytes) {
+	TMPEGFrameInfo info = {};
+	return ParseMPEGFrameHeader(info, fourbytes, 4);
 }

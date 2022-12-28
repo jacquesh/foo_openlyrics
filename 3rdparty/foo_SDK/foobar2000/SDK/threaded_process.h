@@ -11,11 +11,11 @@ public:
 	//! Sets the secondary progress bar state; scale from progress_min to progress_max.
 	virtual void set_progress_secondary(t_size p_state) {}
 	//! Sets the currently progressed item label. When working with files, you should use set_file_path() instead.
-	virtual void set_item(const char * p_item,t_size p_item_len = ~0) {}
+	virtual void set_item(const char * p_item,t_size p_item_len = SIZE_MAX) {}
 	//! Sets the currently progressed item label; treats the label as a file path.
-	virtual void set_item_path(const char * p_item,t_size p_item_len = ~0) {}
+	virtual void set_item_path(const char * p_item,t_size p_item_len = SIZE_MAX) {}
 	//! Sets the title of the dialog. You normally don't need this function unless you want to override the title you set when initializing the threaded_process.
-	virtual void set_title(const char * p_title,t_size p_title_len = ~0) {}
+	virtual void set_title(const char * p_title,t_size p_title_len = SIZE_MAX) {}
 	//! Should not be used.
 	virtual void force_update() {}
 	//! Returns whether the process is paused.
@@ -44,13 +44,13 @@ public:
 //! Fb2k mobile compatibility
 class threaded_process_context {
 public:
-	static HWND g_default() { return core_api::get_main_window(); }
+	static fb2k::hwnd_t g_default() { return core_api::get_main_window(); }
 };
 
 //! Callback class for the threaded_process API. You must implement this to create your own threaded_process client.
 class NOVTABLE threaded_process_callback : public service_base {
 public:
-	typedef HWND ctx_t; // fb2k mobile compatibility
+	typedef fb2k::hwnd_t ctx_t;
 
 	//! Called from the main thread before spawning the worker thread. \n
 	//! Note that you should not access the window handle passed to on_init() in the worker thread later on.
@@ -90,6 +90,9 @@ public:
 		flag_show_delayed		= 1 << 7,
 		//! Do not focus the dialog by default.
 		flag_no_focus			= 1 << 8,
+		//! \since 2.0
+		//! Do not show any user interface, just run the operation quietly.
+		flag_silent				= 1 << 9,
 	};
 
 	//! Runs a synchronous threaded_process operation - the function does not return until the operation has completed, though the app UI is not frozen and the operation is abortable. \n
@@ -99,20 +102,20 @@ public:
 	//! @param p_parent Parent window for the progress dialog - typically core_api::get_main_window().
 	//! @param p_title Initial title of the dialog.
 	//! @returns True if the operation has completed normally, false if the user has aborted the operation. In case of a catastrophic failure such as dialog creation failure, exceptions will be thrown.
-	virtual bool run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,HWND p_parent,const char * p_title,t_size p_title_len = ~0) = 0;
+	virtual bool run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len = SIZE_MAX) = 0;
 	//! Runs an asynchronous threaded_process operation.
 	//! @param p_callback Interface to your threaded_process client.
 	//! @param p_flags Flags describing requested dialog functionality. See threaded_process::flag_* constants.
 	//! @param p_parent Parent window for the progress dialog - typically core_api::get_main_window().
 	//! @param p_title Initial title of the dialog.
 	//! @returns True, always; the return value should be ignored. In case of a catastrophic failure such as dialog creation failure, exceptions will be thrown.
-	virtual bool run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,HWND p_parent,const char * p_title,t_size p_title_len = ~0) = 0;
+	virtual bool run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len = SIZE_MAX) = 0;
 
 
 	//! Helper invoking run_modal().
-	static bool g_run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,HWND p_parent,const char * p_title,t_size p_title_len = ~0);
+	static bool g_run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len = SIZE_MAX);
 	//! Helper invoking run_modeless().
-	static bool g_run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,HWND p_parent,const char * p_title,t_size p_title_len = ~0);
+	static bool g_run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len = SIZE_MAX);
 
 	//! Queries user settings; returns whether various timeconsuming tasks should be blocking machine standby.
 	static bool g_query_preventStandby();
@@ -125,9 +128,9 @@ public:
 template<typename TTarget> class threaded_process_callback_redir : public threaded_process_callback {
 public:
 	threaded_process_callback_redir(TTarget * target) : m_target(target) {}
-	void on_init(HWND p_wnd) {m_target->tpc_on_init(p_wnd);}
+	void on_init(ctx_t p_wnd) {m_target->tpc_on_init(p_wnd);}
 	void run(threaded_process_status & p_status,abort_callback & p_abort) {m_target->tpc_run(p_status, p_abort);}
-	void on_done(HWND p_wnd,bool p_was_aborted) {m_target->tpc_on_done(p_wnd, p_was_aborted);	}
+	void on_done(ctx_t p_wnd,bool p_was_aborted) {m_target->tpc_on_done(p_wnd, p_was_aborted);	}
 private:
 	const service_ptr_t<TTarget> m_target;
 };

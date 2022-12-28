@@ -1,4 +1,5 @@
 #pragma once
+#include "mem_block_container.h"
 
 
 //! \since 1.1

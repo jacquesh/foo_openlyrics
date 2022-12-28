@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #ifdef _WIN32
 
@@ -181,60 +181,10 @@ namespace file_win32_helpers {
 		DWORD dwErrorCode;
 	};
 
-	static unsigned CALLBACK createFileProc(void * data) {
-		createFileData_t * cfd = (createFileData_t*)data;
-		SetLastError(0);
-		cfd->hResult = CreateFile(cfd->lpFileName, cfd->dwDesiredAccess, cfd->dwShareMode, cfd->lpSecurityAttributes, cfd->dwCreationDisposition, cfd->dwFlagsAndAttributes, cfd->hTemplateFile);
-		cfd->dwErrorCode = GetLastError();
-		return 0;
-	}
-
 	HANDLE createFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile, abort_callback & abort) {
 		abort.check();
 		
 		return CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-
-		// CancelSynchronousIo() doesn't fucking work. Useless.
-#if 0
-		pCancelSynchronousIo_t pCancelSynchronousIo = (pCancelSynchronousIo_t) GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "CancelSynchronousIo");
-		if (pCancelSynchronousIo == NULL) {
-#ifdef _DEBUG
-			uDebugLog() << "Async CreateFile unavailable - using regular";
-#endif
-			return CreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-		} else {
-#ifdef _DEBUG
-			uDebugLog() << "Starting async CreateFile...";
-			pfc::hires_timer t; t.start();
-#endif
-			createFileData_t data = {lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile, NULL, 0};
-			HANDLE hThread = (HANDLE) _beginthreadex(NULL, 0, createFileProc, &data, 0, NULL);
-			HANDLE waitHandles[2] = {hThread, abort.get_abort_event()};
-			switch(WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE)) {
-			case WAIT_OBJECT_0: // succeeded
-				break;
-			case WAIT_OBJECT_0 + 1: // abort
-#ifdef _DEBUG
-				uDebugLog() << "Aborting async CreateFile...";
-#endif
-				pCancelSynchronousIo(hThread);
-				WaitForSingleObject(hThread, INFINITE);
-				break;
-			default:
-				uBugCheck();
-			}
-			CloseHandle(hThread);
-			SetLastError(data.dwErrorCode);
-#ifdef _DEBUG
-			uDebugLog() << "Async CreateFile completed in " << pfc::format_time_ex(t.query(), 6) << ", status: " << (uint32_t) data.dwErrorCode;
-#endif
-			if (abort.is_aborting()) {
-				if (data.hResult != INVALID_HANDLE_VALUE) CloseHandle(data.hResult);
-				throw exception_aborted();
-			}
-			return data.hResult;
-		}
-#endif
 	}
 
 	size_t lowLevelIO(HANDLE hFile, const GUID & guid, size_t arg1, void * arg2, size_t arg2size, bool canWrite, abort_callback & abort) {

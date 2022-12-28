@@ -1,3 +1,5 @@
+#pragma once
+
 //! This class provides abstraction for retrieving visualisation data. Instances of visualisation_stream being created/released serve as an indication for visualisation backend to process currently played audio data or shut down when there are no visualisation clients active.\n
 //! Use visualisation_manager::create_stream to instantiate.
 class NOVTABLE visualisation_stream : public service_base {

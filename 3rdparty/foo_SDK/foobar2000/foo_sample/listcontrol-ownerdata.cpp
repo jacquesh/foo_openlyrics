@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <vector>
 
+#include <helpers/DarkMode.h>
+
 namespace {
 	struct listData_t {
 		std::string m_key, m_value;
@@ -50,6 +52,9 @@ namespace {
 			// Create replacing existing windows list control
 			// automatically initialize position, font, etc
 			m_list.CreateInDialog( *this, IDC_LIST1 );
+
+			// Do this AFTER creating CListControl, so dark mode hook talks to new CListControl rather than shortlived IDC_LIST1 placeholder
+			m_dark.AddDialogWithControls(*this);
 
 			// never hardcode values in pixels, always use screen DPI
 			auto DPI = m_list.GetDPI();
@@ -195,6 +200,8 @@ namespace {
 		std::vector< listData_t > m_data = makeListData();
 
 		CListControlOwnerData m_list;
+
+		fb2k::CDarkModeHooks m_dark;
 	};
 }
 // Called from mainmenu.cpp

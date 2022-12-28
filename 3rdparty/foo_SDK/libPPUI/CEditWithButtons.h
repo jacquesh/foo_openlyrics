@@ -34,10 +34,11 @@ public:
 		CHAIN_MSG_MAP(CEditPPHooks)
 	END_MSG_MAP()
 
-	void SubclassWindow( HWND wnd ) {
-		CEditPPHooks::SubclassWindow( wnd );
+	BOOL SubclassWindow( HWND wnd ) {
+		if (!CEditPPHooks::SubclassWindow(wnd)) return FALSE;
 		this->ModifyStyle(0, WS_CLIPCHILDREN);
 		RefreshButtons();
+		return TRUE;
 	}
 	typedef std::function<void () > handler_t;
 	typedef std::function<bool (const wchar_t*) > condition_t;

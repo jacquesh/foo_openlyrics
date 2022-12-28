@@ -1,4 +1,5 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "audio_chunk.h"
 
 #ifdef _WIN32
 #include <ks.h>
@@ -128,7 +129,7 @@ unsigned audio_chunk::g_channel_index_from_flag(unsigned p_config,unsigned p_fla
 			if (p_config & query) index++;
 		}
 	}
-	return UINT_MAX;
+	return (unsigned)(-1);
 }
 
 unsigned audio_chunk::g_extract_channel_flag(unsigned p_config,unsigned p_index)

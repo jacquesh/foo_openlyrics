@@ -1,5 +1,9 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "ui_edit_context.h"
+#include "ui.h"
+#include "genrand.h"
 
+#ifdef _WIN32
 bool ui_drop_item_callback::g_on_drop(interface IDataObject * pDataObject)
 {
 	for (auto ptr : enumerate()) {
@@ -26,7 +30,7 @@ bool user_interface::g_find(service_ptr_t<user_interface> & p_out,const GUID & p
 	}
 	return false;
 }
-
+#endif // _WIN32
 
 // ui_edit_context.h code
 

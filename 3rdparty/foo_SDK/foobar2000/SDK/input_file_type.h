@@ -1,3 +1,5 @@
+#pragma once
+
 //! Entrypoint interface for registering media file types that can be opened through "open file" dialogs or associated with foobar2000 application in Windows shell. \n
 //! Instead of implementing this directly, use DECLARE_FILE_TYPE() / DECLARE_FILE_TYPE_EX() macros.
 class input_file_type : public service_base {
@@ -43,7 +45,7 @@ public:
 
 
 //! Implementation helper.
-class input_file_type_impl : public service_impl_single_t<input_file_type>
+class input_file_type_impl : public input_file_type
 {
 	const char * name, * mask;
 	bool m_associatable;
@@ -58,11 +60,7 @@ public:
 
 //! Helper macro for registering our media file types.
 //! Usage: DECLARE_FILE_TYPE("Blah files","*.blah;*.bleh");
-#define DECLARE_FILE_TYPE(NAME,MASK) \
-	namespace { static input_file_type_impl g_filetype_instance(NAME,MASK,true); \
-	static service_factory_single_ref_t<input_file_type_impl> g_filetype_service(g_filetype_instance); }
-
-
+#define DECLARE_FILE_TYPE(NAME,MASK) FB2K_SERVICE_FACTORY_PARAMS(input_file_type_impl, NAME, MASK, true)
 
 
 //! Implementation helper.
@@ -78,7 +76,7 @@ public:
 
 class input_file_type_v2_impl : public input_file_type_v2 {
 public:
-	input_file_type_v2_impl(const char * extensions,const char * name, const char * namePlural) : m_extensions(extensions), m_name(name), m_namePlural(namePlural) {}
+	input_file_type_v2_impl(const char * extensions,const char * name, const char * namePlural) : m_name(name), m_namePlural(namePlural), m_extensions(extensions) {}
 	unsigned get_count() {return 1;}
 	bool is_associatable(unsigned idx) {return true;}
 	void get_format_name(unsigned idx, pfc::string_base & out, bool isPlural) {
@@ -94,9 +92,7 @@ private:
 
 //! Helper macro for registering our media file types, extended version providing separate singular/plural type names.
 //! Usage: DECLARE_FILE_TYPE_EX("mp1;mp2;mp3","MPEG file","MPEG files")
-#define DECLARE_FILE_TYPE_EX(extensions, name, namePlural) \
-	namespace { static service_factory_single_t<input_file_type_v2_impl> g_myfiletype(extensions, name, namePlural); }
-
+#define DECLARE_FILE_TYPE_EX(extensions, name, namePlural) FB2K_SERVICE_FACTORY_PARAMS(input_file_type_v2_impl, extensions, name, namePlural)
 
 //! Service for registering protocol types that can be associated with foobar2000.
 class input_protocol_type : public service_base {

@@ -33,6 +33,7 @@ namespace mp3_utils
 
 	bool ParseMPEGFrameHeader(TMPEGFrameInfo & p_info,const t_uint8 p_header[4]);
 	bool ParseMPEGFrameHeader(TMPEGFrameInfo & p_info, const void * bytes, size_t bytesAvail);
+	bool IsValidMPEGFrameHeader(const void* fourbytes);
 	bool ValidateFrameCRC(const t_uint8 * frameData, t_size frameSize);
 	bool ValidateFrameCRC(const t_uint8 * frameData, t_size frameSize, TMPEGFrameInfo const & frameInfo);
 	
@@ -54,11 +55,6 @@ public:
 
 	inline void copy(const mp3header & src) {memcpy(bytes,src.bytes,4);}
 	inline void copy_raw(const void * src) {memcpy(bytes,src,4);}
-
-	inline mp3header(const mp3header & src) {copy(src);}
-	inline mp3header() {}
-
-	inline const mp3header & operator=(const mp3header & src) {copy(src); return *this;}
 
 	inline void get_bytes(void * out) {memcpy(out,bytes,4);}
 	inline unsigned get_frame_size() const {return mp3_utils::QueryMPEGFrameSize(bytes);}

@@ -1,6 +1,9 @@
 #pragma once
 
+#ifdef _WIN32
+
 #include "win32_misc.h"
+#include "../SDK/cfg_var.h"
 
 static BOOL AdjustWindowRectHelper(CWindow wnd, CRect & rc) {
 	const DWORD style = wnd.GetWindowLong(GWL_STYLE), exstyle = wnd.GetWindowLong(GWL_EXSTYLE);
@@ -54,18 +57,7 @@ static BOOL ShowWindowCentered(CWindow wnd,CWindow wndParent) {
 	return wnd.SetWindowPos(HWND_TOP,rc,SWP_NOSIZE | SWP_SHOWWINDOW);
 }
 
-class cfgWindowSize : public cfg_var {
-public:
-	cfgWindowSize(const GUID & p_guid) : cfg_var(p_guid) {}
-	void get_data_raw(stream_writer * p_stream,abort_callback & p_abort) {
-		stream_writer_formatter<> str(*p_stream,p_abort); str << m_width << m_height;
-	}
-	void set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {
-		stream_reader_formatter<> str(*p_stream,p_abort); str >> m_width >> m_height;
-	}
-
-	uint32_t m_width = UINT32_MAX, m_height = UINT32_MAX;
-};
+typedef cfg_struct_t<SIZE> cfgWindowSize;
 
 class cfgWindowSizeTracker {
 public:
@@ -74,8 +66,9 @@ public:
 	bool Apply(HWND p_wnd) {
 		bool retVal = false;
 		m_applied = false;
-		if (m_var.m_width != ~0 && m_var.m_height != ~0) {
-			CRect rect (0,0,m_var.m_width,m_var.m_height);
+		auto s = m_var.get();
+		if (s.cx > 0 && s.cy > 0) {
+			CRect rect(0,0,s.cx,s.cy);
 			if (AdjustWindowRectHelper(p_wnd, rect)) {
 				SetWindowPos(p_wnd,NULL,0,0,rect.right-rect.left,rect.bottom-rect.top,SWP_NOMOVE|SWP_NOACTIVATE|SWP_NOZORDER);
 				retVal = true;
@@ -88,7 +81,7 @@ public:
 	BOOL ProcessWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT & lResult) {
 		if (uMsg == WM_SIZE && m_applied) {
 			if (lParam != 0) {
-				m_var.m_width = (short)LOWORD(lParam); m_var.m_height = (short)HIWORD(lParam);
+				m_var.set({ (short)LOWORD(lParam), (short)HIWORD(lParam) });
 			}
 		}
 		return FALSE;
@@ -108,14 +101,48 @@ public:
 	}
 };
 
+struct cfgDialogPositionData {
+	enum {
+		posInvalid = 0x80000000,
+		sizeInvalid = 0xFFFFFFFF,
+		dpiInvalid = 0,
+	};
+
+	uint32_t m_width = (uint32_t)sizeInvalid, m_height = (uint32_t)sizeInvalid;
+	int32_t m_posX = (int32_t)posInvalid, m_posY = (int32_t)posInvalid;
+	uint32_t m_dpiX = (uint32_t)dpiInvalid, m_dpiY = (uint32_t)dpiInvalid;
+
+	cfgDialogPositionData reDPI(CSize) const;
+	bool grabFrom(CWindow wnd);
+	bool applyTo(CWindow wnd) const;
+
+	bool overrideDefaultSize(t_uint32 width, t_uint32 height);
+};
+
+FB2K_STREAM_READER_OVERLOAD(cfgDialogPositionData) {
+	stream >> value.m_width >> value.m_height;
+	try {
+		stream >> value.m_posX >> value.m_posY >> value.m_dpiX >> value.m_dpiY;
+	} catch (exception_io_data) {
+		value.m_posX = value.m_posY = cfgDialogPositionData::posInvalid;
+		value.m_dpiX = value.m_dpiY = cfgDialogPositionData::dpiInvalid;
+	}
+	return stream;
+}
+FB2K_STREAM_WRITER_OVERLOAD(cfgDialogPositionData) {
+	return stream << value.m_width << value.m_height << value.m_posX << value.m_posY << value.m_dpiX << value.m_dpiY;
+}
+
+#if 0
 class cfgDialogPositionData {
 public:
-	cfgDialogPositionData() : m_width(sizeInvalid), m_height(sizeInvalid), m_posX(posInvalid), m_posY(posInvalid) {}
+	cfgDialogPositionData_ v;
+	cfgDialogPositionData() {}
 	
 	void OverrideDefaultSize(t_uint32 width, t_uint32 height) {
-		if (m_width == sizeInvalid && m_height == sizeInvalid) {
-			m_width = width; m_height = height; m_posX = m_posY = posInvalid;
-			m_dpiX = m_dpiY = 96;
+		if (v.m_width == v.sizeInvalid && v.m_height == v.sizeInvalid) {
+			v.m_width = width; v.m_height = height; v.m_posX = v.m_posY = v.posInvalid;
+			v.m_dpiX = v.m_dpiY = 96;
 		}
 	}
 
@@ -138,17 +165,17 @@ private:
 		UINT flags = SWP_NOACTIVATE | SWP_NOZORDER;
 		CRect rc;
 		if (!GetClientRectAsSC(wnd,rc)) return FALSE;
-		if (m_width != sizeInvalid && m_height != sizeInvalid && (wnd.GetWindowLong(GWL_STYLE) & WS_SIZEBOX) != 0) {
-			rc.right = rc.left + m_width;
-			rc.bottom = rc.top + m_height;
+		if (v.m_width != v.sizeInvalid && v.m_height != v.sizeInvalid && (wnd.GetWindowLong(GWL_STYLE) & WS_SIZEBOX) != 0) {
+			rc.right = rc.left + v.m_width;
+			rc.bottom = rc.top + v.m_height;
 		} else {
 			flags |= SWP_NOSIZE;
 		}
 		if (wndParent != NULL) {
 			CRect rcParent;
 			if (GetParentWndRect(wndParent, rcParent)) {
-				if (m_posX != posInvalid && m_posY != posInvalid) {
-					rc.MoveToXY( rcParent.TopLeft() + CPoint(m_posX, m_posY) );
+				if (v.m_posX != v.posInvalid && v.m_posY != v.posInvalid) {
+					rc.MoveToXY( rcParent.TopLeft() + CPoint(v.m_posX, v.m_posY) );
 				} else {
 					CPoint center = rcParent.CenterPoint();
 					rc.MoveToXY( center.x - rc.Width() / 2, center.y - rc.Height() / 2);
@@ -208,15 +235,15 @@ private:
 		CRect rc;
 		if (!GetClientRectAsSC(wnd, rc)) return FALSE;
 		const CSize DPI = QueryScreenDPIEx();
-		m_dpiX = DPI.cx; m_dpiY = DPI.cy;
-		m_width = rc.Width(); m_height = rc.Height();
-		m_posX = m_posY = posInvalid;
+		v.m_dpiX = DPI.cx; v.m_dpiY = DPI.cy;
+		v.m_width = rc.Width(); v.m_height = rc.Height();
+		v.m_posX = v.m_posY = v.posInvalid;
 		CWindow parent = wnd.GetParent();
 		if (parent != NULL) {
 			CRect rcParent;
 			if (GetParentWndRect(parent, rcParent)) {
-				m_posX = rc.left - rcParent.left;
-				m_posY = rc.top - rcParent.top;
+				v.m_posX = rc.left - rcParent.left;
+				v.m_posY = rc.top - rcParent.top;
 			}
 		}
 		return TRUE;
@@ -233,21 +260,21 @@ private:
 			PFC_ASSERT(!"Should not get here - something seriously wrong with the OS");
 			return;
 		}
-		if (m_dpiX != dpiInvalid && m_dpiX != screenDPI.cx) {
-			if (m_width != sizeInvalid) m_width = MulDiv(m_width, screenDPI.cx, m_dpiX);
-			if (m_posX != posInvalid) m_posX = MulDiv(m_posX, screenDPI.cx, m_dpiX);
+		if (v.m_dpiX != v.dpiInvalid && v.m_dpiX != screenDPI.cx) {
+			if (v.m_width != v.sizeInvalid) v.m_width = MulDiv(v.m_width, screenDPI.cx, v.m_dpiX);
+			if (v.m_posX != v.posInvalid) v.m_posX = MulDiv(v.m_posX, screenDPI.cx, v.m_dpiX);
 		}
-		if (m_dpiY != dpiInvalid && m_dpiY != screenDPI.cy) {
-			if (m_height != sizeInvalid) m_height = MulDiv(m_height, screenDPI.cy, m_dpiY);
-			if (m_posY != posInvalid) m_posY = MulDiv(m_posY, screenDPI.cy, m_dpiY);
+		if (v.m_dpiY != v.dpiInvalid && v.m_dpiY != screenDPI.cy) {
+			if (v.m_height != v.sizeInvalid) v.m_height = MulDiv(v.m_height, screenDPI.cy, v.m_dpiY);
+			if (v.m_posY != v.posInvalid) v.m_posY = MulDiv(v.m_posY, screenDPI.cy, v.m_dpiY);
 		}
-		m_dpiX = screenDPI.cx;
-		m_dpiY = screenDPI.cy;
+		v.m_dpiX = screenDPI.cx;
+		v.m_dpiY = screenDPI.cy;
 	}
 	CSize GrabDPI() const {
 		CSize DPI(96,96);
-		if (m_dpiX != dpiInvalid) DPI.cx = m_dpiX;
-		if (m_dpiY != dpiInvalid) DPI.cy = m_dpiY;
+		if (v.m_dpiX != v.dpiInvalid) DPI.cx = v.m_dpiX;
+		if (v.m_dpiY != v.dpiInvalid) DPI.cy = v.m_dpiY;
 		return DPI;
 	}
 
@@ -263,35 +290,15 @@ private:
 
 	pfc::avltree_t<CWindow> m_windows;
 public:
-	t_uint32 m_width, m_height;
-	t_int32 m_posX, m_posY;
-	t_uint32 m_dpiX, m_dpiY;
-	enum {
-		posInvalid = 0x80000000,
-		sizeInvalid = 0xFFFFFFFF,
-		dpiInvalid = 0,
-	};
 };
+#endif
 
-FB2K_STREAM_READER_OVERLOAD(cfgDialogPositionData) {
-	stream >> value.m_width >> value.m_height;
-	try {
-		stream >> value.m_posX >> value.m_posY >> value.m_dpiX >> value.m_dpiY;
-	} catch(exception_io_data) {
-		value.m_posX = value.m_posY = cfgDialogPositionData::posInvalid;
-		value.m_dpiX = value.m_dpiY = cfgDialogPositionData::dpiInvalid;
-	}
-	return stream;
-}
-FB2K_STREAM_WRITER_OVERLOAD(cfgDialogPositionData) {
-	return stream << value.m_width << value.m_height << value.m_posX << value.m_posY << value.m_dpiX << value.m_dpiY;
-}
-
-class cfgDialogPosition : public cfgDialogPositionData, public cfg_var {
+class cfgDialogPosition : public cfg_struct_t<cfgDialogPositionData> {
 public:
-	cfgDialogPosition(const GUID & id) : cfg_var(id) {}
-	void get_data_raw(stream_writer * p_stream,abort_callback & p_abort) {FetchConfig(); stream_writer_formatter<> str(*p_stream, p_abort); str << *pfc::implicit_cast<cfgDialogPositionData*>(this);}
-	void set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {stream_reader_formatter<> str(*p_stream, p_abort); str >> *pfc::implicit_cast<cfgDialogPositionData*>(this);}
+	cfgDialogPosition(const GUID& id) : cfg_struct_t(id) {}
+
+	void AddWindow(CWindow wnd);
+	void RemoveWindow(CWindow wnd);
 };
 
 class cfgDialogPositionTracker {
@@ -325,30 +332,28 @@ private:
 //! DPI-safe window size var \n
 //! Stores size in pixel and original DPI\n
 //! Use with cfgWindowSizeTracker2
-class cfgWindowSize2 : public cfg_var {
+struct cfgWindowSize2_data {
+	CSize m_size = CSize(0, 0), m_dpi = CSize(0, 0);
+};
+
+class cfgWindowSize2 : public cfg_struct_t< cfgWindowSize2_data > {
 public:
-	cfgWindowSize2(const GUID & p_guid) : cfg_var(p_guid) {}
-	void get_data_raw(stream_writer * p_stream,abort_callback & p_abort) {
-		stream_writer_formatter<> str(*p_stream,p_abort); str << m_size.cx << m_size.cy << m_dpi.cx << m_dpi.cy;
-	}
-	void set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {
-		stream_reader_formatter<> str(*p_stream,p_abort); str >> m_size.cx >> m_size.cy >> m_dpi.cx >> m_dpi.cy;
+	cfgWindowSize2(const GUID & p_guid) : cfg_struct_t(p_guid) {}
+
+	bool is_valid() {
+		auto v = cfg_struct_t::get();
+		return v.m_size.cx > 0 && v.m_size.cy > 0;
 	}
 
-	bool is_valid() const {
-		return m_size.cx > 0 && m_size.cy > 0;
-	}
-
-	CSize get( CSize forDPI ) const {
-		if ( forDPI == m_dpi ) return m_size;
+	CSize get( CSize forDPI ) {
+		auto v = cfg_struct_t::get();
+		if ( forDPI == v.m_dpi ) return v.m_size;
 
 		CSize ret;
-		ret.cx = MulDiv( m_size.cx, forDPI.cx, m_dpi.cx );
-		ret.cy = MulDiv( m_size.cy, forDPI.cy, m_dpi.cy );
+		ret.cx = MulDiv( v.m_size.cx, forDPI.cx, v.m_dpi.cx );
+		ret.cy = MulDiv( v.m_size.cy, forDPI.cy, v.m_dpi.cy );
 		return ret;
 	}
-
-	CSize m_size = CSize(0,0), m_dpi = CSize(0,0);
 };
 
 //! Forward messages to this class to utilize cfgWindowSize2
@@ -380,8 +385,7 @@ public:
 private:
 	void OnSize(UINT nType, CSize size) {
 		if ( m_applied && size.cx > 0 && size.cy > 0 ) {
-			m_var.m_size = size;
-			m_var.m_dpi = m_DPI;
+			m_var.set( { size, m_DPI } );
 		}
 		SetMsgHandled(FALSE);
 	}
@@ -389,3 +393,5 @@ private:
 	bool m_applied = false;
 	const CSize m_DPI = QueryScreenDPIEx();
 };
+
+#endif // _WIN32

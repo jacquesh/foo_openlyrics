@@ -11,6 +11,7 @@ public:
 	//! Called typically on shutdown but you should expect a call at any point after on_read(). You can write your configuration file from here.
 	//! Hint: use core_api::get_profile_path() to retrieve the path of the folder where foobar2000 configuration files are stored.
 	//! @param reset If set to true, our configuration is being reset, so you should wipe your files rather than rewrite them with current configuration.
+	//! Since foobar2000 v2.0, reset is never issued - profile folder is cleared instead.
 	virtual void on_write(bool reset) = 0;
 
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(config_io_callback);
@@ -34,6 +35,7 @@ class NOVTABLE config_io_callback_v3 : public config_io_callback_v2 {
 public:
 	void on_quicksave();
 	void on_write(bool bReset);
+	//! Since foobar2000 v2.0, reset is never issued - profile folder is cleared instead.
 	virtual void on_reset_v3( filesystem::ptr fs ) = 0;
 	virtual void on_write_v3( filesystem::ptr fs ) = 0;
 	virtual void on_quicksave_v3( filesystem::ptr fs ) = 0;

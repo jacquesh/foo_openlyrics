@@ -74,7 +74,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -90,7 +90,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -117,7 +117,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -138,7 +138,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>

@@ -2,7 +2,7 @@
 #include "readers.h"
 #include "fullFileBuffer.h"
 #include "fileReadAhead.h"
-
+#include <SDK/file_info_impl.h>
 #include <list>
 
 t_size reader_membuffer_base::read(void * p_buffer, t_size p_bytes, abort_callback & p_abort) {
@@ -85,7 +85,7 @@ namespace {
 	};
 	typedef std::shared_ptr<readAheadInstance_t> readAheadInstanceRef;
 	static const t_filesize seek_reopen = (filesize_invalid-1);
-	class fileReadAhead : public file_readonly_t< service_multi_inherit<file_get_metadata, file_dynamicinfo_v2 > > {
+	class fileReadAhead : public file_readonly_t< service_multi_inherit<file_v2, file_dynamicinfo_v2 > > {
 		service_ptr m_metadata;
 	public:
 		readAheadInstanceRef m_instance;
@@ -100,7 +100,7 @@ namespace {
 		service_ptr get_metadata(abort_callback&) override { return m_metadata; }
 		void initialize( file::ptr chain, size_t readAhead, abort_callback & aborter ) {
 			m_metadata = chain->get_metadata_(aborter);
-			m_stats = chain->get_stats( aborter );
+			m_stats = chain->get_stats2_( stats2_all, aborter );
 			if (!chain->get_content_type(m_contentType)) m_contentType = "";
 			m_canSeek = chain->can_seek();
 			m_position = chain->get_position( aborter );
@@ -132,7 +132,7 @@ namespace {
 				worker(*i);
 			} );
 		}
-		t_size read(void * p_buffer,t_size p_bytes,abort_callback & p_abort) {
+		t_size read(void * p_buffer,t_size p_bytes,abort_callback & p_abort) override {
 			auto & i = * m_instance;
 			size_t done = 0;
             bool initial = true;
@@ -176,16 +176,16 @@ namespace {
             // FB2K_console_formatter() << "ReadAhead read: " << p_bytes << " => " << done;
 			return done;
 		}
-		t_filesize get_size(abort_callback & p_abort) {
+		t_filesize get_size(abort_callback & p_abort) override {
 			p_abort.check();
 			return m_stats.m_size;
 		}
-		t_filesize get_position(abort_callback & p_abort) {
+		t_filesize get_position(abort_callback & p_abort) override {
 			p_abort.check();
 			return m_position;
 		}
 
-		void seek(t_filesize p_position,abort_callback & p_abort) {
+		void seek(t_filesize p_position,abort_callback & p_abort) override {
 			p_abort.check();
 			if (!m_canSeek) throw exception_io_object_not_seekable();
 			if ( m_stats.m_size != filesize_invalid && p_position > m_stats.m_size ) throw exception_io_seek_out_of_range();
@@ -202,37 +202,33 @@ namespace {
 
 			seekInternal( p_position );
 		}
-		bool can_seek() {
+		bool can_seek() override {
 			return m_canSeek;
 		}
-		bool get_content_type(pfc::string_base & p_out) {
+		bool get_content_type(pfc::string_base & p_out) override {
 			if (m_contentType.length() == 0) return false;
 			p_out = m_contentType; return true;
 		}
-		t_filestats get_stats( abort_callback & p_abort ) {
+		t_filestats2 get_stats2( uint32_t, abort_callback & p_abort ) override {
 			p_abort.check();
 			return m_stats;
 				
 		}
-		t_filetimestamp get_timestamp(abort_callback & p_abort) {
-			p_abort.check();
-			return m_stats.m_timestamp;
-		}
-		bool is_remote() {
+		bool is_remote() override {
 			return m_instance->m_remote;
 		}
 
-		void reopen( abort_callback & p_abort ) {
+		void reopen( abort_callback & p_abort ) override {
 			if ( get_position( p_abort ) == 0 ) return;
 			seekInternal( seek_reopen );
 		}
 
-		bool get_static_info(class file_info & p_out) {
+		bool get_static_info(class file_info & p_out) override {
 			if ( ! m_haveStaticInfo ) return false;
 			mergeInfo(p_out, m_staticInfo);
 			return true;
 		}
-		bool is_dynamic_info_enabled() {
+		bool is_dynamic_info_enabled() override {
 			return m_instance->m_haveDynamicInfo;
 
 		}
@@ -240,7 +236,7 @@ namespace {
 			out.copy_meta(in);
 			out.overwrite_info(in);
 		}
-		bool get_dynamic_info_v2(class file_info & out, t_filesize & outOffset) {
+		bool get_dynamic_info_v2(class file_info & out, t_filesize & outOffset) override {
 			auto & i = * m_instance;
 			if ( ! i.m_haveDynamicInfo ) return false;
 			
@@ -367,7 +363,7 @@ namespace {
 		}
 
 		bool m_canSeek;
-		t_filestats m_stats;
+		t_filestats2 m_stats;
 		pfc::string8 m_contentType;
 		t_filesize m_position;
 
@@ -384,6 +380,6 @@ file::ptr fileCreateReadAhead(file::ptr chain, size_t readAheadBytes, abort_call
 	obj->initialize( chain, readAheadBytes, aborter );
 	
 	// Two paths to cast to file*, pick one explicitly to avoid compiler error
-	file_get_metadata::ptr temp = std::move(obj);
+	file_v2::ptr temp = std::move(obj);
 	return std::move(temp);
 }

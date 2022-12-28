@@ -1,9 +1,15 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "file_info.h"
+#include "console.h"
+#include "filesystem.h"
 
+#include <pfc/unicode-normalize.h>
 #ifndef _MSC_VER
 #define strcat_s strcat
 #define _atoi64 atoll
 #endif
+
+static constexpr char info_WAVEFORMATEXTENSIBLE_CHANNEL_MASK[] = "WAVEFORMATEXTENSIBLE_CHANNEL_MASK";
 
 const float replaygain_info::peak_invalid = -1;
 const float replaygain_info::gain_invalid = -1000;
@@ -408,7 +414,7 @@ bool file_info::meta_format(const char * p_name,pfc::string_base & p_out, const 
 	return true;
 }
 
-void file_info::info_calculate_bitrate(t_filesize p_filesize,double p_length)
+void file_info::info_calculate_bitrate(uint64_t p_filesize,double p_length)
 {
 	unsigned b = audio_math::bitrate_kbps( p_filesize, p_length );
 	if ( b > 0 ) info_set_bitrate(b);
@@ -609,26 +615,48 @@ void file_info::info_set_channels_ex(uint32_t channels, uint32_t mask) {
 	info_set_wfx_chanMask(mask);
 }
 
+static bool parse_wfx_chanMask(const char* str, uint32_t& out) {
+	try {
+		if (pfc::strcmp_partial(str, "0x") != 0) return false;
+		out = pfc::atohex<uint32_t>(str + 2, strlen(str + 2));
+		return true;
+	} catch (...) { return false; }
+}
+
+void file_info::info_tidy_channels() {
+	const char * info = this->info_get(info_WAVEFORMATEXTENSIBLE_CHANNEL_MASK);
+	if (info != nullptr) {
+		bool keep = false;
+		uint32_t v;
+		if (parse_wfx_chanMask(info, v)) {
+			if (v != 0 && v != 3 && v != 4) {
+				// valid, not mono, not stereo
+				keep = true;
+			}
+		}
+		if (!keep) this->info_remove(info_WAVEFORMATEXTENSIBLE_CHANNEL_MASK);
+	}
+}
+
 void file_info::info_set_wfx_chanMask(uint32_t val) {
 	switch(val) {
 	case 0:
 	case 4:
 	case 3:
-		this->info_remove("WAVEFORMATEXTENSIBLE_CHANNEL_MASK");
+		this->info_remove(info_WAVEFORMATEXTENSIBLE_CHANNEL_MASK);
 		break;
 	default:
-		info_set ("WAVEFORMATEXTENSIBLE_CHANNEL_MASK", pfc::format("0x", pfc::format_hex(val) ) );
+		info_set (info_WAVEFORMATEXTENSIBLE_CHANNEL_MASK, pfc::format("0x", pfc::format_hex(val) ) );
 		break;
 	}
 }
 
 uint32_t file_info::info_get_wfx_chanMask() const {
-	const char * str = this->info_get("WAVEFORMATEXTENSIBLE_CHANNEL_MASK");
+	const char * str = this->info_get(info_WAVEFORMATEXTENSIBLE_CHANNEL_MASK);
 	if (str == NULL) return 0;
-	if (pfc::strcmp_partial( str, "0x") != 0) return 0;
-	try {
-		return pfc::atohex<uint32_t>( str + 2, strlen(str+2) );
-	} catch(...) { return 0;}
+	uint32_t ret;
+	if (parse_wfx_chanMask(str, ret)) return ret;
+	return 0;
 }
 
 bool file_info::field_is_person(const char * fieldName) {
@@ -822,4 +850,24 @@ bool file_info::field_value_equals(const file_info& i1, size_t meta1, const file
 		if (strcmp(i1.meta_enum_value(meta1, walk), i2.meta_enum_value(meta2, walk)) != 0) return false;
 	}
 	return true;
+}
+
+bool file_info::unicode_normalize_C() {
+	const size_t total = this->meta_get_count();
+	bool changed = false;
+	for (size_t mwalk = 0; mwalk < total; ++mwalk) {
+		const char* name = this->meta_enum_name(mwalk);
+		const size_t totalV = this->meta_enum_value_count(mwalk);
+		for (size_t vwalk = 0; vwalk < totalV; ++vwalk) {
+			const char* val = this->meta_enum_value(mwalk, vwalk);
+			if (pfc::stringContainsFormD(val)) {
+				auto norm = pfc::unicodeNormalizeC(val);
+				if (strcmp(norm, val) != 0) {
+					this->meta_modify_value(mwalk, vwalk, norm);
+					changed = true;
+				}
+			}
+		}
+	}
+	return changed;
 }

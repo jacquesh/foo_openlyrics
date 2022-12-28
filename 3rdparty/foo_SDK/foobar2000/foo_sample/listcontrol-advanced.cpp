@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <vector>
 
+#include <helpers/DarkMode.h>
+
 namespace {
 	struct listData_t {
 		std::string m_key, m_value;
@@ -306,12 +308,17 @@ namespace {
 			// automatically initialize position, font, etc
 			m_list.CreateInDialog( *this, IDC_LIST1 );
 
+			// Do this AFTER creating CListControl, so dark mode hook talks to new CListControl rather than shortlived IDC_LIST1 placeholder
+			m_dark.AddDialogWithControls(*this);
+
 			ShowWindow(SW_SHOW);
 
 			return TRUE; // system should set focus
 		}
 
 		CListControlDemo m_list;
+
+		fb2k::CDarkModeHooks m_dark;
 	};
 }
 

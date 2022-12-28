@@ -903,10 +903,7 @@ namespace pfc {
         for (size_t n = 0; n < p_count; ++n) p_buffer[n] += p_delta;
     }
 
-	const float audio_math::float16scale = 65536.f;
-
-
-    void audio_math::convert(const float* in, float* out, size_t count) {
+	void audio_math::convert(const float* in, float* out, size_t count) {
         memcpy(out, in, count * sizeof(float));
     }
     void audio_math::convert(const float* in, float* out, size_t count, float scale) {

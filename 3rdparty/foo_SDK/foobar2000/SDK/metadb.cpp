@@ -1,5 +1,9 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "metadb.h"
+#include "metadb_callbacks.h"
 #include "file_info_filter_impl.h"
+#include "playback_control.h"
+#include "playlist.h"
 
 void metadb::handle_create_replace_path_canonical(metadb_handle_ptr & p_out,const metadb_handle_ptr & p_source,const char * p_new_path) {
 	handle_create(p_out,make_playable_location(p_new_path,p_source->get_subsong_index()));

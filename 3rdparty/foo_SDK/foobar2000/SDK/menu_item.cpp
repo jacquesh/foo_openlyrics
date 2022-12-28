@@ -1,6 +1,7 @@
-#include "foobar2000.h"
-
-
+#include "foobar2000-sdk-pch.h"
+#include "contextmenu.h"
+#include "contextmenu_manager.h"
+#include "metadb.h"
 
 bool contextmenu_item::item_get_display_data_root(pfc::string_base & p_out,unsigned & p_displayflags,unsigned p_index,const pfc::list_base_const_t<metadb_handle_ptr> & p_data,const GUID & p_caller)
 {

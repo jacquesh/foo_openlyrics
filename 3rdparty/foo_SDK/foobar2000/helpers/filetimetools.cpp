@@ -32,13 +32,12 @@ static void SystemTimeToNix(const SYSTEMTIME& st, struct tm& Time) {
     Time.tm_year = st.wYear - 1900;
 }
 
-#if 0
 static t_filetimestamp ExportSystemTime(const SYSTEMTIME& st) {
     struct tm Time;
     SystemTimeToNix(st, Time);
     return pfc::fileTimeUtoW(mktime(&Time));
 }
-#endif
+
 static t_filetimestamp ExportSystemTimeLocal(const SYSTEMTIME& st) {
     struct tm Time, Local;
     SystemTimeToNix(st, Time);
@@ -92,10 +91,12 @@ static t_filetimestamp ExportSystemTimeLocal(const SYSTEMTIME& st) {
 #endif
 }
 static bool MakeSystemTime(SYSTEMTIME& st, t_filetimestamp ts) {
+    if (ts == filetimestamp_invalid) return false;
     return !!FileTimeToSystemTime((const FILETIME*)&ts, &st);
 
 }
 static bool MakeSystemTimeLocal(SYSTEMTIME& st, t_filetimestamp ts) {
+    if (ts == filetimestamp_invalid) return false;
 #ifdef FOOBAR2000_DESKTOP_WINDOWS
     FILETIME ft;
     if (FileTimeToLocalFileTime((FILETIME*)&ts, &ft)) {
@@ -133,7 +134,6 @@ static t_filetimestamp filetimestamp_from_string_internal(const char* date, bool
     // Accepted format
     // YYYY-MM-DD HH:MM:SS
     try {
-        t_size remaining = strlen(date);
         SYSTEMTIME st = {};
         st.wDay = 1; st.wMonth = 1;
 
@@ -190,7 +190,7 @@ namespace foobar2000_io {
         return filetimestamp_from_string_internal(date, false);
     }
 
-    static const char g_invalidMsg[] = "<invalid timestamp>";
+    static constexpr char g_invalidMsg[] = "<invalid timestamp>";
 
     pfc::string_formatter format_filetimestamp(t_filetimestamp p_timestamp) {
         try {

@@ -1,6 +1,6 @@
-#ifndef _WINDOWS
-#error PORTME
-#endif
+#pragma once
+
+#ifdef _WIN32
 
 //! Entrypoint service for user interface modules. Implement when registering an UI module. Do not call existing implementations; only core enumerates / dispatches calls. To control UI behaviors from other components, use ui_control API. \n
 //! Use user_interface_factory_t<> to register, e.g static user_interface_factory_t<myclass> g_myclass_factory;
@@ -58,6 +58,15 @@ public:
 	static const GUID cap_suppress_core_uvc;
 };
 
+class ui_config_manager;
+//! \since 2.0
+class NOVTABLE user_interface_v3 : public user_interface_v2 {
+	FB2K_MAKE_SERVICE_INTERFACE(user_interface_v3, user_interface_v2);
+public:
+	virtual service_ptr_t< ui_config_manager > get_config_manager() = 0;
+};
+#endif // _WIN32
+
 //! Interface class allowing you to override UI statusbar text. There may be multiple callers trying to override statusbar text; backend decides which one succeeds so you will not always get what you want. Statusbar text override is automatically cancelled when the object is released.\n
 //! Use ui_control::override_status_text_create() to instantiate.
 //! Implemented by core. Do not reimplement.
@@ -83,11 +92,13 @@ public:
 	virtual void activate()=0;
 	//! Hides/minimizese main UI.
 	virtual void hide()=0;
+    
+#ifdef _WIN32
 	//! Retrieves main GUI icon, to use as window icon etc. Returned handle does not need to be freed.
-	virtual HICON get_main_icon()=0;
+	virtual fb2k::hicon_t get_main_icon()=0;
 	//! Loads main GUI icon, version with specified width/height. Returned handle needs to be freed with DestroyIcon when you are done using it.
-	virtual HICON load_main_icon(unsigned width,unsigned height) = 0;
-
+	virtual fb2k::hicon_t load_main_icon(unsigned width,unsigned height) = 0;
+#endif
 	//! Activates preferences dialog and navigates to specified page. See also: preference_page API. \n
 	//! Since foobar2000 1.5, this can be used to show advanced preferences branches or settings, just pass GUID of the advconfig_entry you wish to show.
 	virtual void show_preferences(const GUID & p_page) = 0;
@@ -100,16 +111,15 @@ public:
 
 typedef ui_status_text_override ui_status_host;
 
-#if FOOBAR2000_TARGET_VERSION >= 80
 //! \since 1.5
 class NOVTABLE ui_control_v2 : public ui_control {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(ui_control_v2, ui_control)
 public:
-	virtual void register_status_host(HWND wndFor, ui_status_host::ptr obj) = 0;
-	virtual void unregister_status_host(HWND wndFor) = 0;
+	virtual void register_status_host(fb2k::hwnd_t wndFor, ui_status_host::ptr obj) = 0;
+	virtual void unregister_status_host(fb2k::hwnd_t wndFor) = 0;
 };
-#endif // if FOOBAR2000_TARGET_VERSION >= 80
 
+#ifdef _WIN32
 //! Service called from the UI when some object is dropped into the UI. Usable for modifying drag&drop behaviors such as adding custom handlers for object types other than supported media files.\n
 //! Implement where needed; use ui_drop_item_callback_factory_t<> template to register, e.g. static ui_drop_item_callback_factory_t<myclass> g_myclass_factory.
 class NOVTABLE ui_drop_item_callback : public service_base {
@@ -130,7 +140,7 @@ public:
 
 template<class T>
 class ui_drop_item_callback_factory_t : public service_factory_single_t<T> {};
-
+#endif
 
 class ui_selection_callback;
 

@@ -1,9 +1,14 @@
 #pragma once
+#include "album_art.h"
+
 //! Implements album_art_data.
 class album_art_data_impl : public album_art_data {
 public:
-	const void * get_ptr() const {return m_content.get_ptr();}
-	t_size get_size() const {return m_content.get_size();}
+	const void * data() const override {return m_content.get_ptr();}
+	size_t size() const override {return m_content.get_size();}
+
+	const void * get_data() const { return m_content.get_ptr(); }
+	size_t sizeget_() const { return m_content.get_size(); }
 
 	void * get_ptr() {return m_content.get_ptr();}
 	void set_size(t_size p_size) {m_content.set_size(p_size);}
@@ -88,11 +93,11 @@ public:
 		pfc::splitStringSimple_toList(m_extensions,';',exts);
 	}
 
-	bool is_our_path(const char * p_path,const char * p_extension) {
+	bool is_our_path(const char * p_path,const char * p_extension) override {
 		return m_extensions.have_item(p_extension);
 	}
 
-	album_art_editor_instance_ptr open(file_ptr p_filehint,const char * p_path,abort_callback & p_abort) {
+	album_art_editor_instance_ptr open(file_ptr p_filehint,const char * p_path,abort_callback & p_abort) override {
 		PFC_ASSERT( is_our_path(p_path, pfc::string_extension(p_path) ) );
 		file_ptr l_file ( p_filehint );
 		if (l_file.is_empty()) filesystem::g_open(l_file, p_path, filesystem::open_mode_write_existing, p_abort);
@@ -156,6 +161,6 @@ private:
 //! album_art_path_list implementation helper
 class album_art_path_list_dummy : public album_art_path_list {
 public:
-	const char * get_path(t_size index) const {uBugCheck();}
+	const char * get_path(t_size index) const {FB2K_BugCheck();}
 	t_size get_count() const {return 0;}
 };

@@ -6,9 +6,9 @@
 #include "win32_op.h"
 
 // Separator-in-dialog tool: subclass a static control on init
-class CStaticSeparator : public CContainedWindowT<CStatic>, private CMessageMap {
+class CStaticSeparator : public CWindowImpl<CStaticSeparator, CStatic> {
 public:
-	CStaticSeparator() : CContainedWindowT<CStatic>(this, 0) {}
+	CStaticSeparator() {}
 	BEGIN_MSG_MAP_EX(CSeparator)
 		MSG_WM_PAINT(OnPaint)
 		MSG_WM_SETTEXT(OnSetText)
@@ -48,9 +48,9 @@ private:
 
 
 // Static control subclass with override for theme part used for rendering
-class CStaticThemed : public CContainedWindowT<CStatic>, private CMessageMap {
+class CStaticThemed : public CWindowImpl<CStaticThemed, CStatic> {
 public:
-	CStaticThemed() : CContainedWindowT<CStatic>(this, 0), m_id(), m_fallback() {}
+	CStaticThemed() : m_id(), m_fallback() {}
 	BEGIN_MSG_MAP_EX(CStaticThemed)
 		MSG_WM_PAINT(OnPaint)
 		MSG_WM_THEMECHANGED(OnThemeChanged)

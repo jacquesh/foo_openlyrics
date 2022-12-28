@@ -1,3 +1,7 @@
+#pragma once
+#include "menu.h"
+#include "contextmenu.h"
+
 namespace menu_helpers {
 #ifdef _WIN32
 	void win32_auto_mnemonics(HMENU menu);
@@ -102,7 +106,9 @@ public:
 		guid_seek_ahead_1min,			guid_seek_ahead_2min,				guid_seek_ahead_5min,				guid_seek_ahead_10min,
 
 		guid_seek_back_1s,				guid_seek_back_5s,					guid_seek_back_10s,					guid_seek_back_30s,
-		guid_seek_back_1min,			guid_seek_back_2min,				guid_seek_back_5min,				guid_seek_back_10min
+		guid_seek_back_1min,			guid_seek_back_2min,				guid_seek_back_5min,				guid_seek_back_10min,
+
+        guid_library_configure, guid_library_rescan
 		;
 
 	static bool run_main(const GUID & guid);

@@ -1,4 +1,7 @@
 #pragma once
+
+#include "filesystem.h"
+
 //! Generic interface for a memory block; used by various other interfaces to return memory blocks while allowing caller to allocate.
 class NOVTABLE mem_block_container {
 public:
@@ -21,6 +24,8 @@ public:
 
 	const mem_block_container & operator=(const mem_block_container & p_source) {copy(p_source);return *this;}
 
+	void resize(size_t v) { set_size(v); }
+	size_t size() const { return get_size(); }
 protected:
 	mem_block_container() {}
 	~mem_block_container() {}
@@ -30,17 +35,24 @@ protected:
 template<template<typename> class t_alloc = pfc::alloc_standard>
 class mem_block_container_impl_t : public mem_block_container {
 public:
-	const void * get_ptr() const {return m_data.get_ptr();}
-	void * get_ptr() {return m_data.get_ptr();}
-	t_size get_size() const {return m_data.get_size();}
-	void set_size(t_size p_size) {
-		m_data.set_size(p_size);
-	}
+	const void* get_ptr() const override { return m_data.get_ptr(); }
+	void* get_ptr() override { return m_data.get_ptr(); }
+	t_size get_size() const override { return m_data.get_size(); }
+	void set_size(t_size p_size) override { m_data.set_size(p_size); }
 private:
-	pfc::array_t<t_uint8,t_alloc> m_data;
+	pfc::array_t<t_uint8, t_alloc> m_data;
 };
 
-typedef mem_block_container_impl_t<> mem_block_container_impl;
+class mem_block_container_impl : public mem_block_container {
+public:
+	const void * get_ptr() const override {return m_data.ptr();}
+	void * get_ptr() override {return m_data.ptr();}
+	t_size get_size() const override {return m_data.size();}
+	void set_size(t_size p_size) override {m_data.resize(p_size);}
+
+	pfc::mem_block m_data;
+};
+
 
 template<unsigned alignBytes = 16> class mem_block_container_aligned_impl : public mem_block_container {
 public:
@@ -71,7 +83,7 @@ private:
 
 class mem_block_container_temp_impl : public mem_block_container {
 public:
-	mem_block_container_temp_impl(void * p_buffer,t_size p_size) : m_buffer(p_buffer), m_buffer_size(p_size), m_size(0) {}
+	mem_block_container_temp_impl(void * p_buffer,t_size p_size) : m_size(0), m_buffer_size(p_size), m_buffer(p_buffer) {}
 	const void * get_ptr() const {return m_buffer;}
 	void * get_ptr() {return m_buffer;}
 	t_size get_size() const {return m_size;}

@@ -69,7 +69,7 @@ namespace PaintUtils {
 		FillVertexColor(verticies[1],p_color2);
 		verticies[0].x = p_rect.left; verticies[0].y = p_rect.top;
 		verticies[1].x = p_rect.right; verticies[1].y = p_rect.bottom;
-		WIN32_OP_D( p_dc.GradientFill(verticies,tabsize(verticies),&element,1,p_horizontal ? GRADIENT_FILL_RECT_H : GRADIENT_FILL_RECT_V) );
+		p_dc.GradientFill(verticies,tabsize(verticies),&element,1,p_horizontal ? GRADIENT_FILL_RECT_H : GRADIENT_FILL_RECT_V);
 	}
 
 	void GradientSplitRect(CDCHandle p_dc,const CRect & p_rect,t_uint32 p_bkColor, t_uint32 p_gradientColor,int p_splitPercent) throw() {

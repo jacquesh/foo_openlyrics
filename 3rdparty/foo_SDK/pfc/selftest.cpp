@@ -90,18 +90,6 @@ namespace pfc {
 			PFC_ASSERT(map["2"] == 2);
 			PFC_ASSERT(map["3"] == 3);
 		}
-
-		{
-			auto& obj = SmartStrStr::global();
-			
-			pfc::string8 str;
-			str = obj.transformStr(u8"Bück Dich");
-			PFC_ASSERT(str == "Buck Dich");
-			str = obj.transformStr(u8"AUSLÄNDER");
-			PFC_ASSERT(str == "AUSLANDER");
-			str = obj.transformStr(u8"Weißes Fleisch");
-			PFC_ASSERT(str == "Weisses Fleisch");
-		}
 	}
 	// Self test routines that fail at compile time if there's something seriously wrong
 	void selftest_static() {

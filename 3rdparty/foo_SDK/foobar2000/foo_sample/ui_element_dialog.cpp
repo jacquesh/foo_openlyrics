@@ -7,6 +7,8 @@
 #include <libPPUI/wtl-pp.h> // CCheckBox
 #include <helpers/atl-misc.h> // ui_element_impl
 
+#include <libPPUI/DarkMode.h>
+
 namespace {
 	// Anonymous namespace : standard practice in fb2k components
 	// Nothing outside should have any reason to see these symbols, and we don't want funny results if another cpp has similarly named classes.
@@ -96,6 +98,19 @@ namespace {
 
 			return ret;
 		}
+
+		void applyDark() {
+			t_ui_color color = 0;
+			if (m_callback->query_color(ui_color_darkmode, color)) {
+				m_dark.SetDark(color == 0);
+			}
+		}
+		void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override {
+			// Colors changed? Check dark mode config
+			if (p_what == ui_element_notify_colors_changed) {
+				applyDark();
+			}
+		}
 	private:
 		static uint32_t parseConfig( ui_element_config::ptr cfg ) {
 			try {
@@ -157,6 +172,13 @@ namespace {
 			uSetDlgItemText( *this, IDC_STATIC_SIZE, msg );
 		}
 		BOOL OnInitDialog(CWindow, LPARAM) {
+
+			// First tell m_dark whether we're dark nor not
+			applyDark();
+			// Then initialize it
+			m_dark.AddDialogWithControls(*this);
+			// The above two work in any order, though this way is slightly more efficient
+
 			configToUI();
 			{
 				CRect rc;
@@ -170,6 +192,11 @@ namespace {
 		}
 		const ui_element_instance_callback::ptr m_callback;
 		uint32_t m_flags;
+
+		// No fb2k::CDarkModeHooks.
+		// Politely ask our callback if we should render as dark or not, instead of using global settings.
+		// Though in real life it's all the same in the end.
+		DarkMode::CHooks m_dark;
 	};
 
 

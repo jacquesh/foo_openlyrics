@@ -89,7 +89,8 @@ namespace tag_processor {
 	void remove_id3v2_trailing(const service_ptr_t<file> & p_file,abort_callback & p_abort);
 	//! Reads trailing tags from the file.
 	void read_trailing(const service_ptr_t<file> & p_file,file_info & p_info,abort_callback & p_abort);
-	//! Reads trailing tags from the file. Extended version, returns offset at which parsed tags start.
+	//! Reads trailing tags from the file. Extended version, returns offset at which parsed tags start. \n
+	//! p_tagoffset set to offset of found tags, to EOF if no tags were found.
 	void read_trailing_ex(const service_ptr_t<file> & p_file,file_info & p_info,t_filesize & p_tagoffset,abort_callback & p_abort);
 	//! Reads ID3v2 tags from specified file.
 	void read_id3v2(const service_ptr_t<file> & p_file,file_info & p_info,abort_callback & p_abort);

@@ -1,4 +1,5 @@
 #pragma once
+#include "file_info_impl.h"
 
 // Not everything is on #ifdef FOOBAR2000_HAVE_CHAPTERIZER
 // Some things use chapter_list internally even if chapterizer is disabled

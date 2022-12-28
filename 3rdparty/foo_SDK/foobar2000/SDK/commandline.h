@@ -1,3 +1,4 @@
+#pragma once
 class NOVTABLE commandline_handler : public service_base
 {
 public:

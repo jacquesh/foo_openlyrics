@@ -1,9 +1,10 @@
 #pragma once
 
-#if defined(_M_X64) || defined(_M_ARM64)
-#define audio_sample_size 64
-#else
+#include <stdint.h>
+#if SIZE_MAX < UINT64_MAX
 #define audio_sample_size 32
+#else
+#define audio_sample_size 64
 #endif
 
 #if audio_sample_size == 32

@@ -1,5 +1,7 @@
-#include "foobar2000.h"
-
+#include "foobar2000-sdk-pch.h"
+#include "titleformat.h"
+#include "file_info_impl.h"
+#include "input.h"
 
 double metadb_handle::get_length()
 {

@@ -153,6 +153,7 @@ public:
 
 	// Multi-wait. Returns SIZE_MAX on timeout, 0 based event index if either event becomes set.
 	static size_t g_multiWait(const HANDLE* events, size_t count, double timeout);
+    static size_t g_multiWait( std::initializer_list<HANDLE> const & arg, double timeout );
 private:
 	win32_event(const win32_event&) = delete;
 	void operator=(const win32_event &) = delete;
@@ -163,7 +164,7 @@ private:
 namespace pfc {
 	typedef HANDLE eventHandle_t;
 
-	static const eventHandle_t eventInvalid = NULL;
+	static constexpr eventHandle_t eventInvalid = NULL;
 
 	class event : public win32_event {
 	public:

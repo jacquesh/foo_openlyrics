@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <helpers/writer_wav.h>
+#include <SDK/playback_stream_capture.h>
 
 namespace {
 	// private classes in anon namespace

@@ -1,4 +1,5 @@
 #pragma once
+#include "menu_common.h"
 
 class NOVTABLE mainmenu_group : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(mainmenu_group);
@@ -51,8 +52,11 @@ public:
 	virtual t_uint32 get_sort_priority() {return sort_priority_dontcare;}
 	//! Retrieves display string and display flags to use when menu is about to be displayed. If returns false, menu item won't be displayed. You can create keyboard-shortcut-only commands by always returning false from get_display().
 	virtual bool get_display(t_uint32 p_index,pfc::string_base & p_text,t_uint32 & p_flags) {p_flags = 0;get_name(p_index,p_text);return true;}
+
+	typedef service_ptr ctx_t;
+	
 	//! Executes the command. p_callback parameter is reserved for future use and should be ignored / set to null pointer.
-	virtual void execute(t_uint32 p_index,service_ptr_t<service_base> p_callback) = 0;
+	virtual void execute(t_uint32 p_index,ctx_t p_callback) = 0;
 
 	static bool g_execute(const GUID & p_guid,service_ptr_t<service_base> p_callback = NULL);
 	static bool g_execute_dynamic(const GUID & p_guid, const GUID & p_subGuid,service_ptr_t<service_base> p_callback = NULL);
@@ -77,11 +81,10 @@ public:
 	virtual void instantiate(const GUID & p_root) = 0;
 	
 #ifdef _WIN32
-	virtual void generate_menu_win32(HMENU p_menu,t_uint32 p_id_base,t_uint32 p_id_count,t_uint32 p_flags) = 0;
-#else
-#error portme
-#endif
-	//@param p_id Identifier of command to execute, relative to p_id_base of generate_menu_*()
+	virtual void generate_menu_win32(fb2k::hmenu_t p_menu,t_uint32 p_id_base,t_uint32 p_id_count,t_uint32 p_flags) = 0;
+#endif // _WIN32
+
+    //@param p_id Identifier of command to execute, relative to p_id_base of generate_menu_*()
 	//@returns true if command was executed successfully, false if not (e.g. command with given identifier not found).
 	virtual bool execute_command(t_uint32 p_id,service_ptr_t<service_base> p_callback = service_ptr_t<service_base>()) = 0;
 
@@ -91,6 +94,13 @@ public:
 	static bool serviceRequiresMainThreadDestructor() { return true; }
 
 	FB2K_MAKE_SERVICE_COREAPI(mainmenu_manager);
+};
+
+//! \since 2.0
+class mainmenu_manager_v2 : public mainmenu_manager {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(mainmenu_manager_v2, mainmenu_manager)
+public:
+	virtual menu_tree_item::ptr generate_menu(uint32_t flags) = 0;
 };
 
 class mainmenu_groups {
@@ -154,7 +164,7 @@ class mainmenu_commands_factory_t : public service_factory_single_t<T> {};
 
 
 
-// \since 1.0
+//! \since 1.0
 class NOVTABLE mainmenu_node : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE(mainmenu_node, service_base)
 public:
@@ -213,13 +223,35 @@ public:
 };
 
 
-// \since 1.0
+//! \since 1.0
 class NOVTABLE mainmenu_commands_v2 : public mainmenu_commands {
 	FB2K_MAKE_SERVICE_INTERFACE(mainmenu_commands_v2, mainmenu_commands)
 public:
-	virtual bool is_command_dynamic(t_uint32 index) = 0;
+	virtual bool is_command_dynamic(t_uint32 index);
 	//! Valid only when is_command_dynamic() returns true. Behavior undefined otherwise.
-	virtual mainmenu_node::ptr dynamic_instantiate(t_uint32 index) = 0;
+	virtual mainmenu_node::ptr dynamic_instantiate(t_uint32 index);
 	//! Default fallback implementation provided.
 	virtual bool dynamic_execute(t_uint32 index, const GUID & subID, service_ptr_t<service_base> callback);
+};
+
+//! \since 2.0
+//! Introduces callbacks to monitor menu items that act like check boxes.
+class NOVTABLE mainmenu_commands_v3 : public mainmenu_commands_v2 {
+	FB2K_MAKE_SERVICE_INTERFACE(mainmenu_commands_v3, mainmenu_commands_v2)
+public:
+	class state_callback {
+	public:
+		//! @param main Command ID
+		//! @param sub Reserved for future use.
+		virtual void menu_state_changed(const GUID& main, const GUID & sub) {}
+		state_callback() {}
+		state_callback(state_callback const&) = delete;
+		void operator=(state_callback const&) = delete;
+	};
+
+	//! Return POSSIBLE values of display flags for this item, specifically flag_checked and flag_radiochecked if this item ever uses such.
+	//! @param subCmd Subcommand ID reserved for future use. Dynamic commands aren't meant to fire callbacks.
+	virtual uint32_t allowed_check_flags(uint32_t idx, const GUID& subCmd) = 0;
+	virtual void add_state_callback(state_callback*) = 0;
+	virtual void remove_state_callback(state_callback*) = 0;	
 };

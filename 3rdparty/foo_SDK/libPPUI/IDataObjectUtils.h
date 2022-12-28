@@ -16,8 +16,8 @@ namespace IDataObjectUtils {
 		PFC_CLASS_NOT_COPYABLE_EX(ReleaseStgMediumScope)
 	};
 
-	static const DWORD DataBlockToSTGMEDIUM_SupportedTymeds = TYMED_ISTREAM | TYMED_HGLOBAL;
-	static const DWORD ExtractDataObjectContent_SupportedTymeds = TYMED_ISTREAM | TYMED_HGLOBAL;
+	static constexpr DWORD DataBlockToSTGMEDIUM_SupportedTymeds = TYMED_ISTREAM | TYMED_HGLOBAL;
+	static constexpr DWORD ExtractDataObjectContent_SupportedTymeds = TYMED_ISTREAM | TYMED_HGLOBAL;
 
 	HRESULT DataBlockToSTGMEDIUM(const void * blockPtr, t_size blockSize, STGMEDIUM * medium, DWORD tymed, bool bHere) throw();
 

@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "CMiddleDragImpl.h"
+#include "CMiddleDragLite.h"
+#include "ImplementOnFinalMessage.h"
 
 double CMiddleDragCommon::myPow(double p_val, double p_exp) {
 	if (p_val < 0) {
@@ -62,7 +64,7 @@ namespace {
 void CMiddleDragOverlay::Paint(CDCHandle dc) {
 	CRect client;
 	WIN32_OP_D(GetClientRect(&client));
-	static const pt_t path[] = {
+	static constexpr pt_t path[] = {
 		{15,0}, {9,6}, {9,7}, {14,7}, {14, 14},
 		{7, 14}, {7, 9}, {6, 9}, {0, 15},
 		{0, 16}, {6, 22}, {7, 22}, {7, 17}, {14, 17},
@@ -84,4 +86,16 @@ void CMiddleDragOverlay::Paint(CDCHandle dc) {
 	dc.FillRgn(rgn, brush);
 	dc.SetDCBrushColor(0xFFFFFF);
 	dc.FrameRgn(rgn, brush, 1, 1);
+}
+
+
+namespace {
+	class CMiddleDragLiteBase : public CWindowImpl<CMiddleDragLiteBase, CWindow > {
+	public:
+		BOOL ProcessWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult, DWORD dwMsgMapID = 0) { return FALSE; }
+	};
+}
+void PP::addMiddleDragToCtrl(HWND wndCtrl) {
+	auto obj = new ImplementOnFinalMessage<CMiddleDragImpl<CMiddleDragWrapper< CMiddleDragLiteBase > > > ();
+	WIN32_OP_D( obj->SubclassWindow(wndCtrl) );
 }

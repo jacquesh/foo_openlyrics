@@ -1,4 +1,5 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "file_info.h"
 
 static t_size merge_tags_calc_rating_by_index(const file_info & p_info,t_size p_index) {
 	t_size n,m = p_info.meta_enum_value_count(p_index);

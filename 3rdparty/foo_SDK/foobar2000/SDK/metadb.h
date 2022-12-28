@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "metadb_handle.h"
 
 class file_info_filter; // forward decl; file_info_filter moved to file_info_filter.h
 
@@ -162,6 +163,9 @@ public:
 		//! \since 2.0
 		//! Do not show any user interface.
 		op_flag_silent		= 1 << 4,
+        
+        //! \since 2.0
+        op_flag_detect_rechapter = 1 << 5,
 	};
 
 	//! Preloads information from the specified tracks.
@@ -296,12 +300,16 @@ class metadb_v2 : public metadb {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_v2, metadb);
 public:
 	typedef metadb_v2_rec_t rec_t;
+    
+    //! Query info record by location, bypassing metadb_handle layer.
 	virtual rec_t query(playable_location const& loc) = 0;
 
+    //! Callback class for queryMulti(). See metadb_v2::queryMulti().
 	class queryMultiCallback_t {
 	public:
 		virtual void onInfo(size_t idx, const rec_t& rec) = 0;
 	};
+    //! Callback class for queryMultiParallel(). See metadb_v2::queryMultiParallel().
 	class queryMultiParallelCallback_t {
 	public:
 		virtual void* initThreadContext() { return nullptr; }
@@ -309,12 +317,21 @@ public:
 		virtual void clearThreadContext(void*) {}
 	};
 	
+    //! Optimized multi-item metadb info query. Supply a callback to receive info records for all requested tracks. \n
+    //! This is considerably faster than reading info records one by one, batch database queries are used to speed operation up. \n
+    //! The infos may come in different order than requested - pay attention to idx argument of callback's onInfo(). \n
+    //! See also: queryMulti_(), using a lambda instead of a callback object.
 	virtual void queryMulti(metadb_handle_list_cref items, queryMultiCallback_t& cb) = 0;
 	
+    //! Multi-thread optimized version of queryMulti(). \n
+    //! Faster if used with thousands of items, needs the callback to handle concurrent calls from many threads. \n
+    //! See also: queryMultiParallel_() and queryMultiParallelEx_(), helpers using lambdas and classes to implement the callback for you.
 	virtual void queryMultiParallel(metadb_handle_list_cref items, queryMultiParallelCallback_t& cb) = 0;
 	
+    //! Format title without database access, use preloaded metadb v2 record.
 	virtual void formatTitle_v2( const metadb_handle_ptr & handle, const rec_t & rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter) = 0;
 
+    //! Helper around queryMulti(). Implements callback for you using passed lambda.
 	void queryMulti_(metadb_handle_list_cref items, std::function< void(size_t idx, const rec_t& rec) > f) {
 		class qmc_impl : public queryMultiCallback_t {
 		public:
@@ -325,6 +342,7 @@ public:
 		this->queryMulti(items, cb);
 	}
 
+    //! Simplified helper around queryMultiParallel(). No per-thread data object used. Implements callback for you using passed labmda.
 	void queryMultiParallel_(metadb_handle_list_cref items, std::function< void(size_t, const rec_t&) > f) {
 		class qmc_impl : public queryMultiParallelCallback_t {
 		public:
@@ -335,6 +353,10 @@ public:
 		qmc_impl cb; cb.m_f = f;
 		this->queryMultiParallel(items, cb);
 	}
+    
+    //! Simplified helper around queryMultiParallel(). \n
+    //! instance_t implements per-thread context data, one will be created in each worker threads. \n
+    //! While lambda itself will be called from many threads at once, only one instance_t will be used in each thread, so instance_t can be accessed without thread safety measures.
 	template<typename instance_t> void queryMultiParallelEx_(metadb_handle_list_cref items, std::function<void(size_t, const rec_t&, instance_t&)> f) {
 		class qmc_impl : public queryMultiParallelCallback_t {
 		public:
@@ -347,6 +369,11 @@ public:
 		qmc_impl cb; cb.m_f = f;
 		this->queryMultiParallel(items, cb);
 	}
+    
+    //! Simplified helper for retrieving info of multiple tracks efficiently. \n
+    //! Uses the fastest way to pull info from thousands of tracks - queryMultiParallel(). \n
+    //! Keep in mind that it results in all affected info becoming loaded into application memory at once. \n
+    //! If possible, use methods with callbacks/lambdas instead and process info in callbacks instead of keeping it.
 	pfc::array_t<rec_t> queryMultiSimple(metadb_handle_list_cref items) {
 		pfc::array_t<rec_t> ret;
 		ret.resize(items.get_count());

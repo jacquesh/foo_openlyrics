@@ -1,4 +1,5 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "titleformat.h"
 
 
 #define tf_profiler(x) // profiler(x)
@@ -151,11 +152,9 @@ void titleformat_compiler::run(titleformat_hook * p_source,pfc::string_base & p_
 	else ptr->run(p_source,p_out,NULL);
 }
 
-void titleformat_compiler::compile_safe(service_ptr_t<titleformat_object> & p_out,const char * p_spec)
+void titleformat_compiler::compile_safe(titleformat_object::ptr & p_out,const char * p_spec)
 {
-	if (!compile(p_out,p_spec)) {
-		compile_force(p_out,"%filename%");
-	}
+	compile_safe_ex(p_out, p_spec, "%filename%");
 }
 
 
@@ -184,4 +183,38 @@ void titleformat_text_filter_nontext_chars::write(const GUID & p_inputtype,pfc::
 		if (walk >= p_data_length || p_data[walk] == 0) break;
 		p_out.add_byte('_'); walk++;
 	}
+}
+
+titleformat_object::ptr titleformat_compiler::compile(const char* spec) {
+	titleformat_object::ptr ret;
+	this->compile(ret, spec);
+	return ret;
+}
+titleformat_object::ptr titleformat_compiler::compile_force(const char* spec) {
+	titleformat_object::ptr ret;
+	this->compile_force(ret, spec);
+	return ret;
+}
+titleformat_object::ptr titleformat_compiler::compile_fallback(const char* spec, const char* fallback) {
+	auto ret = compile(spec);
+	if (ret.is_empty()) ret = compile(fallback);
+	return ret;
+}
+
+bool titleformat_object::requires_metadb_info_() {
+#if FOOBAR2000_TARGET_VERSION >= 81
+	return static_cast<titleformat_object_v2*>(this)->requires_metadb_info();
+#else
+	titleformat_object_v2::ptr v2;
+	if (v2 &= this) return v2->requires_metadb_info();
+	return true;
+#endif
+}
+
+const char * titleformat_patterns::patternAlbumSplit() {
+    return "$if2(%album artist%,$directory_path(%path%))\t$if2(%album%,%title%)\t%discnumber%";
+}
+
+const char * titleformat_patterns::patternSortTracks() {
+    return "%album artist% | %album% | %discnumber% | %tracknumber% | %title% | %path%";
 }

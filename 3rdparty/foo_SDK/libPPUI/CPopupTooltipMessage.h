@@ -67,7 +67,7 @@ private:
 			WIN32_OP(m_tooltip.Create(NULL, NULL, NULL, m_style));
 		}
 	}
-	CContainedWindowSimpleT<CToolTipCtrl> m_tooltip;
+	CToolTipCtrl m_tooltip;
 	TOOLINFO m_toolinfo;
 	const DWORD m_style;
 	bool m_shutDown;

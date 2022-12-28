@@ -1,13 +1,30 @@
 #pragma once
-class file_info;
-class mem_block_container;
 
 #include "file.h"
+#include "fsitem.h"
+#include <functional>
+
+#ifndef _WIN32
+struct stat;
+#endif
 
 //! Contains various I/O related structures and interfaces.
-
 namespace foobar2000_io
 {
+
+	//! Disk space info struct
+	struct drivespace_t {
+		//! Free space, in bytes
+		t_filesize m_free = filesize_invalid;
+		//! Total size, in bytes
+		t_filesize m_total = filesize_invalid;
+		//! Free space available to caller, in bytes \n
+		//! If not specifically supported by filesystem, same as m_free.
+		t_filesize m_avail = filesize_invalid;
+	};
+
+
+
 	class filesystem;
 
 	class NOVTABLE directory_callback {
@@ -16,6 +33,10 @@ namespace foobar2000_io
 		virtual bool on_entry(filesystem * p_owner,abort_callback & p_abort,const char * p_url,bool p_is_subdirectory,const t_filestats & p_stats)=0;
 	};
 
+	class NOVTABLE directory_callback_v3 {
+	public:
+		virtual bool on_entry(filesystem* owner, const char* URL, t_filestats2 const& stats, abort_callback& abort) = 0;
+	};
 
 	//! Entrypoint service for all filesystem operations.\n
 	//! Implementation: standard implementations for local filesystem etc are provided by core.\n
@@ -34,6 +55,7 @@ namespace foobar2000_io
 			open_mode_write_new,
 
 			open_mode_mask = 0xFF,
+            open_shareable = 0x100,
 		};
 
 		virtual bool get_canonical_path(const char * p_path,pfc::string_base & p_out)=0;
@@ -67,13 +89,17 @@ namespace foobar2000_io
 
 		static void g_get_canonical_path(const char * path,pfc::string_base & out);
 		static void g_get_display_path(const char * path,pfc::string_base & out);
+        //! Retrieves a shortened display name for this file. By default this is implemented by returning filename.ext portion of the path.
+        static bool g_get_display_name_short( const char * path, pfc::string_base & out );
         //! Extracts the native filesystem path, sets out to the input path if native path cannot be extracted so the output is always set.
         //! @returns True if native path was extracted successfully, false otherwise (but output is set anyway).
-        static bool g_get_native_path( const char * path, pfc::string_base & out);
+        static bool g_get_native_path( const char * path, pfc::string_base & out, abort_callback & a = fb2k::noAbort);
+        static pfc::string8 g_get_native_path( const char * path );
 
 		static bool g_get_interface(service_ptr_t<filesystem> & p_out,const char * path);//path is AFTER get_canonical_path
 		static filesystem::ptr g_get_interface(const char * path);// throws exception_io_no_handler_for_path on failure
 		static filesystem::ptr get( const char * path ) { return g_get_interface(path); } // shortened
+		static filesystem::ptr tryGet(const char* path);
 		static bool g_is_remote(const char * p_path);//path is AFTER get_canonical_path
 		static bool g_is_recognized_and_remote(const char * p_path);//path is AFTER get_canonical_path
 		static bool g_is_remote_safe(const char * p_path) {return g_is_recognized_and_remote(p_path);}
@@ -111,9 +137,6 @@ namespace foobar2000_io
 		
 		static void g_create_directory(const char * p_path,abort_callback & p_abort);
 
-		//! If for some bloody reason you ever need stream io compatibility, use this, INSTEAD of calling fopen() on the path string you've got; will only work with file:// (and not with http://, unpack:// or whatever)
-		static FILE * streamio_open(const char * p_path,const char * p_flags); 
-
 		static void g_open_temp(service_ptr_t<file> & p_out,abort_callback & p_abort);
 		static void g_open_tempmem(service_ptr_t<file> & p_out,abort_callback & p_abort);
 		static file::ptr g_open_tempmem();
@@ -130,6 +153,7 @@ namespace foobar2000_io
 
 		// Presumes both source and destination belong to this filesystem.
 		void copy_directory(const char * p_src, const char * p_dst, abort_callback & p_abort);
+		void copy_directory_contents(const char* p_src, const char* p_dst, abort_callback& p_abort);
 
 		//! Moves/renames a file, overwriting the destination atomically if exists. \n
 		//! Note that this function may throw exception_io_denied instead of exception_io_sharing_violation when the file is momentarily in use, due to bugs in Windows MoveFile() API. There is no legitimate way for us to distinguish between the two scenarios.
@@ -151,15 +175,25 @@ namespace foobar2000_io
 		//! Extracts the filename.ext portion of the path. \n
 		//! The filename is ready to be presented to the user - URL decoding and such (similar to get_display_path()) is applied.
 		void extract_filename_ext(const char * path, pfc::string_base & outFN);
+		pfc::string8 extract_filename_ext(const char* path);
+		pfc::string8 get_extension(const char* path);
+		static pfc::string8 g_get_extension(const char* path);
 		//! Retrieves the parent path.
 		bool get_parent_path(const char * path, pfc::string_base & out);
+		//! Retrieves the parent path, alternate version.
+		fb2k::stringRef parentPath(const char* path);
 
 		file::ptr openWriteNew( const char * path, abort_callback & abort, double timeout );
 		file::ptr openWriteExisting(const char * path, abort_callback & abort, double timeout);
 		file::ptr openRead( const char * path, abort_callback & abort, double timeout);
 		file::ptr openEx( const char * path, t_open_mode mode, abort_callback & abort, double timeout);
+		void remove_(const char* path, abort_callback& a, double timeout);
 
+		//! Read whole file into a mem_block_container
 		void read_whole_file(const char * path, mem_block_container & out, pfc::string_base & outContentType, size_t maxBytes, abort_callback & abort );
+		//! Alternate read whole file, fb2k mobile style
+		fb2k::memBlockRef readWholeFile(const char* path, size_t maxBytes, abort_callback& abort);
+        static fb2k::memBlockRef g_readWholeFile(const char * path, size_t sizeSanity, abort_callback & aborter);
 
 		bool is_transacted();
 		bool commit_if_transacted(abort_callback &abort);
@@ -170,6 +204,7 @@ namespace foobar2000_io
 		//! See also: filesystem_transacted. \n
 		//! In order to perform transacted operations, you must obtain a transacted filesystem explicitly, or get one passed down from a higher level context (example: in config_io_callback_v3).
 		void rewrite_file( const char * path, abort_callback & abort, double opTimeout, std::function<void (file::ptr) > worker );
+		void rewrite_file(const char* path, abort_callback& abort, double opTimeout, const void* payload, size_t bytes);
 		//! Full directory rewrite helper that automatically does the right thing to ensure atomic update. \n
 		//! If this is a transacted filesystem, a simple in-place rewrite is performed. \n
 		//! If this is not a transacted filesystem, your content first goes to a temporary folder, which then replaces the original. \n
@@ -177,25 +212,23 @@ namespace foobar2000_io
 		//! See also: filesystem_transacted. \n
 		//! In order to perform transacted operations, you must obtain a transacted filesystem explicitly, or get one passed down from a higher level context (example: in config_io_callback_v3).
 		void rewrite_directory(const char * path, abort_callback & abort, double opTimeout, std::function<void(const char *) > worker);
+
+		t_filestats2 get_stats2_(const char* p_path, uint32_t s2flags, abort_callback& p_abort);
+		static t_filestats2 g_get_stats2(const char* p_path, uint32_t s2flags, abort_callback& p_abort);
+
+		bool get_display_name_short_(const char* path, pfc::string_base& out);
+
+		fsItemFolder::ptr makeItemFolderStd(const char* pathCanonical, t_filestats2 const& stats = filestats2_invalid );
+		fsItemFile::ptr makeItemFileStd(const char* pathCanonical, t_filestats2 const& stats = filestats2_invalid );
+
+
+		typedef std::function<void(const char*, t_filestats2 const&) > list_callback_t;
+		void list_directory_(const char* path, list_callback_t cb, unsigned listMode,abort_callback& a);
+
 	protected:
 		static bool get_parent_helper(const char * path, char separator, pfc::string_base & out);
 		void read_whole_file_fallback( const char * path, mem_block_container & out, pfc::string_base & outContentType, size_t maxBytes, abort_callback & abort );
 	};
-
-	namespace listMode {
-		enum {
-			//! Return files
-			files = 1,
-			//! Return folders
-			folders = 2,
-			//! Return both files and flders
-			filesAndFolders = files | folders,
-			//! Return hidden files
-			hidden = 4,
-			//! Do not hand over filestats unless they come for free with folder enumeration
-			suppressStats = 8,
-		};
-	}
 
 	class filesystem_v2 : public filesystem {
 		FB2K_MAKE_SERVICE_INTERFACE( filesystem_v2, filesystem )
@@ -225,6 +258,43 @@ namespace foobar2000_io
 		bool make_directory_check(const char * path, abort_callback & abort);
 	};
 
+	//! \since 2.0
+	class filesystem_v3 : public filesystem_v2 {
+		FB2K_MAKE_SERVICE_INTERFACE(filesystem_v3, filesystem_v2);
+	public:
+		//! Retrieves free space on the volume at the specified path.
+		//! Optional functionality, throws pfc::exception_not_implemented if n/a.
+		virtual drivespace_t getDriveSpace(const char* pathAt, abort_callback& abort);
+
+		//! Retrieves stats of a file at specified path.
+		virtual t_filestats2 get_stats2(const char* p_path, uint32_t s2flags, abort_callback& p_abort) = 0;
+
+		virtual bool get_display_name_short(const char* in, pfc::string_base& out);
+
+		virtual void list_directory_v3(const char* path, directory_callback_v3& callback, unsigned listMode, abort_callback& p_abort) = 0;
+
+		virtual fsItemBase::ptr findItem(const char* path, abort_callback& p_abort);
+		virtual fsItemFile::ptr findItemFile(const char* path, abort_callback& p_abort);
+		virtual fsItemFolder::ptr findItemFolder(const char* path, abort_callback& p_abort);
+		virtual fsItemFolder::ptr findParentFolder(const char* path, abort_callback& p_abort);
+		virtual fb2k::stringRef fileNameSanity(const char* fn);
+		virtual void readStatsMulti(fb2k::arrayRef items, uint32_t s2flags, t_filestats2* outStats, abort_callback& abort);
+
+		//! Optional method to return a native filesystem path to this item, null if N/A.
+		//! Aborter provided for corner cases, normally not needed.
+		virtual fb2k::stringRef getNativePath(const char* in, abort_callback& a) { return nullptr; }
+
+		// Old method wrapped to get_stats2()
+		void get_stats(const char* p_path, t_filestats& p_stats, bool& p_is_writeable, abort_callback& p_abort) override;
+		// Old method wrapped to list_directory_v3()
+		void list_directory_ex(const char* p_path, directory_callback& p_out, unsigned listMode, abort_callback& p_abort) override;
+
+		// Old method wrapped to get_stats2()
+		bool directory_exists(const char* path, abort_callback& abort) override;
+		// Old method wrapped to get_stats2()
+		bool file_exists(const char* path, abort_callback& abort) override;
+	};
+
 	class directory_callback_impl : public directory_callback
 	{
 		struct t_entry
@@ -252,7 +322,6 @@ namespace foobar2000_io
 
 
 	t_filetimestamp filetimestamp_from_system_timer();
-	t_filetimestamp import_DOS_time(uint32_t);
 
 #ifdef _WIN32
 	inline t_filetimestamp import_filetimestamp(FILETIME ft) {
@@ -370,7 +439,9 @@ namespace foobar2000_io
 
 	bool matchContentType(const char * fullString, const char * ourType);
 	bool matchProtocol(const char * fullString, const char * protocolName);
+    bool testIfHasProtocol( const char * fullString );
 	const char * afterProtocol( const char * fullString );
+	pfc::string8 getProtocol(const char* fullString);
 	void substituteProtocol(pfc::string_base & out, const char * fullString, const char * protocolName);
     
     bool matchContentType_MP3( const char * fullString);
@@ -387,6 +458,18 @@ namespace foobar2000_io
 
 	void purgeOldFiles(const char * directory, t_filetimestamp period, abort_callback & abort);
 
+#ifndef _WIN32
+    // Struct stat to fb2k filestats converter
+    t_filestats nixMakeFileStats(const struct stat & st);
+    t_filestats2 nixMakeFileStats2(const struct stat & st);
+    bool nixQueryReadonly( const struct stat & st );
+    bool nixQueryDirectory( const struct stat & st );
+    bool compactHomeDir(pfc::string_base & str);
+    bool expandHomeDir(pfc::string_base & str);
+
+
+#endif
+
 	//! \since 1.6
 	class read_ahead_tools : public service_base {
 		FB2K_MAKE_SERVICE_COREAPI(read_ahead_tools);
@@ -402,6 +485,7 @@ namespace foobar2000_io
 		//! @param path Path to open. May be null if f is not null. At least one of f and path must be valid prior to call.
 		virtual void open_file_helper(file::ptr & f, const char * path, abort_callback & aborter) = 0;
 	};
+
 }
 
 using namespace foobar2000_io;

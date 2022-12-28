@@ -1,4 +1,4 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
 #include "mem_block_container.h"
 #include "audio_chunk.h"
 

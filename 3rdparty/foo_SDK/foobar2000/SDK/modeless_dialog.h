@@ -1,3 +1,5 @@
+#pragma once
+#ifdef _WIN32
 //! Service for plugging your nonmodal dialog windows into main app loop to receive IsDialogMessage()-translated messages.\n
 //! Note that all methods are valid from main app thread only.\n
 //! Usage: call the static methods - modeless_dialog_manager::g_add / modeless_dialog_manager::g_remove.
@@ -15,3 +17,4 @@ public:
 	static void g_remove(HWND p_wnd) {modeless_dialog_manager::get()->remove(p_wnd);}
 
 };
+#endif

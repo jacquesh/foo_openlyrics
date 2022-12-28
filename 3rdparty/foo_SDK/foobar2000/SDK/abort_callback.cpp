@@ -1,4 +1,6 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+
+#include "abort_callback.h"
 
 void abort_callback::check() const {
     if (is_aborting()) {

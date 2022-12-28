@@ -1,5 +1,16 @@
 #pragma once
 
+
+#ifdef _MSC_VER // MSVC sucks, doesn't set __cplusplus properly by default
+#if _MSVC_LANG < 201703L
+#error C++17 please
+#endif
+#else // not MSVC
+#if __cplusplus < 201703L
+#error C++17 please
+#endif
+#endif
+
 // Global flag - whether it's OK to leak static objects as they'll be released anyway by process death
 #ifndef PFC_LEAK_STATIC_OBJECTS
 #define PFC_LEAK_STATIC_OBJECTS 1

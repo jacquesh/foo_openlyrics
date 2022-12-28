@@ -1,9 +1,10 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #include "input_helpers.h"
 #include "fullFileBuffer.h"
 #include "file_list_helper.h"
 #include "fileReadAhead.h"
+#include <SDK/file_info_impl.h>
 
 
 input_helper::ioFilter_t input_helper::ioFilter_full_buffer(t_filesize val ) {
@@ -62,6 +63,23 @@ void input_helper::open(service_ptr_t<file> p_filehint,metadb_handle_ptr p_locat
 	open(p_filehint,p_location->get_location(),p_flags,p_abort,p_from_redirect,p_skip_hints);
 }
 
+bool input_helper::test_if_lockless(abort_callback& a) {
+	if (m_file_in_memory || extended_param(input_params::is_tag_write_safe) != 0) return true;
+	
+#if 0
+	// doesn't work with current components because they don't support seeking_expensive either
+	if (extended_param(input_params::seeking_expensive)) {
+		// could be that the decoder doesn't understand is_tag_write_safe
+		if (matchProtocol("file", m_path)) {
+			try {
+				fileOpenWriteExisting(m_path, a);
+				return true;
+			} catch (exception_io) {}
+		}
+	}
+#endif
+	return false;
+}
 void input_helper::fileOpenTools(service_ptr_t<file> & p_file,const char * p_path,input_helper::ioFilters_t const & filters, abort_callback & p_abort) {
     for( auto walk = filters.begin(); walk != filters.end(); ++ walk ) {
 		auto f = *walk;
@@ -92,11 +110,13 @@ bool input_helper::open_path(const char * path, abort_callback & abort, decodeOp
 	service_ptr_t<file> l_file = other.m_hint;
 	fileOpenTools(l_file, path, other.m_ioFilters, abort);
 
+	m_file_in_memory = l_file.is_valid() && l_file->is_in_memory();
+
 	TRACK_CODE("input_entry::g_open_for_decoding",
 		m_input ^= input_entry::g_open(input_decoder::class_guid, l_file, path, m_logger, abort, other.m_from_redirect );
 	);
 
-#ifndef FOOBAR2000_MODERN
+#ifdef FOOBAR2000_HAVE_METADB
 	if (!other.m_skip_hints) {
 		try {
 			metadb_io::get()->hint_reader(m_input.get_ptr(), path, abort);
@@ -170,6 +190,22 @@ void input_helper::set_logger(event_logger::ptr ptr) {
 	m_logger = ptr;
 	input_decoder_v2::ptr v2;
 	if (m_input->service_query_t(v2)) v2->set_logger(ptr);
+}
+
+bool input_helper::run_raw_v2(audio_chunk& p_chunk, mem_block_container& p_raw, uint32_t knownBPS,abort_callback& p_abort) {
+	PFC_ASSERT(knownBPS >= 8 && knownBPS <= 32);
+	input_decoder_v2::ptr v2;
+	if (v2 &= m_input) {
+		try {
+			return v2->run_raw(p_chunk, p_raw, p_abort);
+			// UGLY: it may STILL FAIL with exception_not_implemented due to some underlying code not being able to handle the request!!
+		} catch (pfc::exception_not_implemented) {}
+	}
+	if (!m_input->run(p_chunk, p_abort)) return false;
+
+	uint32_t pad = knownBPS + 7; pad -= pad % 8;
+	p_chunk.toFixedPoint(p_raw, pad, knownBPS);
+	return true;
 }
 
 bool input_helper::run_raw(audio_chunk & p_chunk, mem_block_container & p_raw, abort_callback & p_abort) {
@@ -363,6 +399,7 @@ namespace {
 			m_subsong = loc.get_subsong();
 			m_decoder ^= input_entry::g_open( input_decoder::class_guid, arg.m_hint, loc.get_path(), arg.m_logger, aborter, arg.m_from_redirect);
 			m_seekable = ( arg.m_flags & input_flag_no_seeking ) == 0 && m_decoder->can_seek();
+			m_flags = arg.m_flags;
 			reopenDecoder(aborter);
 			readChunk(aborter, true);
 		}
@@ -392,17 +429,9 @@ namespace {
 		bool is_remote() {
 			return false;
 		}
-#if FOOBAR2000_TARGET_VERSION >= 2000
-		t_filestats get_stats(abort_callback & aborter) {
-			t_filestats fs = m_decoder->get_file_stats(aborter);
-			fs.m_size = get_size(aborter);
-			return fs;
-		}
-#else
 		t_filetimestamp get_timestamp(abort_callback & p_abort) {
 			return m_decoder->get_file_stats(p_abort).m_timestamp;
 		}
-#endif
 		void on_idle(abort_callback & p_abort) {
 			m_decoder->on_idle(p_abort);
 		}
@@ -492,8 +521,9 @@ namespace {
 		audio_chunk::spec_t const & get_spec() const { return m_spec; }
 	private:
 		void reopenDecoder(abort_callback & aborter) {
-			uint32_t flags = input_flag_no_looping;
+			uint32_t flags = m_flags | input_flag_no_looping;
 			if (!m_seekable) flags |= input_flag_no_seeking;
+			
 			m_decoder->initialize(m_subsong, flags, aborter);
 			m_eof = false;
 			m_currentPosition = 0;
@@ -536,6 +566,7 @@ namespace {
 		input_decoder::ptr m_decoder;
 		bool m_eof;
 		t_filesize m_currentPosition;
+		unsigned m_flags = 0;
 	};
 
 }

@@ -19,12 +19,8 @@ namespace text_file_loader
 		}
 		else
 		{
-#ifdef _WIN32
 			pfc::stringcvt::string_ansi_from_utf8 bah(p_string);
 			p_file->write_object(bah,bah.length(),p_abort);
-#else
-            throw exception_io_data();
-#endif
 		}
 	}
 	void read(const service_ptr_t<file> & p_file, abort_callback & p_abort, pfc::string_base & p_out, bool & is_utf8) {
@@ -60,7 +56,7 @@ namespace text_file_loader
 			}
 			if (!memcmp(utf8_header, temp, 3)) is_utf8 = true;
             else if (is_utf8) p_out.add_string(temp,3);
-			else ansitemp.add_string(temp, 3);
+            else ansitemp.add_string(temp, 3);
 
 			mem.set_size(delta);
 			
@@ -84,7 +80,7 @@ namespace text_file_loader
 		}
 		else
 		{
-			if (size64>1024*1024*128) throw exception_io_data();//hard limit
+			if (size64 > hardlimit_bytes) throw exception_io_data();//hard limit
 			t_size size = pfc::downcast_guarded<t_size>(size64);
 			mem.set_size(size+1);
 			char * asdf = mem.get_ptr();

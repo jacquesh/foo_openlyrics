@@ -9,6 +9,10 @@ namespace {
 	PFC_DECLARE_EXCEPTION(exception_cue_tracktype, exception_cue, "Not an audio track")
 }
 
+[[noreturn]] static void cue_fail(const char* msg) {
+	pfc::throw_exception_with_message< exception_cue >(msg);
+}
+
 static bool is_numeric(char c) {return c>='0' && c<='9';}
 
 
@@ -175,19 +179,28 @@ namespace {
 		void finalize()
 		{
 			finalize_track(); // finalize last track
+			sanity();
 		}
 
 	private:
+		void sanity() {
+			int trk = 0;
+			for (auto& iter : m_out) {
+				int i = iter.m_track_number;
+				if (i <= trk) cue_fail("incorrect track numbering");
+				trk = i;
+			}
+		}
 		void finalize_track()
 		{
 			if ( m_track != 0 && m_trackIsAudio ) {
-				if (!m_index1_set) pfc::throw_exception_with_message< exception_cue > ("INDEX 01 not set");
+				if (!m_index1_set) cue_fail("INDEX 01 not set");
 				if (!m_index0_set) m_index_list.m_positions[0] = m_index_list.m_positions[1] - m_pregap;
-				if (!m_index_list.is_valid()) pfc::throw_exception_with_message< exception_cue > ("invalid index list");
+				if (!m_index_list.is_valid()) cue_fail("invalid index list");
 
 				cue_parser::t_cue_entry_list::iterator iter;
 				iter = m_out.insert_last();
-				if (m_trackfile.is_empty()) pfc::throw_exception_with_message< exception_cue > ("track has no file assigned");
+				if (m_trackfile.is_empty()) cue_fail("track has no file assigned");
 				iter->m_file = m_trackfile;
 				iter->m_fileType = m_trackFileType;
 				iter->m_track_number = m_track;
@@ -220,7 +233,7 @@ namespace {
 
 		void on_track(unsigned p_index,const char * p_type,t_size p_type_length)
 		{
-			if (p_index == 0) pfc::throw_exception_with_message< exception_cue > ("invalid TRACK index");
+			if (p_index == 0) cue_fail("invalid TRACK index");
 			if (p_index == m_wanted_track)
 			{
 				if (stricmp_utf8_ex(p_type,p_type_length,"audio",pfc_infinite)) throw exception_cue_tracktype();

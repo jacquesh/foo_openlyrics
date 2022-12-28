@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #include "seekabilizer.h"
 
@@ -87,8 +87,8 @@ void seekabilizer::initialize(service_ptr_t<file> p_base,t_size p_buffer_size,ab
 }
 
 void seekabilizer::g_seekabilize(service_ptr_t<file> & p_reader,t_size p_buffer_size,abort_callback & p_abort) {
-	if (p_reader.is_valid() && p_reader->is_remote() && p_buffer_size > 0) {
-		service_ptr_t<seekabilizer> instance = new service_impl_t<seekabilizer>();
+	if (p_reader.is_valid() && (p_reader->is_remote() || !p_reader->can_seek()) && p_buffer_size > 0) {
+		auto instance = fb2k::service_new<seekabilizer>();
 		instance->initialize(p_reader,p_buffer_size,p_abort);
 		p_reader = instance.get_ptr();
 	}
@@ -218,4 +218,16 @@ void seekabilizer::reopen(abort_callback & p_abort) {
 bool seekabilizer::is_remote()
 {
 	return m_file->is_remote();
+}
+
+service_ptr seekabilizer::get_metadata(abort_callback& a) {
+	return m_file->get_metadata_(a);
+}
+
+t_filestats2 seekabilizer::get_stats2(uint32_t s2flags, abort_callback& a) {
+	return m_file->get_stats2_(s2flags, a);
+}
+
+size_t seekabilizer::lowLevelIO(const GUID& guid, size_t arg1, void* arg2, size_t arg2size, abort_callback& abort) {
+	return m_file->lowLevelIO_(guid, arg1, arg2, arg2size, abort);
 }

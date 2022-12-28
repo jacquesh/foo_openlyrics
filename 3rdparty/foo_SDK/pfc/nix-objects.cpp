@@ -233,6 +233,9 @@ namespace pfc {
         crash(); // should not get here
         return SIZE_MAX;
     }
+    size_t nix_event::g_multiWait(std::initializer_list<eventHandle_t> const & arg, double timeout) {
+        return g_multiWait(arg.begin(), arg.size(), timeout);
+    }
     int nix_event::g_twoEventWait( int h1, int h2, double timeout ) {
         fdSelect sel;
         sel.Reads += h1;

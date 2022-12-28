@@ -91,6 +91,12 @@
     <ClCompile Include="splitString2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="charDownConvert.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode-normalize.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="alloc.h">
@@ -328,6 +334,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="string_simple.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="charDownConvert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmartStrStr-table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmartStrStr-twoCharMappings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unicode-normalize.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

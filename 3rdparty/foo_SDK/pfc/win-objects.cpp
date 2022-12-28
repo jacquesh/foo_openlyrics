@@ -334,6 +334,9 @@ size_t win32_event::g_multiWait(const HANDLE* events, size_t count, double timeo
 	if (status == WAIT_TIMEOUT) return SIZE_MAX;
 	pfc::crash();
 }
+size_t win32_event::g_multiWait( std::initializer_list<HANDLE> const & arg, double timeout ) {
+    return g_multiWait(arg.begin(), arg.size(), timeout);
+}
 
 int win32_event::g_twoEventWait( HANDLE ev1, HANDLE ev2, double timeout ) {
     HANDLE h[2] = {ev1, ev2};

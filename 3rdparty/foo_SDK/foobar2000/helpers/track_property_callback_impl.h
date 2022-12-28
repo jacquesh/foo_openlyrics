@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <SDK/track_property.h>
 
 class groupname_comparator {
 public:
@@ -49,3 +50,4 @@ public:
 // You must ensure - by means of std::shared_ptr<> or such - that all of the *source arguments remain accessible even after enumerateTrackProperties() returns, until the std::functions are released.
 // Legacy track property providers that do not support off main thread operation will be invoked via main_thread_callback in main thread, and the function will stall until they have returned (unless aborted).
 void enumerateTrackProperties(track_property_callback_impl & callback, std::function< metadb_handle_list_cref() > itemsSource, std::function<track_property_provider_v3_info_source*()> infoSource, std::function<abort_callback& () > abortSource);
+void enumerateTrackProperties_v5(track_property_callback_impl& callback, std::function< metadb_handle_list_cref() > itemsSource, std::function<track_property_provider_v5_info_source* ()> infoSource, std::function<abort_callback& () > abortSource);

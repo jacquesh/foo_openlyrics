@@ -1,11 +1,12 @@
 #pragma once
 
-class uDebugLog : public pfc::string_formatter {
+class uDebugLog_ : public pfc::string_formatter {
 public:
-    ~uDebugLog() {*this << "\n"; uOutputDebugString(get_ptr());}
+    ~uDebugLog_() {*this << "\n"; uOutputDebugString(get_ptr());}
 };
 
-#define FB2K_DebugLog() uDebugLog()._formatter()
+#define FB2K_DebugLog() uDebugLog_()._formatter()
+#define uDebugLog() FB2K_DebugLog()
 
 // since fb2k 1.5
 namespace fb2k {
@@ -113,7 +114,7 @@ inline void fb2kWaitForThreadCompletion(HANDLE hWaitFor, DWORD threadID) {
 }
 
 inline void fb2kWaitForThreadCompletion2(HANDLE hWaitFor, HANDLE hThread, DWORD threadID) {
-	(void) threadID;
+	(void)threadID; (void)hThread;
 	switch(WaitForSingleObject(hWaitFor, INFINITE)) {
 	case WAIT_OBJECT_0:
 		return;
@@ -172,3 +173,7 @@ namespace fb2k {
 #define FB2K_TRACE(X)
 #define FB2K_TRACE_THIS FB2K_TRACE(__FUNCTION__)
 #define FB2K_TRACE_THIS_FORCED FB2K_TRACE_FORCED(__FUNCTION__)
+
+#define FB2K_BugCheck() fb2k::crashWithMessage( pfc::format("FB2K_BugCheck: ", __FUNCTION__ ) )
+#define FB2K_BugCheckEx(msg) fb2k::crashWithMessage(msg)
+#define FB2K_BugCheckUnlikely() uBugCheck()

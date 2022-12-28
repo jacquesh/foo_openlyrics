@@ -29,5 +29,4 @@ private:
 	input_helper m_input;
 	double m_start,m_length,m_position;
 	bool m_dynamic_info_trigger,m_dynamic_info_track_trigger;
-	bool m_binary;
 };

@@ -175,7 +175,7 @@ void CListControlImpl::MoveViewOriginNoClip(CPoint p_target) {
 
 	if (m_viewOrigin != old) {
 #if PrepLayoutCache_Debug
-		pfc::debugLog() << "MoveViewOriginNoClip: m_viewOrigin=" << m_viewOrigin.x << "," << m_viewOrigin.y;
+		PFC_DEBUGLOG << "MoveViewOriginNoClip: m_viewOrigin=" << m_viewOrigin.x << "," << m_viewOrigin.y;
 #endif
 		
 		if (m_viewOrigin.x != old.x) SetScrollPos(SB_HORZ,m_viewOrigin.x);
@@ -572,8 +572,9 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 	const size_t count = GetItemCount();
 	if (count == 0) return false;
 #if PrepLayoutCache_Debug
-	pfc::debugLog() << "PrepLayoutCache entry";
-	pfc::debugLog() << "PrepLayoutCache: count=" << count << " knownGroups=" << this->m_groupHeaders.size();
+	PFC_DEBUGLOG << "PrepLayoutCache entry";
+	PFC_DEBUGLOG << "PrepLayoutCache: count=" << count << " knownGroups=" << this->m_groupHeaders.size();
+	PFC_DEBUGLOG << "PrepLayoutCache: indexLo=" << indexLo << " indexHi=" << indexHi;
 #endif
 	const int clientHeight = pfc::max_t<int>(this->GetClientRectHook().Height(), 100);
 
@@ -581,15 +582,17 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 	int yMax = -1, yBase = 0;
 	size_t baseItem = 0, endItem = SIZE_MAX;
 	if (indexLo == SIZE_MAX) {
-		// Preemptively partition the whole view. Doing anything else causes scrollbar mayhem in corner cases.
-		
-		// yBase = pfc::max_t<int>(ptOrigin.y - clientHeight / 2, 0);
-		// yMax = yBase + clientHeight * 2;
-		// baseItem = pfc::min_t<size_t>(this->IndexFromPointAbs(yBase), count - 1);
+		yBase = pfc::max_t<int>(ptOrigin.y - clientHeight / 2, 0);
+		yMax = yBase + clientHeight * 2;
+		baseItem = pfc::min_t<size_t>(this->IndexFromPointAbs(yBase), count - 1);
 	} else {
-		size_t extraItems = (size_t)(clientHeight / GetItemHeight());
+		auto itemHeight = GetItemHeight();
+		size_t extraItems = (size_t)(clientHeight / itemHeight);
+#if PrepLayoutCache_Debug
+		PFC_DEBUGLOG << "PrepLayoutCache: clientHeight=" << clientHeight << " itemHeight=" << itemHeight << " extraItems=" << extraItems;
+#endif
 		if (indexLo < extraItems) baseItem = 0;
-		else indexLo = baseItem - extraItems;
+		else baseItem = indexLo - extraItems;
 
 		if (indexHi == SIZE_MAX) {
 			endItem = baseItem + extraItems;
@@ -597,6 +600,10 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 			endItem = indexHi + extraItems;
 		}
 		if (endItem > count) endItem = count;
+
+#if PrepLayoutCache_Debug
+		PFC_DEBUGLOG << "PrepLayoutCache: baseItem=" << baseItem << " endItem=" << endItem;
+#endif
 	}
 
 
@@ -614,7 +621,7 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 
 #if PrepLayoutCache_Debug
 	if (yMax != -1) {
-		pfc::debugLog() << "PrepLayoutCache: yBase=" << yBase << " yMax=" << yMax;
+		PFC_DEBUGLOG << "PrepLayoutCache: yBase=" << yBase << " yMax=" << yMax;
 	}
 	if (indexLo != SIZE_MAX) {
 		pfc::string_formatter msg;
@@ -624,7 +631,7 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 		}
 		pfc::outputDebugLine(msg);
 	}
-	pfc::debugLog() << "PrepLayoutCache: baseItem=" << baseItem;
+	PFC_DEBUGLOG << "PrepLayoutCache: baseItem=" << baseItem;
 #endif
 	
 	size_t anchorIdx = this->IndexFromPointAbs(ptOrigin.y);
@@ -635,7 +642,7 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 	}
 
 #if PrepLayoutCache_Debug
-	pfc::debugLog() << "PrepLayoutCache: anchorIdx=" << anchorIdx << " anchorDelta=" << anchorDelta << " anchorIsFirstInGroup=" << anchorIsFirstInGroup;
+	PFC_DEBUGLOG << "PrepLayoutCache: anchorIdx=" << anchorIdx << " anchorDelta=" << anchorDelta << " anchorIsFirstInGroup=" << anchorIsFirstInGroup;
 #endif
 
 	bool bChanged = false;
@@ -687,7 +694,7 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 	}
 
 #if PrepLayoutCache_Debug
-	pfc::debugLog() << "PrepLayoutCache: bChanged=" << bChanged << " knownGroups=" << m_groupHeaders.size() << " knownVarHeights=" << m_varItemHeights.size();
+	PFC_DEBUGLOG << "PrepLayoutCache: bChanged=" << bChanged << " knownGroups=" << m_groupHeaders.size() << " knownVarHeights=" << m_varItemHeights.size();
 #endif
 
 	if (bChanged) {
@@ -701,13 +708,13 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 			}
 
 #if PrepLayoutCache_Debug
-			pfc::debugLog() << "PrepLayoutCache: fixing origin: " << ptOrigin.y << " to " << fix;
+			PFC_DEBUGLOG << "PrepLayoutCache: fixing origin: " << ptOrigin.y << " to " << fix;
 #endif
 
 			ptOrigin.y = fix;
 			if (&ptOrigin != &m_viewOrigin && m_hWnd != NULL) {
 #if PrepLayoutCache_Debug
-				pfc::debugLog() << "PrepLayoutCache: invalidating view";
+				PFC_DEBUGLOG << "PrepLayoutCache: invalidating view";
 #endif
 				Invalidate();
 			}
@@ -733,27 +740,34 @@ int CListControlImpl::GetItemBottomOffsetAbs(size_t item) const {
 	return GetItemOffsetAbs(item) + GetItemHeightCached(item);
 }
 
-int CListControlImpl::GetItemOffsetAbs(size_t item) const {
+int CListControlImpl::GetItemOffsetAbs2(size_t base, size_t item) const {
 	// Also valid with item == GetItemCount()
 	size_t varcount = 0;
 	int acc = 0;
-	for (auto iter = m_varItemHeights.begin(); iter != m_varItemHeights.end(); ++iter) {
+	const bool baseValid = (base != SIZE_MAX);
+	const size_t itemDelta = baseValid ? item - base : item;
+	for (auto iter = (baseValid ? m_varItemHeights.lower_bound(base) : m_varItemHeights.begin()); iter != m_varItemHeights.end(); ++iter){
 		if (iter->first >= item) break;
 		if (iter->second > 0) acc += iter->second;
 		++varcount;
 	}
-	if (varcount < item) {
-		acc += GetItemHeight() * (int) (item - varcount);
+	if (varcount < itemDelta) {
+		acc += GetItemHeight() * (int)(itemDelta - varcount);
 	}
 
 	int gh = -1;
-	for (auto iter = m_groupHeaders.begin(); iter != m_groupHeaders.end(); ++iter) {
+	for (auto iter = (baseValid ? m_groupHeaders.upper_bound(base) : m_groupHeaders.begin()); iter != m_groupHeaders.end(); ++iter){
 		if (*iter > item) break;
 		if (gh < 0) gh = GetGroupHeaderHeight();
 		acc += gh;
 	}
 
 	return acc;
+}
+
+int CListControlImpl::GetItemOffsetAbs(size_t item) const {
+	// Also valid with item == GetItemCount()
+	return GetItemOffsetAbs2(SIZE_MAX, item);
 }
 
 int CListControlImpl::GetItemContentHeightCached(size_t item) const {
@@ -897,7 +911,7 @@ void CListControlImpl::OnViewAreaChanged(CPoint p_originOverride) {
 		PrepLayoutCache(m_viewOrigin);
 	}
 #if PrepLayoutCache_Debug
-	pfc::debugLog() << "OnViewAreaChanged: m_viewOrigin=" << m_viewOrigin.x << "," << m_viewOrigin.y;
+	PFC_DEBUGLOG << "OnViewAreaChanged: m_viewOrigin=" << m_viewOrigin.x << "," << m_viewOrigin.y;
 #endif
 
 	RefreshSliders();
@@ -980,6 +994,8 @@ void CListControlImpl::SetDarkMode(bool v) {
 
 void CListControlImpl::RefreshDarkMode() {
 	if (m_hWnd != NULL) {
+		Invalidate();
+
 		// GOD DAMNIT: Should use ItemsView, but only Explorer fixes scrollbars
 		DarkMode::ApplyDarkThemeCtrl(m_hWnd, m_darkMode, L"Explorer");
 	}
@@ -1231,9 +1247,6 @@ LRESULT CListControlImpl::OnGetDlgCode(UINT, WPARAM wp, LPARAM) {
 }
 
 HWND CListControlImpl::CreateInDialog(CWindow wndDialog, UINT replaceControlID, CWindow lstReplace) {
-	// No longer used
-	// SetDarkMode(DarkMode::IsDialogDark(wndDialog, WM_CTLCOLORLISTBOX));
-
 	PFC_ASSERT(lstReplace != NULL);
 	auto status = lstReplace.SendMessage(WM_GETDLGCODE, VK_RETURN);
 	m_dlgWantEnter = (status & DLGC_WANTMESSAGE);
@@ -1357,6 +1370,12 @@ CRect CListControlImpl::RectClientToAbs(CRect rc) const {
 	return ret;
 }
 
+size_t CListControlImpl::ItemFromPoint(CPoint const& pt) const {
+	size_t ret = SIZE_MAX;
+	if (!ItemFromPoint(pt, ret)) ret = SIZE_MAX;
+	return ret;
+}
+
 bool CListControlImpl::ItemFromPoint(CPoint const & p_pt, t_size & p_item) const {
 	return ItemFromPointAbs( PointClientToAbs( p_pt ), p_item);
 }
@@ -1431,7 +1450,7 @@ int CListControlImpl::GetItemHeight2(size_t which) const {
 
 	const size_t base = FindGroupBase(which);
 	
-	const int groupHeightWithout = (which > base ? (this->GetItemOffsetAbs(which) - this->GetItemOffsetAbs(base)) : 0);
+	const int groupHeightWithout = (which > base ? this->GetItemOffsetAbs2(base,which) : 0);
 	
 	const int minItemHeight = minGroupHeight - groupHeightWithout; // possibly negative
 

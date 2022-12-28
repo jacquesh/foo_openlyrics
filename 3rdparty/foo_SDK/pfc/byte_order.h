@@ -113,8 +113,8 @@ namespace pfc {
 
 
 namespace pfc {
-	static const bool byte_order_is_big_endian = !!PFC_BYTE_ORDER_IS_BIG_ENDIAN;
-	static const bool byte_order_is_little_endian = !!PFC_BYTE_ORDER_IS_LITTLE_ENDIAN;
+	static constexpr bool byte_order_is_big_endian = !!PFC_BYTE_ORDER_IS_BIG_ENDIAN;
+	static constexpr bool byte_order_is_little_endian = !!PFC_BYTE_ORDER_IS_LITTLE_ENDIAN;
 
 	template<typename T> T byteswap_if_be_t(T p_param) {return byte_order_is_big_endian ? byteswap_t(p_param) : p_param;}
 	template<typename T> T byteswap_if_le_t(T p_param) {return byte_order_is_little_endian ? byteswap_t(p_param) : p_param;}

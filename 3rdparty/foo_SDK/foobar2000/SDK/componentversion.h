@@ -66,6 +66,7 @@ public:
 	static componentversion_impl_copy_factory g_componentversion_service(NAME,VERSION,ABOUT);
 
 
+#ifdef _WIN32
 //! \since 1.0
 //! Allows components to cleanly abort app startup in case the installation appears to have become corrupted.
 class component_installation_validator : public service_base {
@@ -91,3 +92,10 @@ private:
 
 #define VALIDATE_COMPONENT_FILENAME(FN) \
 	static service_factory_single_t<component_installation_validator_filename> g_component_installation_validator_filename(FN);
+
+#else // _WIN32
+
+#define VALIDATE_COMPONENT_FILENAME(FN)
+
+#endif // _WIN32
+

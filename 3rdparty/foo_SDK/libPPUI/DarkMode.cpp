@@ -4,7 +4,7 @@
 #include "win32_utility.h"
 #include "win32_op.h"
 #include "PaintUtils.h"
-#include "CContainedWindowSimple.h"
+#include "ImplementOnFinalMessage.h"
 #include <vsstyle.h>
 #include "GDIUtils.h"
 #include "CListControl.h"
@@ -295,6 +295,7 @@ namespace DarkMode {
 		case COLOR_MENU:
 		case COLOR_BTNFACE:
 		case COLOR_WINDOW:
+		case COLOR_MENUBAR:
 			// Explorer:
 			// return 0x383838;
 			return 0x202020;
@@ -308,6 +309,7 @@ namespace DarkMode {
 			// return 0xdedede;
 			return 0xC0C0C0;
 		case COLOR_BTNHIGHLIGHT:
+		case COLOR_MENUHILIGHT:
 			return 0x383838;
 		case COLOR_HIGHLIGHT:
 			return 0x777777;
@@ -445,6 +447,7 @@ namespace DarkMode {
 		none, toolbar
 	};
 
+	// readWriteLock used in case someone uses off-main-thread UI, though it should not really happen in real life
 	static pfc::readWriteLock lstDarkGuard;
 	static std::map<HWND, whichDark_t> lstDark;
 	static whichDark_t lstDark_query(HWND w) {
@@ -490,9 +493,10 @@ namespace DarkMode {
 
 		class CToolbarHook {
 			bool m_dark = false;
+			const bool m_explorerTheme;
 			CWindow m_wnd;
 		public:
-			CToolbarHook(HWND wnd, bool initial) : m_wnd(wnd) {
+			CToolbarHook(HWND wnd, bool initial, bool bExplorerTheme) : m_wnd(wnd), m_explorerTheme(bExplorerTheme) {
 				SetDark(initial);
 			}
 			
@@ -501,10 +505,10 @@ namespace DarkMode {
 				m_dark = v;
 				if (v) {
 					lstDark_set(m_wnd, whichDark_t::toolbar);
-					::SetWindowTheme(m_wnd, L"", L""); // if we don't do this, NM_CUSTOMDRAW color overrides get disregarded
+					if (m_explorerTheme) ::SetWindowTheme(m_wnd, L"", L""); // if we don't do this, NM_CUSTOMDRAW color overrides get disregarded
 				} else {
 					lstDark_clear(m_wnd);
-					::SetWindowTheme(m_wnd, L"Explorer", L"");
+					if (m_explorerTheme) ::SetWindowTheme(m_wnd, L"Explorer", NULL);
 				}
 				m_wnd.Invalidate();
 			}
@@ -514,18 +518,27 @@ namespace DarkMode {
 
 		};
 
-		class CTabsHook : public CContainedWindowT<CTabCtrl>, private CMessageMap {
+		class CTabsHook : public CWindowImpl<CTabsHook, CTabCtrl> {
 		public:
-			CTabsHook(bool bDark = false) : CContainedWindowT<CTabCtrl>(this, 0), m_dark(bDark) {}
+			CTabsHook(bool bDark = false) : m_dark(bDark) {}
 			BEGIN_MSG_MAP_EX(CTabsHook)
 				MSG_WM_PAINT(OnPaint)
 				MSG_WM_ERASEBKGND(OnEraseBkgnd)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
 
 			void SetDark(bool v = false);
 		private:
 			void OnPaint(CDCHandle);
 			BOOL OnEraseBkgnd(CDCHandle);
+
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
 
 			bool m_dark = false;
 		};
@@ -553,7 +566,7 @@ namespace DarkMode {
 			if (m_hWnd != NULL) Invalidate();
 		}
 
-		class CDialogHook : public CContainedWindowSimple {
+		class CDialogHook : public CWindowImpl<CDialogHook> {
 			bool m_enabled;
 		public:
 			CDialogHook(bool v) : m_enabled(v) {}
@@ -563,9 +576,58 @@ namespace DarkMode {
 
 				// Important: PostMessage()'ing this caused bugs
 				SendMessage(WM_THEMECHANGED); 
-
-				m_enabled = v; Invalidate();
+				
+				m_enabled = v; 
+				
+				// Ensure menu bar redraw with RDW_FRAME
+				RedrawWindow(NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME);
 			}
+
+			// Undocumented Windows menu drawing API
+			// Source: https://github.com/adzm/win32-custom-menubar-aero-theme
+
+			static constexpr unsigned WM_UAHDRAWMENU = 0x0091;
+			static constexpr unsigned WM_UAHDRAWMENUITEM = 0x0092;
+
+			typedef union tagUAHMENUITEMMETRICS
+			{
+				struct {
+					DWORD cx;
+					DWORD cy;
+				} rgsizeBar[2];
+				struct {
+					DWORD cx;
+					DWORD cy;
+				} rgsizePopup[4];
+			} UAHMENUITEMMETRICS;
+
+			typedef struct tagUAHMENUPOPUPMETRICS
+			{
+				DWORD rgcx[4];
+				DWORD fUpdateMaxWidths : 2;
+			} UAHMENUPOPUPMETRICS;
+
+			typedef struct tagUAHMENU
+			{
+				HMENU hmenu;
+				HDC hdc;
+				DWORD dwFlags;
+			} UAHMENU;
+
+			typedef struct tagUAHMENUITEM
+			{
+				int iPosition;
+				UAHMENUITEMMETRICS umim;
+				UAHMENUPOPUPMETRICS umpm;
+			} UAHMENUITEM;
+
+			typedef struct UAHDRAWMENUITEM
+			{
+				DRAWITEMSTRUCT dis;
+				UAHMENU um;
+				UAHMENUITEM umi;
+			} UAHDRAWMENUITEM;
+
 
 			BEGIN_MSG_MAP_EX(CDialogHook)
 				MSG_WM_CTLCOLORDLG(ctlColorCommon)
@@ -575,9 +637,19 @@ namespace DarkMode {
 				MSG_WM_CTLCOLORLISTBOX(ctlColorCommon)
 				MSG_WM_CTLCOLORSCROLLBAR(ctlColorCommon)
 				NOTIFY_CODE_HANDLER(NM_CUSTOMDRAW, DarkMode::OnCustomDraw)
+				MESSAGE_HANDLER_EX(WM_UAHDRAWMENU, Handle_WM_UAHDRAWMENU)
+				MESSAGE_HANDLER_EX(WM_UAHDRAWMENUITEM, Handle_WM_UAHDRAWMENUITEM)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
 
-			
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
+
 			static COLORREF GetBkColor() { return DarkMode::GetSysColor(COLOR_WINDOW); }
 			static COLORREF GetTextColor() { return DarkMode::GetSysColor(COLOR_WINDOWTEXT); }
 
@@ -608,10 +680,94 @@ namespace DarkMode {
 				SetMsgHandled(FALSE);
 				return NULL;
 			}
+			LRESULT Handle_WM_UAHDRAWMENU(UINT, WPARAM wParam, LPARAM lParam) {
+				if (!m_enabled) {
+					SetMsgHandled(FALSE);
+					return 0;
+				}
+				UAHMENU* pUDM = (UAHMENU*)lParam;
+				CRect rc;
+
+				MENUBARINFO mbi = { sizeof(mbi) };
+				WIN32_OP_D(GetMenuBarInfo(m_hWnd, OBJID_MENU, 0, &mbi));
+
+				CRect rcWindow;
+				WIN32_OP_D(GetWindowRect(rcWindow));
+
+				rc = mbi.rcBar;
+				OffsetRect(&rc, -rcWindow.left, -rcWindow.top);
+
+				rc.top -= 1;
+
+				CDCHandle dc(pUDM->hdc);
+				dc.FillSolidRect(rc, DarkMode::GetSysColor(COLOR_MENUBAR));
+				return 0;
+			}
+			LRESULT Handle_WM_UAHDRAWMENUITEM(UINT, WPARAM wParam, LPARAM lParam) {
+				if (!m_enabled) {
+					SetMsgHandled(FALSE);
+					return 0;
+				}
+
+				UAHDRAWMENUITEM* pUDMI = (UAHDRAWMENUITEM*)lParam;
+				CMenuHandle hMenu = pUDMI->um.hmenu;
+
+				CString menuString;
+				WIN32_OP_D(hMenu.GetMenuString(pUDMI->umi.iPosition, menuString, MF_BYPOSITION) > 0);
+
+				DWORD drawTextFlags = DT_CENTER | DT_SINGLELINE | DT_VCENTER;
+
+				int iTextStateID = MPI_NORMAL;
+				int iBackgroundStateID = MPI_NORMAL;
+				if ((pUDMI->dis.itemState & ODS_INACTIVE) | (pUDMI->dis.itemState & ODS_DEFAULT)) {
+					iTextStateID = MPI_NORMAL;
+					iBackgroundStateID = MPI_NORMAL;
+				}
+				if (pUDMI->dis.itemState & (ODS_HOTLIGHT|ODS_SELECTED)) {
+					iTextStateID = MPI_HOT;
+					iBackgroundStateID = MPI_HOT;
+				}
+				if (pUDMI->dis.itemState & (ODS_GRAYED|ODS_DISABLED)) {
+					iTextStateID = MPI_DISABLED;
+					iBackgroundStateID = MPI_DISABLED;
+				}
+				if (pUDMI->dis.itemState & ODS_NOACCEL) {
+					drawTextFlags |= DT_HIDEPREFIX;
+				}
+
+				if (m_menuTheme == NULL) {
+					m_menuTheme.OpenThemeData(m_hWnd, L"Menu");
+				}
+
+				CDCHandle dc(pUDMI->um.hdc);
+				switch (iBackgroundStateID) {
+				case MPI_NORMAL:
+				case MPI_DISABLED:
+					dc.FillSolidRect(&pUDMI->dis.rcItem, DarkMode::GetSysColor(COLOR_MENUBAR));
+					break;
+				case MPI_HOT:
+				case MPI_DISABLEDHOT:
+					dc.FillSolidRect(&pUDMI->dis.rcItem, DarkMode::GetSysColor(COLOR_MENUHILIGHT));
+					break;
+				default:
+					DrawThemeBackground(m_menuTheme, pUDMI->um.hdc, MENU_POPUPITEM, iBackgroundStateID, &pUDMI->dis.rcItem, nullptr);
+					break;
+				}
+				DTTOPTS dttopts = { sizeof(dttopts) };
+				if (iTextStateID == MPI_NORMAL || iTextStateID == MPI_HOT)
+				{
+					dttopts.dwFlags |= DTT_TEXTCOLOR;
+					dttopts.crText = DarkMode::GetSysColor(COLOR_WINDOWTEXT);
+				}
+				DrawThemeTextEx(m_menuTheme, dc, MENU_POPUPITEM, iTextStateID, menuString, menuString.GetLength(), drawTextFlags, &pUDMI->dis.rcItem, &dttopts);
+
+				return 0;
+			}
+			CTheme m_menuTheme;
 		};
 
 
-		class CStatusBarHook : public CContainedWindowSimpleT<CStatusBarCtrl> {
+		class CStatusBarHook : public CWindowImpl<CStatusBarHook, CStatusBarCtrl> {
 		public:
 			CStatusBarHook(bool v = false) : m_dark(v) {}
 
@@ -620,7 +776,16 @@ namespace DarkMode {
 				MSG_WM_PAINT(OnPaint)
 				MESSAGE_HANDLER_EX(SB_SETTEXT, OnSetText)
 				MESSAGE_HANDLER_EX(SB_SETICON, OnSetIcon)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
+
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
 
 			void SetDark(bool v = true) {
 				if (m_dark != v) {
@@ -747,118 +912,7 @@ namespace DarkMode {
 			CSize m_iconSizeCache[32];
 		};
 
-		class CGroupBoxHook : public CContainedWindowSimpleT<CButton> {
-		public:
-			CGroupBoxHook(bool v = false) : m_dark(v) {}
-			void SetDark(bool v) {
-				if (m_dark != v) {
-					m_dark = v; 
-					Apply();
-				}
-			}
-
-			void Apply() {
-				Invalidate();
-				// Bork orgy if WS_CLIPSIBLINGS not set - not sure why non-dark works
-				PFC_ASSERT(GetStyle() & WS_CLIPSIBLINGS);
-				ApplyDarkThemeCtrl(m_hWnd, m_dark);
-			}
-
-
-			BEGIN_MSG_MAP_EX(CGroupBoxHook)
-				MSG_WM_PAINT(OnPaint)
-				MSG_WM_PRINTCLIENT(OnPaint)
-				MESSAGE_HANDLER_EX(WM_ENABLE, OnMsgRedraw)
-				MESSAGE_HANDLER_EX(WM_SETTEXT, OnMsgRedraw)
-				MSG_WM_ERASEBKGND(OnEraseBkgnd)
-			END_MSG_MAP()
-
-			BOOL OnEraseBkgnd(CDCHandle dc) {
-				if (!m_dark) { SetMsgHandled(FALSE); return FALSE; }
-				CRect rcClient;
-				WIN32_OP_D(GetClientRect(&rcClient));
-
-				HBRUSH brush = (HBRUSH)GetParent().SendMessage(WM_CTLCOLORSTATIC, (WPARAM)dc.m_hDC, (LPARAM)m_hWnd);
-
-				if (brush != nullptr) {
-					dc.FillRect(rcClient, brush);
-				} else {
-					dc.FillSolidRect(rcClient, GetSysColor(COLOR_WINDOW));
-				}
-				return TRUE;
-			}
-
-			LRESULT OnMsgRedraw(UINT, WPARAM, LPARAM) {
-				auto rgn = this->makeUpdateRegion();
-				this->InvalidateRgn(rgn);
-				SetMsgHandled(FALSE); return 0;
-			}
-			CRgn makeUpdateRegion() {
-				CRect rcClient; WIN32_OP_D(GetClientRect(rcClient));
-				CSize measure;
-				{
-					CWindowDC dc(m_hWnd);
-					dc.GetTextExtent(L"#", 1, &measure);
-				}
-				CRect rcInner = rcClient; rcInner.DeflateRect(measure.cy, measure.cy);
-				CRgn ret; WIN32_OP_D(ret.CreateRectRgnIndirect(rcClient));
-				CRgn inner; WIN32_OP_D(inner.CreateEllipticRgnIndirect(rcInner));
-				WIN32_OP_D(ret.CombineRgn(inner, RGN_DIFF));
-				return ret;
-			}
-
-			void HandlePaint(CDCHandle dc) {
-				CRect rcClient;
-				WIN32_OP_D( GetClientRect(&rcClient) );
-
-				dc.SelectFont(GetFont());
-				dc.SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
-				dc.SetBkColor(GetSysColor(COLOR_WINDOW));
-				dc.SetBkMode(OPAQUE);
-				GetParent().SendMessage(WM_CTLCOLORSTATIC, (WPARAM)dc.m_hDC, (LPARAM)m_hWnd);
-
-				CSize measure;
-				dc.GetTextExtent(L"#", 1, &measure);
-
-				CRect rcFrame = rcClient;
-				rcFrame.top += measure.cy / 2;
-				dc.FrameRect(rcFrame, MakeTempBrush(dc, GetSysColor(COLOR_WINDOWFRAME)));
-
-				CString text; GetWindowText(text);
-				text.Insert(0, L" ");
-				text += L" ";
-				CSize measureText;
-				dc.GetTextExtent(text, text.GetLength(), &measureText);
-				CRect rcText;
-				rcText.left = rcClient.left + measure.cx/2;
-				rcText.right = rcText.left + measureText.cx;
-				rcText.top = rcClient.top;
-				rcText.bottom = rcText.top + measureText.cy;
-
-				if (!this->IsWindowEnabled()) dc.SetTextColor(GetSysColor(COLOR_GRAYTEXT));
-				dc.SetBkMode(OPAQUE);
-				dc.DrawText(text, text.GetLength(), rcText, DT_LEFT | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
-			}
-
-			void OnPaint(CDCHandle target, UINT flags = 0) {
-				(void)flags;
-				if (!m_dark) { SetMsgHandled(FALSE); return; }
-				if (target) {
-					HandlePaint(target);
-				} else {
-					CPaintDC pdc(*this);
-					HandlePaint(pdc.m_hDC);
-				}
-			}
-
-			void SubclassWindow(HWND wnd) {
-				WIN32_OP_D(__super::SubclassWindow(wnd));
-				Apply();
-			}
-		private:
-			bool m_dark;
-		};
-		class CCheckBoxHook : public CContainedWindowSimpleT<CButton> {
+		class CCheckBoxHook : public CWindowImpl<CCheckBoxHook, CButton> {
 		public:
 			CCheckBoxHook(bool v = false) : m_dark(v) {}
 
@@ -871,8 +925,16 @@ namespace DarkMode {
 				MESSAGE_HANDLER_EX(WM_KILLFOCUS, OnMsgRedraw)
 				MESSAGE_HANDLER_EX(WM_ENABLE, OnMsgRedraw)
 				MESSAGE_HANDLER_EX(WM_SETTEXT, OnMsgRedraw)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
 
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
 
 			LRESULT OnMsgRedraw(UINT, WPARAM, LPARAM) {
 				Invalidate(); SetMsgHandled(FALSE); return 0;
@@ -946,21 +1008,26 @@ namespace DarkMode {
 					const int dpi = GetDeviceCaps(dc, LOGPIXELSX);
 					int w = MulDiv(16, dpi, 96);
 
-					CRect rc = rcCheckBox; rc.right = rc.left + w;
+					CRect rc = rcCheckBox; 
+					if (rc.Width() > w) rc.right = rc.left + w;;
 
 					DrawFrameControl(dc, rc, DFC_BUTTON, stateEx);
 					margin = MulDiv(20, dpi, 96);
 				}
 
-				CString text; GetWindowText(text);
-
-				CRect rcText = rcClient;
-				rcText.left += margin;
-				UINT dtFlags = DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE;
-				dc.DrawText(text, text.GetLength(), rcText, dtFlags);
-				if (bFocus) {
-					dc.DrawText(text, text.GetLength(), rcText, DT_CALCRECT | dtFlags);
-					dc.DrawFocusRect(rcText);
+				CString text;
+				if (margin < rcClient.Width()) GetWindowText(text);
+				if (!text.IsEmpty()) {
+					CRect rcText = rcClient;
+					rcText.left += margin;
+					UINT dtFlags = DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE;
+					dc.DrawText(text, text.GetLength(), rcText, dtFlags);
+					if (bFocus) {
+						dc.DrawText(text, text.GetLength(), rcText, DT_CALCRECT | dtFlags);
+						dc.DrawFocusRect(rcText);
+					}
+				} else if (bFocus) {
+					dc.DrawFocusRect(rcClient);
 				}
 			}
 			void OnPaint(CDCHandle userDC, UINT flags = 0) {
@@ -1006,14 +1073,23 @@ namespace DarkMode {
 			bool m_dark = false;
 		};
 
-		class CGripperHook : public CContainedWindowSimple {
+		class CGripperHook : public CWindowImpl<CGripperHook> {
 		public:
 			CGripperHook(bool v) : m_dark(v) {}
 
 			BEGIN_MSG_MAP_EX(CGRipperHook)
 				MSG_WM_ERASEBKGND(OnEraseBkgnd)
 				MSG_WM_PAINT(OnPaint)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
+
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
 
 			void SetDark(bool v) {
 				if (v != m_dark) {
@@ -1057,7 +1133,7 @@ namespace DarkMode {
 			bool m_dark = false;
 		};
 
-		class CReBarHook : public CContainedWindowSimpleT<CReBarCtrl> {
+		class CReBarHook : public CWindowImpl<CReBarHook, CReBarCtrl> {
 			bool m_dark;
 		public:
 			CReBarHook(bool v) : m_dark(v) {}
@@ -1067,7 +1143,16 @@ namespace DarkMode {
 				MSG_WM_PAINT(OnPaint)
 				MSG_WM_PRINTCLIENT(OnPaint)
 				NOTIFY_CODE_HANDLER(NM_CUSTOMDRAW, DarkMode::OnCustomDraw)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
+
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
 
 			void OnPaint(CDCHandle target, unsigned flags = 0) {
 				if (!m_dark) { SetMsgHandled(FALSE); return; }
@@ -1150,7 +1235,7 @@ namespace DarkMode {
 			}
 		};
 
-		class CStaticHook : public CContainedWindowSimpleT<CStatic> {
+		class CStaticHook : public CWindowImpl<CStaticHook, CStatic> {
 			bool m_dark;
 		public:
 			CStaticHook(bool v) : m_dark(v) {}
@@ -1158,8 +1243,17 @@ namespace DarkMode {
 			BEGIN_MSG_MAP_EX(CStaticHook)
 				MSG_WM_PAINT(OnPaint)
 				MESSAGE_HANDLER_EX(WM_ENABLE, OnMsgRedraw)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
 
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
+			
 			LRESULT OnMsgRedraw(UINT, WPARAM, LPARAM) {
 				Invalidate();
 				SetMsgHandled(FALSE);
@@ -1219,7 +1313,7 @@ namespace DarkMode {
 			}
 		};
 
-		class CUpDownHook : public CContainedWindowSimpleT<CUpDownCtrl> {
+		class CUpDownHook : public CWindowImpl<CUpDownHook, CUpDownCtrl> {
 			bool m_dark;
 		public:
 			CUpDownHook(bool v) : m_dark(v) {}
@@ -1237,9 +1331,18 @@ namespace DarkMode {
 				MSG_WM_LBUTTONDOWN(OnMouseBtn)
 				MSG_WM_LBUTTONUP(OnMouseBtn)
 				MSG_WM_MOUSELEAVE(OnMouseLeave)
+				MESSAGE_HANDLER_EX(msgSetDarkMode(), OnSetDarkMode)
 			END_MSG_MAP()
 
 		private:
+			LRESULT OnSetDarkMode(UINT, WPARAM wp, LPARAM) {
+				switch (wp) {
+				case 0: SetDark(false); break;
+				case 1: SetDark(true); break;
+				}
+				return 1;
+			}
+
 			struct layout_t {
 				CRect whole, upper, lower;
 				int yCenter;
@@ -1367,14 +1470,14 @@ namespace DarkMode {
 			}
 		}
 
-		auto hook = new CDialogHook(m_dark);
+		auto hook = new ImplementOnFinalMessage< CDialogHook > (m_dark);
 		hook->SubclassWindow(wnd);
-		this->addObj(hook);
+		AddCtrlMsg(wnd);
 	}
 	void CHooks::AddTabCtrl(HWND wnd) {
-		auto hook = new CTabsHook(m_dark);
+		auto hook = new ImplementOnFinalMessage<CTabsHook>(m_dark);
 		hook->SubclassWindow(wnd);
-		this->addObj(hook);
+		AddCtrlMsg(wnd);
 	}
 	void CHooks::AddComboBox(HWND wnd) {
 		addOp([wnd, this] { SetWindowTheme(wnd, m_dark ? L"DarkMode_CFD" : L"Explorer", NULL);});
@@ -1391,22 +1494,15 @@ namespace DarkMode {
 			// MS checkbox implementation is terminally retarded and won't draw text in correct color
 			// Subclass it and draw our own content
 			// Other button types seem OK
-			auto hook = new CCheckBoxHook(m_dark);
+			auto hook = new ImplementOnFinalMessage<CCheckBoxHook>(m_dark);
 			hook->SubclassWindow(wnd);
-			addObj(hook);
+			AddCtrlMsg(wnd);
 		} else if (type == BS_GROUPBOX) {
-#if 1
 			SetWindowTheme(wnd, L"", L"");
 			// SNAFU: re-creation of other controls such as list boxes causes repaint bugs due to overlapping
 			// Even though this is not a fault of the groupbox, fix it here - by defer-pushing all group boxes to the back
 			// Can't move to back right away, breaks window enumeration
 			m_lstMoveToBack.push_back(wnd);
-#else
-			auto hook = new CGroupBoxHook(m_dark);
-			hook->SubclassWindow(wnd);
-			addObj(hook);
-#endif
-			
 		} else {
 			AddGeneric(wnd);
 		}
@@ -1422,41 +1518,42 @@ namespace DarkMode {
 		});
 	}
 	void CHooks::AddStatusBar(HWND wnd) {
-		auto hook = new CStatusBarHook(m_dark);
+		auto hook = new ImplementOnFinalMessage<CStatusBarHook>(m_dark);
 		hook->SubclassWindow(wnd);
-		this->addObj(hook);
+		this->AddCtrlMsg(wnd);
 	}
 	void CHooks::AddScrollBar(HWND wnd) {
 		CWindow w(wnd);
 		if (w.GetStyle() & SBS_SIZEGRIP) {
-			auto hook = new CGripperHook(m_dark);
+			auto hook = new ImplementOnFinalMessage<CGripperHook>(m_dark);
 			hook->SubclassWindow(wnd);
-			this->addObj(hook);
+			this->AddCtrlMsg(wnd);
 		} else {
 			AddGeneric(wnd);
 		}
 	}
 
 	void CHooks::AddReBar(HWND wnd) {
-		auto hook = new CReBarHook(m_dark);
+		auto hook = new ImplementOnFinalMessage<CReBarHook>(m_dark);
 		hook->SubclassWindow(wnd);
-		this->addObj(hook);
+		this->AddCtrlMsg(wnd);
 	}
 
-	void CHooks::AddToolBar(HWND wnd) {
-		addObj(new CToolbarHook(wnd, m_dark));
+	void CHooks::AddToolBar(HWND wnd, bool bExplorerTheme) {
+		// Not a subclass
+		addObj(new CToolbarHook(wnd, m_dark, bExplorerTheme));
 	}
 
 	void CHooks::AddStatic(HWND wnd) {
-		auto hook = new CStaticHook(m_dark);
+		auto hook = new ImplementOnFinalMessage<CStaticHook>(m_dark);
 		hook->SubclassWindow(wnd);
-		this->addObj(hook);
+		this->AddCtrlMsg(wnd);
 	}
 
 	void CHooks::AddUpDown(HWND wnd) {
-		auto hook = new CUpDownHook(m_dark);
+		auto hook = new ImplementOnFinalMessage<CUpDownHook>(m_dark);
 		hook->SubclassWindow(wnd);
-		this->addObj(hook);
+		this->AddCtrlMsg(wnd);
 	}
 
 	void CHooks::AddTreeView(HWND wnd) {
@@ -1575,7 +1672,9 @@ namespace DarkMode {
 	}
 
 	UINT msgSetDarkMode() {
-		static UINT val = RegisterWindowMessage(L"libPPUI:msgSetDarkMode");
+		// No need to threadguard this, should be main thread only, not much harm even if it's not
+		static UINT val = 0;
+		if (val == 0) val = RegisterWindowMessage(L"libPPUI:msgSetDarkMode");
 		return val;
 	}
 

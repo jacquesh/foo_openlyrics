@@ -2,8 +2,14 @@
 
 #ifdef _WIN32
 
-#include "../SDK/ui_element.h"
+#include <SDK/ui_element.h>
 #include <libPPUI/DarkMode.h>
+
+// fb2k::CDarkModeHooks
+// foobar2000 specific helper on top of libPPUI DarkMode::CHooks
+// Automatically determines whether dark mode should be on or off
+// Keeps track of dark mode preference changes at runtime
+// Does nothing if used in foobar2000 older than 2.0
 
 namespace fb2k {
 	bool isDarkMode();

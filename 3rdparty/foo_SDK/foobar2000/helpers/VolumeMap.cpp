@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "VolumeMap.h"
 
 static const double powval = 2.0;

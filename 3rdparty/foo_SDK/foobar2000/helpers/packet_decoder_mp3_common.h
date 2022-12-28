@@ -1,5 +1,5 @@
 #pragma once
-
+#include <SDK/packet_decoder.h>
 /*
 Helper code with common MP3 packet_decoder functionality. Primarily meant for foo_input_std-internal use.
 */

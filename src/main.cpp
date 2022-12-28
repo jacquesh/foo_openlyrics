@@ -28,7 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
-    "- TODO\n"
+    "- Update foobar2k SDK to version 20221116\n"
     "\n";
     out += "Version 1.4 (2022-11-19):\n"
     "- Fix always opening lyrics in explorer instead of the default file browser\n"

@@ -35,9 +35,6 @@
     <ClCompile Include="dynamic_bitrate_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="file_info_const_impl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="file_list_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -122,7 +119,22 @@
     <ClCompile Include="image_load_save.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="album_art_helpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cfg_var_import.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowPositionUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cfg_guidlist.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="DarkMode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="win-systemtime.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -352,7 +364,43 @@
     <ClInclude Include="audio_render_float.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="metadb_info_container_impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_handle_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg_var_import.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_io_callback_v2_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg_objList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg_dsp_chain_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg_obj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="DarkMode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CListControlFb2kColors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="win-systemtime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="foobar2000-lite+atl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="notifyList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dsp_dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

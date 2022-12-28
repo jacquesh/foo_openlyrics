@@ -1,11 +1,9 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "app_close_blocker.h"
 
 bool app_close_blocker::g_query()
 {
-	service_ptr_t<app_close_blocker> ptr;
-	service_enum_t<app_close_blocker> e;
-	while(e.next(ptr))
-	{
+	for (auto ptr : enumerate()) {
 		if (!ptr->query()) return false;
 	}
 	return true;
@@ -27,4 +25,12 @@ void fb2k::splitTask( std::function<void ()> f) {
 		f();
 		(void)taskref; // retain until here
 		} );
+}
+
+void fb2k::splitTask( pfc::thread::arg_t const & arg, std::function<void ()> f) {
+    auto taskref = async_task_manager::g_acquire();
+    pfc::splitThread( arg, [f,taskref] {
+        f();
+        (void)taskref; // retain until here
+        } );
 }

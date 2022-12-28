@@ -1,44 +1,11 @@
-// This is the master foobar2000 SDK header file; it includes headers for all functionality exposed through the SDK project. #include this in your source code, never reference any of the other headers directly.
+// This is the master foobar2000 SDK header file; it includes headers for all functionality exposed through the SDK project. 
+// For historical reasons, this #includes everything from the SDK.
+// In new code, it is recommended to #include "foobar2000-lite.h" then any other headers on need-to-use basis.
 
 #ifndef _FOOBAR2000_H_
 #define _FOOBAR2000_H_
 
-#include "foobar2000-winver.h"
-
-// #define FOOBAR2000_TARGET_VERSION 75 // 0.9.6
-// #define FOOBAR2000_TARGET_VERSION 76 // 1.0
-// #define FOOBAR2000_TARGET_VERSION 77 // 1.1, 1.2
-// #define FOOBAR2000_TARGET_VERSION 78 // 1.3
-// #define FOOBAR2000_TARGET_VERSION 79 // 1.4
-#define FOOBAR2000_TARGET_VERSION 80 // 1.5, 1.6
-
-// Note that upcoming foobar2000 v2.0 x64/ARM64 will load components with FOOBAR2000_TARGET_VERSION of 80 or higher.
-// foobar2000 v2.0 x86 currently supports all old components from 0.9 era up.
-
-// Use this to determine what foobar2000 SDK version is in use, undefined for releases older than 2018
-#define FOOBAR2000_SDK_VERSION 20220810
-
-
-#include "foobar2000-pfc.h"
-#include "../shared/shared.h"
-
-#ifndef NOTHROW
-#ifdef _MSC_VER
-#define NOTHROW __declspec(nothrow)
-#else
-#define NOTHROW
-#endif
-#endif
-
-#define FB2KAPI /*NOTHROW*/
-
-typedef const char * pcchar;
-
-#include "core_api.h"
-#include "service.h"
-#include "service_impl.h"
-#include "service_by_guid.h"
-#include "service_compat.h"
+#include "foobar2000-lite.h"
 
 #include "completion_notify.h"
 #include "abort_callback.h"
@@ -49,7 +16,6 @@ typedef const char * pcchar;
 #include "filesystem_transacted.h"
 #include "archive.h"
 #include "audio_chunk.h"
-#include "cfg_var.h"
 #include "mem_block_container.h"
 #include "audio_postprocessor.h"
 #include "playable_location.h"
@@ -69,7 +35,6 @@ typedef const char * pcchar;
 #include "event_logger.h"
 #include "input.h"
 #include "input_impl.h"
-#include "decode_postprocessor.h"
 #include "menu.h"
 #include "contextmenu.h"
 #include "contextmenu_manager.h"
@@ -85,52 +50,70 @@ typedef const char * pcchar;
 #include "titleformat.h"
 #include "ui.h"
 #include "unpack.h"
-#include "vis.h"
 #include "packet_decoder.h"
 #include "commandline.h"
 #include "genrand.h"
 #include "file_operation_callback.h"
 #include "library_manager.h"
+#include "library_callbacks.h"
 #include "config_io_callback.h"
 #include "popup_message.h"
 #include "app_close_blocker.h"
 #include "config_object.h"
-#include "config_object_impl.h"
 #include "threaded_process.h"
-#include "message_loop.h"
 #include "input_file_type.h"
-#include "chapterizer.h"
-#include "link_resolver.h"
 #include "main_thread_callback.h"
 #include "advconfig.h"
-#include "info_lookup_handler.h"
 #include "track_property.h"
 
 #include "album_art.h"
 #include "album_art_helpers.h"
 #include "icon_remap.h"
-#include "ui_element.h"
-#include "ole_interaction.h"
 #include "search_tools.h"
 #include "autoplaylist.h"
 #include "replaygain_scanner.h"
-#include "ui_edit_context.h"
 
 #include "system_time_keeper.h"
-#include "playback_stream_capture.h"
 #include "http_client.h"
 #include "exceptions.h"
 
 #include "progress_meter.h"
 
-#include "output.h"
-
-#include "file_format_sanitizer.h"
-
 #include "commonObjects.h"
 
 #include "file_lock_manager.h"
+
+#include "configStore.h"
+
+#include "timer.h"
+
+#include "cfg_var.h"
+#include "advconfig_impl.h"
+
+
+#include "playlistColumnProvider.h"
+#include "threadPool.h"
+#include "powerManager.h"
+#include "keyValueIO.h"
+#include "audioEncoder.h"
+#include "decode_postprocessor.h"
+#include "file_format_sanitizer.h"
 #include "imageLoaderLite.h"
 #include "imageViewer.h"
+#include "playback_stream_capture.h"
+#include "message_loop.h"
+#include "chapterizer.h"
+#include "info_lookup_handler.h"
+#include "output.h"
+#include "link_resolver.h"
+#include "image.h"
+#include "fileDialog.h"
+#include "console_manager.h"
+#include "vis.h"
+#include "ole_interaction.h"
+#include "library_index.h"
+#include "ui_element.h"
+#include "ui_edit_context.h"
+#include "toolbarDropDown.h"
 
 #endif //_FOOBAR2000_H_

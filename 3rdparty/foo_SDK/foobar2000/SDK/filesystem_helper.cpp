@@ -1,4 +1,5 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "filesystem_helper.h"
 
 void stream_writer_chunk::write(const void * p_buffer,t_size p_bytes,abort_callback & p_abort) {
 	t_size remaining = p_bytes, written = 0;
@@ -200,39 +201,47 @@ namespace foobar2000_io {
         filesystem::g_list_directory(path, cb, aborter);
     }
 
+    pfc::string8 stripParentFolders( const char * inPath ) {
+        PFC_ASSERT( strstr(inPath, "://" ) == nullptr || matchProtocol( inPath, "file" ) );
+
+        size_t prefixLen = pfc::string_find_first(inPath, "://");
+        if ( prefixLen != pfc_infinite ) prefixLen += 3;
+        else prefixLen = 0;
+
+        pfc::chain_list_v2_t<pfc::string_part_ref> segments;
+
+        const char separator =
+    #ifdef _WIN32
+            '\\'
+    #else
+            '/'
+    #endif
+            ;
+        const char strSeparator[] = {separator, 0};
+
+        pfc::splitStringByChar(segments, inPath + prefixLen, separator );
+        for ( auto i = segments.first(); i.is_valid(); ) {
+            auto n = i; ++n;
+            if ( i->equals( "." ) ) {
+                segments.remove_single( i );
+            } else if ( i->equals( ".." ) ) {
+                auto p = i; --p;
+                if ( p.is_valid() ) segments.remove_single( p );
+                segments.remove_single( i );
+            }
+            i = n;
+        }
+        pfc::string8 ret;
+        if ( prefixLen > 0 ) ret.add_string( inPath, prefixLen );
+        bool bFirst = true;
+        for ( auto i = segments.first(); i.is_valid(); ++ i ) {
+            if (!bFirst) ret << strSeparator;
+            ret << *i;
+            bFirst = false;
+        }
+        return ret;
+    }
 #ifdef _WIN32
-	pfc::string8 stripParentFolders( const char * inPath ) {
-		PFC_ASSERT( strstr(inPath, "://" ) == nullptr || matchProtocol( inPath, "file" ) );
-		size_t prefixLen = pfc::string_find_first(inPath, "://");
-		if ( prefixLen != pfc_infinite ) prefixLen += 3;
-		else prefixLen = 0;
-
-		pfc::chain_list_v2_t<pfc::string_part_ref> segments;
-		pfc::splitStringByChar(segments, inPath + prefixLen, '\\' );
-		for ( auto i = segments.first(); i.is_valid(); ) {
-			auto n = i; ++n;
-			if ( i->equals( "." ) ) {
-				segments.remove_single( i );
-			} else if ( i->equals( ".." ) ) {
-				auto p = i; --p;
-				if ( p.is_valid() ) segments.remove_single( p );
-				segments.remove_single( i );
-			}
-			i = n;
-		}
-		pfc::string8 ret;
-		if ( prefixLen > 0 ) ret.add_string( inPath, prefixLen );
-		bool bFirst = true;
-		for ( auto i = segments.first(); i.is_valid(); ++ i ) {
-			if (!bFirst) ret << "\\";
-			ret << *i;		
-			bFirst = false;
-		}
-		return ret;
-	}
-
-
-
 	pfc::string8 winGetVolumePath(const char * fb2kPath) {
 		PFC_ASSERT(matchProtocol(fb2kPath, "file"));
 		pfc::string8 native;

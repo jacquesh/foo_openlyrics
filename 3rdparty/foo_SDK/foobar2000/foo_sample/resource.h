@@ -7,6 +7,7 @@
 #define IDD_UI_ELEMENT                  103
 #define IDD_THREADS                     105
 #define IDD_LISTCONTROL_DEMO            107
+#define IDI_ICON1                       109
 #define IDD_MYPREFERENCES               148
 #define IDC_BOGO1                       1001
 #define IDC_BOGO2                       1002

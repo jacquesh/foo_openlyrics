@@ -1,4 +1,6 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "file_info_impl.h"
+#include "tag_processor.h"
 
 void tag_processor_trailing::write_id3v1(const service_ptr_t<file> & p_file,const file_info & p_info,abort_callback & p_abort)
 {
@@ -24,11 +26,6 @@ enum {
 	g_flag_apev2 = 1<<2
 };
 
-static void tagtype_list_append(pfc::string_base & p_out,const char * p_name)
-{
-	if (!p_out.is_empty()) p_out += "|";
-	p_out += p_name;
-}
 
 static void g_write_tags_ex(tag_write_callback & p_callback,unsigned p_flags,const service_ptr_t<file> & p_file,const file_info * p_info,abort_callback & p_abort) {
 	PFC_ASSERT( p_flags == 0 || p_info != 0 );

@@ -1,5 +1,8 @@
 #pragma once
 
+// #define FOOSORT_LIMIT_THREADS 1
+
+
 namespace fb2k {
 	
 	// foosort

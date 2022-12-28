@@ -1,3 +1,6 @@
+#pragma once
+
+
 //! Namespace with functions for sending text to console. All functions are fully multi-thread safe, though they must not be called during dll initialization or deinitialization (e.g. static object constructors or destructors) when service system is not available.
 namespace console
 {
@@ -13,6 +16,11 @@ namespace console
     void printf(const char*,...);
 	void printfv(const char*,va_list p_arglist);
 
+	//! New console print method, based on pfc::print(). \n
+	//! Example: console::print("foo", "bar", 2000) \ n
+	//! See also: FB2K_console_print(...)
+	template<typename ... args_t> void print(args_t && ... args) {print(pfc::format(std::forward<args_t>(args) ... ).c_str()); }
+
 	class lineWriter {
 	public:
 		const lineWriter & operator<<( const char * msg ) const {print(msg);return *this;}
@@ -25,7 +33,12 @@ namespace console
 	};
 #define FB2K_console_formatter() ::console::formatter()._formatter()
 #define FB2K_console_formatter1() ::console::lineWriter()
-#define FB2K_console_print(X) ::console::print(X)
+
+//! New console print macro, based on pfc::print(). \n
+//! Example: FB2K_console_print("foo", "bar", 2000) \n
+//! Note that this macro is convenient for conditionally enabling logging in specific modules - \n
+//! instead of putting console formatter lines on #ifdef, #define MY_CONSOLE_LOG(...) FB2K_console_print(__VA_ARGS__) if enabled, or #define to blank if not.
+#define FB2K_console_print(...) ::console::print(__VA_ARGS__)
     
 	void complain(const char * what, const char * msg);
 	void complain(const char * what, std::exception const & e);
@@ -51,3 +64,7 @@ public:
 
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(console_receiver);
 };
+
+
+
+

@@ -2,6 +2,9 @@
 
 // Special header with fb2k mobile metadb<=>trackList interop wrappers 
 
+#include "metadb.h"
+#include "titleformat.h"
+
 typedef metadb_handle_ptr trackRef;
 typedef metadb_handle_list_cref trackListRef;
 typedef metadb_handle_list trackListStore;

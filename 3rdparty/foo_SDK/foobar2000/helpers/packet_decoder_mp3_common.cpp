@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "packet_decoder_mp3_common.h"
 #include "mp3_utils.h"
 

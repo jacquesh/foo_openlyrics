@@ -50,6 +50,9 @@ namespace pfc {
 class hires_timer {
 public:
     hires_timer() : m_start() {}
+	static hires_timer create_and_start() {
+		hires_timer t; t.start(); return t;
+	}
 	void start() {
 		m_start = g_query();
 	}
@@ -85,6 +88,9 @@ private:
 class lores_timer {
 public:
 	lores_timer() {}
+	static lores_timer create_and_start() {
+		lores_timer t; t.start(); return t;
+	}
 	void start() {
 		_start(getTickCount());
 	}
@@ -122,6 +128,10 @@ public:
     double query() const;
     double query_reset();
 	pfc::string8 queryString(unsigned precision = 3) const;
+
+	static hires_timer create_and_start() {
+		hires_timer t; t.start(); return t;
+	}
 private:
     double m_start;
 };

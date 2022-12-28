@@ -28,4 +28,13 @@ static constexpr struct {
 	{0x01CC, "nj"},
 	{0x0132, "IJ"},
 	{0x0133, "ij"},
+
+#if 0 // umlauts
+	{0x00C4, "AE"},
+	{0x00E4, "ae"},
+	{0x00D6, "OE"},
+	{0x00F6, "oe"},
+	{0x00DC, "UE"},
+	{0x00FC, "ue"},
+#endif
 };

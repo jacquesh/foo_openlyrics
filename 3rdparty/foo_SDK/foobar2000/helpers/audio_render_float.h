@@ -1,11 +1,7 @@
 #pragma once
 
 template<typename float_t> inline void render_float(float_t* out, const audio_sample* in, size_t count) {
-	if (sizeof(audio_sample) == sizeof(float_t)) {
-		memcpy(out, in, count * sizeof(audio_sample));
-	} else {
-		for (size_t walk = 0; walk < count; ++walk) out[walk] = (float_t)in[walk];
-	}
+	audio_math::convert(in, out, count);
 }
 
 template<typename float_t> inline const float_t* render_float(mem_block_container& buffer, const audio_sample* in, size_t count) {

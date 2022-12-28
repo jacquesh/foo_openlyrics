@@ -1,4 +1,7 @@
 #pragma once
+#include "filesystem.h" // t_filestats
+#include "playable_location.h"
+#include "file_info.h"
 
 class titleformat_hook;
 class titleformat_text_filter;
@@ -182,8 +185,6 @@ public:
 	virtual void formatTitle_v2(const rec_t& rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter) = 0;
 };
 
-typedef service_ptr_t<metadb_handle> metadb_handle_ptr;
-
 typedef pfc::list_base_t<metadb_handle_ptr> & metadb_handle_list_ref;
 typedef pfc::list_base_const_t<metadb_handle_ptr> const & metadb_handle_list_cref;
 
@@ -204,6 +205,10 @@ namespace metadb_handle_list_helper {
 	t_size bsearch_by_pointer(const pfc::list_base_const_t<metadb_handle_ptr> & p_list,const metadb_handle_ptr & val);
 
 	double calc_total_duration(metadb_handle_list_cref p_list);
+
+	//! New method to deal with slower metadb in foobar2000 v2
+	double calc_total_duration_v2(metadb_handle_list_cref p_list, unsigned maxThreads, abort_callback & aborter);
+	
 
 	void sort_by_path(pfc::list_base_t<metadb_handle_ptr> & p_list);
 

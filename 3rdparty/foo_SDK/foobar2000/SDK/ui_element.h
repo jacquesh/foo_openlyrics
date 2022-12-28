@@ -34,7 +34,7 @@ public:
 //! Helper for reading data from ui_element_config.
 class ui_element_config_parser : public stream_reader_formatter<> {
 public:
-	ui_element_config_parser(ui_element_config::ptr in) : m_data(in), _m_stream(in->get_data(),in->get_data_size()), stream_reader_formatter(_m_stream,fb2k::noAbort) {}
+	ui_element_config_parser(ui_element_config::ptr in) : stream_reader_formatter(_m_stream, fb2k::noAbort), m_data(in), _m_stream(in->get_data(),in->get_data_size()) {}
 
 	void reset() {_m_stream.reset();}
 	t_size get_remaining() const {return _m_stream.get_remaining();}
@@ -77,11 +77,9 @@ FB2K_STREAM_READER_OVERLOAD(ui_element_config::ptr) {
 }
 
 
-
-
-typedef COLORREF t_ui_color;
-typedef HFONT t_ui_font;
-typedef HICON t_ui_icon;
+typedef uint32_t t_ui_color;
+typedef fb2k::hfont_t t_ui_font;
+typedef fb2k::hicon_t t_ui_icon;
 
 constexpr GUID ui_color_text = { 0x5dd38be7, 0xff8a, 0x416f, { 0x88, 0x2d, 0xa4, 0x8e, 0x31, 0x87, 0x85, 0xb2 } };
 constexpr GUID ui_color_background = { 0x16fc40c1, 0x1cba, 0x4385, { 0x93, 0x3b, 0xe9, 0x32, 0x7f, 0x6e, 0x35, 0x1f } };
@@ -99,18 +97,27 @@ constexpr GUID ui_font_statusbar = { 0xc7fd555b, 0xbd15, 0x4f74, { 0x93, 0xe, 0x
 constexpr GUID ui_font_console = { 0xb08c619d, 0xd3d1, 0x4089, { 0x93, 0xb2, 0xd5, 0xb, 0x87, 0x2d, 0x1a, 0x25 } };
 
 
+#ifdef _WIN32
+
 //! @returns -1 when the GUID is unknown / unmappable, index that can be passed over to GetSysColor() otherwise.
 int ui_color_to_sys_color_index(const GUID & p_guid);
 GUID ui_color_from_sys_color_index( int idx );
 
 struct ui_element_min_max_info {
-	ui_element_min_max_info() : m_min_width(0), m_max_width(~0), m_min_height(0), m_max_height(~0) {}
-	t_uint32 m_min_width, m_max_width, m_min_height, m_max_height;
+	t_uint32 m_min_width = 0, m_max_width = UINT32_MAX, m_min_height = 0, m_max_height = UINT32_MAX;
 
 	const ui_element_min_max_info & operator|=(const ui_element_min_max_info & p_other);
 	ui_element_min_max_info operator|(const ui_element_min_max_info & p_other) const;
 	void adjustForWindow(HWND wnd);
 };
+
+typedef SIZE ui_size;
+typedef RECT ui_rect;
+#else
+struct ui_element_min_max_info {}; // dummy
+struct ui_size { int cx = 0, cy = 0; };
+struct ui_rect { int l = 0, t = 0, r = 0, b = 0; };
+#endif
 
 //! Callback class passed by a UI element host to a UI element instance, allowing each UI element instance to communicate with its host. \n
 //! Each ui_element_instance_callback implementation must also implement ui_element_instance_callback_v2.
@@ -151,6 +158,8 @@ public:
 	bool set_elem_label(ui_element_instance * source, const char * label);
 	t_uint32 get_dialog_texture(ui_element_instance * source);
 	bool is_border_needed(ui_element_instance * source);
+
+	bool is_dark_mode();
 };
 
 
@@ -253,7 +262,7 @@ class NOVTABLE ui_element_instance : public service_base {
 public:
 	//! Returns ui_element_instance's window handle.\n
 	//! UI Element's window must be created when the ui_element_instance object is created. The window may or may not be destroyed by caller before the ui_element_instance itself is destroyed. If caller doesn't destroy the window before ui_element_instance destruction, ui_element_instance destructor should do it.
-	virtual HWND get_wnd() = 0;
+	virtual fb2k::hwnd_t get_wnd() = 0;
 	
 	//! Alters element's current configuration. Specified ui_element_config's GUID must be the same as this element's GUID.
 	virtual void set_configuration(ui_element_config::ptr data) = 0;
@@ -262,7 +271,7 @@ public:
 
 	//! Returns GUID of the element. The return value must be the same as your ui_element::get_guid().
 	virtual GUID get_guid() = 0;
-	//! Returns subclass GUID of the element. The return value must be the same as your ui_element::get_guid().
+	//! Returns subclass GUID of the element. The return value must be the same as your ui_element::get_subclass().
 	virtual GUID get_subclass() = 0;
 
 	//! Returns element's focus priority.
@@ -287,6 +296,7 @@ public:
 	//! Used by host to notify the element about various events. See ui_element_notify_* GUIDs for possible p_what parameter; meaning of other parameters depends on p_what value. Container classes should dispatch all notifications to their children.
 	virtual void notify(const GUID & p_what, t_size p_param1, const void * p_param2, t_size p_param2size) {}
 
+#ifdef _WIN32
 	//! @param p_point Context menu point in screen coordinates. Always within out window's rect.
 	//! @return True to request edit_mode_context_menu_build() call to add our own items to the menu, false if we can't supply a context menu for this point.
 	virtual bool edit_mode_context_menu_test(const POINT & p_point,bool p_fromkeyboard) {return false;}
@@ -296,13 +306,16 @@ public:
 	virtual bool edit_mode_context_menu_get_focus_point(POINT & p_point) {return false;}
 
 	virtual bool edit_mode_context_menu_get_description(unsigned p_id,unsigned p_id_base,pfc::string_base & p_out) {return false;}
+#endif // _WIN32
 
+    //! Helper.
+    void set_default_focus_fallback() {
+#ifdef _WIN32
+        const HWND thisWnd = this->get_wnd();
+        if (thisWnd != NULL) ::SetFocus(thisWnd);
+#endif
+    }
 
-	//! Helper.
-	void set_default_focus_fallback() {
-		const HWND thisWnd = this->get_wnd();
-		if (thisWnd != NULL) ::SetFocus(thisWnd);
-	}
 
 	FB2K_MAKE_SERVICE_INTERFACE(ui_element_instance,service_base);
 };
@@ -347,7 +360,7 @@ public:
 	virtual void get_name(pfc::string_base & p_out) = 0;
 
 	//! Instantiates the element using specified settings.
-	virtual ui_element_instance_ptr instantiate(HWND p_parent,ui_element_config::ptr cfg,ui_element_instance_callback_ptr p_callback) = 0;
+	virtual ui_element_instance_ptr instantiate(fb2k::hwnd_t p_parent,ui_element_config::ptr cfg,ui_element_instance_callback_ptr p_callback) = 0;
 
 	//! Retrieves default configuration of the element.
 	virtual ui_element_config::ptr get_default_configuration() = 0;
@@ -413,11 +426,12 @@ public:
 
 	//! Override to use another name for our menu command. Relevant only when KFlagHavePopupCommand is set.
 	virtual void get_menu_command_name(pfc::string_base & out) {get_name(out);}
+    
 	//! Relevant only when KFlagHavePopupCommand is set.
 	//! @param defSize Default window size @ 96DPI. If screen DPI is different, it will be rescaled appropriately.
 	//! @param title Window title to use.
 	//! @returns True when implemented, false when not - caller will automatically determine default size and window title then.
-	virtual bool get_popup_specs(SIZE & defSize, pfc::string_base & title) {return false;}
+	virtual bool get_popup_specs(ui_size & defSize, pfc::string_base & title) {return false;}
 
 	
 	FB2K_MAKE_SERVICE_INTERFACE(ui_element_v2, ui_element)
@@ -436,7 +450,7 @@ class NOVTABLE ui_element_popup_host : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE(ui_element_popup_host,service_base);
 public:
 	virtual ui_element_instance::ptr get_root_elem() = 0;
-	virtual HWND get_wnd() = 0;
+	virtual fb2k::hwnd_t get_wnd() = 0;
 	virtual ui_element_config::ptr get_config() = 0;
 	virtual void set_config(ui_element_config::ptr cfg) = 0;
 	//! Sets edit mode on/off. Default: off.
@@ -455,19 +469,25 @@ class NOVTABLE ui_element_common_methods : public service_base {
 	FB2K_MAKE_SERVICE_COREAPI(ui_element_common_methods);
 public:
 	virtual void copy(ui_element_config::ptr cfg) = 0;
-	virtual void cut(ui_element_instance_ptr & p_instance,HWND p_parent,ui_element_instance_callback_ptr p_callback) = 0;
-	virtual bool paste(ui_element_instance_ptr & p_instance,HWND p_parent,ui_element_instance_callback_ptr p_callback) = 0;
+	virtual void cut(ui_element_instance_ptr & p_instance,fb2k::hwnd_t p_parent,ui_element_instance_callback_ptr p_callback) = 0;
+	virtual bool paste(ui_element_instance_ptr & p_instance,fb2k::hwnd_t p_parent,ui_element_instance_callback_ptr p_callback) = 0;
 	virtual bool is_paste_available() = 0;
 	virtual bool paste(ui_element_config::ptr & out) = 0;
 
+#ifdef _WIN32
 	virtual bool parse_dataobject_check(pfc::com_ptr_t<IDataObject> in, DWORD & dropEffect) = 0;
 	virtual bool parse_dataobject(pfc::com_ptr_t<IDataObject> in,ui_element_config::ptr & out, DWORD & dropEffect) = 0;
 
 	virtual pfc::com_ptr_t<IDataObject> create_dataobject(ui_element_config::ptr in) = 0;
+#endif
+    
+	virtual fb2k::hwnd_t spawn_scratchbox(fb2k::hwnd_t parent,ui_element_config::ptr cfg) = 0;
 
-	virtual HWND spawn_scratchbox(HWND parent,ui_element_config::ptr cfg) = 0;
-
-	virtual ui_element_popup_host::ptr spawn_host(HWND parent, ui_element_config::ptr cfg, ui_element_popup_host_callback::ptr callback, ui_element::ptr elem = NULL, DWORD style = WS_POPUPWINDOW|WS_CAPTION|WS_THICKFRAME, DWORD styleEx = WS_EX_CONTROLPARENT) = 0;
+	virtual ui_element_popup_host::ptr spawn_host(fb2k::hwnd_t parent, ui_element_config::ptr cfg, ui_element_popup_host_callback::ptr callback, ui_element::ptr elem = NULL
+#ifdef _WIN32
+    ,DWORD style = WS_POPUPWINDOW|WS_CAPTION|WS_THICKFRAME, DWORD styleEx = WS_EX_CONTROLPARENT
+#endif
+    ) = 0;
 
 	void copy(ui_element_instance_ptr p_instance) {copy(p_instance->get_configuration());}
 
@@ -478,15 +498,15 @@ public:
 class NOVTABLE ui_element_common_methods_v2 : public ui_element_common_methods {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(ui_element_common_methods_v2, ui_element_common_methods);
 public:
-	virtual void spawn_host_simple(HWND parent, ui_element::ptr elem, bool fullScreenMode) = 0;
+	virtual void spawn_host_simple(fb2k::hwnd_t parent, ui_element::ptr elem, bool fullScreenMode) = 0;
 
-	void spawn_host_simple(HWND parent, const GUID & elem, bool fullScreenMode) {
+	void spawn_host_simple(fb2k::hwnd_t parent, const GUID & elem, bool fullScreenMode) {
 		spawn_host_simple(parent, service_by_guid<ui_element>(elem), fullScreenMode);
 	}
 
-	virtual void toggle_fullscreen(ui_element::ptr elem, HWND parent) = 0;
+	virtual void toggle_fullscreen(ui_element::ptr elem, fb2k::hwnd_t parent) = 0;
 	
-	void toggle_fullscreen(const GUID & elem, HWND parent) {
+	void toggle_fullscreen(const GUID & elem, fb2k::hwnd_t parent) {
 		toggle_fullscreen(service_by_guid<ui_element>(elem), parent);
 	}
 };
@@ -513,10 +533,10 @@ public:
 	//! @param elemReplacing GUID of element being replaced; specify null to show "Add UI Element" dialog.
 	//! @param notify Callback object receiving OK/Cancel notifications.
 	//! @returns Handle to the newly created dialog. You can just destroy this window if you need to abort the dialog programatically.
-	virtual HWND replace_element_dialog_start(HWND wndElem, const GUID & elemReplacing, ui_element_replace_dialog_notify::ptr notify) = 0;
+	virtual fb2k::hwnd_t replace_element_dialog_start(fb2k::hwnd_t wndElem, const GUID & elemReplacing, ui_element_replace_dialog_notify::ptr notify) = 0;
 	
 	//! Highlights the element, creating an overlay window above it. Caller is responsible for destroying the overlay.
-	virtual HWND highlight_element( HWND wndElem ) = 0;
+	virtual fb2k::hwnd_t highlight_element( fb2k::hwnd_t wndElem ) = 0;
 };
 
 //! Dispatched through ui_element_instance::notify() when host changes color settings. Other parameters are not used and should be set to zero.
@@ -540,7 +560,7 @@ constexpr GUID ui_element_host_notify_is_border_needed = { 0x2974f554, 0x2f31, 0
 
 class ui_element_notify_get_element_labels_callback {
 public:
-	virtual void set_area_label(const RECT & rc, const char * name) = 0;
+	virtual void set_area_label(const ui_rect & rc, const char * name) = 0;
 	virtual void set_visible_element(ui_element_instance::ptr item) = 0;
 protected:
 	ui_element_notify_get_element_labels_callback() {}
@@ -581,7 +601,10 @@ bool ui_element_subclass_description(const GUID & id, pfc::string_base & out);
 //! \since 2.0
 class NOVTABLE ui_config_callback {
 public:
+	//! Called when user changes configuration of fonts.
 	virtual void ui_fonts_changed() {}
+	//! Called when user changes configuration of colors (also as a result of toggling dark mode). \n
+	//! Note that for the duration of these callbacks, both old handles previously returned by query_font() as well as new ones are valid; old font objects are released when the callback cycle is complete.
 	virtual void ui_colors_changed() {}
 };
 
@@ -592,14 +615,23 @@ public:
 	virtual void add_callback(ui_config_callback*) = 0;
 	virtual void remove_callback(ui_config_callback*) = 0;
 
+	//! Queries actual color to be used for the specified ui_color_* element.
+	//! @returns True if color is user-overridden, false if system-default color should be used.
 	virtual bool query_color(const GUID& p_what, t_ui_color& p_out) = 0;
+	//! Queries font to be used for the specified ui_font_* element. \n
+	//! The returned font handle is valid until the next font change callback cycle *completes*, that is, during a font change callback, both old and new handle are momentarily valid.
 	virtual t_ui_font query_font(const GUID& p_what) = 0;	
 
+	//! Helper using query_color(); returns true if dark mode is in effect, false otherwise.
 	bool is_dark_mode();
 
 #ifdef _WIN32
 	t_ui_color getSysColor(int sysColorIndex);
 #endif
+
+	//! Special method that's safe to call without checking if ui_config_manager exists, that is, it works on foobar2000 < 2.0.
+	//! Returns false if ui_conifg_manager doesn't exist and therefore dark mode isn't supported by this foobar2000 revision.
+	static bool g_is_dark_mode();
 };
 
 //! \since 2.0

@@ -1,3 +1,5 @@
+#pragma once
+
 //! Service providing "unpacker" functionality - processes "packed" file (such as a zip file containing a single media file inside) to allow its contents to be accessed transparently.\n
 //! To access existing unpacker implementations, use unpacker::g_open helper function.\n
 //! To register your own implementation, use unpacker_factory_t template.

@@ -6,8 +6,7 @@
 //! Duration counter class - accumulates duration using sample values, without any kind of rounding error accumulation.
 class duration_counter {
 public:
-	duration_counter() : m_offset() {
-	}
+	duration_counter() {}
 	void set(double v) {
 		m_sampleCounts.remove_all();
 		m_offset = v;
@@ -21,18 +20,25 @@ public:
 
 	double query() const {
 		double acc = m_offset;
-		for (t_map::const_iterator walk = m_sampleCounts.first(); walk.is_valid(); ++walk) {
-			acc += audio_math::samples_to_time(walk->m_value, walk->m_key);
+		for (auto& walk : m_sampleCounts) {
+			acc += audio_math::samples_to_time(walk.m_value, walk.m_key);
 		}
 		return acc;
+	}
+
+	uint64_t queryAsAnySampleCount() const {
+		if (m_sampleCounts.get_count() == 1) {
+			return m_sampleCounts.first()->m_value;
+		}
+		return 0;
 	}
 
 	uint64_t queryAsSampleCount(uint32_t rate) const {
 		uint64_t samples = 0;
 		double acc = m_offset;
-		for (t_map::const_iterator walk = m_sampleCounts.first(); walk.is_valid(); ++walk) {
-			if (walk->m_key == rate) samples += walk->m_value;
-			else acc += audio_math::samples_to_time(walk->m_value, walk->m_key);
+		for (auto& walk : m_sampleCounts) {
+			if (walk.m_key == rate) samples += walk.m_value;
+			else acc += audio_math::samples_to_time(walk.m_value, walk.m_key);
 		}
 		return samples + audio_math::time_to_samples(acc, rate);
 	}
@@ -56,15 +62,11 @@ public:
 	}
 	void add(const duration_counter & other) {
 		add(other.m_offset);
-		for (t_map::const_iterator walk = other.m_sampleCounts.first(); walk.is_valid(); ++walk) {
-			add(walk->m_value, walk->m_key);
-		}
+		for (auto& walk : other.m_sampleCounts) add(walk.m_value, walk.m_key);
 	}
 	void subtract(const duration_counter & other) {
 		subtract(other.m_offset);
-		for (t_map::const_iterator walk = other.m_sampleCounts.first(); walk.is_valid(); ++walk) {
-			subtract(walk->m_value, walk->m_key);
-		}
+		for (auto& walk : other.m_sampleCounts) subtract(walk.m_value, walk.m_key);
 	}
 	void subtract(t_uint64 sampleCount, t_uint32 sampleRate) {
 		PFC_ASSERT(sampleRate > 0);
@@ -87,7 +89,7 @@ public:
 	template<typename t_source> duration_counter & operator-=(const t_source & source) { subtract(source); return *this; }
 	template<typename t_source> duration_counter & operator=(const t_source & source) { reset(); add(source); return *this; }
 private:
-	double m_offset;
+	double m_offset = 0;
 	typedef pfc::map_t<t_uint32, t_uint64> t_map;
 	t_map m_sampleCounts;
 };

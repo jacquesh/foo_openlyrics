@@ -198,12 +198,12 @@ namespace {
 	}
 
 	// Provider of our title formatting fields.
-	class metadb_display_field_provider_impl : public metadb_display_field_provider {
+	class metadb_display_field_provider_impl : public metadb_display_field_provider_v2 {
 	public:
-		t_uint32 get_field_count() {
+		t_uint32 get_field_count() override {
 			return 6;
 		}
-		void get_field_name(t_uint32 index, pfc::string_base & out) {
+		void get_field_name(t_uint32 index, pfc::string_base & out) override {
 			PFC_ASSERT(index < get_field_count());
 			switch(index) {
 			case 0:
@@ -223,14 +223,18 @@ namespace {
 			}
 		}
 		
-		bool process_field(t_uint32 index, metadb_handle * handle, titleformat_text_out * out) {
+		bool process_field(t_uint32 index, metadb_handle* handle, titleformat_text_out* out) override {
+			return process_field_v2(index, handle, handle->query_v2_(), out);
+		}
+		bool process_field_v2(t_uint32 index, metadb_handle * handle, metadb_v2::rec_t const& metarec, titleformat_text_out * out) override {
 			PFC_ASSERT( index < get_field_count() );
 
 			const GUID whichID = ((index%2) == 1) ? guid_foo_sample_album_rating_index : guid_foo_sample_track_rating_index;
 
+			if (!metarec.info.is_valid()) return false;
+
 			record_t rec;
-			metadb_index_hash hash;
-			if (!clientByGUID(whichID)->hashHandle(handle, hash)) return false;
+			const auto hash = clientByGUID(whichID)->transform(metarec.info->info(), handle->get_location());
 
 			if ( index < 4 ) {
 				rec = record_get(whichID, hash);

@@ -1,3 +1,6 @@
+#pragma once
+
+#ifdef _WIN32
 class NOVTABLE message_filter
 {
 public:
@@ -89,3 +92,4 @@ public:
 
 	PFC_CLASS_NOT_COPYABLE_EX(idle_handler_impl_base)
 };
+#endif // _WIN32

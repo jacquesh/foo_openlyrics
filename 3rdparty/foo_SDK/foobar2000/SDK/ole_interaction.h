@@ -1,3 +1,10 @@
+#pragma once
+
+#ifdef _WIN32
+
+#include "mem_block_container.h"
+#include "playlist.h"
+
 class NOVTABLE playlist_dataobject_desc {
 public:
 	virtual t_size get_entry_count() const = 0;
@@ -146,3 +153,6 @@ public:
 	//! Attempts to parse an IDataObject as playlists.
 	virtual HRESULT parse_dataobject_playlists(pfc::com_ptr_t<IDataObject> obj, playlist_dataobject_desc_v2 & out) = 0;
 };
+
+#endif // _WIN32
+

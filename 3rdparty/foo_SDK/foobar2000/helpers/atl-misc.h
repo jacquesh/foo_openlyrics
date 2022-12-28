@@ -1,6 +1,12 @@
 #pragma once
 
+#ifdef _WIN32
+
 #include "win32_misc.h"
+#include <SDK/ui_element.h>
+#include <SDK/ui.h>
+#include <SDK/contextmenu_manager.h>
+#include <SDK/preferences_page.h>
 #include <libPPUI/WTL-PP.h>
 #include <utility>
 
@@ -119,6 +125,30 @@ private:
 };
 
 template<typename TClass>
+class ImplementModalTracking : public TClass {
+public:
+	template<typename ... arg_t> ImplementModalTracking(arg_t && ... arg) : TClass(std::forward<arg_t>(arg) ...) {}
+
+	BEGIN_MSG_MAP_EX(ImplementModalTracking)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		MSG_WM_DESTROY(OnDestroy)
+		CHAIN_MSG_MAP(TClass)
+	END_MSG_MAP()
+private:
+	void OnDestroy() {
+		m_modal.deinitialize();
+		SetMsgHandled(FALSE);
+	}
+	BOOL OnInitDialog(CWindow, LPARAM) {
+		m_modal.initialize(this->m_hWnd);
+		SetMsgHandled(FALSE);
+		return FALSE;
+	}
+	modal_dialog_scope m_modal;
+
+};
+
+template<typename TClass>
 class ImplementModelessTracking : public TClass {
 public:
 	template<typename ... arg_t> ImplementModelessTracking(arg_t && ... arg ) : TClass(std::forward<arg_t>(arg) ... ) {}
@@ -176,10 +206,14 @@ public:
 			if (window_service_trait_defer_destruction(this) && !InterlockedExchange(&m_delayedDestroyInProgress,1)) {
 				PFC_ASSERT_NO_EXCEPTION( service_impl_helper::release_object_delayed(this); );
 			} else if (this->m_hWnd != NULL) {
-				if (!m_destroyWindowInProgress) { // don't double-destroy in weird scenarios
-					PFC_ASSERT_NO_EXCEPTION( ::DestroyWindow(this->m_hWnd) );
+				if (!InterlockedExchange(&m_destroyWindowInProgress, 1)) {// don't double-destroy in weird scenarios
+					service_ptr_t<service_base> bump(this); // prevent delete this from occurring in mid-DestroyWindow
+					PFC_ASSERT_NO_EXCEPTION(::DestroyWindow(this->m_hWnd));
+					// We don't know what else happened inside DestroyWindow() due to message queue flush
+					// Safely retry destruction by bump object destructor
+					// m_hWnd doesn't have to be null here - we'll possibly get cleaned up by OnFinalMessage() instead
 				}
-			} else {
+			} else { // m_hWnd is NULL
 				PFC_ASSERT_NO_EXCEPTION( delete this );
 			}
 		}
@@ -189,15 +223,19 @@ public:
 
 	template<typename ... arg_t>
 	window_service_impl_t( arg_t && ... arg ) : t_base( std::forward<arg_t>(arg) ... ) {};
+
+	~window_service_impl_t() {
+		PFC_ASSERT(this->m_hWnd == NULL);
+	}
 private:
 	void OnDestroyPassThru() {
-		SetMsgHandled(FALSE); m_destroyWindowInProgress = true;
+		SetMsgHandled(FALSE); m_destroyWindowInProgress = 1;
 	}
-	void OnFinalMessage(HWND p_wnd) {
+	void OnFinalMessage(HWND p_wnd) override {
 		t_base::OnFinalMessage(p_wnd);
 		service_ptr_t<service_base> bump(this);
 	}
-	volatile bool m_destroyWindowInProgress = false;
+	volatile LONG m_destroyWindowInProgress = 0;
 	volatile LONG m_delayedDestroyInProgress = 0;
 	pfc::refcounter m_counter;
 };
@@ -259,33 +297,48 @@ public:
 };
 
 
+// ui_element stuff here because of window_service_impl_t
+
+template<typename instance_t>
+class ui_element_instance_impl_helper : public instance_t {
+public:
+	template<typename ... args_t>
+	ui_element_instance_impl_helper(args_t && ... args) : instance_t(std::forward<args_t>(args) ...) {}
+
+	GUID get_guid() override { return instance_t::g_get_guid(); }
+	GUID get_subclass() override { return instance_t::g_get_subclass(); }
+	HWND get_wnd() override { return *this; }
+};
 
 
-// here because of window_service_impl_t
+namespace fb2k {
+	template<typename TImpl, typename ... args_t>
+	ui_element_instance::ptr newUIElement(HWND parent, args_t && ... args) {
+		auto item = fb2k::service_new_window < ui_element_instance_impl_helper < TImpl > >(std::forward<args_t>(args) ...);
+		item->initialize_window(parent);
+		return item;
+	}
+}
+
 template<typename TImpl, typename TInterface = ui_element> class ui_element_impl : public TInterface {
 public:
 	GUID get_guid() { return TImpl::g_get_guid(); }
 	GUID get_subclass() { return TImpl::g_get_subclass(); }
 	void get_name(pfc::string_base & out) { TImpl::g_get_name(out); }
+
+	template<typename ... args_t>
+	ui_element_instance::ptr instantiate_helper(HWND parent, args_t && ... args) {
+		return fb2k::newUIElement<TImpl>(parent, std::forward<args_t>(args) ...);
+	}
+
 	ui_element_instance::ptr instantiate(HWND parent, ui_element_config::ptr cfg, ui_element_instance_callback::ptr callback) {
 		PFC_ASSERT(cfg->get_guid() == get_guid());
-		service_nnptr_t<ui_element_instance_impl_helper> item = new window_service_impl_t<ui_element_instance_impl_helper>(cfg, callback);
-		item->initialize_window(parent);
-		return item;
+		return instantiate_helper(parent, cfg, callback);
 	}
 	ui_element_config::ptr get_default_configuration() { return TImpl::g_get_default_configuration(); }
 	ui_element_children_enumerator_ptr enumerate_children(ui_element_config::ptr cfg) { return NULL; }
 	bool get_description(pfc::string_base & out) { out = TImpl::g_get_description(); return true; }
-private:
-	class ui_element_instance_impl_helper : public TImpl {
-	public:
-		ui_element_instance_impl_helper(ui_element_config::ptr cfg, ui_element_instance_callback::ptr callback) : TImpl(cfg, callback) {}
-
-		GUID get_guid() { return TImpl::g_get_guid(); }
-		GUID get_subclass() { return TImpl::g_get_subclass(); }
-		HWND get_wnd() { return *this; }
-	};
-public:
-	typedef ui_element_instance_impl_helper TInstance;
-	static TInstance const & instanceGlobals() { return *reinterpret_cast<const TInstance*>(NULL); }
 };
+
+
+#endif // _WIN32

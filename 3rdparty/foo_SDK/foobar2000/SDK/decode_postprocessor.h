@@ -1,6 +1,10 @@
 #pragma once
 
 #ifdef FOOBAR2000_HAVE_DSP
+#include "dsp.h"
+#include "file_info_impl.h"
+#include "input.h"
+
 //! \since 1.1
 //! This service is essentially a special workaround to easily decode DTS/HDCD content stored in files pretending to contain plain PCM data. \n
 //! Callers: Instead of calling this directly, you probably want to use input_postprocessed template. \n
@@ -37,23 +41,19 @@ public:
 	typedef decode_postprocessor_instance::ptr item;
 	void initialize(const file_info & info) {
 		m_items.remove_all();
-		service_enum_t<decode_postprocessor_entry> e;
-		decode_postprocessor_entry::ptr ptr;
-		while(e.next(ptr)) {
+		for (auto ptr : decode_postprocessor_entry::enumerate()) {
 			item i;
 			if (ptr->instantiate(info, i)) m_items += i;
 		}
 	}
 	void run(dsp_chunk_list & p_chunk_list,bool p_eof,abort_callback & p_abort) {
 		t_uint32 flags = p_eof ? decode_postprocessor_instance::flag_eof : 0;
-		for(t_size walk = 0; walk < m_items.get_size(); ++walk) {
-			if (m_items[walk]->run(p_chunk_list, flags, p_abort)) flags |= decode_postprocessor_instance::flag_altered;
+		for (auto& item : m_items) {
+			if (item->run(p_chunk_list, flags, p_abort)) flags |= decode_postprocessor_instance::flag_altered;
 		}
 	}
 	void flush() {
-		for(t_size walk = 0; walk < m_items.get_size(); ++walk) {
-			m_items[walk]->flush();
-		}
+		for (auto& item : m_items) item->flush();
 	}
 	static bool should_bother() { 
 		return service_factory_base::is_service_present(decode_postprocessor_entry::class_guid);
@@ -63,8 +63,8 @@ public:
 	}
 	bool get_dynamic_info(file_info & p_out) {
 		bool rv = false;
-		for(t_size walk = 0; walk < m_items.get_size(); ++walk) {
-			if (m_items[walk]->get_dynamic_info(p_out)) rv = true;
+		for (auto& item : m_items) {
+			if (item->get_dynamic_info(p_out)) rv = true;
 		}
 		return rv;
 	}
@@ -73,8 +73,8 @@ public:
 	}
 	double get_buffer_ahead() {
 		double acc = 0;
-		for(t_size walk = 0; walk < m_items.get_size(); ++walk) {
-			pfc::max_acc(acc, m_items[walk]->get_buffer_ahead());
+		for (auto& item : m_items) {
+			pfc::max_acc(acc, item->get_buffer_ahead());
 		}
 		return acc;
 	}

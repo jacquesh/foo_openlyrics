@@ -1,4 +1,4 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
 
 int playable_location::g_compare(const playable_location & p_item1,const playable_location & p_item2) {
 	int ret = metadb::path_compare(p_item1.get_path(),p_item2.get_path());

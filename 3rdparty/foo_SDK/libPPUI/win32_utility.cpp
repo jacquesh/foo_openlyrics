@@ -133,7 +133,9 @@ static LRESULT CALLBACK EraseHandlerProc(
 	DWORD_PTR dwRefData
 ) {
 	if (uMsg == WM_ERASEBKGND) {
-		return RelayEraseBkgnd(hWnd, GetParent(hWnd), (HDC)wParam);
+		HWND wndTarget = reinterpret_cast<HWND>(dwRefData);
+		PFC_ASSERT(wndTarget != NULL);
+		return RelayEraseBkgnd(hWnd, wndTarget, (HDC)wParam);
 	}
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
@@ -161,8 +163,12 @@ static LRESULT CALLBACK CtlColorProc(
 }
 
 
+void InjectEraseHandler(HWND wnd, HWND sendTo) {
+	PFC_ASSERT(sendTo != NULL);
+	WIN32_OP_D(SetWindowSubclass(wnd, EraseHandlerProc, 0, reinterpret_cast<DWORD_PTR>(sendTo)));
+}
 void InjectParentEraseHandler(HWND wnd) {
-	WIN32_OP_D(SetWindowSubclass(wnd, EraseHandlerProc, 0, 0));
+	InjectEraseHandler(wnd, GetParent(wnd));
 }
 void InjectParentCtlColorHandler(HWND wnd) {
 	WIN32_OP_D(SetWindowSubclass(wnd, CtlColorProc, 0, 0));
@@ -245,6 +251,8 @@ static void GetOSVersionStringAppend(pfc::string_base & out) {
 		out << " IA64"; break;
 	case PROCESSOR_ARCHITECTURE_INTEL:
 		out << " x86"; break;
+	case PROCESSOR_ARCHITECTURE_ARM64:
+		out << " ARM64"; break;
 	}
 }
 
@@ -291,4 +299,52 @@ static DWORD Win10BuildNumber_() {
 DWORD Win10BuildNumber() {
 	static DWORD b = Win10BuildNumber_();
 	return b;
+}
+
+#include "hookWindowMessages.h"
+#include <algorithm>
+
+namespace {
+
+	class CWindowHook_Map : public CWindowImpl<CWindowHook_Map, CWindow> {
+	public:
+		CMessageMap* m_target = nullptr;
+		DWORD m_targetID = 0;
+
+		std::vector< DWORD > m_messages;
+
+		void setup(std::initializer_list<DWORD>&& arg) {
+			m_messages = std::move(arg);
+			std::sort(m_messages.begin(), m_messages.end());
+		}
+
+		bool isMsgWanted(DWORD msg) const {
+			return std::binary_search(m_messages.begin(), m_messages.end(), msg);
+		}
+		BEGIN_MSG_MAP(CWindowHook)
+			if (isMsgWanted(uMsg)) {
+				CHAIN_MSG_MAP_ALT_MEMBER((*m_target), m_targetID);
+			}
+		END_MSG_MAP()
+	};
+
+	class CWindowHook_Proc : public CWindowImpl<CWindowHook_Proc, CWindow> {
+	public:
+		CWindowHook_Proc(PP::messageHook_t proc) : m_proc(proc) {}
+		const PP::messageHook_t m_proc;
+
+		BEGIN_MSG_MAP(CWindowHook)
+			if (m_proc(hWnd, uMsg, wParam, lParam, lResult)) return TRUE;
+		END_MSG_MAP()
+	};
+
+}
+
+void PP::hookWindowMessages(HWND wnd, CMessageMap* target, DWORD targetID, std::initializer_list<DWORD>&& msgs) {
+	auto obj = PP::subclassThisWindow< CWindowHook_Map >(wnd);
+	obj->m_target = target; obj->m_targetID = targetID;
+	obj->setup(std::move(msgs));
+}
+void PP::hookWindowMessages(HWND wnd, messageHook_t h) {
+	PP::subclassThisWindow< CWindowHook_Proc >(wnd, h);
 }

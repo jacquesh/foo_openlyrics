@@ -5,6 +5,7 @@
 #include <pfc/string-conv-lite.h>
 #include "ImplementOnFinalMessage.h"
 #include "CListControl-Cells.h"
+#include "windowLifetime.h"
 
 #define I_IMAGEREALLYNONE (-3)
 
@@ -138,6 +139,7 @@ namespace {
 				}
 			}
 
+			PFC_ASSERT(this->GetHeaderCtrl().GetItemCount() == (int)this->GetColumnCount());
 
 			if (idx != this->GetColumnCount()) {
 				PFC_ASSERT(!"Arbitrary column insert not implemented, please add columns in order");
@@ -151,6 +153,8 @@ namespace {
 				format = col->fmt & LVCFMT_JUSTIFYMASK;
 			}
 			this->AddColumn(label, width, format);
+
+			PFC_ASSERT(this->GetHeaderCtrl().GetItemCount() == (int)this->GetColumnCount());
 
 			return idx;
 		}
@@ -638,6 +642,64 @@ namespace {
 			}
 		}
 
+		bool m_notifyItemDraw = false;
+
+		UINT GetItemCDState(size_t which) const {
+			UINT ret = 0;
+			DWORD state = GetItemState(which);
+			if (state & LVIS_FOCUSED) ret |= CDIS_FOCUS;
+			if (state & LVIS_SELECTED) ret |= CDIS_SELECTED;
+			return ret;
+		}
+
+		void RenderRect(const CRect& p_rect, CDCHandle p_dc) override {
+			NMCUSTOMDRAW cd = { setupHdr(NM_CUSTOMDRAW) };
+			cd.dwDrawStage = CDDS_PREPAINT;
+			cd.hdc = p_dc;
+			cd.rc = p_rect;
+			cd.dwItemSpec = UINT32_MAX;
+			cd.uItemState = 0;
+			cd.lItemlParam = 0;
+			LRESULT status = sendNotify(&cd);
+			m_notifyItemDraw = (status & CDRF_NOTIFYITEMDRAW) != 0;
+
+			if ((status & CDRF_SKIPDEFAULT) != 0) {
+				return;
+			}
+			__super::RenderRect(p_rect, p_dc);
+
+			cd.dwDrawStage = CDDS_POSTPAINT;
+			sendNotify(&cd);
+		}
+		void RenderItem(t_size item, const CRect& itemRect, const CRect& updateRect, CDCHandle dc) override {
+			NMCUSTOMDRAW cd = {};
+			if (m_notifyItemDraw) {
+				cd = { setupHdr(NM_CUSTOMDRAW) };
+				cd.dwDrawStage = CDDS_ITEMPREPAINT;
+				cd.hdc = dc;
+				cd.rc = itemRect;
+				cd.dwItemSpec = (DWORD)item;
+				cd.uItemState = GetItemCDState(item);
+				cd.lItemlParam = GetItemParam(item);
+				LRESULT status = sendNotify(&cd);
+				if (status & CDRF_SKIPDEFAULT) return;
+			}
+			
+			__super::RenderItem(item, itemRect, updateRect, dc);
+
+
+			if (m_notifyItemDraw) {
+				cd.dwDrawStage = CDDS_ITEMPOSTPAINT;
+				sendNotify(&cd);
+			}
+		}
+#if 0
+		void RenderSubItemText(t_size item, t_size subItem, const CRect& subItemRect, const CRect& updateRect, CDCHandle dc, bool allowColors) override {
+
+			__super::RenderSubItemText(item, subItem, subItemRect, updateRect, dc, allowColors);
+		}
+#endif
+
 	};
 
 	class CListControl_ListViewOwnerData : public CListControl_ListViewBase {
@@ -1080,15 +1142,28 @@ HWND CListControl_ReplaceListView(HWND wndReplace) {
 	if (style & LVS_REPORT) {
 		const auto ctrlID = src.GetDlgCtrlID();
 		CWindow parent = src.GetParent();
+		DWORD headerStyle = 0;
+		if ((style & LVS_NOCOLUMNHEADER) == 0) {
+			auto header = src.GetHeader(); 
+			if (header) { 
+				headerStyle = header.GetStyle(); 
+			}
+		}
 		if (style & LVS_OWNERDATA) {
-			auto obj = new ImplementOnFinalMessage< CListControl_ListViewOwnerData>(style);
+			auto obj = PP::newWindowObj<CListControl_ListViewOwnerData>(style);
 			ret = obj->CreateInDialog(parent, ctrlID, src);
 			PFC_ASSERT(ret != NULL);
+			if (headerStyle != 0 && obj->GetHeaderCtrl() == NULL) {
+				obj->InitializeHeaderCtrl((headerStyle&(HDS_FULLDRAG | HDS_BUTTONS)));
+			}
 		} else {
 			PFC_ASSERT(src.GetItemCount() == 0); // transferring of items not yet implemented
-			auto obj = new ImplementOnFinalMessage<CListControl_ListView>(style);
+			auto obj = PP::newWindowObj<CListControl_ListView>(style);
 			ret = obj->CreateInDialog(parent, ctrlID, src);
 			PFC_ASSERT(ret != NULL);
+			if (headerStyle != 0 && obj->GetHeaderCtrl() == NULL) {
+				obj->InitializeHeaderCtrl((headerStyle & (HDS_FULLDRAG | HDS_BUTTONS)));
+			}
 		}
 	}
 	return ret;
@@ -1412,7 +1487,7 @@ HWND CListControl_ReplaceListBox(HWND wndReplace) {
 		PFC_ASSERT(src.GetCount() == 0); // transferring of items not yet implemented
 		const auto ctrlID = src.GetDlgCtrlID();
 		CWindow parent = src.GetParent();
-		auto obj = new ImplementOnFinalMessage<CListControl_ListBox>(style);
+		auto obj = PP::newWindowObj<CListControl_ListBox>(style);
 		ret = obj->CreateInDialog(parent, ctrlID, src);
 	}
 	return ret;

@@ -1,8 +1,17 @@
 #include "stdafx.h"
 #include "resource.h"
 #include <helpers/atl-misc.h>
+#include <helpers/advconfig_impl.h>
+#include <SDK/cfg_var.h>
+#include <helpers/DarkMode.h>
 
 // Sample preferences interface: two meaningless configuration settings accessible through a preferences page and one accessible through advanced preferences.
+
+// Dark Mode:
+// (1) Add fb2k::CDarkModeHooks member.
+// (2) Initialize it in our WM_INITDIALOG handler.
+// (3) Tell foobar2000 that this prefernces page supports dark mode, by returning correct get_state() flags.
+// That's all.
 
 
 // These GUIDs identify the variables within our component's configuration file.
@@ -55,11 +64,19 @@ private:
 	void OnChanged();
 
 	const preferences_page_callback::ptr m_callback;
+
+	// Dark mode hooks object, must be a member of dialog class.
+	fb2k::CDarkModeHooks m_dark;
 };
 
 BOOL CMyPreferences::OnInitDialog(CWindow, LPARAM) {
-	SetDlgItemInt(IDC_BOGO1, cfg_bogoSetting1, FALSE);
-	SetDlgItemInt(IDC_BOGO2, cfg_bogoSetting2, FALSE);
+	
+	// Enable dark mode
+	// One call does it all, applies all relevant hacks automatically
+	m_dark.AddDialogWithControls(*this);
+
+	SetDlgItemInt(IDC_BOGO1, (UINT) cfg_bogoSetting1, FALSE);
+	SetDlgItemInt(IDC_BOGO2, (UINT) cfg_bogoSetting2, FALSE);
 	return FALSE;
 }
 
@@ -69,7 +86,8 @@ void CMyPreferences::OnEditChange(UINT, int, CWindow) {
 }
 
 t_uint32 CMyPreferences::get_state() {
-	t_uint32 state = preferences_state::resettable;
+	// IMPORTANT: Always return dark_mode_supported - tell foobar2000 that this preferences page is dark mode compliant.
+	t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
 	if (HasChanged()) state |= preferences_state::changed;
 	return state;
 }

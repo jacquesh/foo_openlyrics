@@ -1,11 +1,7 @@
 #pragma once
 
 #include <functional>
-
-#ifdef FOOBAR2000_MODERN
-#include "metadb_compat.h"
 #include <SDK/titleformat.h>
-#endif
 
 namespace create_directory_helper {
 	typedef std::function<const char* (char)> charReplace_t;

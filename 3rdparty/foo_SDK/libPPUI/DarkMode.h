@@ -59,7 +59,7 @@ namespace DarkMode {
 		void AddPopup(HWND);
 		void AddStatusBar(HWND);
 		void AddScrollBar(HWND);
-		void AddToolBar(HWND);
+		void AddToolBar(HWND, bool bExplorerTheme = true);
 		void AddReBar(HWND);
 		void AddStatic(HWND);
 		void AddUpDown(HWND);
@@ -100,8 +100,5 @@ namespace DarkMode {
 
 		void flushMoveToBack();
 		std::list<HWND> m_lstMoveToBack;
-	};
-	void SubclassDialog(HWND);
-	void SubclassTabCtrl(HWND);
-	void SubclassComboBox(HWND);
+	}; 
 }

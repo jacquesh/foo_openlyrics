@@ -190,7 +190,7 @@ void CWavWriter::open(service_ptr_t<file> p_file, const wavWriterSetup_t & p_set
 
 	writeID(guid_DATA, p_abort);
 	m_offset_fix2 = m_file->get_position(p_abort);
-	writeSize(~0, p_abort);
+	writeSize(UINT64_MAX, p_abort);
 	m_offset_fix1_delta = m_file->get_position(p_abort) - chunkOverhead();
 
 

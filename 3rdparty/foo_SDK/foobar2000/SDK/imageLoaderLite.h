@@ -1,5 +1,7 @@
 #pragma once
 
+#include "commonObjects.h"
+
 #ifdef _WIN32
 namespace Gdiplus {
 	class Image;
@@ -15,8 +17,8 @@ namespace fb2k {
 	struct imageInfo_t {
 		uint32_t width, height, bitDepth;
 		bool haveAlpha;
-		const char * formatName;
-		const char * mime;
+		const char * formatName; // MAY BE NULL IF UNKNOWN
+		const char * mime; // MAY BE NULL IF UNKNOWN
 	};
 
 	//! \since 1.6

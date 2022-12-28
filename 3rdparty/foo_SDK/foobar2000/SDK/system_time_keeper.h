@@ -1,9 +1,11 @@
+#pragma once
+
 namespace system_time_periods {
-	static const t_filetimestamp second = filetimestamp_1second_increment;
-	static const t_filetimestamp minute = second * 60;
-	static const t_filetimestamp hour = minute * 60;
-	static const t_filetimestamp day = hour * 24;
-	static const t_filetimestamp week = day * 7;
+	static constexpr t_filetimestamp second = filetimestamp_1second_increment;
+	static constexpr t_filetimestamp minute = second * 60;
+	static constexpr t_filetimestamp hour = minute * 60;
+	static constexpr t_filetimestamp day = hour * 24;
+	static constexpr t_filetimestamp week = day * 7;
 };
 class system_time_callback {
 public:

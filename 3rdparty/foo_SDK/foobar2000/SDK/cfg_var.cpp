@@ -1,60 +1,166 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "cfg_var.h"
+#include "configStore.h"
 
-cfg_var_reader * cfg_var_reader::g_list = NULL;
-cfg_var_writer * cfg_var_writer::g_list = NULL;
+namespace cfg_var_modern {
 
-void cfg_var_reader::config_read_file(stream_reader * p_stream,abort_callback & p_abort)
-{
-	pfc::map_t<GUID,cfg_var_reader*> vars;
-	for(cfg_var_reader * walk = g_list; walk != NULL; walk = walk->m_next) {
-		vars.set(walk->m_guid,walk);
+#ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
+	void cfg_string::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) {
+		pfc::string8_fastalloc temp;
+		p_stream->read_string_raw(temp, p_abort);
+		this->set(temp);
 	}
-	for(;;) {
-		
-		GUID guid;
-		t_uint32 size;
 
-		if (p_stream->read(&guid,sizeof(guid),p_abort) != sizeof(guid)) break;
-		guid = pfc::byteswap_if_be_t(guid);
-		p_stream->read_lendian_t(size,p_abort);
-
-		cfg_var_reader * var;
-		if (vars.query(guid,var)) {
-			stream_reader_limited_ref wrapper(p_stream,size);
-			try {
-				var->set_data_raw(&wrapper,size,p_abort);
-			} catch(exception_io_data) {}
-			wrapper.flush_remaining(p_abort);
-		} else {
-			p_stream->skip_object(size,p_abort);
+	void cfg_int::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) {
+		switch (p_sizehint) {
+		case 4:
+		{ int32_t v; p_stream->read_lendian_t(v, p_abort); set(v); }
+		break;
+		case 8:
+		{ int64_t v; p_stream->read_lendian_t(v, p_abort); set(v); }
+		break;
 		}
 	}
-}
 
-void cfg_var_writer::config_write_file(stream_writer * p_stream,abort_callback & p_abort) {
-	cfg_var_writer * ptr;
-	pfc::array_t<t_uint8,pfc::alloc_fast_aggressive> temp;
-	for(ptr = g_list; ptr; ptr = ptr->m_next) {
-		temp.set_size(0);
-        {
-            stream_writer_buffer_append_ref_t<pfc::array_t<t_uint8,pfc::alloc_fast_aggressive> > stream(temp);
-            ptr->get_data_raw(&stream,p_abort);
-        }
-		p_stream->write_lendian_t(ptr->m_guid,p_abort);
-		p_stream->write_lendian_t(pfc::downcast_guarded<t_uint32>(temp.get_size()),p_abort);
-		if (temp.get_size() > 0) {
-			p_stream->write_object(temp.get_ptr(),temp.get_size(),p_abort);
+	void cfg_bool::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) {
+		uint8_t b;
+		if (p_stream->read(&b, 1, p_abort) == 1) {
+			this->set(b != 0);
 		}
 	}
-}
+#endif
+
+	int64_t cfg_int::get() {
+		std::call_once(m_init, [this] {
+			m_val = fb2k::configStore::get()->getConfigInt(formatName(), m_initVal);
+			});
+		return m_val;
+	}
+
+	void cfg_int::set(int64_t v) {
+		if (v != get()) {
+			m_val = v;
+			fb2k::configStore::get()->setConfigInt(formatName(), v);
+		}
+	}
+
+	bool cfg_bool::get() {
+		std::call_once(m_init, [this] {
+			m_val = fb2k::configStore::get()->getConfigBool(formatName(), m_initVal);
+			});
+		return m_val;
+	}
+
+	void cfg_bool::set(bool v) {
+		if (v != get()) {
+			m_val = v;
+			fb2k::configStore::get()->setConfigBool(formatName(), v);
+		}
+	}
+
+	void cfg_string::set(const char* v) {
+		if (strcmp(v, get()) != 0) {
+			pfc::string8 obj = v;
+
+			{
+				PFC_INSYNC_WRITE(m_valueGuard);
+				m_value = std::move(obj);
+			}
+
+			fb2k::configStore::get()->setConfigString(formatName(), v);
+		}
+	}
+
+	void cfg_string::get(pfc::string_base& out) {
+		std::call_once(m_init, [this] {
+			pfc::string8 v = fb2k::configStore::get()->getConfigString(formatName(), m_initVal)->c_str();
+			PFC_INSYNC_WRITE(m_valueGuard);
+			m_value = std::move(v);
+			});
+
+		PFC_INSYNC_READ(m_valueGuard);
+		out = m_value;
+	}
+
+	pfc::string8 cfg_string::get() {
+		pfc::string8 ret; get(ret); return ret;
+	}
 
 
-void cfg_string::get_data_raw(stream_writer * p_stream,abort_callback & p_abort) {
-	p_stream->write_object(get_ptr(),length(),p_abort);
-}
+	pfc::string8 cfg_var_common::formatVarName(const GUID& guid) {
+		return pfc::format("cfg_var.", pfc::print_guid(guid));
+	}
 
-void cfg_string::set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {
-	pfc::string8_fastalloc temp;
-	p_stream->read_string_raw(temp,p_abort);
-	set_string(temp);
+	pfc::string8 cfg_var_common::formatName() const {
+		return formatVarName(this->m_guid);
+	}
+
+	fb2k::memBlockRef cfg_blob::get() {
+		std::call_once(m_init, [this] {
+			auto v = fb2k::configStore::get()->getConfigBlob(formatName(), m_initVal);
+			PFC_INSYNC_WRITE(m_dataGuard);
+			m_data = std::move(v);
+			});
+		PFC_INSYNC_READ(m_dataGuard);
+		return m_data;
+	}
+
+	void cfg_blob::set_(fb2k::memBlockRef arg) {
+		{
+			PFC_INSYNC_WRITE(m_dataGuard);
+			m_data = arg;
+		}
+
+		auto api = fb2k::configStore::get();
+		auto name = formatName();
+		if (arg.is_valid()) api->setConfigBlob(name, arg);
+		else api->deleteConfigBlob(name);
+	}
+
+	void cfg_blob::set(fb2k::memBlockRef arg) {
+		auto old = get();
+		if (!fb2k::memBlock::equals(old, arg)) {
+			set_(arg);
+		}
+	}
+
+	void cfg_blob::set(const void* ptr, size_t size) {
+		set(fb2k::makeMemBlock(ptr, size));
+	}
+
+#ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
+	void cfg_blob::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) {
+		pfc::mem_block block;
+		block.resize(p_sizehint);
+		p_stream->read_object(block.ptr(), p_sizehint, p_abort);
+		set(fb2k::memBlock::blockWithData(std::move(block)));
+	}
+#endif
+
+	double cfg_float::get() {
+		std::call_once(m_init, [this] {
+			m_val = fb2k::configStore::get()->getConfigFloat(formatName(), m_initVal);
+			});
+		return m_val;
+	}
+
+	void cfg_float::set(double v) {
+		if (v != get()) {
+			m_val = v;
+			fb2k::configStore::get()->setConfigFloat(formatName(), v);
+		}
+	}
+
+#ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
+	void cfg_float::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) {
+		switch (p_sizehint) {
+		case 4:
+		{ float v; if (p_stream->read(&v, 4, p_abort) == 4) set(v); }
+		break;
+		case 8:
+		{ double v; if (p_stream->read(&v, 8, p_abort) == 8) set(v); }
+		break;
+		}
+	}
+#endif
 }

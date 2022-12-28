@@ -1,4 +1,8 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "image.h"
+#include "album_art.h"
+#include "album_art_helpers.h"
+#include "input.h"
 
 GUID album_art_extractor::get_guid() {
 	album_art_extractor_v2::ptr v2;
@@ -14,6 +18,11 @@ GUID album_art_editor::get_guid() {
 
 bool album_art_extractor_instance::query(const GUID & what, album_art_data::ptr & out, abort_callback & abort) {
 	try { out = query(what, abort); return true; } catch (exception_album_art_not_found) { return false; }
+}
+
+service_ptr_t<fb2k::image> album_art_extractor_instance::query_image_(const GUID & what, abort_callback& a) {
+    auto data = this->query(what, a);
+    return fb2k::imageCreator::get()->loadImageData( data);
 }
 
 bool album_art_extractor_instance::have_entry(const GUID & what, abort_callback & abort) {
@@ -35,10 +44,9 @@ void album_art_editor_instance::remove_all_() {
 }
 
 bool album_art_editor::g_get_interface(service_ptr_t<album_art_editor> & out,const char * path) {
-	service_enum_t<album_art_editor> e; ptr ptr;
 	auto ext = pfc::string_extension(path);
-	while(e.next(ptr)) {
-		if (ptr->is_our_path(path,ext)) { out = ptr; return true; }
+	for (auto ptr : enumerate()) {
+		if (ptr->is_our_path(path, ext)) { out = ptr; return true; }
 	}
 	return false;
 }
@@ -67,10 +75,10 @@ album_art_editor_instance_ptr album_art_editor::g_open(file_ptr p_filehint,const
 
 
 bool album_art_extractor::g_get_interface(service_ptr_t<album_art_extractor> & out,const char * path) {
-	service_enum_t<album_art_extractor> e; ptr ptr;
+	
 	auto ext = pfc::string_extension(path);
-	while(e.next(ptr)) {
-		if (ptr->is_our_path(path,ext)) { out = ptr; return true; }
+	for (auto ptr : enumerate()) {
+		if (ptr->is_our_path(path, ext)) { out = ptr; return true; }
 	}
 	return false;
 }
@@ -188,7 +196,7 @@ bool album_art_path_list::equals(album_art_path_list const& v1, album_art_path_l
 	const size_t n = v1.get_count();
 	if (n != v2.get_count()) return false;
 	for (size_t w = 0; w < n; ++w) {
-		if (metadb::path_compare(v1.get_path(w), v2.get_path(w)) != 0) return false;
+		if (playable_location::path_compare(v1.get_path(w), v2.get_path(w)) != 0) return false;
 	}
 	return true;
 }

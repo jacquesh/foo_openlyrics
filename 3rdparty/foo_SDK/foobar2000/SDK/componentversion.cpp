@@ -1,4 +1,9 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+
+#ifdef _WIN32
+#include "componentversion.h"
+#include "filesystem.h"
+#include "console.h"
 
 bool component_installation_validator::test_my_name(const char * fn) {
 	const char * path = core_api::get_my_full_path();
@@ -31,6 +36,10 @@ bool component_installation_validator::have_other_file(const char * fn) {
 			uBugCheck();
 		}
 		if (++retry == 10) uBugCheck();
+        
 		Sleep(100);
 	}
 }
+
+#endif // _WIN32
+

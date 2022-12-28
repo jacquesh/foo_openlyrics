@@ -1,4 +1,6 @@
 #pragma once
+#include "audio_chunk.h"
+
 //! Structure containing ReplayGain scan results from some playable object, also providing various helper methods to manipulate those results.
 struct replaygain_info
 {
@@ -213,21 +215,31 @@ public:
 	inline t_int64 info_get_bitrate_vbr() const {return info_get_int("bitrate_dynamic");}
 	inline void info_set_bitrate_vbr(t_int64 val) {info_set_int("bitrate_dynamic",val);}
 	inline t_int64 info_get_bitrate() const {return info_get_int("bitrate");}
-	inline void info_set_bitrate(t_int64 val) {info_set_int("bitrate",val);}
+	inline void info_set_bitrate(t_int64 val) { PFC_ASSERT(val > 0); info_set_int("bitrate", val); }
 
+	
+	//! Set number of channels
 	void info_set_channels(uint32_t);
+	//! Set number of channels and channel mask. Channel mask info will only be set if it's not plain mono or stereo.
 	void info_set_channels_ex(uint32_t channels, uint32_t mask);
 
+	//! Tidy channel mask info. If channel mask is invalid or plain mono/stereo, it will be dropped.
+	void info_tidy_channels();
+
+	//! Set just channel mask info. Typically coupled with info_set_channels(). See also: info_set_channels_ex().
 	void info_set_wfx_chanMask(uint32_t val);
+	//! Returns channel mask value. 0 if not set, use default for the channel count then.
 	uint32_t info_get_wfx_chanMask() const;
 
 	bool is_encoding_lossy() const;
 	bool is_encoding_overkill() const;
 	bool is_encoding_float() const;
 
-	void info_calculate_bitrate(t_filesize p_filesize,double p_length);
+	//! Sets bitrate value using file size in bytes and duration.
+	void info_calculate_bitrate(uint64_t p_filesize,double p_length);
 
-	unsigned info_get_decoded_bps() const;//what bps the stream originally was (before converting to audio_sample), 0 if unknown
+	//! Returns decoder-output bit depth - what sample format is being converted to foobar2000 audio_sample. 0 if unknown.
+	unsigned info_get_decoded_bps() const;
 
 private:
 	void merge(const pfc::list_base_const_t<const file_info*> & p_sources);
@@ -278,8 +290,12 @@ public:
 	//! Returns ESTIMATED audio chunk spec from what has been put in the file_info. \n
 	//! Provided for convenience. Do not rely on it for processing decoded data.
 	audio_chunk::spec_t audio_chunk_spec() const; 
-	
+
 	void set_audio_chunk_spec(audio_chunk::spec_t);
+
+	//! Normalize values to Unicode form C
+	//! @returns true if changed, false otherwise
+	bool unicode_normalize_C();
 protected:
 	file_info() {}
 	~file_info() {}

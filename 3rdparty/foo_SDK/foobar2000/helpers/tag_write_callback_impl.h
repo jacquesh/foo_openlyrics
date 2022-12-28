@@ -9,6 +9,8 @@
 #include <pfc/string_conv.h>
 #endif
 
+#include <SDK/tag_processor.h>
+#include <SDK/input_impl.h>
 
 class tag_write_callback_impl : public tag_write_callback {
 public:

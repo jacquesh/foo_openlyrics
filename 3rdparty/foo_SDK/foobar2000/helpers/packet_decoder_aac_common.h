@@ -21,7 +21,7 @@ public:
 	}
     
     static void make_ESDS( pfc::array_t<uint8_t> & outESDS, const void * inCodecPrivate, size_t inCodecPrivateSize );
-
+	static const char * objectTypeStr( unsigned ot );
 	struct audioSpecificConfig_t {
 		unsigned m_objectType;
 		unsigned m_sampleRate;
@@ -29,6 +29,9 @@ public:
 		unsigned m_sbrRate;
 		bool m_shortWindow;
 		bool m_explicitSBR, m_explicitPS;
+        
+        bool isUSAC() const { return m_objectType == 42 || m_objectType == 45; }
+        const char * objectTypeStr() const;
 	};
 
 	static audioSpecificConfig_t parseASC(const void *, size_t);

@@ -1,6 +1,7 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
 
 #ifdef _MSC_VER
+#include <pfc/fpu.h>
 #define RG_FPU() fpu_control_roundnearest bah;
 #else
 #define RG_FPU()
@@ -17,7 +18,11 @@ bool replaygain_info::g_format_gain(float p_value,char p_buffer[text_buffer_size
 	else
 	{
 		pfc::float_to_string(p_buffer,text_buffer_size - 4,p_value,2,true);
-		strcat(p_buffer," dB");
+#ifdef _MSC_VER
+		strcat_s(p_buffer, text_buffer_size, " dB");
+#else
+		strcat(p_buffer, " dB");
+#endif
 		return true;
 	}
 }

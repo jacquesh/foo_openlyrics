@@ -1,4 +1,4 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
 #include "output.h"
 #include "audio_chunk_impl.h"
 #include "dsp.h"
@@ -13,14 +13,14 @@ pfc::string8 output_entry::get_device_name( const GUID & deviceID ) {
 namespace {
 	class output_device_enum_callback_getname : public output_device_enum_callback {
 	public:
-		output_device_enum_callback_getname( const GUID & wantID, pfc::string_base & strOut ) : m_wantID(wantID), m_got(), m_strOut(strOut) {}
+		output_device_enum_callback_getname( const GUID & wantID, pfc::string_base & strOut ) : m_strOut(strOut), m_wantID(wantID) {}
 		void on_device(const GUID & p_guid,const char * p_name,unsigned p_name_length) {
 			if (!m_got && p_guid == m_wantID) {
 				m_strOut.set_string(p_name, p_name_length);
 				m_got = true;
 			}
 		}
-		bool m_got;
+		bool m_got = false;
 		pfc::string_base & m_strOut;
 		const GUID m_wantID;
 	};
@@ -34,8 +34,7 @@ bool output_entry::get_device_name( const GUID & deviceID, pfc::string_base & ou
 }
 
 bool output_entry::g_find( const GUID & outputID, output_entry::ptr & outObj ) {
-	service_enum_t<output_entry> e; output_entry::ptr obj;
-	while(e.next(obj)) {
+	for (auto obj : enumerate()) {
 		if (obj->get_guid() == outputID) {
 			outObj = obj; return true;
 		}
@@ -96,13 +95,13 @@ size_t output_impl::update_v2() {
 	}
     size_t retCanWriteSamples = 0;
 	if (m_incoming_spec == m_active_spec && m_incoming_ptr < m_incoming.get_size()) {
-		t_size cw = can_write_samples() * m_incoming_spec.m_channels;
+		t_size cw = can_write_samples() * m_incoming_spec.chanCount;
 		t_size delta = pfc::min_t(m_incoming.get_size() - m_incoming_ptr,cw);
 		if (delta > 0) {
-			write(audio_chunk_temp_impl(m_incoming.get_ptr()+m_incoming_ptr,delta / m_incoming_spec.m_channels,m_incoming_spec.m_sample_rate,m_incoming_spec.m_channels,m_incoming_spec.m_channel_config));
+			write(audio_chunk_temp_impl(m_incoming.get_ptr()+m_incoming_ptr,delta / m_incoming_spec.chanCount,m_incoming_spec.sampleRate,m_incoming_spec.chanCount,m_incoming_spec.chanMask));
 			m_incoming_ptr += delta;
 		}
-        retCanWriteSamples = (cw - delta) / m_incoming_spec.m_channels;
+        retCanWriteSamples = (cw - delta) / m_incoming_spec.chanCount;
     } else if ( m_incoming_ptr == m_incoming.get_size() ) {
         retCanWriteSamples = SIZE_MAX;
     }
@@ -112,17 +111,16 @@ size_t output_impl::update_v2() {
 double output_impl::get_latency() {
 	double ret = 0;
 	if (m_incoming_spec.is_valid()) {
-		ret += audio_math::samples_to_time( (m_incoming.get_size() - m_incoming_ptr) / m_incoming_spec.m_channels, m_incoming_spec.m_sample_rate );
+		ret += audio_math::samples_to_time( (m_incoming.get_size() - m_incoming_ptr) / m_incoming_spec.chanCount, m_incoming_spec.sampleRate );
 	}
 	if (m_active_spec.is_valid()) {
-		ret += audio_math::samples_to_time( get_latency_samples() , m_active_spec.m_sample_rate );
+		ret += audio_math::samples_to_time( get_latency_samples() , m_active_spec.sampleRate );
 	}
 	return ret;
 }
 void output_impl::process_samples(const audio_chunk & p_chunk) {
 	pfc::dynamic_assert(m_incoming_ptr == m_incoming.get_size());
-	t_samplespec spec;
-	spec.fromchunk(p_chunk);
+	auto spec = p_chunk.get_spec();
 	if (!spec.is_valid()) pfc::throw_exception_with_message< exception_io_data >("Invalid audio stream specifications");
 	m_incoming_spec = spec;
 	t_size length = p_chunk.get_used_size();
@@ -228,4 +226,12 @@ void output_manager_v2::addCallbackPermanent( std::function<void()> f ) {
 	output_config_change_callback_impl * obj = new output_config_change_callback_impl();
 	obj->f = f;
 	addCallback( obj );
+}
+
+void output_manager::getCoreConfig(outputCoreConfig_t& out) { 
+	getCoreConfig(&out, sizeof(out)); 
+}
+
+outputCoreConfig_t output_manager::getCoreConfig() { 
+	outputCoreConfig_t ret; getCoreConfig(ret); return ret; 
 }

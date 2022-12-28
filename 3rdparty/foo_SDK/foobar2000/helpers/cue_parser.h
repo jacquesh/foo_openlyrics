@@ -1,6 +1,8 @@
 #pragma once
 
 #include "cue_creator.h"
+#include <SDK/chapterizer.h>
+#include <SDK/input_impl.h>
 
 //HINT: for info on how to generate an embedded cuesheet enabled input, see the end of this header.
 
@@ -146,7 +148,8 @@ namespace cue_parser
 			}
 		}
 
-		t_filestats get_file_stats(abort_callback & p_abort) {return m_impl.get_file_stats(p_abort);}
+		t_filestats get_file_stats(abort_callback& p_abort) { return get_stats2(stats2_legacy, p_abort).to_legacy(); }
+		t_filestats2 get_stats2(uint32_t f, abort_callback& a) { return m_impl.get_stats2(f, a); }
 
 		void decode_initialize(t_uint32 p_subsong,unsigned p_flags,abort_callback & p_abort) {
 			if (p_subsong == 0) {

@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "replaygain.h"
 
 //! Container of ReplayGain scan results from one or more tracks.
 class replaygain_result : public service_base {

@@ -21,17 +21,23 @@ public:
 
 	//! Returns ptr to the end of the string if positive (for continuing search), nullptr if negative.
 	const char * strStrEnd(const char * pString, const char * pSubString, size_t * outFoundAt = nullptr) const;
+	const char16_t * strStrEnd16(const char16_t * pString, const char16_t * pSubString, size_t * outFoundAt = nullptr) const;
+
+	bool testSubstring( const char * str, const char * sub ) const;
+	bool testSubstring16( const char16_t * str, const char16_t * sub ) const;
 #ifdef _WIN32
 	const wchar_t * strStrEndW(const wchar_t * pString, const wchar_t * pSubString, size_t * outFoundAt = nullptr) const;
 #endif
 	//! Returns ptr to the end of the string if positive (for continuing search), nullptr if negative.
 	const char * matchHere(const char * pString, const char * pUserString) const;
+	const char16_t * matchHere16(const char16_t * pString, const char16_t * pUserString) const;
 #ifdef _WIN32
 	const wchar_t * matchHereW( const wchar_t * pString, const wchar_t * pUserString) const;
 #endif
 
 	//! String-equals tool, compares strings rather than searching for occurance
 	bool equals( const char * pString, const char * pUserString) const;
+	bool equals16( const char16_t * pString, const char16_t * pUserString) const;
 
 	//! One-char match. Doesn't use twoCharMappings, use only if you have to operate on char by char basis rather than call the other methods.
 	bool matchOneChar(uint32_t cInput, uint32_t cData) const;
@@ -41,6 +47,9 @@ public:
 	pfc::string8 transformStr(const char * str) const;
 	void transformStrHere(pfc::string8& out, const char* in) const;
 private:
+	bool testSubString_prefix(const char* str, const char* sub, const char * prefix, size_t prefixLen) const;
+	bool testSubString_prefix(const char* str, const char* sub, uint32_t c) const;
+	bool testSubString_prefix_subst(const char* str, const char* sub, uint32_t c) const;
 
 	static uint32_t Transform(uint32_t c);
 	static uint32_t ToLower(uint32_t c);
@@ -49,9 +58,11 @@ private:
 
 	fixed_map< uint32_t, uint32_t > m_downconvert;
 	fixed_map< uint32_t, std::set<uint32_t> > m_substitutions;
+	fixed_map< uint32_t, std::set<uint32_t> > m_substitutionsReverse;
 	
 	
 	fixed_map<uint32_t, const char* > m_twoCharMappings;
+	fixed_map<uint32_t, uint32_t> m_twoCharMappingsReverse;
 };
 
 

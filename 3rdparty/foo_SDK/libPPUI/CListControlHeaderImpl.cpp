@@ -268,6 +268,8 @@ std::vector<int> CListControlHeaderImpl::GetColumnOrderArray() const {
 	if ( cCount > 0 ) {
 		order.resize(cCount);
 		if (IsHeaderEnabled()) {
+			PFC_ASSERT(m_header.IsWindow());
+			PFC_ASSERT(m_header.GetItemCount() == (int)cCount);
 			WIN32_OP_D(m_header.GetOrderArray((int)cCount, &order[0]));
 		} else {
 			for (size_t c = 0; c < cCount; ++c) order[c] = (int)c;

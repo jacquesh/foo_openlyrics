@@ -1,4 +1,7 @@
 #pragma once
+#include <SDK/ui_element.h>
+
+#ifdef _WIN32
 
 // ====================================================================================================
 // ui_element_helpers
@@ -375,3 +378,5 @@ void ui_element_instance_standard_context_menu(service_ptr_t<ui_element_instance
 void ui_element_instance_standard_context_menu_eh(service_ptr_t<ui_element_instance> p_elem, LPARAM p_pt);
 
 #endif // FOOBAR2000_TARGET_VERSION >= 79
+
+#endif // _WIN32

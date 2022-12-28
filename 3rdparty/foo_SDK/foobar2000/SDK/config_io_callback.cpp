@@ -1,4 +1,6 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "filesystem.h"
+#include "config_io_callback.h"
 
 static filesystem::ptr defaultFS() { 
 	return filesystem::get( core_api::get_profile_path() );

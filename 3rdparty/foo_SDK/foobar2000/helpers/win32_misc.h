@@ -148,7 +148,7 @@ public:
 	void Acquire( abort_callback& aborter );
 	void Release();
 private:
-	CMutex(const CMutex&); void operator=(const CMutex&);
+	CMutex(const CMutex&) = delete; void operator=(const CMutex&) = delete;
 	HANDLE m_hMutex;
 };
 
@@ -159,10 +159,15 @@ public:
 	CMutexScope(CMutex & mutex, abort_callback & aborter);
 	~CMutexScope();
 private:
-	CMutexScope(const CMutexScope &); void operator=(const CMutexScope&);
+	CMutexScope(const CMutexScope &) = delete; void operator=(const CMutexScope&) = delete;
 	CMutex & m_mutex;
 };
 
 bool IsWindowsS();
+
+#else
+
+class OleInitializeScope {};
+class CoInitializeScope {};
 
 #endif // _WIN32

@@ -1,6 +1,7 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #include "file_move_helper.h"
+#include <SDK/file_operation_callback.h>
 
 bool file_move_helper::g_on_deleted(const pfc::list_base_const_t<const char *> & p_files)
 {

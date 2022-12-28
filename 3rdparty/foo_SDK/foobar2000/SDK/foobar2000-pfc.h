@@ -11,4 +11,7 @@ using pfc::bit_array_val;
 using pfc::bit_array_bittable;
 using pfc::bit_array_one;
 using pfc::bit_array_range;
+#ifdef _WIN32
 using pfc::LastErrorRevertScope;
+#endif
+

@@ -120,7 +120,7 @@ GUID GUID_from_text(const char * text) {
 
 static inline char print_hex_digit(unsigned val)
 {
-	static const char table[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+	static constexpr char table[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 	PFC_ASSERT((val & ~0xF) == 0);
 	return table[val];
 }
@@ -183,9 +183,6 @@ void print_hex_raw(const void * buffer,unsigned bytes,char * p_out)
 
 }
 
-
-
-const GUID pfc::guid_null = { 0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 
 namespace pfc {

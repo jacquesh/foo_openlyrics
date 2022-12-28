@@ -1,3 +1,4 @@
+#pragma once
 //! Structure storing ReplayGain configuration: album/track source data modes, gain/peak processing modes and preamp values.
 struct t_replaygain_config
 {
@@ -25,6 +26,8 @@ struct t_replaygain_config
 	audio_sample query_scale(const file_info & info) const;
 	audio_sample query_scale(const metadb_handle_ptr & info) const;
 	audio_sample query_scale(const replaygain_info & info) const;
+	
+	static void print_preamp(double val, pfc::string_base & out);
 
 	void format_name(pfc::string_base & p_out) const;
 	bool is_active() const;
@@ -48,20 +51,21 @@ class NOVTABLE replaygain_manager : public service_base {
 public:
 	//! Retrieves playback ReplayGain settings.
 	virtual void get_core_settings(t_replaygain_config & p_out) = 0;
+	t_replaygain_config get_core_settings();
 
 	//! Creates embedded version of ReplayGain settings dialog. Note that embedded dialog sends WM_COMMAND with id/BN_CLICKED to parent window when user makes changes to settings.
-	virtual HWND configure_embedded(const t_replaygain_config & p_initdata,HWND p_parent,unsigned p_id,bool p_from_modal) = 0;
+	virtual fb2k::hwnd_t configure_embedded(const t_replaygain_config & p_initdata,fb2k::hwnd_t p_parent,unsigned p_id,bool p_from_modal) = 0;
 	//! Retrieves settings from embedded version of ReplayGain settings dialog.
-	virtual void configure_embedded_retrieve(HWND wnd,t_replaygain_config & p_data) = 0;
+	virtual void configure_embedded_retrieve(fb2k::hwnd_t wnd,t_replaygain_config & p_data) = 0;
 	
 	//! Shows popup/modal version of ReplayGain settings dialog. Returns true when user changed the settings, false when user cancelled the operation. Title parameter can be null to use default one.
-	virtual bool configure_popup(t_replaygain_config & p_data,HWND p_parent,const char * p_title) = 0;
+	virtual bool configure_popup(t_replaygain_config & p_data,fb2k::hwnd_t p_parent,const char * p_title) = 0;
 
 	//! Alters playback ReplayGain settings.
 	virtual void set_core_settings(const t_replaygain_config & p_config) = 0;
 
 	//! New in 1.0
-	virtual void configure_embedded_set(HWND wnd, t_replaygain_config const & p_data) = 0;
+	virtual void configure_embedded_set(fb2k::hwnd_t wnd, t_replaygain_config const & p_data) = 0;
 	//! New in 1.0
 	virtual void get_core_defaults(t_replaygain_config & out) = 0;
 

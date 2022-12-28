@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+#include "filesystem.h"
 
 namespace foobar2000_io {
 	class archive;
@@ -12,9 +14,14 @@ namespace foobar2000_io {
 	class NOVTABLE archive : public filesystem {
 		FB2K_MAKE_SERVICE_INTERFACE(archive,filesystem);
 	public:
+		typedef std::function<void(const char* url, const t_filestats& stats, file::ptr reader) > list_func_t;
+
 		//! Lists archive contents. \n
         //! May be called with any path, not only path accepted by is_our_archive.
 		virtual void archive_list(const char * p_path,const service_ptr_t<file> & p_reader,archive_callback & p_callback,bool p_want_readers) = 0;
+		
+		//! Helper implemented on top of the other archive_list, uses lambda instead of callback.
+		void archive_list(const char * path, file::ptr, list_func_t, bool wantReaders, abort_callback&);
 
 		//! Optional method to weed out unsupported formats prior to calling archive_list. \n
         //! Use this to suppress calls to archive_list() to avoid spurious exceptions being thrown. \n
@@ -45,32 +52,38 @@ namespace foobar2000_io {
 	};
 
 	//! Root class for archive implementations. Derive from this instead of from archive directly.
-	class NOVTABLE archive_impl : public archive_v3 {
+	class NOVTABLE archive_impl : public service_multi_inherit<archive_v3, filesystem_v3> {
 	protected:
 		//do not override these
-		bool get_canonical_path(const char * path,pfc::string_base & out);
-		bool is_our_path(const char * path);
-		bool get_display_path(const char * path,pfc::string_base & out);
-		void remove(const char * path,abort_callback & p_abort);
-		void move(const char * src,const char * dst,abort_callback & p_abort);
-		bool is_remote(const char * src);
-		bool relative_path_create(const char * file_path,const char * playlist_path,pfc::string_base & out);
-		bool relative_path_parse(const char * relative_path,const char * playlist_path,pfc::string_base & out);
-		void open(service_ptr_t<file> & p_out,const char * path, t_open_mode mode,abort_callback & p_abort);
-		void create_directory(const char * path,abort_callback &);
-		void list_directory(const char * p_path,directory_callback & p_out,abort_callback & p_abort);
-		void get_stats(const char * p_path,t_filestats & p_stats,bool & p_is_writeable,abort_callback & p_abort);
+		bool get_canonical_path(const char * path,pfc::string_base & out) override;
+		bool is_our_path(const char * path) override;
+		bool get_display_path(const char * path,pfc::string_base & out) override;
+		void remove(const char * path,abort_callback & p_abort) override;
+		void move(const char * src,const char * dst,abort_callback & p_abort) override;
+		void move_overwrite(const char* src, const char* dst, abort_callback& abort) override;
+		bool is_remote(const char * src) override;
+		bool relative_path_create(const char * file_path,const char * playlist_path,pfc::string_base & out) override;
+		bool relative_path_parse(const char * relative_path,const char * playlist_path,pfc::string_base & out) override;
+		void open(service_ptr_t<file> & p_out,const char * path, t_open_mode mode,abort_callback & p_abort) override;
+		void create_directory(const char * path,abort_callback &) override;
+		void make_directory(const char* path, abort_callback& abort, bool* didCreate = nullptr) override;
+		void list_directory(const char* p_path, directory_callback& p_out, abort_callback& p_abort) override;
+		void list_directory_ex(const char* p_path, directory_callback& p_out, unsigned listMode, abort_callback& p_abort) override;
+		void list_directory_v3(const char* path, directory_callback_v3& callback, unsigned listMode, abort_callback& p_abort) override;
+		t_filestats2 get_stats2(const char* p_path, uint32_t s2flags, abort_callback& p_abort) override;
+		virtual void get_stats(const char* p_path, t_filestats& p_stats, bool& p_is_writeable, abort_callback& p_abort) override;
 		void list_extensions(pfc::string_base & out) override { out = get_archive_type(); }
 		bool supports_content_types() override { return false; }
+		char pathSeparator() override { return '/'; }
 	protected:
 		//override these
 		virtual const char * get_archive_type()=0;//eg. "zip", must be lowercase
-		virtual t_filestats get_stats_in_archive(const char * p_archive,const char * p_file,abort_callback & p_abort) = 0;
+		virtual t_filestats2 get_stats2_in_archive(const char * p_archive,const char * p_file,unsigned s2flags,abort_callback & p_abort) = 0;
 		virtual void open_archive(service_ptr_t<file> & p_out,const char * archive,const char * file, abort_callback & p_abort) = 0;//opens for reading
 	public:
 		//override these
-		virtual void archive_list(const char * path,const service_ptr_t<file> & p_reader,archive_callback & p_out,bool p_want_readers)= 0 ;
-		virtual bool is_our_archive( const char * path ) = 0;
+		// virtual void archive_list(const char * path,const service_ptr_t<file> & p_reader,archive_callback & p_out,bool p_want_readers) = 0;
+		// virtual bool is_our_archive( const char * path ) = 0;
 		
 		static bool g_is_unpack_path(const char * path);
 		static bool g_parse_unpack_path(const char * path,pfc::string_base & archive,pfc::string_base & file);

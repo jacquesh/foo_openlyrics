@@ -1,3 +1,5 @@
+#pragma once
+
 #if FOOBAR2000_TARGET_VERSION >= 76
 //! Callback interface receiving item locations from playlist loader. \n
 //! Typically, you call one of standard services such as playlist_incoming_item_filter instead of implementing this interface and calling playlist_loader methods directly.
@@ -122,6 +124,9 @@ public:
 	//! Warning: caller must handle exceptions which will occur in case of I/O failure or playlist parsing failure.
 	//! @returns True if specified path was processed as a playlist file, false otherwise (relevant in some scenarios where output is sorted after loading, playlist file contents should not be sorted).
 	static bool g_process_path_ex(const char * p_path,playlist_loader_callback::ptr p_callback, abort_callback & p_abort,playlist_loader_callback::t_entry_type p_type = playlist_loader_callback::entry_user_requested);
+
+
+	static void g_path_to_handles_simple(const char* p_path, pfc::list_base_t<metadb_handle_ptr>& p_out, abort_callback& p_abort);
 
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(playlist_loader);
 };

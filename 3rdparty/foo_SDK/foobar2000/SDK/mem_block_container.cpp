@@ -1,4 +1,5 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "mem_block_container.h"
 
 void mem_block_container::from_stream(stream_reader * p_stream,t_size p_bytes,abort_callback & p_abort) {
 	if (p_bytes == 0) {set_size(0);}

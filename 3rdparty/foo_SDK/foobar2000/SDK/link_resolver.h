@@ -1,5 +1,4 @@
-#ifndef _foobar2000_sdk_link_resolver_h_
-#define _foobar2000_sdk_link_resolver_h_
+#pragma once
 
 //! Interface for resolving different sorts of link files.
 //! Utilized by mechanisms that convert filesystem path into list of playable locations.
@@ -29,5 +28,3 @@ public:
 
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(link_resolver);
 };
-
-#endif //_foobar2000_sdk_link_resolver_h_

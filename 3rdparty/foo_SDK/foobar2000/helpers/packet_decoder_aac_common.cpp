@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #include "packet_decoder_aac_common.h"
 
@@ -244,4 +244,26 @@ unsigned packet_decoder_aac_common::get_ASC_object_type(const void * p_, size_t 
 		objectType = 32 + (unsigned) r.read(6);
 	}
 	return objectType;
+}
+
+const char * packet_decoder_aac_common::objectTypeStr( unsigned ot ) {
+    switch(ot) {
+        case 1: return "Main";
+        case 2: return "LC";
+        case 3: return "SSR";
+        case 4: return "LTP";
+        case 5: return "SBR";
+        case 23: return "LD";
+        case 39: return "ELD";
+        case 42:
+        case 45:
+            return "USAC";
+        default:
+            return nullptr; // unknown
+    }
+
+}
+
+const char * packet_decoder_aac_common::audioSpecificConfig_t::objectTypeStr() const {
+    return packet_decoder_aac_common::objectTypeStr( this->m_objectType );
 }

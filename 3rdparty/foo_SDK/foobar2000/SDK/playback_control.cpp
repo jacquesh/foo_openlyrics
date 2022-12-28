@@ -1,4 +1,6 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "playback_control.h"
+#include "titleformat.h"
 
 static double parseFraction(const char * fraction) {
 	unsigned v = 0, d = 1;

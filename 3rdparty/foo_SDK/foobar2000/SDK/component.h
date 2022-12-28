@@ -17,7 +17,7 @@ public:
 	typedef service_factory_base* pservice_factory_base;
 
 	enum {
-		FOOBAR2000_CLIENT_VERSION_COMPATIBLE = 72,
+		FOOBAR2000_CLIENT_VERSION_COMPATIBLE = FOOBAR2000_TARGET_VERSION_COMPATIBLE,
 		FOOBAR2000_CLIENT_VERSION = FOOBAR2000_TARGET_VERSION,
 	};
 	virtual t_uint32 get_version() = 0;
@@ -38,7 +38,7 @@ public:
 	virtual service_class_ref service_enum_find_class(const GUID & p_guid) = 0;
 	virtual bool service_enum_create(service_ptr_t<service_base> & p_out,service_class_ref p_class,t_size p_index) = 0;
 	virtual t_size service_enum_get_count(service_class_ref p_class) = 0;
-	virtual HWND get_main_window()=0;
+	virtual fb2k::hwnd_t get_main_window()=0;
 	virtual bool assert_main_thread()=0;
 	virtual bool is_main_thread()=0;
 	virtual bool is_shutting_down()=0;

@@ -113,6 +113,7 @@ public:
 	bool GetGroupHeaderRect2(size_t atItem,CRect & p_rect) const;
 	CRect GetItemRectAbs(t_size p_item) const;
 	int GetItemOffsetAbs(size_t item) const;
+	int GetItemOffsetAbs2(size_t from, size_t to) const;
 	int GetItemBottomOffsetAbs(size_t item) const;
 	int GetItemHeightCached(size_t item) const;
 	int GetItemContentHeightCached(size_t item) const;
@@ -137,6 +138,7 @@ public:
 	void MoveViewOriginDelta(CPoint p_delta) {MoveViewOrigin( GetViewOrigin() + p_delta );}
 	void MoveViewOriginDeltaNoClip(CPoint p_delta) {MoveViewOriginNoClip( GetViewOrigin() + p_delta );}
 	bool ItemFromPoint(CPoint const & p_pt, t_size & p_item) const;
+	size_t ItemFromPoint(CPoint const& pt) const;
 	bool GroupHeaderFromPoint2(CPoint const & p_pt,size_t & p_atItem) const {return GroupHeaderFromPointAbs2( PointClientToAbs(p_pt),p_atItem);}
 	bool ItemFromPointAbs(CPoint const & p_pt,t_size & p_item) const;
 	size_t ItemFromPointAbs(CPoint const& p_pt) const;
@@ -170,6 +172,8 @@ public:
 	bool IsItemLastInGroup(size_t item) const;
 
 	virtual groupID_t GetItemGroup(t_size p_item) const { (void)p_item; return 0; }
+
+	virtual void RenderRect(const CRect& p_rect, CDCHandle p_dc);
 	//override optionally
 	virtual void RenderItem(t_size p_item,const CRect & p_itemRect,const CRect & p_updateRect,CDCHandle p_dc);
 	//override optionally
@@ -283,7 +287,6 @@ public:
 private:
 	void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	LRESULT OnSetDark(UINT, WPARAM, LPARAM);
-	void RenderRect(const CRect & p_rect,CDCHandle p_dc);
 	int HandleWheel(int & p_accum,int p_delta, bool bHoriz);
 
 	void PaintContent(CRect rcPaint, HDC dc);

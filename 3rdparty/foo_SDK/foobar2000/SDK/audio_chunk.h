@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../pfc/audio_sample.h"
+#include <pfc/audio_sample.h>
+#include "exception_io.h"
 
 #ifdef _WIN32
 #include <MMReg.h>

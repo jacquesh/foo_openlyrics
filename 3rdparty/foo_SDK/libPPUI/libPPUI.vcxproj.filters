@@ -170,9 +170,6 @@
     <ClInclude Include="DarkModeEx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CContainedWindowSimple.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CListControl-Subst.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -186,6 +183,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ImageEncoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CMiddleDragLite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="windowLifetime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hookWindowMessages.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

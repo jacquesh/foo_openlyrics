@@ -1,4 +1,4 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
 #include "chapterizer.h"
 
 void chapter_list::copy(const chapter_list & p_source)
@@ -17,9 +17,7 @@ FOOGUIDDECL const GUID chapterizer::class_guid=
 
 bool chapterizer::g_find(service_ptr_t<chapterizer> & p_out,const char * p_path)
 {
-	service_ptr_t<chapterizer> ptr;
-	service_enum_t<chapterizer> e;
-	while(e.next(ptr)) {
+	for (auto ptr : enumerate()) {
 		if (ptr->is_our_path(p_path)) {
 			p_out = ptr;
 			return true;
@@ -29,9 +27,7 @@ bool chapterizer::g_find(service_ptr_t<chapterizer> & p_out,const char * p_path)
 }
 
 bool chapterizer::g_is_pregap_capable(const char * p_path) {
-	service_ptr_t<chapterizer> ptr;
-	service_enum_t<chapterizer> e;
-	while(e.next(ptr)) {
+	for (auto ptr : enumerate()) {
 		if (ptr->supports_pregaps() && ptr->is_our_path(p_path)) {
 			return true;
 		}

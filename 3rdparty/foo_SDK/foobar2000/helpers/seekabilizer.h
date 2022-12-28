@@ -14,7 +14,7 @@ private:
 	t_size m_depth,m_cursor;
 };
 
-class seekabilizer : public file_readonly {
+class seekabilizer : public file_readonly_t<file_v2> {
 public:
 	void initialize(service_ptr_t<file> p_base,t_size p_buffer_size,abort_callback & p_abort);
 	
@@ -31,6 +31,10 @@ public:
 	t_filetimestamp get_timestamp(abort_callback & p_abort);
 	void reopen(abort_callback & p_abort);
 	bool is_remote();
+
+	service_ptr get_metadata(abort_callback&);
+	t_filestats2 get_stats2(uint32_t s2flags, abort_callback&);
+	size_t lowLevelIO(const GUID& guid, size_t arg1, void* arg2, size_t arg2size, abort_callback& abort);
 private:
 	service_ptr_t<file> m_file;
 	seekabilizer_backbuffer m_buffer;

@@ -1,4 +1,5 @@
 #pragma once
+#include "metadb_handle.h"
 
 //! Reserved for future use.
 typedef void * t_glyph;

@@ -1,4 +1,7 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "menu_helpers.h"
+#include "metadb.h"
+#include "playlist.h"
 
 
 bool menu_helpers::context_get_description(const GUID& p_guid,pfc::string_base & out) {
@@ -85,11 +88,8 @@ bool menu_helpers::run_command_context_now_playing(const GUID & p_command,const 
 
 bool menu_helpers::guid_from_name(const char * p_name,unsigned p_name_len,GUID & p_out)
 {
-	service_enum_t<contextmenu_item> e;
-	service_ptr_t<contextmenu_item> ptr;
 	pfc::string8_fastalloc nametemp;
-	while(e.next(ptr))
-	{
+	for( auto ptr : contextmenu_item::enumerate() ) {
 		unsigned n, m = ptr->get_num_items();
 		for(n=0;n<m;n++)
 		{
@@ -114,11 +114,8 @@ bool menu_helpers::name_from_guid(const GUID & p_guid,pfc::string_base & p_out) 
 
 static unsigned calc_total_action_count()
 {
-	service_enum_t<contextmenu_item> e;
-	service_ptr_t<contextmenu_item> ptr;
 	unsigned ret = 0;
-	while(e.next(ptr))
-		ret += ptr->get_num_items();
+	for( auto ptr : contextmenu_item::enumerate()) ret += ptr->get_num_items();
 	return ret;
 }
 
@@ -131,9 +128,7 @@ const char * menu_helpers::guid_to_name_table::search(const GUID & p_guid)
 		t_size dataptr = 0;
 		pfc::string8_fastalloc nametemp;
 
-		service_enum_t<contextmenu_item> e;
-		service_ptr_t<contextmenu_item> ptr;
-		while(e.next(ptr))
+		for( auto ptr : contextmenu_item::enumerate()) 
 		{
 			unsigned n, m = ptr->get_num_items();
 			for(n=0;n<m;n++)
@@ -141,7 +136,7 @@ const char * menu_helpers::guid_to_name_table::search(const GUID & p_guid)
 				assert(dataptr < m_data.get_size());
 
 				ptr->get_item_name(n,nametemp);
-				m_data[dataptr].m_name = _strdup(nametemp);
+				m_data[dataptr].m_name = strdup(nametemp);
 				m_data[dataptr].m_guid = ptr->get_item_guid(n);
 				dataptr++;
 			}
@@ -199,9 +194,7 @@ bool menu_helpers::name_to_guid_table::search(const char * p_name,unsigned p_nam
 		t_size dataptr = 0;
 		pfc::string8_fastalloc nametemp;
 
-		service_enum_t<contextmenu_item> e;
-		service_ptr_t<contextmenu_item> ptr;
-		while(e.next(ptr))
+		for( auto ptr : contextmenu_item::enumerate() ) 
 		{
 			unsigned n, m = ptr->get_num_items();
 			for(n=0;n<m;n++)
@@ -209,7 +202,7 @@ bool menu_helpers::name_to_guid_table::search(const char * p_name,unsigned p_nam
 				assert(dataptr < m_data.get_size());
 
 				ptr->get_item_name(n,nametemp);
-				m_data[dataptr].m_name = _strdup(nametemp);
+				m_data[dataptr].m_name = strdup(nametemp);
 				m_data[dataptr].m_guid = ptr->get_item_guid(n);
 				dataptr++;
 			}
@@ -245,18 +238,17 @@ menu_helpers::name_to_guid_table::~name_to_guid_table()
 bool menu_helpers::find_command_by_name(const char * p_name,service_ptr_t<contextmenu_item> & p_item,unsigned & p_index)
 {
 	pfc::string8_fastalloc path,name;
-	service_enum_t<contextmenu_item> e;
-	service_ptr_t<contextmenu_item> ptr;
-	if (e.first(ptr)) do {
-//		if (ptr->get_type()==type)
+
+	for (auto ptr : contextmenu_item::enumerate()) {
+		//		if (ptr->get_type()==type)
 		{
-			unsigned action,num_actions = ptr->get_num_items();
-			for(action=0;action<num_actions;action++)
+			unsigned action, num_actions = ptr->get_num_items();
+			for (action = 0; action < num_actions; action++)
 			{
-				ptr->get_item_default_path(action,path); ptr->get_item_name(action,name);
+				ptr->get_item_default_path(action, path); ptr->get_item_name(action, name);
 				if (!path.is_empty()) path += "/";
 				path += name;
-				if (!stricmp_utf8(p_name,path))
+				if (!stricmp_utf8(p_name, path))
 				{
 					p_item = ptr;
 					p_index = action;
@@ -264,7 +256,7 @@ bool menu_helpers::find_command_by_name(const char * p_name,service_ptr_t<contex
 				}
 			}
 		}
-	} while(e.next(ptr));
+	}
 	return false;
 
 }

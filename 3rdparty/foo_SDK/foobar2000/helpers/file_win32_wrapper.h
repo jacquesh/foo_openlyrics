@@ -15,10 +15,42 @@ namespace file_win32_helpers {
 	size_t readStreamOverlapped(HANDLE handle, HANDLE myEvent, void * out, size_t outBytes, abort_callback & abort);
 	HANDLE createFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile, abort_callback & abort);
 	size_t lowLevelIO(HANDLE hFile, const GUID & guid, size_t arg1, void * arg2, size_t arg2size, bool canWrite, abort_callback & abort);
+
+
+	static t_uint64 make_uint64(t_uint32 p_low, t_uint32 p_high) {
+		return ((t_uint64)p_low) + ((t_uint64)p_high << 32);
+	}
+
+	static t_uint64 make_uint64(FILETIME const& ft) {
+		return make_uint64(ft.dwLowDateTime, ft.dwHighDateTime);
+	}
+
+	template<typename t_info>
+	static t_filestats translate_stats(const t_info& p_info) {
+		t_filestats ret;
+		ret.m_size = make_uint64(p_info.nFileSizeLow, p_info.nFileSizeHigh);
+		ret.m_timestamp = make_uint64(p_info.ftLastWriteTime);
+		return ret;
+	}
+
+	template<typename t_info>
+	static t_filestats2 translate_stats2(const t_info& p_info) {
+		t_filestats2 ret;
+		ret.m_size = make_uint64(p_info.nFileSizeLow, p_info.nFileSizeHigh);
+		ret.m_timestamp = make_uint64(p_info.ftLastWriteTime);
+		ret.m_timestampCreate = make_uint64(p_info.ftCreationTime);
+		ret.set_readonly((p_info.dwFileAttributes & FILE_ATTRIBUTE_READONLY) != 0);
+		ret.set_folder((p_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0);
+		ret.set_hidden((p_info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0);
+		ret.set_system((p_info.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) != 0);
+		ret.set_remote(false);
+		return ret;
+	}
 };
 
+
 template<bool p_seekable,bool p_writeable>
-class file_win32_wrapper_t : public service_multi_inherit<file, file_lowLevelIO> {
+class file_win32_wrapper_t : public service_multi_inherit<file_v2, file_lowLevelIO> {
 public:
 	file_win32_wrapper_t(HANDLE p_handle) : m_handle(p_handle), m_position(0)
 	{
@@ -140,6 +172,14 @@ public:
 	bool is_in_memory() {return false;}
 	void on_idle(abort_callback & p_abort) {p_abort.check_e();}
 	
+	t_filestats2 get_stats2(uint32_t f, abort_callback& a) {
+		a.check();
+		if (p_writeable) FlushFileBuffers(m_handle);
+		SetLastError(0);
+		BY_HANDLE_FILE_INFORMATION info = {};
+		if (!GetFileInformationByHandle(m_handle, &info)) exception_io_from_win32(GetLastError());
+		return file_win32_helpers::translate_stats2(info);
+	}
 	t_filetimestamp get_timestamp(abort_callback & p_abort) {
 		p_abort.check_e();
 		if (p_writeable) FlushFileBuffers(m_handle);
@@ -161,7 +201,7 @@ protected:
 };
 
 template<bool p_writeable>
-class file_win32_wrapper_overlapped_t : public service_multi_inherit< file, file_lowLevelIO > {
+class file_win32_wrapper_overlapped_t : public service_multi_inherit< file_v2, file_lowLevelIO > {
 public:
 	file_win32_wrapper_overlapped_t(HANDLE file) : m_handle(file), m_position() {
 		WIN32_OP( (m_event = CreateEvent(NULL, TRUE, FALSE, NULL)) != NULL );
@@ -213,6 +253,16 @@ public:
 	bool is_in_memory() {return false;}
 	void on_idle(abort_callback & p_abort) {p_abort.check_e();}
 	
+
+	t_filestats2 get_stats2(uint32_t f, abort_callback& a) {
+		a.check();
+		if (p_writeable) FlushFileBuffers(m_handle);
+		SetLastError(0);
+		BY_HANDLE_FILE_INFORMATION info = {};
+		if (!GetFileInformationByHandle(m_handle, &info)) exception_io_from_win32(GetLastError());
+		return file_win32_helpers::translate_stats2(info);
+	}
+
 	t_filetimestamp get_timestamp(abort_callback & p_abort) {
 		p_abort.check_e();
 		if (p_writeable) FlushFileBuffers(m_handle);
@@ -251,4 +301,5 @@ protected:
 	HANDLE m_event, m_handle;
 	t_filesize m_position;
 };
+
 #endif // _WIN32

@@ -73,7 +73,7 @@ namespace pfc {
     void yield();
     
     typedef int eventHandle_t;
-    static const eventHandle_t eventInvalid = -1;
+    static constexpr eventHandle_t eventInvalid = -1;
 
     class nix_event {
     public:
@@ -96,6 +96,7 @@ namespace pfc {
         
         // Multi-wait. Returns SIZE_MAX on timeout, 0 based event index if either event becomes set.
         static size_t g_multiWait( const eventHandle_t * events, size_t count, double timeout );
+        static size_t g_multiWait(std::initializer_list<eventHandle_t> const & arg, double timeout);
 
     private:
         nix_event(nix_event const&) = delete;

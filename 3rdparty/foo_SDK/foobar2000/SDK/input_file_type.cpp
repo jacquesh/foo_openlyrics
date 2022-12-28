@@ -1,4 +1,8 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "input_file_type.h"
+#include "componentversion.h"
+#include "archive.h"
+#include "playlist_loader.h"
 
 #if FOOBAR2000_TARGET_VERSION >= 76
 
@@ -46,10 +50,8 @@ void input_file_type::make_filetype_support_fingerprint(pfc::string_base & str) 
 void input_file_type::make_extension_support_fingerprint(pfc::string_base & str) {
 	pfc::avltree_t<pfc::string8, pfc::string::comparatorCaseInsensitive> masks;
 	{
-		service_enum_t<input_file_type> e;
-		service_ptr_t<input_file_type> ptr;
 		pfc::string_formatter mask;
-		while(e.next(ptr)) {
+		for( auto ptr : enumerate() ) {
 			const unsigned count = ptr->get_count();
 			for(unsigned n=0;n<count;n++) {
 				mask.reset();
@@ -72,8 +74,7 @@ void input_file_type::build_openfile_mask(pfc::string_base & out, bool b_include
 	t_fnList extensionsAll, extensionsPl, extensionsArc;
 	
 	if (b_include_playlists) {
-		service_enum_t<playlist_loader> e; service_ptr_t<playlist_loader> ptr;
-		while(e.next(ptr)) {
+		for( auto ptr : playlist_loader::enumerate()) {
 			if (ptr->is_associatable()) {
 				pfc::string_formatter temp; temp << "*." << ptr->get_extension();
 				extensionsPl += temp;
@@ -90,7 +91,7 @@ void input_file_type::build_openfile_mask(pfc::string_base & out, bool b_include
 			pfc::chain_list_v2_t<pfc::string8> lst;
 			pfc::splitStringByChar(lst, temp, ',');
 			for (auto iter = lst.first(); iter.is_valid(); ++iter) {
-				extensionsArc += PFC_string_formatter() << "*." << *iter;
+				extensionsArc += pfc::format( "*.", *iter );
 			}
 		}
 	}
@@ -98,10 +99,8 @@ void input_file_type::build_openfile_mask(pfc::string_base & out, bool b_include
 	typedef pfc::map_t<pfc::string8,t_fnList,pfc::string::comparatorCaseInsensitive> t_masks;
 	t_masks masks;
 	{
-		service_enum_t<input_file_type> e;
-		service_ptr_t<input_file_type> ptr;
 		pfc::string_formatter name, mask;
-		while(e.next(ptr)) {
+		for( auto ptr : enumerate() ) {
 			const unsigned count = ptr->get_count();
 			for(unsigned n=0;n<count;n++) {
 				name.reset();

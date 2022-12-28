@@ -7,11 +7,10 @@
 //! If some other service that you publish is not properly functional before you receive an on_init() call, \n
 //! someone else might call this service before >your< on_init is invoked.
 class NOVTABLE initquit : public service_base {
+	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(initquit); 
 public:
 	virtual void on_init() {}
 	virtual void on_quit() {}
-
-	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(initquit);
 };
 
 template<typename T>

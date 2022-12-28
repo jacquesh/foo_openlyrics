@@ -1,6 +1,7 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #include "dynamic_bitrate_helper.h"
+#include <SDK/config_object.h>
 
 static unsigned g_query_settings()
 {

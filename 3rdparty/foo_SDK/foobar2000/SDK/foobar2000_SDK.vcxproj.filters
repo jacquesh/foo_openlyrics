@@ -32,7 +32,7 @@
     <ClInclude Include="autoplaylist.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cfg_var.h">
+    <ClInclude Include="cfg_var_legacy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="chapterizer.h">
@@ -155,12 +155,6 @@
     <ClInclude Include="message_loop.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="metadb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="metadb_handle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="modeless_dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -254,9 +248,6 @@
     <ClInclude Include="foobar2000-winver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="foobar2000-dsp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="audio_chunk_impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -299,28 +290,115 @@
     <ClInclude Include="file_info_filter_impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="configStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="threadPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="forward_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="imageLoaderLite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="imageViewer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="noInfo.h">
+    <ClInclude Include="fsitem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="metadb_display_field_provider.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="metadb_index.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="metadb_callbacks.h">
+    <ClInclude Include="file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="exception_io.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="file.h">
+    <ClInclude Include="library_index.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="foosortstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="noInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="powerManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file_info_const_impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_info_container_impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="playlistColumnProvider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_index.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_display_field_provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metadb_callbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="library_callbacks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="advconfig_impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="configCache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg_var.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="messageBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="foobar2000-all.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menu_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fileDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="console_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="toolbarDropDown.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coreDarkMode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="foobar2000-versions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="foobar2000-lite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="foobar2000-sdk-pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="threadsLite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -343,7 +421,7 @@
     <ClCompile Include="audio_chunk_channel_config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cfg_var.cpp">
+    <ClCompile Include="cfg_var_legacy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="chapterizer.cpp">
@@ -497,6 +575,27 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="track_property.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="configStore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="commonObjects.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fsItem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="foosortstring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file_info_const_impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cfg_var.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

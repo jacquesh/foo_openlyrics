@@ -4,6 +4,7 @@
 #include <mmreg.h>
 #endif
 
+#include <SDK/audio_postprocessor.h>
 
 struct wavWriterSetup_t
 {

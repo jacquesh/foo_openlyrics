@@ -1,17 +1,18 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "filesystem.h"
 namespace {
 
 #define FILE_CACHED_DEBUG_LOG 0
 
-class file_cached_impl_v2 : public service_multi_inherit< file_cached, file_lowLevelIO > {
+class file_cached_impl_v2 : public service_multi_inherit< file_v2, service_multi_inherit< file_cached, file_lowLevelIO > > {
 public:
 	enum {minBlockSize = 4096};
 	enum {maxSkipSize = 128*1024};
 	file_cached_impl_v2(size_t maxBlockSize) : m_maxBlockSize(maxBlockSize) {
 		//m_buffer.set_size(blocksize);
 	}
-	size_t get_cache_block_size() {return m_maxBlockSize;}
-	void suggest_grow_cache(size_t suggestSize) {
+	size_t get_cache_block_size() override {return m_maxBlockSize;}
+	void suggest_grow_cache(size_t suggestSize) override {
 		if (m_maxBlockSize < suggestSize) m_maxBlockSize = suggestSize;
 	}
 
@@ -19,6 +20,10 @@ public:
 		m_base = p_base;
 		m_can_seek = m_base->can_seek();
 		_reinit(p_abort);
+	}
+	t_filestats2 get_stats2(uint32_t f, abort_callback& a) override {
+		flush_buffer();
+		return m_base->get_stats2_(f, a);
 	}
 	size_t lowLevelIO(const GUID & guid, size_t arg1, void * arg2, size_t arg2size, abort_callback & abort) override {
 		abort.check();
@@ -45,7 +50,7 @@ private:
 	}
 public:
 
-	t_filesize skip(t_filesize p_bytes,abort_callback & p_abort) {
+	t_filesize skip(t_filesize p_bytes,abort_callback & p_abort) override {
 		if (p_bytes > maxSkipSize) {
 			const t_filesize size = get_size(p_abort);
 			if (size != filesize_invalid) {
@@ -87,7 +92,7 @@ public:
 		return p_bytes - todo;
 	}
 
-	t_size read(void * p_buffer,t_size p_bytes,abort_callback & p_abort) {
+	t_size read(void * p_buffer,t_size p_bytes,abort_callback & p_abort) override {
 #if FILE_CACHED_DEBUG_LOG
 		FB2K_DebugLog() << "Reading bytes: " << p_bytes;
 #endif
@@ -120,7 +125,7 @@ public:
 		return p_bytes - todo;
 	}
 
-	void write(const void * p_buffer,t_size p_bytes,abort_callback & p_abort) {
+	void write(const void * p_buffer,t_size p_bytes,abort_callback & p_abort) override {
 #if FILE_CACHED_DEBUG_LOG
 		FB2K_DebugLog() << "Writing bytes: " << p_bytes;
 #endif
@@ -132,11 +137,11 @@ public:
 		flush_buffer();
 	}
 
-	t_filesize get_size(abort_callback & p_abort) {
+	t_filesize get_size(abort_callback & p_abort) override {
 		p_abort.check();
 		return m_size;
 	}
-	t_filesize get_position(abort_callback & p_abort) {
+	t_filesize get_position(abort_callback & p_abort) override {
 		p_abort.check();
 		return m_position;
 	}
@@ -146,7 +151,7 @@ public:
 		m_base->set_eof(p_abort);
 		flush_buffer();
 	}
-	void seek(t_filesize p_position,abort_callback & p_abort) {
+	void seek(t_filesize p_position,abort_callback & p_abort) override {
 #if FILE_CACHED_DEBUG_LOG
 		FB2K_DebugLog() << "Seeking: " << p_position;
 #endif
@@ -179,7 +184,7 @@ public:
 			this->flush_buffer();
 		}
 	}
-	void reopen(abort_callback & p_abort) {
+	void reopen(abort_callback & p_abort) override {
 		if (this->m_can_seek) {
 			seek(0,p_abort);
 		} else {
@@ -187,12 +192,12 @@ public:
 			this->_reinit( p_abort );
 		}
 	}
-	bool can_seek() {return m_can_seek;}
-	bool get_content_type(pfc::string_base & out) {return m_base->get_content_type(out);}
-	void on_idle(abort_callback & p_abort) {p_abort.check();m_base->on_idle(p_abort);}
-	t_filetimestamp get_timestamp(abort_callback & p_abort) {p_abort.check(); return m_base->get_timestamp(p_abort);}
-	bool is_remote() {return m_base->is_remote();}
-	void resize(t_filesize p_size,abort_callback & p_abort) {
+	bool can_seek() override {return m_can_seek;}
+	bool get_content_type(pfc::string_base & out) override {return m_base->get_content_type(out);}
+	void on_idle(abort_callback & p_abort) override {p_abort.check();m_base->on_idle(p_abort);}
+	t_filetimestamp get_timestamp(abort_callback & p_abort) override {p_abort.check(); return m_base->get_timestamp(p_abort);}
+	bool is_remote() override {return m_base->is_remote();}
+	void resize(t_filesize p_size,abort_callback & p_abort) override {
 		flush_buffer();
 		m_base->resize(p_size,p_abort);
 		m_size = p_size;
@@ -222,13 +227,13 @@ private:
 	size_t m_readSize;
 };
 
-class file_cached_impl : public service_multi_inherit< file_cached, file_lowLevelIO > {
+class file_cached_impl : public service_multi_inherit< file_v2, service_multi_inherit< file_cached, file_lowLevelIO > > {
 public:
 	file_cached_impl(t_size blocksize) {
 		m_buffer.set_size(blocksize);
 	}
-	size_t get_cache_block_size() {return m_buffer.get_size();}
-	void suggest_grow_cache(size_t suggestSize) {}
+	size_t get_cache_block_size() override {return m_buffer.get_size();}
+	void suggest_grow_cache(size_t suggestSize) override {}
 	void initialize(service_ptr_t<file> p_base,abort_callback & p_abort) {
 		m_base = p_base;
 		m_can_seek = m_base->can_seek();
@@ -249,6 +254,10 @@ private:
 		flush_buffer();
 	}
 public:
+	t_filestats2 get_stats2(uint32_t f, abort_callback& a) override {
+		flush_buffer();
+		return m_base->get_stats2_(f, a);
+	}
 	size_t lowLevelIO(const GUID & guid, size_t arg1, void * arg2, size_t arg2size, abort_callback & abort) override {
 		abort.check();
 		file_lowLevelIO::ptr ll;
@@ -258,7 +267,7 @@ public:
 		}
 		return 0;
 	}
-	t_size read(void * p_buffer,t_size p_bytes,abort_callback & p_abort) {
+	t_size read(void * p_buffer,t_size p_bytes,abort_callback & p_abort) override {
 		t_uint8 * outptr = (t_uint8*)p_buffer;
 		t_size done = 0;
 		while(done < p_bytes && m_position < m_size) {
@@ -285,7 +294,7 @@ public:
 		return done;
 	}
 
-	void write(const void * p_buffer,t_size p_bytes,abort_callback & p_abort) {
+	void write(const void * p_buffer,t_size p_bytes,abort_callback & p_abort) override {
 		p_abort.check();
 		baseSeek(m_position,p_abort);
 		m_base->write(p_buffer,p_bytes,p_abort);
@@ -294,11 +303,11 @@ public:
 		flush_buffer();
 	}
 
-	t_filesize get_size(abort_callback & p_abort) {
+	t_filesize get_size(abort_callback & p_abort) override {
 		p_abort.check();
 		return m_size;
 	}
-	t_filesize get_position(abort_callback & p_abort) {
+	t_filesize get_position(abort_callback & p_abort) override {
 		p_abort.check();
 		return m_position;
 	}
@@ -308,13 +317,13 @@ public:
 		m_base->set_eof(p_abort);
 		flush_buffer();
 	}
-	void seek(t_filesize p_position,abort_callback & p_abort) {
+	void seek(t_filesize p_position,abort_callback & p_abort) override {
 		p_abort.check();
 		if (!m_can_seek) throw exception_io_object_not_seekable();
 		if (p_position > m_size) throw exception_io_seek_out_of_range();
 		m_position = p_position;
 	}
-	void reopen(abort_callback & p_abort) {
+	void reopen(abort_callback & p_abort) override {
 		if (this->m_can_seek) {
 			seek(0,p_abort);
 		} else {
@@ -322,12 +331,12 @@ public:
 			this->_reinit( p_abort );
 		}
 	}
-	bool can_seek() {return m_can_seek;}
-	bool get_content_type(pfc::string_base & out) {return m_base->get_content_type(out);}
-	void on_idle(abort_callback & p_abort) {p_abort.check();m_base->on_idle(p_abort);}
-	t_filetimestamp get_timestamp(abort_callback & p_abort) {p_abort.check(); return m_base->get_timestamp(p_abort);}
-	bool is_remote() {return m_base->is_remote();}
-	void resize(t_filesize p_size,abort_callback & p_abort) {
+	bool can_seek() override {return m_can_seek;}
+	bool get_content_type(pfc::string_base & out) override {return m_base->get_content_type(out);}
+	void on_idle(abort_callback & p_abort) override {p_abort.check();m_base->on_idle(p_abort);}
+	t_filetimestamp get_timestamp(abort_callback & p_abort) override {p_abort.check(); return m_base->get_timestamp(p_abort);}
+	bool is_remote() override {return m_base->is_remote();}
+	void resize(t_filesize p_size,abort_callback & p_abort) override {
 		flush_buffer();
 		m_base->resize(p_size,p_abort);
 		m_size = p_size;
@@ -371,9 +380,10 @@ file::ptr file_cached::g_create(service_ptr_t<file> p_base,abort_callback & p_ab
 		}
 	}
 
-	service_ptr_t<file_cached_impl_v2> temp = new service_impl_t<file_cached_impl_v2>(blockSize);
-	temp->initialize(p_base,p_abort);
-	return temp;
+	auto obj = fb2k::service_new< file_cached_impl_v2 >(blockSize);
+	obj->initialize(p_base,p_abort);
+	file_v2* asdf = obj.get_ptr();
+	return asdf;
 }
 
 void file_cached::g_create(service_ptr_t<file> & p_out,service_ptr_t<file> p_base,abort_callback & p_abort, t_size blockSize) {

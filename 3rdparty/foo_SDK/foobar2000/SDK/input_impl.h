@@ -38,8 +38,8 @@ public:
 	t_uint32 get_subsong(unsigned p_index);
 	//! See: input_info_reader::get_info(). Valid after open() with any reason.
 	void get_info(t_uint32 p_subsong,file_info & p_info,abort_callback & p_abort);
-	//! See: input_info_reader::get_file_stats(). Valid after open() with any reason.
-	t_filestats get_file_stats(abort_callback & p_abort);
+	//! See: input_info_reader_v2::get_stats2(). Valid after open() with any reason.
+	t_filestats2 get_stats2(uint32_t, abort_callback & p_abort);
 
 	//! See: input_decoder::initialize(). Valid after open() with input_open_decode reason.
 	void decode_initialize(t_uint32 p_subsong,unsigned p_flags,abort_callback & p_abort);
@@ -97,6 +97,7 @@ public:
 	size_t extended_param(const GUID & type, size_t arg1, void * arg2, size_t arg2size) { return 0; }
 	static GUID g_get_preferences_guid() {return pfc::guid_null;}
 	static bool g_is_low_merit() { return false; }
+	static bool g_fallback_is_our_payload(const void* bytes, size_t bytesAvail, t_filesize bytesWhole) { return false; }
 
     bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta) { return false; }
     bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta) { return false; }
@@ -105,7 +106,7 @@ public:
 
 	//! These typedefs indicate which interfaces your class actually supports. You can override them to support non default input API interfaces without specifying input_factory parameters.
 	typedef input_decoder_v4 interface_decoder_t;
-	typedef input_info_reader interface_info_reader_t;
+	typedef input_info_reader_v2 interface_info_reader_t;
 	typedef input_info_writer_v2 interface_info_writer_t;
 };
 
@@ -127,9 +128,9 @@ public:
 	//! See: input_info_reader::get_info(). Valid after open() with any reason. \n
 	//! Implementation warning: this is typically also called immediately after tag update and should return newly written content then.
 	void get_info(file_info & p_info,abort_callback & p_abort);
-	//! See: input_info_reader::get_file_stats(). Valid after open() with any reason. \n
+	//! See: input_info_reader_v2::get_stats2(). Valid after open() with any reason. \n
 	//! Implementation warning: this is typically also called immediately after tag update and should return new values then.
-	t_filestats get_file_stats(abort_callback & p_abort);
+	t_filestats2 get_stats2(uint32_t, abort_callback&);
 
 	//! See: input_decoder::initialize(). Valid after open() with input_open_decode reason.
 	void decode_initialize(unsigned p_flags,abort_callback & p_abort);
@@ -185,8 +186,11 @@ public:
 		m_instance.get_info(p_subsong,p_info,p_abort);
 	}
 
-	t_filestats get_file_stats(abort_callback & p_abort) {
-		return m_instance.get_file_stats(p_abort);
+	t_filestats get_file_stats(abort_callback& p_abort) {
+		return get_stats2(stats2_legacy, p_abort).to_legacy();
+	}
+	t_filestats2 get_stats2(uint32_t f, abort_callback& a) {
+		return m_instance.get_stats2(f, a);
 	}
 
 	// input_decoder methods
@@ -195,12 +199,14 @@ public:
 		m_instance.decode_initialize(p_subsong,p_flags,p_abort);
 #if PFC_DEBUG
 		m_eof = false;
+		m_decoding = true;
 #endif
 	}
 
 	bool run(audio_chunk & p_chunk,abort_callback & p_abort) {
 #if PFC_DEBUG
 		PFC_ASSERT( !m_eof );
+		PFC_ASSERT(m_decoding);
 		// Complain if run()/run_raw() gets called again after having returned EOF, this means a logic error on caller's side
 #endif
 		bool ret = m_instance.decode_run(p_chunk,p_abort);
@@ -214,6 +220,7 @@ public:
 #if PFC_DEBUG
 		// Complain if run()/run_raw() gets called again after having returned EOF, this means a logic error on caller's side
 		PFC_ASSERT(!m_eof);
+		PFC_ASSERT(m_decoding);
 #endif
 		bool ret = m_instance.decode_run_raw(p_chunk, p_raw, p_abort);
 #if PFC_DEBUG
@@ -223,6 +230,9 @@ public:
 	}
 
 	void seek(double p_seconds,abort_callback & p_abort) {
+#if PFC_DEBUG
+		PFC_ASSERT(m_decoding); 
+#endif
 		m_instance.decode_seek(p_seconds,p_abort);
 #if PFC_DEBUG
 		m_eof = false;
@@ -281,6 +291,7 @@ private:
 #if PFC_DEBUG
 	// Report illegal API calls in debug build
 	bool m_eof = false;
+	bool m_decoding = false;
 #endif
 };
 
@@ -293,6 +304,7 @@ public:
 	static GUID g_get_guid() { return input_t::g_get_guid(); }
 	static const char * g_get_name() { return input_t::g_get_name(); }
 	static bool g_is_low_merit() { return input_t::g_is_low_merit(); }
+	static bool g_fallback_is_our_payload(const void* bytes, size_t bytesAvail, t_filesize bytesWhole) { return input_t::g_fallback_is_our_payload(bytes, bytesAvail, bytesWhole); }
 
 	typedef typename input_t::interface_decoder_t interface_decoder_t;
 	typedef typename input_t::interface_info_reader_t interface_info_reader_t;
@@ -326,17 +338,41 @@ public:
 		return 0;
 	}
 
-	t_filestats get_file_stats(abort_callback & p_abort) {
-		return m_instance.get_file_stats(p_abort);
+	t_filestats get_file_stats(abort_callback& p_abort) {
+		return get_stats2(stats2_legacy, p_abort).to_legacy();
+	}
+	t_filestats2 get_stats2(uint32_t f, abort_callback& a) {
+		return m_instance.get_stats2(f, a);
 	}
 
 	void decode_initialize(t_uint32 p_subsong,unsigned p_flags,abort_callback & p_abort) {
 		if (p_subsong != 0) throw exception_io_bad_subsong_index();
 		m_instance.decode_initialize(p_flags,p_abort);
+#if PFC_DEBUG
+		m_decoding = true; m_eof = false;
+#endif
 	}
 
-	bool decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {return m_instance.decode_run(p_chunk,p_abort);}
-	void decode_seek(double p_seconds,abort_callback & p_abort) {m_instance.decode_seek(p_seconds,p_abort);}
+	bool decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
+#if PFC_DEBUG
+		PFC_ASSERT(!m_eof);
+		PFC_ASSERT(m_decoding);
+#endif
+		bool rv = m_instance.decode_run(p_chunk,p_abort);
+#if PFC_DEBUG
+		if (!rv) m_eof = true;
+#endif
+		return rv;
+	}
+	void decode_seek(double p_seconds,abort_callback & p_abort) {
+#if PFC_DEBUG
+		PFC_ASSERT(m_decoding);
+#endif
+		m_instance.decode_seek(p_seconds,p_abort);
+#if PFC_DEBUG
+		m_eof = false;
+#endif
+	}
 	bool decode_can_seek() {return m_instance.decode_can_seek();}
 	bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta) {return m_instance.decode_get_dynamic_info(p_out,p_timestamp_delta);}
 	bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta) {return m_instance.decode_get_dynamic_info_track(p_out,p_timestamp_delta);}
@@ -348,7 +384,15 @@ public:
 	}
 	
 	bool decode_run_raw(audio_chunk & p_chunk, mem_block_container & p_raw, abort_callback & p_abort) {
-		return m_instance.decode_run_raw(p_chunk, p_raw, p_abort);
+#if PFC_DEBUG
+		PFC_ASSERT(!m_eof);
+		PFC_ASSERT(m_decoding);
+#endif
+		bool rv = m_instance.decode_run_raw(p_chunk, p_raw, p_abort);
+#if PFC_DEBUG
+		if (!rv) m_eof = true;
+#endif
+		return rv;
 	}
 
 	void set_logger(event_logger::ptr ptr) {m_instance.set_logger(ptr);}
@@ -369,15 +413,21 @@ public:
 	}
 private:
 	I m_instance;
+
+#if PFC_DEBUG
+	// Report illegal API calls in debug build
+	bool m_eof = false;
+	bool m_decoding = false;
+#endif
 };
 
 //! Helper; standard input_entry implementation. Do not instantiate this directly, use input_factory_t or one of other input_*_factory_t helpers instead.
 template<typename I,unsigned t_flags, typename t_decoder = typename I::interface_decoder_t, typename t_inforeader = typename I::interface_info_reader_t, typename t_infowriter = typename I::interface_info_writer_t>
-class input_entry_impl_t : public input_entry_v3
+class input_entry_impl_t : public input_entry_v4
 {
 public:
-	bool is_our_content_type(const char * p_type) {return I::g_is_our_content_type(p_type);}
-	bool is_our_path(const char * p_full_path,const char * p_extension) {return I::g_is_our_path(p_full_path,p_extension);}
+	bool is_our_content_type(const char * p_type) override {return I::g_is_our_content_type(p_type);}
+	bool is_our_path(const char * p_full_path,const char * p_extension) override {return I::g_is_our_path(p_full_path,p_extension);}
 
     template<typename interface_t, typename outInterace_t, typename ... args_t>
     void open_ex(service_ptr_t<outInterace_t> & p_instance,args_t && ... args)
@@ -387,46 +437,52 @@ public:
         p_instance = temp.get_ptr();
     }
 
-	service_ptr open_v3(const GUID & whatFor, file::ptr hint, const char * path, event_logger::ptr logger, abort_callback & aborter) {
+	service_ptr open_v3(const GUID & whatFor, file::ptr hint, const char * path, event_logger::ptr logger, abort_callback & aborter) override {
 		if ( whatFor == input_decoder::class_guid ) {
-			auto obj = fb2k::service_new< input_impl_interface_wrapper_t<I,t_decoder> > ();
+			auto obj = fb2k::service_new< input_impl_interface_wrapper_t<I, service_multi_inherit<t_decoder, t_inforeader> > > ();
 			if ( logger.is_valid() ) obj->set_logger(logger);
 			obj->open( hint, path, input_open_decode, aborter );
-			return obj;
+			input_decoder_vrequired* p = obj.get_ptr();
+			return p;
 		}
 		if ( whatFor == input_info_reader::class_guid ) {
 			auto obj = fb2k::service_new < input_impl_interface_wrapper_t<I, t_inforeader> >();
 			if (logger.is_valid()) obj->set_logger(logger);
 			obj->open(hint, path, input_open_info_read, aborter);
-			return obj;
+			input_info_reader_vrequired* p = obj.get_ptr();
+			return p;
 		}
 		if ( whatFor == input_info_writer::class_guid ) {
-			auto obj = fb2k::service_new < input_impl_interface_wrapper_t<I, t_infowriter> >();
+			auto obj = fb2k::service_new < input_impl_interface_wrapper_t<I, service_multi_inherit<t_infowriter, t_inforeader> > >();
 			if (logger.is_valid()) obj->set_logger(logger);
 			obj->open(hint, path, input_open_info_write, aborter);
-			return obj;
+			input_info_writer_vrequired* p = obj.get_ptr();
+			return p;
 		}
 		throw pfc::exception_not_implemented();
 	}
 
-	void get_extended_data(service_ptr_t<file> p_filehint,const playable_location & p_location,const GUID & p_guid,mem_block_container & p_out,abort_callback & p_abort) {
+	void get_extended_data(service_ptr_t<file> p_filehint,const playable_location & p_location,const GUID & p_guid,mem_block_container & p_out,abort_callback & p_abort) override {
 		p_out.reset();
 	}
 
-	unsigned get_flags() {return t_flags;}
+	unsigned get_flags() override {return t_flags;}
 
-	GUID get_guid() {
+	GUID get_guid() override {
 		return I::g_get_guid();
 	}
-	const char * get_name() {
+	const char * get_name() override {
 		return I::g_get_name();
 	}
 
-	GUID get_preferences_guid() {
+	GUID get_preferences_guid() override {
 		return I::g_get_preferences_guid();
 	}
-	bool is_low_merit() {
+	bool is_low_merit() override {
 		return I::g_is_low_merit();
+	}
+	bool fallback_is_our_payload(const void* bytes, size_t bytesAvail, t_filesize bytesWhole) override {
+		return I::g_fallback_is_our_payload(bytes, bytesAvail, bytesWhole);
 	}
 };
 
@@ -438,13 +494,3 @@ class input_factory_t : public service_factory_single_t<input_entry_impl_t<T, t_
 //! Non-multitrack-enabled input factory (helper) - hides multitrack management functions from input implementation; use this for inputs that handle file types where each physical file can contain only one user-visible playable track. For reference of functions that must be supported by registered class, see input_singletrack_impl.\n Usage: static input_singletrack_factory_t<myinputclass> g_myinputclass_factory;\n Note that input classes can't be registered through service_factory_t template directly.template<class T>
 template<typename T, unsigned t_flags = 0>
 class input_singletrack_factory_t : public service_factory_single_t<input_entry_impl_t<input_wrapper_singletrack_t<T>,t_flags> > {};
-
-//! Extended version of input_factory_t, with non-default flags and supported interfaces. See: input_factory_t, input_entry::get_flags(). \n
-//! This is obsolete and provided for backwards compatibility. Use interface_decoder_t + interface_info_reader_t + interface_info_writer_t typedefs in your input class to specify supported interfaces.
-template<typename T, unsigned t_flags = 0, typename t_decoder = typename T::interface_decoder_t, typename t_inforeader = typename T::interface_info_reader_t, typename t_infowriter = typename T::interface_info_writer_t>
-class input_factory_ex_t : public service_factory_single_t<input_entry_impl_t<T, t_flags, t_decoder, t_inforeader, t_infowriter> > {};
-
-//! Extended version of input_singletrack_factory_t, with non-default flags and supported interfaces. See: input_singletrack_factory_t, input_entry::get_flags().
-//! This is obsolete and provided for backwards compatibility. Use interface_decoder_t + interface_info_reader_t + interface_info_writer_t typedefs in your input class to specify supported interfaces.
-template<typename T, unsigned t_flags = 0, typename t_decoder = typename T::interface_decoder_t, typename t_inforeader = typename T::interface_info_reader_t, typename t_infowriter = typename T::interface_info_writer_t>
-class input_singletrack_factory_ex_t : public service_factory_single_t<input_entry_impl_t<input_wrapper_singletrack_t<T>, t_flags, t_decoder, t_inforeader, t_infowriter> > {};

@@ -1,29 +1,53 @@
 #pragma once
 
+class preferences_state {
+public:
+    enum {
+        changed = 1,
+        needs_restart = 2,
+        needs_restart_playback = 4,
+        resettable = 8,
+
+        //! \since 1.1
+        //! Indicates that the dialog is currently busy and cannot be applied or cancelled. Do not use without a good reason! \n
+        //! This flag was introduced in 1.1. It will not be respected in earlier foobar2000 versions. It is recommended not to use this flag unless you are absolutely sure that you need it and take appropriate precautions. \n
+        //! Note that this has no power to entirely prevent your preferences page from being destroyed/cancelled as a result of app shutdown if the user dismisses the warnings, but you won't be getting an "apply" call while this is set.
+        busy = 16,
+
+        //! \since 1.4.1
+        needs_rescan_library = 32,
+
+        //! \since 2.0
+        dark_mode_supported = 1 << 16,
+    };
+};
+
 //! Implementing this service will generate a page in preferences dialog. Use preferences_page_factory_t template to register. \n
 //! In 1.0 and newer you should always derive from preferences_page_v3 rather than from preferences_page directly.
 class NOVTABLE preferences_page : public service_base {
 public:
 	//! Obsolete.
-	virtual HWND create(HWND p_parent) = 0;
-	//! Retrieves name of the prefernces page to be displayed in preferences tree (static string).
+    virtual fb2k::hwnd_t create(fb2k::hwnd_t p_parent) { uBugCheck(); }
+	//! Retrieves name of the preferences page to be displayed in preferences tree (static string).
 	virtual const char * get_name() = 0;
 	//! Retrieves GUID of the page.
 	virtual GUID get_guid() = 0;
 	//! Retrieves GUID of parent page/branch of this page. See preferences_page::guid_* constants for list of standard parent GUIDs. Can also be a GUID of another page or a branch (see: preferences_branch).
 	virtual GUID get_parent_guid() = 0;
 	//! Obsolete.
-	virtual bool reset_query() = 0;
+    virtual bool reset_query() { return false; }
 	//! Obsolete.
-	virtual void reset() = 0;
+    virtual void reset() {}
 	//! Retrieves help URL. Without overriding it, it will redirect to foobar2000 wiki.
 	virtual bool get_help_url(pfc::string_base & p_out);
 
 	static void get_help_url_helper(pfc::string_base & out, const char * category, const GUID & id, const char * name);
 	
-	static const GUID guid_root, guid_hidden, guid_tools,guid_core,guid_display,guid_playback,guid_visualisations,guid_input,guid_tag_writing,guid_media_library, guid_tagging, guid_output, guid_advanced, guid_components;
+	static const GUID guid_root, guid_hidden, guid_tools,guid_core,guid_display,guid_playback,guid_visualisations,guid_input,guid_tag_writing,guid_media_library, guid_tagging, guid_output, guid_advanced, guid_components, guid_dsp, guid_shell, guid_keyboard_shortcuts;
 	//! \since 1.5
 	static const GUID guid_input_info_filter;
+    
+    double get_sort_priority_();
 
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(preferences_page);
 };
@@ -84,30 +108,6 @@ public:
 };
 
 
-
-
-class preferences_state {
-public:
-	enum {
-		changed = 1,
-		needs_restart = 2,
-		needs_restart_playback = 4,
-		resettable = 8,
-
-		//! \since 1.1
-		//! Indicates that the dialog is currently busy and cannot be applied or cancelled. Do not use without a good reason! \n
-		//! This flag was introduced in 1.1. It will not be respected in earlier foobar2000 versions. It is recommended not to use this flag unless you are absolutely sure that you need it and take appropriate precautions. \n
-		//! Note that this has no power to entirely prevent your preferences page from being destroyed/cancelled as a result of app shutdown if the user dismisses the warnings, but you won't be getting an "apply" call while this is set.
-		busy = 16,
-
-		//! \since 1.4.1
-		needs_rescan_library = 32,
-
-        //! \since 2.0
-        dark_mode_supported = 1 << 16,
-	};
-};
-
 class preferences_page_callback : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE(preferences_page_callback, service_base)
 public:
@@ -126,7 +126,7 @@ public:
 	//! @returns a combination of preferences_state constants.
 	virtual t_uint32 get_state() = 0;
 	//! @returns the window handle.
-	virtual HWND get_wnd() = 0;
+	virtual fb2k::hwnd_t get_wnd() = 0;
 	//! Applies preferences changes.
 	virtual void apply() = 0;
 	//! Resets this page's content to the default values. Does not apply any changes - lets user preview the changes before hitting "apply".
@@ -138,16 +138,12 @@ public:
 class preferences_page_v3 : public preferences_page_v2 {
 	FB2K_MAKE_SERVICE_INTERFACE(preferences_page_v3, preferences_page_v2)
 public:
-	virtual preferences_page_instance::ptr instantiate(HWND parent, preferences_page_callback::ptr callback) = 0;
-private:
-	HWND create(HWND) {throw pfc::exception_not_implemented();} //stub
-	bool reset_query() {return false;} //stub - the new apply-friendly reset should be used instead.
-	void reset() {} //stub
+	virtual preferences_page_instance::ptr instantiate(fb2k::hwnd_t parent, preferences_page_callback::ptr callback) = 0;
 };
 
 //! \since 1.5
 class NOVTABLE preferences_page_v4 : public preferences_page_v3 {
 	FB2K_MAKE_SERVICE_INTERFACE(preferences_page_v4, preferences_page_v3);
 public:
-	virtual bool is_hidden() = 0;
+    virtual bool is_hidden() { return false; }
 };

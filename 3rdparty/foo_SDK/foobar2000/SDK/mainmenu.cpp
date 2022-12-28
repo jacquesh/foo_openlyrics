@@ -1,4 +1,5 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "menu_helpers.h"
 
 bool mainmenu_commands::g_execute_dynamic(const GUID & p_guid, const GUID & p_subGuid,service_ptr_t<service_base> p_callback) {
 	mainmenu_commands::ptr ptr; t_uint32 index;
@@ -16,10 +17,8 @@ bool mainmenu_commands::g_execute(const GUID & p_guid,service_ptr_t<service_base
 }
 
 bool mainmenu_commands::g_find_by_name(const char * p_name,GUID & p_guid) {
-	service_enum_t<mainmenu_commands> e;
-	service_ptr_t<mainmenu_commands> ptr;
 	pfc::string8_fastalloc temp;
-	while(e.next(ptr)) {
+	for( auto ptr : enumerate() ) {
 		const t_uint32 count = ptr->get_command_count();
 		for(t_uint32 n=0;n<count;n++) {
 			ptr->get_name(n,temp);
@@ -52,6 +51,14 @@ static bool dynamic_execute_recur(mainmenu_node::ptr node, const GUID & subID, s
 	}
 	return false;
 }
+
+bool mainmenu_commands_v2::is_command_dynamic(t_uint32 index) {
+	(void)index; return false;
+}
+mainmenu_node::ptr mainmenu_commands_v2::dynamic_instantiate(t_uint32 index) {
+	(void)index; uBugCheck();
+}
+
 bool mainmenu_commands_v2::dynamic_execute(t_uint32 index, const GUID & subID, service_ptr_t<service_base> callback) {
 	return dynamic_execute_recur(dynamic_instantiate(index), subID, callback);
 }

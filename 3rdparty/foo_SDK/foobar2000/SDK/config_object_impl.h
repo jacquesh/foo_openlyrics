@@ -1,6 +1,7 @@
-#ifndef _CONFIG_OBJECT_IMPL_H_
-#define _CONFIG_OBJECT_IMPL_H_
+#pragma once
 
+#include "config_object.h"
+#include "cfg_var_legacy.h"
 //template function bodies from config_object class
 
 template<class T>
@@ -27,130 +28,55 @@ void config_object::g_set_data_struct_t(const GUID & p_guid,const T & p_in) {
 	return ptr->set_data_struct_t<T>(p_in);
 }
 
-
-class config_object_impl : public config_object, private cfg_var
+#if FOOBAR2020
+class config_object_impl : public config_object, private cfg_var_legacy::cfg_var_reader
 {
 public:
-	GUID get_guid() const {return cfg_var::get_guid();}
-	void get_data(stream_writer * p_stream,abort_callback & p_abort) const;
-	void set_data(stream_reader * p_stream,abort_callback & p_abort,bool p_notify);
+	GUID get_guid() const override {return cfg_var_reader::m_guid;}
+	void get_data(stream_writer * p_stream,abort_callback & p_abort) const override;
+	void set_data(stream_reader * p_stream,abort_callback & p_abort,bool p_notify) override;
 
 	config_object_impl(const GUID & p_guid,const void * p_data,t_size p_bytes);
 private:
+#ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
+	void set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) override {set_data(p_stream,p_abort,false);}
+#endif
+
+	pfc::string8 formatName() const;
+	
+	fb2k::memBlockRef m_initial;
+};
+#else
+class config_object_impl : public config_object, private cfg_var_legacy::cfg_var
+{
+public:
+	GUID get_guid() const { return cfg_var::get_guid(); }
+	void get_data(stream_writer* p_stream, abort_callback& p_abort) const;
+	void set_data(stream_reader* p_stream, abort_callback& p_abort, bool p_notify);
+
+	config_object_impl(const GUID& p_guid, const void* p_data, t_size p_bytes);
+private:
 
 	//cfg_var methods
-	void get_data_raw(stream_writer * p_stream,abort_callback & p_abort) {get_data(p_stream,p_abort);}
-	void set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {set_data(p_stream,p_abort,false);}
+	void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) { get_data(p_stream, p_abort); }
+	void set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) { set_data(p_stream, p_abort, false); }
 
 	mutable pfc::readWriteLock m_sync;
-	pfc::array_t<t_uint8> m_data;	
+	pfc::array_t<t_uint8> m_data;
 };
+#endif
 
 typedef service_factory_single_transparent_t<config_object_impl> config_object_factory;
 
-template<t_size p_size>
-class config_object_fixed_const_impl_t : public config_object {
+class config_object_bool_factory : public config_object_factory {
 public:
-	config_object_fixed_const_impl_t(const GUID & p_guid, const void * p_data) : m_guid(p_guid) {memcpy(m_data,p_data,p_size);}
-	GUID get_guid() const {return m_guid;}
-
-	void get_data(stream_writer * p_stream, abort_callback & p_abort) const { p_stream->write_object(m_data,p_size,p_abort); }
-	void set_data(stream_reader * p_stream, abort_callback & p_abort, bool p_notify) { PFC_ASSERT(!"Should not get here."); }
-
-private:
-	t_uint8 m_data[p_size];
-	const GUID m_guid;
+	config_object_bool_factory(const GUID& id, bool def) : config_object_factory(id, &def, 1) {}
 };
 
-template<t_size p_size>
-class config_object_fixed_impl_t : public config_object, private cfg_var {
+class config_object_string_factory : public config_object_factory {
 public:
-	GUID get_guid() const {return cfg_var::get_guid();}
-	
-	void get_data(stream_writer * p_stream,abort_callback & p_abort) const {
-		inReadSync(m_sync);
-		p_stream->write_object(m_data,p_size,p_abort);
-	}
-
-	void set_data(stream_reader * p_stream,abort_callback & p_abort,bool p_notify) {
-		core_api::ensure_main_thread();
-		
-		{
-			t_uint8 temp[p_size];
-			p_stream->read_object(temp,p_size,p_abort);
-			inWriteSync(m_sync);
-			memcpy(m_data,temp,p_size);
-		}
-
-		if (p_notify) config_object_notify_manager::g_on_changed(this);
-	}
-
-	config_object_fixed_impl_t (const GUID & p_guid,const void * p_data)
-		: cfg_var(p_guid)
-	{
-		memcpy(m_data,p_data,p_size);
-	}
-
-private:
-	//cfg_var methods
-	void get_data_raw(stream_writer * p_stream,abort_callback & p_abort) {get_data(p_stream,p_abort);}
-	void set_data_raw(stream_reader * p_stream,t_size p_sizehint,abort_callback & p_abort) {set_data(p_stream,p_abort,false);}
-
-	mutable pfc::readWriteLock m_sync;
-	t_uint8 m_data[p_size];
-	
+	config_object_string_factory(const GUID& id, const char * def) : config_object_factory(id, def, strlen(def)) {}
 };
-
-template<t_size p_size, bool isConst> class _config_object_fixed_impl_switch;
-template<t_size p_size> class _config_object_fixed_impl_switch<p_size,false> { public: typedef config_object_fixed_impl_t<p_size> type; };
-template<t_size p_size> class _config_object_fixed_impl_switch<p_size,true> { public: typedef config_object_fixed_const_impl_t<p_size> type; };
-
-template<t_size p_size, bool isConst = false>
-class config_object_fixed_factory_t : public service_factory_single_transparent_t< typename _config_object_fixed_impl_switch<p_size,isConst>::type >
-{
-public:
-	config_object_fixed_factory_t(const GUID & p_guid,const void * p_initval)
-		:
-		service_factory_single_transparent_t< typename _config_object_fixed_impl_switch<p_size,isConst>::type >
-		(p_guid,p_initval)
-	{}
-};
-
-
-class config_object_string_factory : public config_object_factory
-{
-public:
-	config_object_string_factory(const GUID & p_guid,const char * p_string,t_size p_string_length = ~0)
-		: config_object_factory(p_guid,p_string,pfc::strlen_max(p_string,~0)) {}
-
-};
-
-template<bool isConst = false>
-class config_object_bool_factory_t : public config_object_fixed_factory_t<1,isConst> {
-public:
-	config_object_bool_factory_t(const GUID & p_guid,bool p_initval)
-		: config_object_fixed_factory_t<1,isConst>(p_guid,&p_initval) {}
-};
-typedef config_object_bool_factory_t<> config_object_bool_factory;
-
-template<class T,bool isConst = false>
-class config_object_int_factory_t : public config_object_fixed_factory_t<sizeof(T),isConst>
-{
-private:
-	struct t_initval
-	{
-		T m_initval;
-		t_initval(T p_initval) : m_initval(p_initval) {byte_order::order_native_to_le_t(m_initval);}
-		T * get_ptr() {return &m_initval;}
-	};
-public:
-	config_object_int_factory_t(const GUID & p_guid,T p_initval)
-		: config_object_fixed_factory_t<sizeof(T)>(p_guid,t_initval(p_initval).get_ptr() )
-	{}
-};
-
-typedef config_object_int_factory_t<t_int32> config_object_int32_factory;
-
 
 
 class config_object_notify_impl_simple : public config_object_notify
@@ -169,5 +95,3 @@ private:
 };
 
 typedef service_factory_single_transparent_t<config_object_notify_impl_simple> config_object_notify_simple_factory;
-
-#endif //_CONFIG_OBJECT_IMPL_H_

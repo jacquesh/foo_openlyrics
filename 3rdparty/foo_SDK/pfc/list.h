@@ -64,6 +64,7 @@ public:
 	virtual void get_item_ex(T& p_out, t_size n) const = 0;
 
 	inline t_size get_size() const {return get_count();}
+	inline size_t size() const { return get_count(); }
 
 	inline T get_item(t_size n) const {T temp; get_item_ex(temp,n); return temp;}
 	inline T operator[](t_size n) const {T temp; get_item_ex(temp,n); return temp;}
@@ -427,6 +428,7 @@ public:
 
 	inline t_size get_count() const {return m_buffer.get_size();}
 	inline t_size get_size() const {return m_buffer.get_size();}
+	inline size_t size() const { return m_buffer.get_size(); }
 
 	inline const T & operator[](t_size n) const
 	{

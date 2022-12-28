@@ -1,6 +1,8 @@
 #pragma once
-//! Provides interface to decode various audio data types to PCM. Use packet_decoder_factory_t template to register.
+#include "event_logger.h"
+#include "audio_chunk.h"
 
+//! Provides interface to decode various audio data types to PCM. Use packet_decoder_factory_t template to register.
 class NOVTABLE packet_decoder : public service_base {
 protected:
 	//! Prototype of function that must be implemented by packet_decoder implementation but is not accessible through packet_decoder interface itself.
@@ -49,7 +51,7 @@ public:
 	//! Static helper, creates a packet_decoder instance and initializes it with specific decoder setup data.
 	static void g_open(service_ptr_t<packet_decoder> & p_out,bool p_decode,const GUID & p_owner,t_size p_param1,const void * p_param2,t_size p_param2size,abort_callback & p_abort);
 
-    static const GUID owner_MP4,owner_matroska,owner_MP3,owner_MP2,owner_MP1,owner_MP4_ALAC,owner_ADTS,owner_ADIF, owner_Ogg, owner_MP4_AMR, owner_MP4_AMR_WB, owner_MP4_AC3, owner_MP4_EAC3, owner_MP4_FLAC;
+    static const GUID owner_MP4,owner_matroska,owner_MP3,owner_MP2,owner_MP1,owner_MP4_ALAC,owner_ADTS,owner_ADIF, owner_Ogg, owner_MP4_AMR, owner_MP4_AMR_WB, owner_MP4_AC3, owner_MP4_EAC3, owner_MP4_FLAC, owner_MP4_Opus;
 
 	struct matroska_setup
 	{
@@ -98,10 +100,6 @@ public:
 	// Param1 signals sample rate used by input - should always match decoder's sample rate - return zero if it does not match.
 	static const GUID property_query_delay_samples;
     
-	// property_query_mp4_use_elst :
-	// Return non-zero if MP4 elst should be used with this codec.
-	static const GUID property_query_mp4_use_elst;
-
 	size_t initPadding();
 	void setEventLogger(event_logger::ptr logger);
 	void setCheckingIntegrity(bool checkingIntegrity);

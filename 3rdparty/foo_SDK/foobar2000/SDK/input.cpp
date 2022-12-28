@@ -1,10 +1,7 @@
-#include "foobar2000.h" // PCH
-#ifdef FOOBAR2000_MODERN
-#include "foobar2000-input.h"
-#include <pfc/list.h>
-#include <pfc/timers.h>
-#endif
+#include "foobar2000-sdk-pch.h"
 #include <exception>
+#include "input.h"
+#include "input_impl.h"
 #include "album_art.h"
 #include "file_info_impl.h"
 
@@ -15,11 +12,9 @@ service_ptr input_entry::open(const GUID & whatFor, file::ptr hint, const char *
 		input_entry_v2::ptr v2;
 		if ( v2 &= this ) {
 			GUID g = v2->get_guid();
-			service_enum_t<input_stream_info_reader_entry> e;
-			service_ptr_t<input_stream_info_reader_entry> p;
-			while (e.next(p)) {
+			for (auto p : input_stream_info_reader_entry::enumerate()) {
 				if (p->get_guid() == g) {
-					return p->open( path, hint, aborter );
+					return p->open(path, hint, aborter);
 				}
 			}
 		}
@@ -30,11 +25,9 @@ service_ptr input_entry::open(const GUID & whatFor, file::ptr hint, const char *
 		input_entry_v2::ptr v2;
 		if (v2 &= this) {
 			GUID g = v2->get_guid();
-			service_enum_t<album_art_extractor> e;
-			album_art_extractor_v2::ptr p;
-			while( e.next(p) ) {
-				if ( p->get_guid() == g ) {
-					return p->open( hint, path, aborter );
+			for (auto p : album_art_extractor::enumerate()) {
+				if (p->get_guid() == g) {
+					return p->open(hint, path, aborter);
 				}
 			}
 		}
@@ -44,11 +37,9 @@ service_ptr input_entry::open(const GUID & whatFor, file::ptr hint, const char *
 		input_entry_v2::ptr v2;
 		if (v2 &= this) {
 			GUID g = v2->get_guid();
-			service_enum_t<album_art_editor> e;
-			album_art_editor_v2::ptr p;
-			while( e.next(p) ) {
-				if ( p->get_guid() == g ) {
-					return p->open( hint, path, aborter );
+			for (auto p : album_art_editor::enumerate()) {
+				if (p->get_guid() == g) {
+					return p->open(hint, path, aborter);
 				}
 			}
 		}
@@ -92,12 +83,8 @@ bool input_entry::g_find_service_by_path(service_ptr_t<input_entry> & p_out,cons
 
 bool input_entry::g_find_service_by_path(service_ptr_t<input_entry> & p_out,const char * p_path, const char * p_ext)
 {
-	service_ptr_t<input_entry> ptr;
-	service_enum_t<input_entry> e;
-	while(e.next(ptr))
-	{
-		if (ptr->is_our_path(p_path,p_ext))
-		{
+	for (auto ptr : enumerate()) {
+		if (ptr->is_our_path(p_path,p_ext)) {
 			p_out = ptr;
 			return true;
 		}
@@ -107,12 +94,8 @@ bool input_entry::g_find_service_by_path(service_ptr_t<input_entry> & p_out,cons
 
 bool input_entry::g_find_service_by_content_type(service_ptr_t<input_entry> & p_out,const char * p_content_type)
 {
-	service_ptr_t<input_entry> ptr;
-	service_enum_t<input_entry> e;
-	while(e.next(ptr))
-	{
-		if (ptr->is_our_content_type(p_content_type))
-		{
+	for (auto ptr : enumerate()) {
+		if (ptr->is_our_content_type(p_content_type)) {
 			p_out = ptr;
 			return true;
 		}
@@ -169,11 +152,9 @@ bool input_entry::g_find_inputs_by_path(pfc::list_base_t<service_ptr_t<input_ent
 }
 
 bool input_entry::g_find_inputs_by_content_type_ex(pfc::list_base_t<service_ptr_t<input_entry> > & p_out, const char * p_content_type, input_filter_t filter ) {
-	service_enum_t<input_entry> e;
-	service_ptr_t<input_entry> ptr;
 	bool ret = false;
-	while (e.next(ptr)) {
-		if ( filter(ptr) ) {
+	for (auto ptr : enumerate()) {
+		if (filter(ptr)) {
 			if (ptr->is_our_content_type(p_content_type)) { p_out.add_item(ptr); ret = true; }
 		}
 	}
@@ -181,11 +162,9 @@ bool input_entry::g_find_inputs_by_content_type_ex(pfc::list_base_t<service_ptr_
 }
 
 bool input_entry::g_find_inputs_by_path_ex(pfc::list_base_t<service_ptr_t<input_entry> > & p_out, const char * p_path, input_filter_t filter ) {
-	service_enum_t<input_entry> e;
-	service_ptr_t<input_entry> ptr;
 	auto extension = pfc::string_extension(p_path);
 	bool ret = false;
-	while (e.next(ptr)) {
+	for( auto ptr : enumerate()) {
 		GUID guid = pfc::guid_null;
 		input_entry_v3::ptr ex;
 		if ( ex &= ptr ) guid = ex->get_guid();
@@ -264,26 +243,8 @@ service_ptr input_manager::open_v2(const GUID & whatFor, file::ptr hint, const c
 service_ptr input_entry::g_open(const GUID & whatFor, file::ptr p_filehint, const char * p_path, event_logger::ptr logger, abort_callback & p_abort, bool p_from_redirect) {
 
 #ifdef FOOBAR2000_DESKTOP
-
-	// #define rationale: not all FOOBAR2000_MODERN flavours come with input_manager implementation, but classic 1.4+ does
-#if !defined(FOOBAR2000_MODERN) && FOOBAR2000_TARGET_VERSION >= 79
-
-#if FOOBAR2000_TARGET_VERSION > 79
 	return input_manager_v2::get()->open_v2(whatFor, p_filehint, p_path, p_from_redirect, logger, p_abort);
-#else
-	return input_manager::get()->open_v2(whatFor, p_filehint, p_path, p_from_redirect, logger, p_abort);
-#endif
-
-#endif
-	{
-		input_manager::ptr m;
-		service_enum_t<input_manager> e;
-		if (e.next(m)) {
-			return m->open_v2(whatFor, p_filehint, p_path, p_from_redirect, logger, p_abort);
-		}
-	}
-#endif
-
+#else // FOOBAR2000_DESKTOP or not
 	const bool needWriteAcecss = !!(whatFor == input_info_writer::class_guid);
 
 	service_ptr_t<file> l_file = p_filehint;
@@ -326,6 +287,7 @@ service_ptr input_entry::g_open(const GUID & whatFor, file::ptr p_filehint, cons
 	}
 
 	throw exception_io_unsupported_format();
+#endif // not FOOBAR2000_DESKTOP
 }
 
 void input_entry::g_open_for_decoding(service_ptr_t<input_decoder> & p_instance,service_ptr_t<file> p_filehint,const char * p_path,abort_callback & p_abort,bool p_from_redirect) {
@@ -359,11 +321,8 @@ void input_entry::g_open_for_info_write_timeout(service_ptr_t<input_info_writer>
 
 bool input_entry::g_is_supported_path(const char * p_path)
 {
-	service_ptr_t<input_entry> ptr;
-	service_enum_t<input_entry> e;
 	auto ext = pfc::string_extension (p_path);
-	while(e.next(ptr))
-	{
+	for( auto ptr : enumerate() ) {
 		if (ptr->is_our_path(p_path,ext)) return true;
 	}
 	return false;
@@ -447,4 +406,26 @@ void input_info_writer::remove_tags_fallback(abort_callback & abort) {
 		this->set_info( this->get_subsong(walk), blank, abort );
 	}
 	this->commit( abort );
+}
+
+t_filestats input_info_reader_v2::get_file_stats(abort_callback& a) {
+	return this->get_stats2(stats2_size | stats2_timestamp, a).to_legacy();
+}
+
+t_filestats2 input_info_reader::get_stats2_(const char* fallbackPath, uint32_t f, abort_callback& a) {
+	t_filestats2 ret;
+	input_info_reader_v2::ptr v2;
+	if (v2 &= this) {
+		ret = v2->get_stats2(f, a);
+	} else if ((f & ~stats2_legacy) == 0) {
+		t_filestats subset = this->get_file_stats(a);
+		ret.m_size = subset.m_size;
+		ret.m_timestamp = subset.m_timestamp;
+	} else {
+		try {
+			auto fs = filesystem::tryGet(fallbackPath);
+			if (fs.is_valid()) ret = fs->get_stats2_(fallbackPath, f, a);
+		} catch (exception_io) {}
+	}
+	return ret;
 }

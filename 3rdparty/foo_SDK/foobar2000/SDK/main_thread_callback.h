@@ -1,18 +1,7 @@
 #pragma once
 #include <functional>
 
-// ======================================================================================================
-// Most of main_thread_callback.h declares API internals and obsolete helpers.
-// In modern code, simply use fb2k::inMainThread() declared below and disregard the rest.
-// ======================================================================================================
-namespace fb2k {
-	//! Queue a call in main thread. Returns immediately. \n
-	//! You can call this from any thread, including main thread - to execute some code outside the current call stack / global fb2k callbacks / etc.
-	void inMainThread(std::function<void() > f);
-	//! Call f synchronously if called from main thread, queue call if called from another.
-	void inMainThread2(std::function<void() > f);
-}
-
+// fb2k::inMainThread moved to threadsLite.h
 
 
 

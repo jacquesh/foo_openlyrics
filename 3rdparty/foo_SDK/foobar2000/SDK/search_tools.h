@@ -1,4 +1,7 @@
-//! Instance of a search filter object. New in 0.9.5. \n
+#pragma once
+
+//! \since 0.9.5
+//! Instance of a search filter object. \n
 //! This object contains a preprocessed search query; used to perform filtering similar to Media Library Search or Album List's "filter" box. \n
 //! Use search_filter_manager API to instantiate search_filter objects.
 class search_filter : public service_base {
@@ -16,7 +19,7 @@ public:
 	FB2K_MAKE_SERVICE_INTERFACE(search_filter,service_base);
 };
 
-//! New in 0.9.5.3. You can obtain a search_filter_v2 pointer by using service_query() on a search_filter pointer, or from search_filter_manager_v2::create_ex().
+//! \since 0.9.5.3
 class search_filter_v2 : public search_filter {
 public:
 	virtual bool get_sort_pattern(titleformat_object::ptr & out, int & direction) = 0;
@@ -30,7 +33,7 @@ public:
 	FB2K_MAKE_SERVICE_INTERFACE(search_filter_v2, search_filter)
 };
 
-//! New in 0.9.5.4. You can obtain a search_filter_v2 pointer by using service_query() on a search_filter/search_filter_v2 pointer.
+//! \since 0.9.5.4
 class search_filter_v3 : public search_filter_v2 {
 public:
 	//! Returns whether the sort pattern returned by get_sort_pattern() was set by the user explicitly using "SORT BY" syntax or whether it was determined implicitly from some other part of the query. It's recommended to use this to determine whether to create a force-sorted autoplaylist or not.
@@ -39,19 +42,33 @@ public:
 	FB2K_MAKE_SERVICE_INTERFACE(search_filter_v3, search_filter_v2)
 };
 
-//! Entrypoint class to instantiate search_filter objects. New in 0.9.5.
+//! \since 2.0
+class search_filter_v4 : public search_filter_v3 {
+public:
+	enum {
+		flag_sort = 1 << 0,
+	};
+	virtual void test_v4(metadb_handle_list_cref items, metadb_io_callback_v2_data* dataIfAvail, bool* out, abort_callback& abort) = 0;
+	
+	virtual fb2k::arrayRef /* of metadb_handle */ search_v4(metadb_handle_list_cref lst, uint32_t flags, metadb_io_callback_v2_data * dataIfAvail, abort_callback& a) = 0;
+
+	FB2K_MAKE_SERVICE_INTERFACE(search_filter_v4, search_filter_v3);
+};
+
+//! \since 0.9.5
+//! Entrypoint class to instantiate search_filter objects.
 class search_filter_manager : public service_base {
 public:
 	//! Creates a search_filter object. Throws an exception on failure (such as an error in the query). It's recommended that you relay the exception message to the user if this function fails.
 	virtual search_filter::ptr create(const char * p_query) = 0;
 
-	//! Obsolete, do not call.
+	//! OBSOLETE, DO NOT CALL
 	virtual void get_manual(pfc::string_base & p_out) = 0;
 
 	FB2K_MAKE_SERVICE_COREAPI(search_filter_manager);
 };
 
-//! New in 0.9.5.3.
+//! \since 0.9.5.3.
 class search_filter_manager_v2 : public search_filter_manager {
 public:
 	enum {
@@ -66,4 +83,17 @@ public:
 	virtual void show_manual() = 0;
 
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(search_filter_manager_v2, search_filter_manager);
+};
+
+//! \since 2.0
+class search_filter_manager_v3 : public search_filter_manager_v2 {
+    FB2K_MAKE_SERVICE_COREAPI_EXTENSION(search_filter_manager_v3, search_filter_manager_v2);
+public:
+    enum combine_t {
+        combine_and,
+        combine_or
+    };
+	//! Combine multiple search filters into one, using the specified logical operation. \n
+	//! This method INVALIDATES passed objects. Do not try to use them afterwards.
+    virtual search_filter_v4::ptr combine(pfc::list_base_const_t<search_filter::ptr> const & arg, combine_t how, completion_notify::ptr changeNotify, t_uint32 flags) = 0;
 };

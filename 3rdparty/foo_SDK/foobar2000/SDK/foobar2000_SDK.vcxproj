@@ -5,6 +5,10 @@
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64EC">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64EC</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
@@ -16,6 +20,10 @@
     <ProjectConfiguration Include="Release|ARM64">
       <Configuration>Release</Configuration>
       <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64EC">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64EC</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -53,6 +61,13 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
@@ -71,6 +86,12 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -83,6 +104,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -90,6 +114,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -101,14 +128,15 @@
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>foobar2000.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
@@ -124,14 +152,15 @@
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>foobar2000.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
@@ -147,14 +176,39 @@
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>foobar2000.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Lib>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
@@ -173,7 +227,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>foobar2000.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -184,7 +238,8 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
@@ -203,7 +258,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>foobar2000.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -214,7 +269,8 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
@@ -233,7 +289,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>foobar2000.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -244,7 +300,39 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Lib>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">
+    <ClCompile>
+      <Optimization>MinSpace</Optimization>
+      <StringPooling>true</StringPooling>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>foobar2000-sdk-pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalOptions>/d2notypeopt %(AdditionalOptions)</AdditionalOptions>
+      <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>true</OmitFramePointers>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
@@ -258,6 +346,7 @@
   <ItemGroup>
     <ClInclude Include="abort_callback.h" />
     <ClInclude Include="advconfig.h" />
+    <ClInclude Include="advconfig_impl.h" />
     <ClInclude Include="album_art.h" />
     <ClInclude Include="album_art_helpers.h" />
     <ClInclude Include="app_close_blocker.h" />
@@ -267,18 +356,23 @@
     <ClInclude Include="audio_postprocessor.h" />
     <ClInclude Include="autoplaylist.h" />
     <ClInclude Include="cfg_var.h" />
+    <ClInclude Include="cfg_var_legacy.h" />
     <ClInclude Include="chapterizer.h" />
     <ClInclude Include="commandline.h" />
     <ClInclude Include="commonObjects.h" />
     <ClInclude Include="completion_notify.h" />
     <ClInclude Include="component.h" />
     <ClInclude Include="componentversion.h" />
+    <ClInclude Include="configCache.h" />
+    <ClInclude Include="configStore.h" />
     <ClInclude Include="config_io_callback.h" />
     <ClInclude Include="config_object.h" />
     <ClInclude Include="config_object_impl.h" />
     <ClInclude Include="console.h" />
+    <ClInclude Include="console_manager.h" />
     <ClInclude Include="contextmenu.h" />
     <ClInclude Include="contextmenu_manager.h" />
+    <ClInclude Include="coreDarkMode.h" />
     <ClInclude Include="core_api.h" />
     <ClInclude Include="coreversion.h" />
     <ClInclude Include="decode_postprocessor.h" />
@@ -288,9 +382,11 @@
     <ClInclude Include="exceptions.h" />
     <ClInclude Include="exception_io.h" />
     <ClInclude Include="file.h" />
+    <ClInclude Include="fileDialog.h" />
     <ClInclude Include="filesystem_transacted.h" />
     <ClInclude Include="file_format_sanitizer.h" />
     <ClInclude Include="file_info.h" />
+    <ClInclude Include="file_info_const_impl.h" />
     <ClInclude Include="file_info_filter.h" />
     <ClInclude Include="file_info_filter_impl.h" />
     <ClInclude Include="file_info_impl.h" />
@@ -298,15 +394,22 @@
     <ClInclude Include="file_operation_callback.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="filesystem_helper.h" />
-    <ClInclude Include="foobar2000-dsp.h" />
+    <ClInclude Include="foobar2000-all.h" />
+    <ClInclude Include="foobar2000-lite.h" />
     <ClInclude Include="foobar2000-pfc.h" />
+    <ClInclude Include="foobar2000-sdk-pch.h" />
+    <ClInclude Include="foobar2000-versions.h" />
     <ClInclude Include="foobar2000-winver.h" />
     <ClInclude Include="foobar2000.h" />
     <ClInclude Include="foosort.h" />
+    <ClInclude Include="foosortstring.h" />
+    <ClInclude Include="forward_types.h" />
+    <ClInclude Include="fsitem.h" />
     <ClInclude Include="genrand.h" />
     <ClInclude Include="hasher_md5.h" />
     <ClInclude Include="http_client.h" />
     <ClInclude Include="icon_remap.h" />
+    <ClInclude Include="image.h" />
     <ClInclude Include="imageLoaderLite.h" />
     <ClInclude Include="imageViewer.h" />
     <ClInclude Include="info_lookup_handler.h" />
@@ -314,23 +417,29 @@
     <ClInclude Include="input.h" />
     <ClInclude Include="input_file_type.h" />
     <ClInclude Include="input_impl.h" />
+    <ClInclude Include="library_callbacks.h" />
+    <ClInclude Include="library_index.h" />
     <ClInclude Include="library_manager.h" />
     <ClInclude Include="link_resolver.h" />
     <ClInclude Include="main_thread_callback.h" />
     <ClInclude Include="mem_block_container.h" />
     <ClInclude Include="menu.h" />
+    <ClInclude Include="menu_common.h" />
     <ClInclude Include="menu_helpers.h" />
+    <ClInclude Include="messageBox.h" />
     <ClInclude Include="message_loop.h" />
     <ClInclude Include="metadb.h" />
     <ClInclude Include="metadb_callbacks.h" />
     <ClInclude Include="metadb_display_field_provider.h" />
     <ClInclude Include="metadb_handle.h" />
     <ClInclude Include="metadb_index.h" />
+    <ClInclude Include="metadb_info_container_impl.h" />
     <ClInclude Include="modeless_dialog.h" />
     <ClInclude Include="noInfo.h" />
     <ClInclude Include="ole_interaction.h" />
     <ClInclude Include="output.h" />
     <ClInclude Include="packet_decoder.h" />
+    <ClInclude Include="playlistColumnProvider.h" />
     <ClInclude Include="play_callback.h" />
     <ClInclude Include="playable_location.h" />
     <ClInclude Include="playback_control.h" />
@@ -338,6 +447,7 @@
     <ClInclude Include="playlist.h" />
     <ClInclude Include="playlist_loader.h" />
     <ClInclude Include="popup_message.h" />
+    <ClInclude Include="powerManager.h" />
     <ClInclude Include="preferences_page.h" />
     <ClInclude Include="progress_meter.h" />
     <ClInclude Include="replaygain.h" />
@@ -351,7 +461,11 @@
     <ClInclude Include="system_time_keeper.h" />
     <ClInclude Include="tag_processor.h" />
     <ClInclude Include="threaded_process.h" />
+    <ClInclude Include="threadPool.h" />
+    <ClInclude Include="threadsLite.h" />
+    <ClInclude Include="timer.h" />
     <ClInclude Include="titleformat.h" />
+    <ClInclude Include="toolbarDropDown.h" />
     <ClInclude Include="tracks.h" />
     <ClInclude Include="track_property.h" />
     <ClInclude Include="ui.h" />
@@ -369,10 +483,13 @@
     <ClCompile Include="audio_chunk.cpp" />
     <ClCompile Include="audio_chunk_channel_config.cpp" />
     <ClCompile Include="cfg_var.cpp" />
+    <ClCompile Include="cfg_var_legacy.cpp" />
     <ClCompile Include="chapterizer.cpp" />
     <ClCompile Include="commandline.cpp" />
+    <ClCompile Include="commonObjects.cpp" />
     <ClCompile Include="completion_notify.cpp" />
     <ClCompile Include="componentversion.cpp" />
+    <ClCompile Include="configStore.cpp" />
     <ClCompile Include="config_io_callback.cpp" />
     <ClCompile Include="config_object.cpp" />
     <ClCompile Include="console.cpp">
@@ -384,6 +501,7 @@
     <ClCompile Include="file_cached_impl.cpp" />
     <ClCompile Include="file_info.cpp">
     </ClCompile>
+    <ClCompile Include="file_info_const_impl.cpp" />
     <ClCompile Include="file_info_impl.cpp">
     </ClCompile>
     <ClCompile Include="file_info_merge.cpp">
@@ -395,10 +513,13 @@
     <ClCompile Include="filesystem_helper.cpp">
     </ClCompile>
     <ClCompile Include="foosort.cpp" />
+    <ClCompile Include="foosortstring.cpp" />
+    <ClCompile Include="fsItem.cpp" />
     <ClCompile Include="guids.cpp">
     </ClCompile>
     <ClCompile Include="hasher_md5.cpp">
     </ClCompile>
+    <ClCompile Include="image.cpp" />
     <ClCompile Include="input.cpp">
     </ClCompile>
     <ClCompile Include="input_file_type.cpp" />
@@ -442,9 +563,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="tag_processor.cpp">
     </ClCompile>

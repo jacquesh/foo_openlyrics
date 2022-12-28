@@ -1,3 +1,5 @@
+#pragma once
+#include "playlist.h"
 /*
 	Autoplaylist APIs
 	These APIs were introduced in foobar2000 0.9.5, to reduce amount of code required to create your own autoplaylists. Creation of autoplaylists is was also possible before through playlist lock APIs.
@@ -23,6 +25,12 @@ public:
 	virtual void get_configuration(stream_writer * p_stream,abort_callback & p_abort) = 0;
 
 	virtual void show_ui(t_size p_source_playlist) = 0;
+
+	//! See: autoplaylist_client_v3::supports_async()
+	bool supports_async_();
+
+	//! See: autoplaylist_client_v3::supports_get_contents()
+	bool supports_get_contents_();
 
 	//! Helper.
 	template<typename t_array> void get_configuration(t_array & p_out) {
@@ -53,6 +61,25 @@ public:
 
 	//! Returns a human-readable autoplaylist implementer's label to display in playlist's context menu / description / etc.
 	virtual void get_display_name(pfc::string_base & out) = 0;
+};
+
+//! \since 2.0
+class NOVTABLE autoplaylist_client_v3 : public autoplaylist_client_v2 {
+	FB2K_MAKE_SERVICE_INTERFACE(autoplaylist_client_v3, autoplaylist_client_v2);
+public:
+	//! Returns true if this object supports off-main-thread filter() and sort().
+	virtual bool supports_async() = 0;
+
+	//! Provides a boolean mask of which items from the specified list should appear in this autoplaylist.
+	virtual void filter_v2(metadb_handle_list_cref items, metadb_io_callback_v2_data* dataIfAvailable, bool* out, abort_callback & abort) = 0;
+	//! Return true when you have filled p_orderbuffer with a permutation to apply to p_items, false when you don't support sorting (core's own sort scheme will be applied).
+	virtual bool sort_v2(metadb_handle_list_cref p_items, t_size* p_orderbuffer, abort_callback & abort) = 0;
+
+	virtual bool supports_get_contents() = 0;
+	virtual fb2k::arrayRef get_contents(abort_callback & a) = 0;
+
+    void filter(metadb_handle_list_cref data, bool * out) override;
+    bool sort(metadb_handle_list_cref p_items,t_size * p_orderbuffer) override;
 };
 
 //! Class needed to re-instantiate autoplaylist_client after a restart. Not directly needed to set up an autoplaylist_client, but without it, your autoplaylist will be lost after a restart.

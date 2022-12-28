@@ -1,4 +1,6 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "threaded_process.h"
+#include "advconfig.h"
 
 void threaded_process_status::set_progress(t_size p_state,t_size p_max)
 {
@@ -25,12 +27,12 @@ void threaded_process_status::set_progress_secondary_float(double p_state)
 }
 
 
-bool threaded_process::g_run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,HWND p_parent,const char * p_title,t_size p_title_len)
+bool threaded_process::g_run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len)
 {
 	return threaded_process::get()->run_modal(p_callback,p_flags,p_parent,p_title,p_title_len);
 }
 
-bool threaded_process::g_run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,HWND p_parent,const char * p_title,t_size p_title_len)
+bool threaded_process::g_run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len)
 {
 	return threaded_process::get()->run_modeless(p_callback,p_flags,p_parent,p_title,p_title_len);
 }

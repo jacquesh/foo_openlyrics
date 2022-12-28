@@ -1,5 +1,6 @@
-#include "../SDK/foobar2000.h"
-#include "../SDK/component.h"
+#include <SDK/foobar2000.h>
+#include <SDK/component.h>
+#include <SDK/cfg_var_legacy.h>
 
 static HINSTANCE g_hIns;
 
@@ -42,7 +43,7 @@ namespace core_api
 	}
 
 	void ensure_main_thread() {
-		if (!is_main_thread()) uBugCheck();
+		if (!is_main_thread()) FB2K_BugCheck();
 	}
 
 	bool is_main_thread()
@@ -82,11 +83,15 @@ namespace {
 		pservice_factory_base get_service_list() {return service_factory_base::__internal__list;}
 
 		void get_config(stream_writer * p_stream,abort_callback & p_abort) {
-			cfg_var::config_write_file(p_stream,p_abort);
+#ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
+			cfg_var_legacy::cfg_var::config_write_file(p_stream,p_abort);
+#endif
 		}
 
 		void set_config(stream_reader * p_stream,abort_callback & p_abort) {
-			cfg_var::config_read_file(p_stream,p_abort);
+#ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
+			cfg_var_legacy::cfg_var::config_read_file(p_stream,p_abort);
+#endif
 		}
 
 		void set_library_path(const char * path,const char * name) {

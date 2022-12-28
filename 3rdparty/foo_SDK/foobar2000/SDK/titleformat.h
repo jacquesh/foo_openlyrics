@@ -14,7 +14,7 @@ protected:
 	~titleformat_text_out() {}
 };
 
-
+//! This class allows custom processing of title formatting output, aware of whole substrings being passed, etc.
 class NOVTABLE titleformat_text_filter {
 public:
 	virtual void write(const GUID & p_inputtype,pfc::string_receiver & p_out,const char * p_data,t_size p_data_length) = 0;
@@ -48,7 +48,22 @@ public:
 	void run_hook(const playable_location & p_location,const file_info * p_source,titleformat_hook * p_hook,pfc::string_base & p_out,titleformat_text_filter * p_filter);
 	void run_simple(const playable_location & p_location,const file_info * p_source,pfc::string_base & p_out);
 
+	//! Helper, see titleformat_object_v2::requires_metadb_info()
+	bool requires_metadb_info_();
+
 	FB2K_MAKE_SERVICE_INTERFACE(titleformat_object,service_base);
+};
+
+//! \since 2.0
+class NOVTABLE titleformat_object_v2 : public titleformat_object {
+	FB2K_MAKE_SERVICE_INTERFACE(titleformat_object_v2, titleformat_object);
+public:
+	//! Walk from idx=0 up until returns null.
+	virtual const char* enum_used_fields(size_t idx) = 0;
+	//! Walk from idx=0 up until returns null.
+	virtual const char* enum_used_functions(size_t idx) = 0;
+	//! Returns true if evaluation of this only references fields such as file path, which can be evaluated without accessing actual metadb data.
+	virtual bool requires_metadb_info() = 0;
 };
 
 //! Standard service for instantiating titleformat_object. Implemented by the core; do not reimplement.
@@ -66,14 +81,25 @@ public:
 	//! Falls back to p_fallback in case of failure.
 	void compile_safe_ex(titleformat_object::ptr & p_out,const char * p_spec,const char * p_fallback = "<ERROR>");
 
-	//! Throws a bug check exception when script can't be compiled. For use with hardcoded scripts only.
+	//! Crashes when script can't be compiled. For use with hardcoded scripts only.
 	void compile_force(titleformat_object::ptr & p_out,const char * p_spec) {if (!compile(p_out,p_spec)) uBugCheck();}
+
+	titleformat_object::ptr compile(const char* spec);
+	titleformat_object::ptr compile_force(const char* spec);
+	titleformat_object::ptr compile_fallback(const char* spec, const char* fallback);
 
 
 	static void remove_color_marks(const char * src,pfc::string_base & out);//helper
 	static void remove_forbidden_chars(titleformat_text_out * p_out,const GUID & p_inputtype,const char * p_source,t_size p_source_len,const char * p_forbidden_chars);
 	static void remove_forbidden_chars_string_append(pfc::string_receiver & p_out,const char * p_source,t_size p_source_len,const char * p_forbidden_chars);
 	static void remove_forbidden_chars_string(pfc::string_base & p_out,const char * p_source,t_size p_source_len,const char * p_forbidden_chars);
+};
+
+// \since 2.0
+class NOVTABLE titleformat_compiler_v2 : public titleformat_compiler {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(titleformat_compiler_v2, titleformat_compiler);
+public:
+	virtual titleformat_object::ptr concat(pfc::list_base_const_t<titleformat_object::ptr> const&) = 0;
 };
 
 
@@ -124,7 +150,7 @@ public:
 class titleformat_hook_impl_file_info : public titleformat_hook
 {
 public:
-	titleformat_hook_impl_file_info(const playable_location & p_location,const file_info * p_info) : m_location(p_location), m_info(p_info) {}//caller must ensure that referenced file_info object is alive as long as the titleformat_hook_impl_file_info instance
+	titleformat_hook_impl_file_info(const playable_location & p_location,const file_info * p_info) : m_info(p_info), m_location(p_location) {}//caller must ensure that referenced file_info object is alive as long as the titleformat_hook_impl_file_info instance
 	bool process_field(titleformat_text_out * p_out,const char * p_name,t_size p_name_length,bool & p_found_flag);
 	bool process_function(titleformat_text_out * p_out,const char * p_name,t_size p_name_length,titleformat_hook_function_params * p_params,bool & p_found_flag);
 protected:
@@ -147,20 +173,20 @@ private:
 class titleformat_text_filter_impl_reserved_chars : public titleformat_text_filter {
 public:
 	titleformat_text_filter_impl_reserved_chars(const char * p_reserved_chars) : m_reserved_chars(p_reserved_chars) {}
-	virtual void write(const GUID & p_inputtype,pfc::string_receiver & p_out,const char * p_data,t_size p_data_length);
+	void write(const GUID & p_inputtype,pfc::string_receiver & p_out,const char * p_data,t_size p_data_length) override;
 private:
 	const char * m_reserved_chars;
 };
 
 class titleformat_text_filter_impl_filename_chars : public titleformat_text_filter {
 public:
-	void write(const GUID & p_inputType,pfc::string_receiver & p_out,const char * p_data,t_size p_dataLength);
+	void write(const GUID & p_inputType,pfc::string_receiver & p_out,const char * p_data,t_size p_dataLength) override;
 };
 
 class titleformat_text_filter_nontext_chars : public titleformat_text_filter {
 public:
 	inline static bool isReserved(char c) { return c >= 0 && c < 0x20; }
-	void write(const GUID & p_inputtype,pfc::string_receiver & p_out,const char * p_data,t_size p_data_length);
+	void write(const GUID & p_inputtype,pfc::string_receiver & p_out,const char * p_data,t_size p_data_length) override;
 };
 
 
@@ -196,29 +222,30 @@ private:
 };
 
 class string_formatter_tf : public pfc::string_base {
+	[[noreturn]] static void verboten() { FB2K_BugCheck(); }
 public:
 	string_formatter_tf(titleformat_text_out * out, const GUID & inputType = titleformat_inputtypes::meta) : m_out(out), m_inputType(inputType) {}
 
 	const char * get_ptr() const {
-		uBugCheck();
+		verboten();
 	}
 	void add_string(const char * p_string,t_size p_length) {
 		m_out->write(m_inputType,p_string,p_length);
 	}
 	void set_string(const char * p_string,t_size p_length) {
-		uBugCheck();
+		verboten();
 	}
 	void truncate(t_size len) {
-		uBugCheck();
+		verboten();
 	}
 	t_size get_length() const {
-		uBugCheck();
+		verboten();
 	}
 	char * lock_buffer(t_size p_requested_length) {
-		uBugCheck();
+		verboten();
 	}
 	void unlock_buffer() {
-		uBugCheck();
+		verboten();
 	}
 
 private:
@@ -240,4 +267,11 @@ public:
 private:
 	const char * const m_pattern;
 	titleformat_object::ptr m_obj;
+};
+
+
+class titleformat_patterns {
+public:
+    static const char * patternAlbumSplit();
+    static const char * patternSortTracks();
 };

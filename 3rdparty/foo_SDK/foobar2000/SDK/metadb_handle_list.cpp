@@ -1,32 +1,30 @@
-#include "foobar2000.h"
-#include <shlwapi.h>
+#include "foobar2000-sdk-pch.h"
 #include "foosort.h"
+#include "threadPool.h"
+#include "foosortstring.h"
+#include <vector>
+#include "titleformat.h"
+#include "library_manager.h"
+#include "genrand.h"
 
 namespace {
 
-	wchar_t * makeSortString(const char * in) {
-		wchar_t * out = new wchar_t[pfc::stringcvt::estimate_utf8_to_wide(in) + 1];
-		out[0] = ' ';//StrCmpLogicalW bug workaround.
-		pfc::stringcvt::convert_utf8_to_wide_unchecked(out + 1, in);
-		return out;
-	}
-
 	struct custom_sort_data {
-		wchar_t * text;
+		fb2k::sortString_t text;
 		t_size index;
 	};
 }
 
 template<int direction>
 static int custom_sort_compare(const custom_sort_data & elem1, const custom_sort_data & elem2 ) {
-	int ret = direction * StrCmpLogicalW(elem1.text,elem2.text);
+	int ret = direction * fb2k::sortStringCompare(elem1.text,elem2.text);
 	if (ret == 0) ret = pfc::sgn_t((t_ssize)elem1.index - (t_ssize)elem2.index);
 	return ret;
 }
 
 
 template<int direction>
-static int _cdecl _custom_sort_compare(const void * v1, const void * v2) {
+static int _custom_sort_compare(const void * v1, const void * v2) {
 	return custom_sort_compare<direction>(*reinterpret_cast<const custom_sort_data*>(v1),*reinterpret_cast<const custom_sort_data*>(v2));
 }
 void metadb_handle_list_helper::sort_by_format(metadb_handle_list_ref p_list,const char * spec,titleformat_hook * p_hook)
@@ -104,8 +102,8 @@ void metadb_handle_list_helper::sort_by_relative_path_get_order(metadb_handle_li
 {
 	const t_size count = p_list.get_count();
 	t_size n;
-	pfc::array_t<custom_sort_data> data;
-	data.set_size(count);
+	std::vector<custom_sort_data> data;
+	data.resize(count);
 	auto api = library_manager::get();
 	
 	pfc::string8_fastalloc temp;
@@ -116,7 +114,7 @@ void metadb_handle_list_helper::sort_by_relative_path_get_order(metadb_handle_li
 		p_list.get_item_ex(item,n);
 		if (!api->get_relative_path(item,temp)) temp = "";
 		data[n].index = n;
-		data[n].text = makeSortString(temp);
+		data[n].text = fb2k::makeSortString(temp);
 		//data[n].subsong = item->get_subsong_index();
 	}
 
@@ -126,7 +124,6 @@ void metadb_handle_list_helper::sort_by_relative_path_get_order(metadb_handle_li
 	for(n=0;n<count;n++)
 	{
 		order[n]=data[n].index;
-		delete[] data[n].text;
 	}
 }
 
@@ -264,6 +261,42 @@ void metadb_handle_list_helper::sorted_by_pointer_extract_difference(metadb_hand
 	}
 }
 
+double metadb_handle_list_helper::calc_total_duration_v2(metadb_handle_list_cref p_list, unsigned maxThreads, abort_callback & aborter) {
+	const size_t count = p_list.get_count();
+	size_t numThreads = pfc::getOptimalWorkerThreadCountEx( pfc::min_t<size_t>(maxThreads, count / 2000 ));
+	if (numThreads == 1) {
+		double ret = 0;
+		for (size_t n = 0; n < count; n++)
+		{
+			double temp = p_list.get_item(n)->get_length();
+			if (temp > 0) ret += temp;
+		}
+		return ret;
+	}
+
+	
+	pfc::refcounter walk = 0, walkSums = 0;
+	pfc::array_t<double> sums; sums.resize(numThreads); sums.fill_null();
+
+	auto worker = [&] {
+		double ret = 0;
+		for(;;) {
+			size_t idx = walk++;
+			if (idx >= count || aborter.is_set()) break;
+
+			double temp = p_list.get_item(idx)->get_length();
+			if (temp > 0) ret += temp;
+		}
+		sums[walkSums++] = ret;
+	};
+
+	fb2k::cpuThreadPool::runMultiHelper(worker, numThreads);
+	aborter.check();
+	double ret = 0;
+	for (size_t walk = 0; walk < numThreads; ++walk) ret += sums[walk];
+	return ret;	
+}
+
 double metadb_handle_list_helper::calc_total_duration(metadb_handle_list_cref p_list)
 {
 	double ret = 0;
@@ -286,11 +319,59 @@ void metadb_handle_list_helper::sort_by_format_v2(metadb_handle_list_ref p_list,
 }
 
 void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_cref p_list, size_t * order, const service_ptr_t<titleformat_object> & p_script, titleformat_hook * p_hook, int p_direction, abort_callback & aborter) {
-	//	pfc::hires_timer timer; timer.start();
+	// pfc::hires_timer timer; timer.start();
 
 	const t_size count = p_list.get_count();
-	pfc::array_t<custom_sort_data> data; data.set_size(count);
+	if (count == 0) return;
+	auto data = std::make_unique< custom_sort_data[] >(count);
 
+#if FOOBAR2000_TARGET_VERSION >= 81
+	if ( p_script->requires_metadb_info_()) {
+		// FB2K_console_formatter() << "sorting with queryMultiParallelEx_<>";
+		struct qmpc_context {
+			qmpc_context() {
+				temp.prealloc(512);
+			}
+			tfhook_sort myHook;
+			pfc::string8 temp;
+		};
+		metadb_v2::get()->queryMultiParallelEx_< qmpc_context >(p_list, [&](size_t idx, metadb_v2::rec_t const& rec, qmpc_context& ctx) {
+			aborter.check();
+			if (p_hook) {
+				titleformat_hook_impl_splitter hookSplitter(&ctx.myHook, p_hook);
+				p_list[idx]->formatTitle_v2_(rec, &hookSplitter, ctx.temp, p_script, nullptr);
+			} else {
+				p_list[idx]->formatTitle_v2_(rec, &ctx.myHook, ctx.temp, p_script, nullptr);
+			}
+			data[idx].index = idx;
+			data[idx].text = fb2k::makeSortString(ctx.temp);
+		});
+	} else {
+		// FB2K_console_formatter() << "sorting with blank metadb info";
+		auto api = fb2k::cpuThreadPool::get();
+		pfc::counter walk = 0;
+		api->runMulti_([&] {
+			pfc::string8 temp;
+			const metadb_v2_rec_t rec = {};
+			tfhook_sort myHook;
+			for (;;) {
+				aborter.check();
+				size_t idx = walk++;
+				if (idx >= count) return;
+				
+				if (p_hook) {
+					titleformat_hook_impl_splitter hookSplitter(&myHook, p_hook);
+					p_list[idx]->formatTitle_v2_(rec, &hookSplitter, temp, p_script, nullptr);
+				} else {
+					p_list[idx]->formatTitle_v2_(rec, &myHook, temp, p_script, nullptr);
+				}
+				data[idx].index = idx;
+				data[idx].text = fb2k::makeSortString(temp);
+			}
+		}, api->numRunsSanity( (count + 1999)/2000 ) );
+		
+	}
+#else
 	{
 		pfc::counter counter(0);
 
@@ -301,21 +382,23 @@ void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_c
 
 			pfc::string8_fastalloc temp; temp.prealloc(512);
 			const t_size total = p_list.get_size();
-			while( ! aborter.is_aborting() ) {
+			for ( ;; ) {
 				const t_size index = (counter)++;
-				if (index >= total) break;
+				if (index >= total || aborter.is_set()) break;
 				data[index].index = index;
 				p_list[index]->format_title(hookPtr, temp, p_script, 0);
-				data[index].text = makeSortString(temp);
+				data[index].text = fb2k::makeSortString(temp);
 			}
 		};
 
-
-		pfc::array_staticsize_t< pfc::thread2 > threads; threads.set_size_discard(pfc::getOptimalWorkerThreadCountEx(count / 128) - 1);
-		for (size_t w = 0; w < threads.get_size(); ++w) { threads[w].startHere(work); }
-		work();
-		for (t_size walk = 0; walk < threads.get_size(); ++walk) threads[walk].waitTillDone();
+		size_t nThreads = pfc::getOptimalWorkerThreadCountEx(count / 128);
+		if (nThreads == 1) {
+			work();
+		} else {
+			fb2k::cpuThreadPool::runMultiHelper(work, nThreads);
+		}
 	}
+#endif
 	aborter.check();
 	//	console::formatter() << "metadb_handle sort: prepared in " << pfc::format_time_ex(timer.query(),6);
 
@@ -340,10 +423,9 @@ void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_c
 	for (t_size n = 0; n<count; n++)
 	{
 		order[n] = data[n].index;
-		delete[] data[n].text;
 	}
 
-	//	console::formatter() << "metadb_handle sort: finished in " << pfc::format_time_ex(timer.query(),6);
+	// FB2K_console_formatter() << "metadb_handle sort: finished in " << pfc::format_time_ex(timer.query(),6);
 }
 
 t_filesize metadb_handle_list_helper::calc_total_size(metadb_handle_list_cref p_list, bool skipUnknown) {

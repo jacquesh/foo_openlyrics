@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "foobar2000-sdk-pch.h"
 
 #include "file_info_const_impl.h"
 

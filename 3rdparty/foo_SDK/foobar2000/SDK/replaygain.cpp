@@ -1,4 +1,6 @@
-#include "foobar2000.h"
+#include "foobar2000-sdk-pch.h"
+#include "replaygain.h"
+#include "replaygain_scanner.h"
 
 void t_replaygain_config::reset()
 {
@@ -45,7 +47,7 @@ audio_sample t_replaygain_config::query_scale(const replaygain_info & info) cons
 
 	if (m_processing_mode == processing_mode_gain || m_processing_mode == processing_mode_gain_and_peak)
 	{
-		scale = (audio_sample) (scale * audio_math::gain_to_scale(gain) );
+		scale *= (audio_sample) audio_math::gain_to_scale(gain);
 	}
 
 	if ((m_processing_mode == processing_mode_peak || m_processing_mode == processing_mode_gain_and_peak) && have_rg_peak)
@@ -89,7 +91,9 @@ static pfc::string_fixed_t<128> format_dbdelta(double p_val) {
 	ret << querysign(val) << (abs(val) / 10) << "." << (abs(val) % 10) << "dB";
 	return ret;
 }
-
+void t_replaygain_config::print_preamp(double val, pfc::string_base & out) {
+	out = format_dbdelta(val);
+}
 void t_replaygain_config::format_name(pfc::string_base & p_out) const
 {
 	switch(m_processing_mode)
@@ -217,4 +221,8 @@ replaygain_scanner::ptr replaygain_scanner_entry::instantiate( uint32_t flags ) 
 	replaygain_scanner_entry_v2::ptr p2;
 	if ( p2 &= this ) return p2->instantiate( flags );
 	else return instantiate();
+}
+
+t_replaygain_config replaygain_manager::get_core_settings() {
+	t_replaygain_config cfg; get_core_settings(cfg); return cfg;
 }
