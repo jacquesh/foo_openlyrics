@@ -78,7 +78,7 @@ BulkLyricSearch::BulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search
     {
         for(size_t i=0; i<track_count; i++)
         {
-            m_tracks_to_search[i].track_info = tracks_to_search[i]->query_v2_();
+            m_tracks_to_search[i].track_info = get_full_metadata(tracks_to_search[i]);
         }
     }
 }

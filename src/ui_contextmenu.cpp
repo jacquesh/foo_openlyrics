@@ -71,7 +71,7 @@ public:
 
                 const auto async_search = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
-                    const metadb_v2_rec_t track_info = track->query_v2_();
+                    const metadb_v2_rec_t track_info = get_full_metadata(track);
                     std::string dialog_title = "Track lyrics";
                     std::string track_title = track_metadata(track_info, "title");
                     if(!track_title.empty())
@@ -126,7 +126,7 @@ public:
                 if(data.get_count() == 0) break;
                 metadb_handle_ptr track = data.get_item(0);
 
-                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, track->query_v2_(), fb2k::noAbort/*TODO*/);
+                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, get_full_metadata(track), fb2k::noAbort/*TODO*/);
                 if(are_there_any_lyric_panels())
                 {
                     SpawnManualLyricSearch(core_api::get_main_window(), *update);
@@ -145,7 +145,7 @@ public:
 
                 const auto async_edit = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
-                    const metadb_v2_rec_t track_info = track->query_v2_();
+                    const metadb_v2_rec_t track_info = get_full_metadata(track);
                     LyricUpdateHandle search_update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
                     io::search_for_lyrics(search_update, true);
                     bool success = search_update.wait_for_complete(30'000);
@@ -182,7 +182,7 @@ public:
                 if(track_count == 1)
                 {
                     msg = "This will delete the lyrics stored locally for the selected track ";
-                    std::string track_str = get_track_friendly_string(data[0]->query_v2_());
+                    std::string track_str = get_track_friendly_string(get_full_metadata(data[0]));
                     if(!track_str.empty())
                     {
                         msg += "(" + track_str + ") ";
@@ -226,7 +226,7 @@ public:
                     {
                         for(size_t i=0; i<track_count; i++)
                         {
-                            all_track_info[i] = data_copy[i]->query_v2_();
+                            all_track_info[i] = get_full_metadata(data_copy[i]);
                         }
                     }
 

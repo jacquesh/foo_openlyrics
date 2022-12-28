@@ -167,7 +167,7 @@ namespace {
     void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     {
         m_now_playing = track;
-        m_now_playing_info = track->query_v2_();
+        m_now_playing_info = get_full_metadata(track);
         m_manual_scroll_distance = 0;
         m_search_pending = true;
 
@@ -699,12 +699,12 @@ namespace {
             const LyricDataLine& line = m_lyrics.lines[line_index];
             if(line_index == active_line_index)
             {
-                COLORREF colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
+                t_ui_color colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else if(line_index == active_line_index+1)
             {
-                COLORREF colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
+                t_ui_color colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else

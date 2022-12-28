@@ -7,7 +7,7 @@ inline double lerp(double x, double y, double t)
     return x + (y-x)*t;
 }
 
-inline COLORREF lerp(COLORREF x, COLORREF y, double t)
+inline t_ui_color lerp(t_ui_color x, t_ui_color y, double t)
 {
     double r = lerp((double)GetRValue(x), (double)GetRValue(y), t);
     double g = lerp((double)GetGValue(x), (double)GetGValue(y), t);

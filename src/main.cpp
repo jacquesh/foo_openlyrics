@@ -29,6 +29,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Update foobar2k SDK to version 20221116\n"
+    "- Fix failing to load lyrics from meta tags in some situations\n"
     "\n";
     out += "Version 1.4 (2022-11-19):\n"
     "- Fix always opening lyrics in explorer instead of the default file browser\n"

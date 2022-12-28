@@ -118,7 +118,7 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
 std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
-    const metadb_v2_rec_t track_info = track->query_v2_();
+    const metadb_v2_rec_t track_info = get_full_metadata(track);
     std::string output_path_str = preferences::saving::filename(track, track_info);
     if(output_path_str.empty())
     {

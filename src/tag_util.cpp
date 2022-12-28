@@ -56,6 +56,27 @@ std::string_view trim_trailing_text_in_brackets(std::string_view str)
     return result;
 }
 
+metadb_v2_rec_t get_full_metadata(metadb_handle_ptr track)
+{
+    // This is effectively a duplicate of `metadb_handle_ptr::query_v2_()` except that
+    // we need to call get_*full*_info_ref(), not just get_browse_info_ref() so that we
+    // always have data for non-standard tags like lyrics when running in fb2k pre-v2.
+    // This function can be removed if we migrate to targetting FB2K SDK version 81 or higher.
+#if FOOBAR2000_TARGET_VERSION >= 81
+	return static_cast<const metadb_handle_v2*>(track)->query_v2();
+#else
+    metadb_handle_v2::ptr track_v2;
+    if(track->cast(track_v2))
+    {
+        return track_v2->query_v2();
+    }
+
+    metadb_v2_rec_t result = {};
+    result.info = track->get_full_info_ref(fb2k::noAbort);
+    return result;
+#endif
+}
+
 static int compute_edit_distance(const std::string_view strA, const std::string_view strB)
 {
     // 2-row levenshtein distance
