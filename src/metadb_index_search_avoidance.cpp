@@ -91,6 +91,11 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
 
 bool search_avoidance_allows_search(metadb_handle_ptr track)
 {
+    if(track_is_remote(track))
+    {
+        return true;
+    }
+
     lyric_search_avoidance avoidance = load_search_avoidance(track);
     const bool expected_to_fail = (avoidance.failed_searches > 3);
     const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
@@ -100,6 +105,11 @@ bool search_avoidance_allows_search(metadb_handle_ptr track)
 
 static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance)
 {
+    if(track_is_remote(track))
+    {
+        return;
+    }
+
     auto meta_index = metadb_index_manager::get();
     metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
 
@@ -116,6 +126,11 @@ static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidanc
 
 void search_avoidance_log_search_failure(metadb_handle_ptr track)
 {
+    if(track_is_remote(track))
+    {
+        return;
+    }
+
     lyric_search_avoidance avoidance = load_search_avoidance(track);
     avoidance.search_config_generation = preferences::searching::source_config_generation();
     if(avoidance.first_fail_time == 0)
@@ -131,6 +146,11 @@ void search_avoidance_log_search_failure(metadb_handle_ptr track)
 
 void search_avoidance_force_avoidance(metadb_handle_ptr track)
 {
+    if(track_is_remote(track))
+    {
+        return;
+    }
+
     lyric_search_avoidance avoidance = load_search_avoidance(track);
     avoidance.search_config_generation = preferences::searching::source_config_generation();
     avoidance.first_fail_time = 0;
