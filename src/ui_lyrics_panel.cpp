@@ -3,6 +3,7 @@
 #pragma warning(push, 0)
 #include <libPPUI/win32_op.h>
 #include <foobar2000/helpers/BumpableElem.h>
+#include <foobar2000/SDK/metadb_info_container_impl.h>
 #pragma warning(pop)
 
 #include "logging.h"
@@ -47,6 +48,7 @@ namespace {
         void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override;
 
         void on_playback_new_track(metadb_handle_ptr track) override;
+        void on_playback_dynamic_info_track(const file_info& info) override;
         void on_playback_stop(play_control::t_stop_reason reason) override;
         void on_playback_pause(bool state) override;
         void on_playback_seek(double time) override;
@@ -96,6 +98,13 @@ namespace {
 
         void InitiateLyricSearch();
 
+        struct PlaybackTimeInfo
+        {
+            double current_time;
+            double track_length;
+        };
+        PlaybackTimeInfo get_playback_time();
+
         ui_element_config::ptr m_config;
         abort_callback_impl m_child_abort;
 
@@ -103,6 +112,7 @@ namespace {
 
         metadb_handle_ptr m_now_playing;
         metadb_v2_rec_t m_now_playing_info;
+        double m_now_playing_time_offset = 0.0;
         std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
         LyricData m_lyrics;
         bool m_search_pending = false;
@@ -169,7 +179,8 @@ namespace {
         m_now_playing = track;
         m_now_playing_info = get_full_metadata(track);
         m_manual_scroll_distance = 0;
-        m_search_pending = true;
+        m_search_pending = !track_is_remote(track); // If this is an internet radio then don't search until we get dynamic track info
+        m_now_playing_time_offset = 0.0;
 
         // NOTE: If playback is paused on startup then this gets called with the paused track,
         //       but playback is paused so we don't actually want to run the timer
@@ -178,6 +189,27 @@ namespace {
         {
             StartTimer();
         }
+    }
+
+    void LyricPanel::on_playback_dynamic_info_track(const file_info& info)
+    {
+        // NOTE: This is not called when we start playing tracks that are not remote/internet radio
+        service_ptr_t<metadb_info_container_const_impl> info_container_impl = new service_impl_t<metadb_info_container_const_impl>();
+        info_container_impl->m_info = info;
+
+        metadb_v2_rec_t meta_record = {};
+        meta_record.info = info_container_impl;
+
+        m_now_playing_info = meta_record;
+        m_manual_scroll_distance = 0;
+        m_search_pending = true;
+
+        // Set the new "current time" offset/baseline so that we can at least compute timestamps
+        // that are approximately-correct for internet radio streams that go beyond a single track.
+        // We're assuming here that the only time we ever get dynamic track info is when we've either
+        // just started playback or when the track changes.
+        service_ptr_t<playback_control> playback = playback_control::get();
+        m_now_playing_time_offset = playback->playback_get_position();
     }
 
     void LyricPanel::on_playback_stop(play_control::t_stop_reason /*reason*/)
@@ -508,10 +540,8 @@ namespace {
 
     void LyricPanel::DrawUntimedLyricsVertical(HDC dc, CRect client_area)
     {
-        service_ptr_t<playback_control> playback = playback_control::get();
-        double current_position = playback->playback_get_position();
-        double total_length = playback->playback_get_length_ex();
-        double track_fraction = current_position / total_length;
+        const PlaybackTimeInfo playback_time = get_playback_time();
+        const double track_fraction = playback_time.current_time / playback_time.track_length;
 
         int one_line_height = ComputeWrappedLyricLineHeight(dc, client_area, _T(""));
         int total_height = std::accumulate(m_lyrics.lines.begin(), m_lyrics.lines.end(), 0,
@@ -593,10 +623,8 @@ namespace {
         std::tstring glue(linegap, _T(' '));
 
         assert(preferences::display::scroll_direction() == LineScrollDirection::Horizontal);
-        service_ptr_t<playback_control> playback = playback_control::get();
-        double current_position = playback->playback_get_position();
-        double total_length = playback->playback_get_length_ex();
-        double track_fraction = current_position / total_length;
+        const PlaybackTimeInfo playback_time = get_playback_time();
+        const double track_fraction = playback_time.current_time / playback_time.track_length;
 
         std::tstring joined = m_lyrics.lines[0].text;
         joined = std::accumulate(++m_lyrics.lines.begin(), m_lyrics.lines.end(), joined,
@@ -672,14 +700,13 @@ namespace {
         t_ui_color fg_colour = get_fg_colour();
         t_ui_color hl_colour = get_highlight_colour();
 
-        service_ptr_t<playback_control> playback = playback_control::get();
-        double current_time = playback->playback_get_position();
+        const PlaybackTimeInfo playback_time = get_playback_time();
 
         int active_line_height = 0;
         int text_height_above_active_line = 0;
         int active_line_index = -1;
         int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.LineTimestamp(active_line_index+1)))
+        while((active_line_index+1 < lyric_line_count) && (playback_time.current_time > m_lyrics.LineTimestamp(active_line_index+1)))
         {
             active_line_index++;
             text_height_above_active_line += active_line_height;
@@ -688,7 +715,7 @@ namespace {
 
         double next_line_time = m_lyrics.LineTimestamp(active_line_index+1);
         double scroll_time = preferences::display::scroll_time_seconds();
-        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, current_time);
+        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, playback_time.current_time);
 
         CPoint centre = client_area.CenterPoint();
         int next_line_scroll = (int)((double)active_line_height * next_line_scroll_factor);
@@ -733,8 +760,7 @@ namespace {
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
         int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
 
-        service_ptr_t<playback_control> playback = playback_control::get();
-        double current_time = playback->playback_get_position();
+        const PlaybackTimeInfo playback_time = get_playback_time();
 
         size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
         std::tstring glue(linegap, _T(' '));
@@ -743,7 +769,7 @@ namespace {
 
         int active_line_index = -1;
         int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (current_time > m_lyrics.LineTimestamp(active_line_index+1)))
+        while((active_line_index+1 < lyric_line_count) && (playback_time.current_time > m_lyrics.LineTimestamp(active_line_index+1)))
         {
             active_line_index++;
         }
@@ -820,7 +846,7 @@ namespace {
 
         double next_line_time = m_lyrics.LineTimestamp(next_line_index);
         double scroll_time = preferences::display::scroll_time_seconds();
-        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, current_time);
+        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, playback_time.current_time);
 
         // NOTE: We want to scroll by half of the active line and half of the next line because
         //       the rendering origin is at the centre of the text. However the "next line"
@@ -1448,6 +1474,32 @@ namespace {
         auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
         io::search_for_lyrics(*update, false);
         m_update_handles.push_back(std::move(update));
+    }
+
+    // (Attempt to) Compute the current playback time and duration for the currently-playing track.
+    // This should be trivial for everything playing from a local file, but for remote files (namely
+    // internet radio streams), we can't do the naive computation.
+    // In particular the playback control interface does not appear to return a valid track length
+    // (admittedly neither does the track info, but I'm leaving it in here in case that changes
+    // or is true some of the time) and playback position does not get reset when a new track
+    // starts playing on the radio stream.
+    LyricPanel::PlaybackTimeInfo LyricPanel::get_playback_time()
+    {
+        service_ptr_t<playback_control> playback = playback_control::get();
+
+        PlaybackTimeInfo result = {};
+        result.current_time = playback->playback_get_position() - m_now_playing_time_offset;
+        result.track_length = playback->playback_get_length_ex();
+        if(result.track_length <= 0.0)
+        {
+            result.track_length = m_now_playing_info.info->info().get_length();
+        }
+        if(result.track_length <= 0.0)
+        {
+            result.track_length = -1.0; // We specifically want to avoid zero because we're likely to divide by this value
+        }
+
+        return result;
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.
