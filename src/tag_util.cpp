@@ -168,7 +168,7 @@ std::string track_metadata(const file_info& track_info, std::string_view key)
     if(value_count > 1)
     {
         std::string err_msg;
-        err_msg += "ID3 tag ";
+        err_msg += "metadata tag ";
         err_msg += key;
         err_msg += " appears multiple times for ";
         const char* const err_tags[] = {"artist", "album", "title"};
@@ -197,4 +197,19 @@ std::string track_metadata(const file_info& track_info, std::string_view key)
     }
 
     return track_info.meta_enum_value(value_index, 0);
+}
+
+bool track_is_remote(metadb_handle_ptr track)
+{
+#if FOOBAR2000_TARGET_VERSION >= 81
+    t_filestats2 playstats = track->get_stats2_();
+    const bool is_remote = playstats.is_remote();
+    return is_remote;
+#else
+    playable_location_impl playloc = track->get_location();
+    const char* playloc_str = playloc.get_path();
+
+    const bool is_remote = std::string_view(playloc_str).find("http") == 0;
+    return is_remote;
+#endif
 }

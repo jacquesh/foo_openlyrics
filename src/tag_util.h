@@ -11,3 +11,5 @@ std::string track_metadata(const metadb_v2_rec_t& track, std::string_view key);
 std::string track_metadata(const file_info& track_info, std::string_view key);
 bool tag_values_match(std::string_view tagA, std::string_view tagB);
 
+bool track_is_remote(metadb_handle_ptr track);
+
