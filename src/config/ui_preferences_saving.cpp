@@ -10,6 +10,7 @@
 #include "logging.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
+#include "tag_util.h"
 
 static const GUID GUID_PREFERENCES_PAGE_SAVING = { 0xd5a7534, 0x9f59, 0x444c, { 0x8d, 0x6f, 0xec, 0xf3, 0x7f, 0x61, 0xfc, 0xf1 } };
 
@@ -118,7 +119,16 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
 
     std::string dir_class_name = "(Unknown)";
     pfc::string8 formatted_directory;
-    SaveDirectoryClass dir_class = cfg_save_dir_class.get_value();
+    SaveDirectoryClass dir_class = SaveDirectoryClass::DEPRECATED_None;
+    if(track_is_remote(track))
+    {
+        dir_class = SaveDirectoryClass::ConfigDirectory;
+    }
+    else
+    {
+        dir_class = cfg_save_dir_class.get_value();
+    }
+
     switch(dir_class)
     {
         case SaveDirectoryClass::ConfigDirectory:

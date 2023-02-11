@@ -505,7 +505,7 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
             }
 
             const bool allow_overwrite = user_requested;
-            io::save_lyrics(update.get_track(), lyrics, allow_overwrite, update.get_checked_abort());
+            io::save_lyrics(update.get_track(), update.get_track_info(), lyrics, allow_overwrite, update.get_checked_abort());
         }
         catch(const std::exception& e)
         {

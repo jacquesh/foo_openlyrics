@@ -5,6 +5,7 @@
 #include "tag_util.h"
 
 static const GUID src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
 
 class ID3TagLyricSource : public LyricSourceBase
 {
@@ -25,10 +26,6 @@ static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
 std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort)
 {
-    // We can't save lyrics for remote tracks to metadata so we should also not attempt to load it.
-    // As with saving, we should redirect to searching elsewhere before we get to this function.
-    assert(!track_is_remote(track));
-
     std::vector<LyricDataRaw> result;
     const file_info& info = track_info.info->info();
 
@@ -72,12 +69,17 @@ bool ID3TagLyricSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/
     return false;
 }
 
-std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& /*track_info*/, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& abort)
+std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& abort)
 {
     // We can't save lyrics for remote tracks to metadata (because we don't have a file to save
-    // the metadata into), and this should be handled earlier when deciding if/how/where to save
-    // so we can just assert here that we're not trying to do it anyway.
-    assert(!track_is_remote(track));
+    // the metadata into). Redirect to saving to localfiles if we find ourselves attempting to
+    // save lyrics for a remote track to metadata.
+    if(track_is_remote(track))
+    {
+        LyricSourceBase* localfiles_source = LyricSourceBase::get(localfiles_src_guid);
+        assert(localfiles_source != nullptr);
+        return localfiles_source->save(track, track_info, is_timestamped, lyric_view, allow_overwrite, abort);
+    }
 
     LOG_INFO("Saving lyrics to an ID3 tag...");
     struct MetaCompletionLogger : public completion_notify
