@@ -17,7 +17,7 @@ class LocalFileSource : public LyricSourceBase
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
-    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
 
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
@@ -115,10 +115,9 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
     }
 }
 
-std::string LocalFileSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
+std::string LocalFileSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
-    const metadb_v2_rec_t track_info = get_full_metadata(track);
     std::string output_path_str = preferences::saving::filename(track, track_info);
     if(output_path_str.empty())
     {

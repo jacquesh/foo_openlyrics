@@ -96,7 +96,7 @@ std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/,
     return search(artist, album, title, abort);
 }
 
-std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, bool /*allow_ovewrite*/, abort_callback& /*abort*/)
+std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& /*track_info*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, bool /*allow_ovewrite*/, abort_callback& /*abort*/)
 {
     LOG_WARN("Cannot save lyrics to a remote source");
     assert(false);

@@ -10,12 +10,11 @@
 #include "ui_hooks.h"
 #include "win32_util.h"
 
-bool io::save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
+bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
     //       only happen on the main thread.
     core_api::ensure_main_thread();
-
 
     LyricSourceBase* source = LyricSourceBase::get(preferences::saving::save_source());
     if(source == nullptr)
@@ -63,7 +62,7 @@ bool io::save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_over
 
     try
     {
-        std::string output_path = source->save(track, lyrics.IsTimestamped(), text, allow_overwrite, abort);
+        std::string output_path = source->save(track, track_info, lyrics.IsTimestamped(), text, allow_overwrite, abort);
         lyrics.save_path = output_path;
         lyrics.save_source = source->id();
         clear_search_avoidance(track); // Clear here so that we will always find saved lyrics

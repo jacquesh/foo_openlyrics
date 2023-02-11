@@ -1088,7 +1088,7 @@ namespace {
                     try
                     {
                         const bool allow_overwrite = true;
-                        io::save_lyrics(m_now_playing, m_lyrics, allow_overwrite, m_child_abort);
+                        io::save_lyrics(m_now_playing, m_now_playing_info, m_lyrics, allow_overwrite, m_child_abort);
                     }
                     catch(const std::exception& e)
                     {

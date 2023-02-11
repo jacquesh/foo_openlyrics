@@ -7,6 +7,7 @@
 
 // TODO: Add sources for:
 // - https://www.syair.info
+// - MiniLyrics (https://crintsoft.com/) - See a wireshark trace of LyricShowPanel3 attempting to make HTTP calls
 
 class LyricSourceBase : public initquit
 {
@@ -23,7 +24,7 @@ public:
     virtual std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) = 0;
     virtual bool lookup(LyricDataRaw& data, abort_callback& abort) = 0;
 
-    virtual std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
+    virtual std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
     virtual bool delete_persisted(metadb_handle_ptr track, const std::string& path) = 0;
 
     virtual std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) = 0;
@@ -37,7 +38,7 @@ class LyricSourceRemote : public LyricSourceBase
 public:
     bool is_local() const final;
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
-    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 

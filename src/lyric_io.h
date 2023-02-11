@@ -16,7 +16,7 @@ namespace io
 
     // Updates the lyric data with the ID of the source used for saving, as well as the persistence path that it reports.
     // Returns a success flag
-    bool save_lyrics(metadb_handle_ptr track, LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
+    bool save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
 
     bool delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics);
 }

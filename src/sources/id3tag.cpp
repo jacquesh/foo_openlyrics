@@ -15,7 +15,7 @@ class ID3TagLyricSource : public LyricSourceBase
     std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
-    std::string save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
 
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
@@ -23,8 +23,12 @@ class ID3TagLyricSource : public LyricSourceBase
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& track_info, abort_callback& abort)
+std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort)
 {
+    // We can't save lyrics for remote tracks to metadata so we should also not attempt to load it.
+    // As with saving, we should redirect to searching elsewhere before we get to this function.
+    assert(!track_is_remote(track));
+
     std::vector<LyricDataRaw> result;
     const file_info& info = track_info.info->info();
 
@@ -68,8 +72,13 @@ bool ID3TagLyricSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/
     return false;
 }
 
-std::string ID3TagLyricSource::save(metadb_handle_ptr track, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& abort)
+std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& /*track_info*/, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& abort)
 {
+    // We can't save lyrics for remote tracks to metadata (because we don't have a file to save
+    // the metadata into), and this should be handled earlier when deciding if/how/where to save
+    // so we can just assert here that we're not trying to do it anyway.
+    assert(!track_is_remote(track));
+
     LOG_INFO("Saving lyrics to an ID3 tag...");
     struct MetaCompletionLogger : public completion_notify
     {
