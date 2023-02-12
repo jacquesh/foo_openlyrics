@@ -372,7 +372,7 @@ LyricData parse(const LyricDataUnstructured& input)
     while (line_start_index < text.length())
     {
         size_t line_end_index = line_start_index;
-        while ((line_end_index <= text.length()) &&
+        while ((line_end_index < text.length()) &&
             (text[line_end_index] != '\0') &&
             (text[line_end_index] != '\n') &&
             (text[line_end_index] != '\r'))
