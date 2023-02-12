@@ -27,7 +27,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
 
 std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyrics)
 {
-    LyricDataRaw new_raw = parsers::lrc::serialise(lyrics);
+    LyricDataUnstructured unstructured = parsers::lrc::serialise(lyrics);
     std::pair<std::string_view, char> replacements[] =
     {
         {"&amp;", '&'},
@@ -41,12 +41,12 @@ std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyr
     for(auto [escaped, replacement] : replacements)
     {
         size_t current_index = 0;
-        while(current_index < new_raw.text.length())
+        while(current_index < unstructured.text.length())
         {
-            size_t next_index = new_raw.text.find(escaped, current_index);
+            size_t next_index = unstructured.text.find(escaped, current_index);
             if(next_index == std::string::npos) break;
 
-            new_raw.text.replace(next_index, escaped.length(), 1, replacement);
+            unstructured.text.replace(next_index, escaped.length(), 1, replacement);
             current_index = next_index + 1;
             replace_count++;
         }
@@ -55,7 +55,7 @@ std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyr
 
     if(replace_count > 0)
     {
-        return {parsers::lrc::parse(new_raw)};
+        return {parsers::lrc::parse(unstructured)};
     }
     else
     {
@@ -253,7 +253,7 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
         }
     };
 
-    LyricDataRaw new_lyrics = parsers::lrc::serialise(lyrics);
+    LyricDataUnstructured new_lyrics = parsers::lrc::serialise(lyrics);
 
     int change_count = 0;
     size_t current_index = new_lyrics.text.find('[');

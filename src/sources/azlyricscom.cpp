@@ -170,13 +170,14 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std
     else
     {
         LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
+        const std::string_view trimmed_text = trim_surrounding_whitespace(lyric_text);
 
         LyricDataRaw result = {};
         result.source_id = id();
         result.source_path = url;
         result.artist = artist;
         result.title = title;
-        result.text = trim_surrounding_whitespace(lyric_text);
+        result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }
 

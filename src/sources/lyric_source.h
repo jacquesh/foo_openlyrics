@@ -31,6 +31,7 @@ public:
 
 protected:
     static std::string urlencode(std::string_view input);
+    static std::vector<uint8_t> string_to_raw_bytes(std::string_view str);
 };
 
 class LyricSourceRemote : public LyricSourceBase

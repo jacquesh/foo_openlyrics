@@ -76,11 +76,18 @@ bool LocalFileSource::lookup(LyricDataRaw& data, abort_callback& abort)
         file_ptr file;
         filesystem::g_open_read(file, file_path.c_str(), abort);
 
-        pfc::string8 file_contents;
-        file->read_string_raw(file_contents, abort);
+        // NOTE: We need to use `read_till_eof` instead of `read_string_raw` because otherwise on some
+        //       encodings it will see a null byte mid-way through and stop reading, dropping the rest
+        //       of the string.
+        //       For example if the input file is UTF-16 but only contains ASCII characters, then
+        //       every second byte is 0x00 and it will stop reading almost immediately, discarding
+        //       most of the actual lyric data. Issue #232 on github.
+        pfc::array_t<uint8_t> file_bytes;
+        file->read_till_eof(file_bytes, abort);
         LOG_INFO("Successfully retrieved lyrics from %s", file_path.c_str());
 
-        data.text = file_contents;
+        data.text_bytes.clear();
+        data.text_bytes.insert(data.text_bytes.begin(), file_bytes.begin(), file_bytes.end());
         return true;
     }
     catch(const std::exception& e)

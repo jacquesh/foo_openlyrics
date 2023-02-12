@@ -2,6 +2,12 @@
 
 #include "lyric_data.h"
 
+LyricDataRaw::LyricDataRaw(LyricDataCommon common) : LyricDataCommon(common) {}
+
+LyricDataUnstructured::LyricDataUnstructured(LyricDataCommon common) : LyricDataCommon(common) {}
+
+LyricData::LyricData(LyricDataCommon common) : LyricDataCommon(common) {}
+
 bool LyricData::IsTimestamped() const
 {
     return !lines.empty() && (lines[0].timestamp != DBL_MAX);

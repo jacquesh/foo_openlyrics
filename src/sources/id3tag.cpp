@@ -45,14 +45,16 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, con
         lyric.album = track_metadata(track_info, "album");
         lyric.title = track_metadata(track_info, "title");
 
+        std::string text;
         size_t value_count = info.meta_enum_value_count(lyric_value_index);
         for(size_t i=0; i<value_count; i++)
         {
             const char* value = info.meta_enum_value(lyric_value_index, i);
-            lyric.text += value;
+            text += value;
         }
+        lyric.text_bytes = string_to_raw_bytes(text);
 
-        if(!lyric.text.empty())
+        if(!lyric.text_bytes.empty())
         {
             LOG_INFO("Found lyrics in tag: '%s'", tag.c_str());
             result.push_back(std::move(lyric));

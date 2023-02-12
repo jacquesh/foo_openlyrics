@@ -358,7 +358,7 @@ std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricData
     });
 }
 
-LyricData parse(const LyricDataRaw& input)
+LyricData parse(const LyricDataUnstructured& input)
 {
     LOG_INFO("Parsing LRC lyric text...");
 
@@ -367,15 +367,15 @@ LyricData parse(const LyricDataRaw& input)
     bool tag_section_passed = false; // We only want to count lines as "tags" if they appear at the top of the file
     double timestamp_offset = 0.0;
 
-    const size_t text_length = input.text.length();
+    std::string_view text(input.text.data(), input.text.size());
     size_t line_start_index = 0;
-    while (line_start_index < text_length)
+    while (line_start_index < text.length())
     {
         size_t line_end_index = line_start_index;
-        while ((line_end_index <= text_length) &&
-            (input.text[line_end_index] != '\0') &&
-            (input.text[line_end_index] != '\n') &&
-            (input.text[line_end_index] != '\r'))
+        while ((line_end_index <= text.length()) &&
+            (text[line_end_index] != '\0') &&
+            (text[line_end_index] != '\n') &&
+            (text[line_end_index] != '\r'))
         {
             line_end_index++;
         }
@@ -387,16 +387,16 @@ LyricData parse(const LyricDataRaw& input)
             //       We don't want to process them so just skip past them. Ordinarily we'd do this
             //       just once at the start of the file but I've seen files with BOMs at the start
             //       of random lines in the file, so just check every line.
-            if((input.text[line_start_index] == '\u00EF') &&
-               (input.text[line_start_index+1] == '\u00BB') &&
-               (input.text[line_start_index+2] == '\u00BF'))
+            if((text[line_start_index] == '\u00EF') &&
+               (text[line_start_index+1] == '\u00BB') &&
+               (text[line_start_index+2] == '\u00BF'))
             {
                 line_start_index += 3;
                 line_bytes -= 3;
             }
         }
 
-        std::string_view line_view {input.text.c_str() + line_start_index, line_bytes};
+        std::string_view line_view {text.data() + line_start_index, line_bytes};
         ParsedLineContents parse_output = parse_line_times(line_view);
         if(parse_output.timestamps.size() > 0)
         {
@@ -429,14 +429,14 @@ LyricData parse(const LyricDataRaw& input)
             else
             {
                 tag_section_passed |= (line_bytes > 0);
-                std::string_view content(input.text.c_str() + line_start_index, line_bytes);
+                std::string_view content(text.data() + line_start_index, line_bytes);
                 lines.push_back({to_tstring(content), DBL_MAX});
             }
         }
 
-        if ((line_end_index + 1 < input.text.length()) &&
-            (input.text[line_end_index] == '\r') &&
-            (input.text[line_end_index + 1] == '\n'))
+        if ((line_end_index + 1 < text.length()) &&
+            (text[line_end_index] == '\r') &&
+            (text[line_end_index + 1] == '\n'))
         {
             line_start_index = line_end_index + 2;
         }
@@ -452,27 +452,16 @@ LyricData parse(const LyricDataRaw& input)
     });
     lines = collapse_concurrent_lines(lines);
 
-    LyricData result = {};
-    result.source_id = input.source_id;
-    result.source_path = input.source_path;
-    result.artist = input.artist;
-    result.album = input.album;
-    result.title = input.title;
+    LyricData result(input);
     result.tags = std::move(tags);
     result.lines = std::move(lines);
     result.timestamp_offset = timestamp_offset;
     return result;
 }
 
-LyricDataRaw serialise(const LyricData& input)
+LyricDataUnstructured serialise(const LyricData& input)
 {
-    LyricDataRaw result = {};
-    result.source_id = input.source_id;
-    result.source_path = input.source_path;
-    result.artist = input.artist;
-    result.album = input.album;
-    result.title = input.title;
-    // NOTE: We cannot set the lookup ID as that is a temporary value used only during search and is lost when parsed
+    LyricDataUnstructured result(input);
     result.text = from_tstring(expand_text(input));
     return result;
 }

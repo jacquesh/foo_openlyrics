@@ -75,6 +75,11 @@ std::string LyricSourceBase::urlencode(std::string_view input)
     return result;
 }
 
+std::vector<uint8_t> LyricSourceBase::string_to_raw_bytes(std::string_view str)
+{
+    return std::vector((uint8_t*)str.data(), (uint8_t*)str.data() + str.length());
+}
+
 bool LyricSourceRemote::is_local() const
 {
     return false;

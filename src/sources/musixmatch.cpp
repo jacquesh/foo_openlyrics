@@ -281,7 +281,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
         return false;
     }
 
-    data.text = json_lyricstext->valuestring;
+    data.text_bytes = string_to_raw_bytes(json_lyricstext->valuestring);
     cJSON_Delete(json);
     return true;
 }

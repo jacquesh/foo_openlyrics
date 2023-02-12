@@ -3,6 +3,58 @@
 #include "logging.h"
 #include "win32_util.h"
 
+int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char>& out_buffer)
+{
+    if(wide.empty())
+    {
+        return 0;
+    }
+
+    // Ignore byte-order marks at the beginning of our UTF-16 text
+    const wchar_t little_endian_bom = 0xFFFE;
+    const wchar_t big_endian_bom = 0xFEFF;
+    const wchar_t byte_order_mark = wide[0];
+    size_t start_index = 0;
+    if((byte_order_mark == little_endian_bom) || (byte_order_mark == big_endian_bom))
+    {
+        start_index = 1;
+    }
+
+    int bytes_required = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                             wide.data() + start_index, wide.length() - start_index,
+                                             nullptr, 0, nullptr, nullptr);
+    if(bytes_required <= 0)
+    {
+        return 0;
+    }
+
+    out_buffer.resize(bytes_required);
+    int bytes_written = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                            wide.data() + start_index, wide.length() - start_index,
+                                            out_buffer.data(), out_buffer.size(),
+                                            nullptr, nullptr);
+    assert(bytes_written == bytes_required);
+    return bytes_written;
+}
+
+int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wchar_t>& out_buffer)
+{
+    int chars_required = MultiByteToWideChar(codepage, MB_ERR_INVALID_CHARS,
+                                             narrow.data(), narrow.length(),
+                                             nullptr, 0);
+    if(chars_required <= 0)
+    {
+        return 0;
+    }
+
+    out_buffer.resize(chars_required);
+    int chars_written = MultiByteToWideChar(codepage, MB_ERR_INVALID_CHARS,
+                                                 narrow.data(), narrow.length(),
+                                                 out_buffer.data(), out_buffer.size());
+    assert(chars_written == chars_required);
+    return chars_written;
+}
+
 std::tstring to_tstring(std::string_view string)
 {
 #ifdef UNICODE

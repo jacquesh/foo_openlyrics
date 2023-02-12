@@ -13,6 +13,9 @@ namespace std
 #endif
 }
 
+int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char>& out_buffer); // Returns bytes written to out_buffer
+int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wchar_t>& out_buffer); // Returns characters written to out_buffer
+
 std::tstring to_tstring(std::string_view string);
 std::tstring to_tstring(const std::string& string);
 std::tstring to_tstring(const pfc::string8& string);

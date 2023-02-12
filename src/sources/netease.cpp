@@ -191,7 +191,8 @@ bool NetEaseLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
             cJSON* lrc_lyric = cJSON_GetObjectItem(lrc_item, "lyric");
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
-                data.text = trim_surrounding_whitespace(lrc_lyric->valuestring);
+                const std::string_view trimmed_text = trim_surrounding_whitespace(lrc_lyric->valuestring);
+                data.text_bytes = string_to_raw_bytes(trimmed_text);
                 success = true;
             }
         }

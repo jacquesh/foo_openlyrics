@@ -168,7 +168,7 @@ bool QQMusicLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
             pfc::string8 lyric_str;
             pfc::base64_decode_to_string(lyric_str, lyric_item->valuestring);
 
-            data.text = std::string(lyric_str.c_str(), lyric_str.length());
+            data.text_bytes = string_to_raw_bytes(std::string_view(lyric_str.c_str(), lyric_str.length()));
             success = true;
         }
     }
