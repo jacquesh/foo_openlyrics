@@ -115,7 +115,12 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
 
     pfc::string8 formatted_name;
     track->formatTitle_v2_(track_info, nullptr, formatted_name, name_format_script, nullptr);
-    formatted_name = pfc::io::path::replaceIllegalNameChars(formatted_name);
+
+    // We specifically replace illegal *path* chars here (rather than illegal *name* chars) to
+    // allow users to put directory separators into their name format.
+    // e.g users can set the save directory to "the config directory" and then have artist
+    // subdirectories by specifying the name format to be '%artist%\%title%'
+    formatted_name = pfc::io::path::replaceIllegalPathChars(formatted_name);
 
     std::string dir_class_name = "(Unknown)";
     pfc::string8 formatted_directory;

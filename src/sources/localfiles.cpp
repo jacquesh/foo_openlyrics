@@ -92,6 +92,11 @@ bool LocalFileSource::lookup(LyricDataRaw& data, abort_callback& abort)
 
 static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort)
 {
+    if(filesystem::g_exists(dir_path.c_str(), abort))
+    {
+        return;
+    }
+
     pfc::string parent = pfc::io::path::getParent(dir_path);
     if(parent == "file://\\\\")
     {
@@ -108,11 +113,8 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
         ensure_dir_exists(parent, abort);
     }
 
-    if(!filesystem::g_exists(dir_path.c_str(), abort))
-    {
-        LOG_INFO("Save directory '%s' does not exist. Creating it...", dir_path.c_str());
-        filesystem::g_create_directory(dir_path.c_str(), abort);
-    }
+    LOG_INFO("Save directory '%s' does not exist. Creating it...", dir_path.c_str());
+    filesystem::g_create_directory(dir_path.c_str(), abort);
 }
 
 std::string LocalFileSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
