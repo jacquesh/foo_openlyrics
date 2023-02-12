@@ -30,7 +30,6 @@ struct LyricDataUnstructured : public LyricDataCommon
 {
     std::string text; // The parsed lyrics text, encoded in UTF-8
 
-    LyricDataUnstructured() = default;
     explicit LyricDataUnstructured(LyricDataCommon common);
 };
 
@@ -61,6 +60,6 @@ struct LyricData : public LyricDataCommon
     double LineTimestamp(int line_index) const;
     double LineTimestamp(size_t line_index) const;
 
-    void operator =(const LyricData& other) = delete;
+    LyricData& operator =(const LyricData& other) = default;
     LyricData& operator =(LyricData&& other) = default;
 };

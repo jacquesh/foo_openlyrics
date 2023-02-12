@@ -16,7 +16,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(const std::tstring& text, LyricUpdateHandle& update);
+    LyricEditor(LyricDataUnstructured lyrics, LyricUpdateHandle& update);
     ~LyricEditor() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -69,15 +69,17 @@ private:
     LyricData ParseEditorContents();
 
     LyricUpdateHandle& m_update;
+    LyricDataCommon m_common_data;
     std::tstring m_input_text;
 
     HWND m_offset_apply_tooltip;
     HWND m_offset_sync_tooltip;
 };
 
-LyricEditor::LyricEditor(const std::tstring& text, LyricUpdateHandle& update) :
+LyricEditor::LyricEditor(LyricDataUnstructured lyrics, LyricUpdateHandle& update) :
     m_update(update),
-    m_input_text(text)
+    m_common_data(lyrics),
+    m_input_text(to_tstring(lyrics.text))
 {
 }
 
@@ -563,7 +565,7 @@ std::tstring LyricEditor::GetEditorContents()
 LyricData LyricEditor::ParseEditorContents()
 {
     std::string lyrics = from_tstring(GetEditorContents());
-    LyricDataUnstructured data = {};
+    LyricDataUnstructured data(m_common_data);
     data.text = lyrics;
     return parsers::lrc::parse(data);
 }
@@ -574,8 +576,8 @@ HWND SpawnLyricEditor(HWND parent_window, const LyricData& lyrics, LyricUpdateHa
     HWND result = nullptr;
     try
     {
-        std::tstring lyric_text = parsers::lrc::expand_text(lyrics);
-        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(parent_window, lyric_text, update);
+        LyricDataUnstructured unstructured = parsers::lrc::serialise(lyrics);
+        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(parent_window, unstructured, update);
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)
