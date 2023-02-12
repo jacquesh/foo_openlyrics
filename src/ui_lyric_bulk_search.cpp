@@ -11,6 +11,8 @@
 #include "sources/lyric_source.h"
 #include "win32_util.h"
 
+class BulkLyricSearch;
+static BulkLyricSearch* g_active_bulk_search_panel = nullptr;
 
 class BulkLyricSearch : public CDialogImpl<BulkLyricSearch>
 {
@@ -18,7 +20,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_BULK_SEARCH };
 
-    BulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search);
+    BulkLyricSearch(const std::vector<metadb_handle_ptr>& tracks_to_search);
     ~BulkLyricSearch() override;
 
     BEGIN_MSG_MAP(BulkLyricSearch)
@@ -29,7 +31,15 @@ public:
         COMMAND_HANDLER_EX(IDC_BULKSEARCH_CLOSE, BN_CLICKED, OnCancel)
     END_MSG_MAP()
 
+    void add_tracks(const std::vector<metadb_handle_ptr>& tracks_to_search);
+
 private:
+    struct TrackAndInfo
+    {
+        metadb_handle_ptr track;
+        metadb_v2_rec_t track_info;
+    };
+
     BOOL OnInitDialog(CWindow parent, LPARAM clientData);
     void OnDestroyDialog();
     void OnClose();
@@ -37,50 +47,21 @@ private:
     void OnCancel(UINT btn_id, int notify_code, CWindow btn);
 
     void update_status_text();
+    void add_tracks_to_ui(const std::vector<TrackAndInfo>& new_tracks);
 
     std::optional<LyricUpdateHandle> m_child_update;
     abort_callback_impl m_child_abort;
 
-    struct TrackAndInfo
-    {
-        metadb_handle_ptr track;
-        metadb_v2_rec_t track_info;
-    };
     std::vector<TrackAndInfo> m_tracks_to_search;
     size_t m_next_search_index;
 };
 
 static const UINT_PTR BULK_SEARCH_UPDATE_TIMER = 290110919;
 
-BulkLyricSearch::BulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
+BulkLyricSearch::BulkLyricSearch(const std::vector<metadb_handle_ptr>& tracks_to_search)
     : m_next_search_index(0)
 {
-    const size_t track_count = tracks_to_search.size();
-    m_tracks_to_search.reserve(track_count);
-    for(metadb_handle_ptr handle : tracks_to_search)
-    {
-        m_tracks_to_search.push_back(TrackAndInfo{handle, {}});
-    }
-
-    metadb_v2::ptr meta;
-    if(metadb_v2::tryGet(meta)) // metadb_v2 is only available from fb2k v2.0 onwards
-    {
-        pfc::list_t<metadb_handle_ptr> track_info_query_list;
-        track_info_query_list.prealloc(track_count);
-        for(metadb_handle_ptr handle : tracks_to_search)
-        {
-            track_info_query_list.add_item(handle);
-        }
-        const auto fill_track_info = [this](size_t idx, const metadb_v2_rec_t& rec) { m_tracks_to_search[idx].track_info = rec; };
-        meta->queryMultiParallel_(track_info_query_list, fill_track_info);
-    }
-    else
-    {
-        for(size_t i=0; i<track_count; i++)
-        {
-            m_tracks_to_search[i].track_info = get_full_metadata(tracks_to_search[i]);
-        }
-    }
+    add_tracks(tracks_to_search);
 }
 
 BulkLyricSearch::~BulkLyricSearch()
@@ -103,7 +84,7 @@ BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     artist_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     artist_column.fmt = LVCFMT_LEFT;
     artist_column.pszText = _T("Artist");
-    artist_column.cx = 168;
+    artist_column.cx = 144;
     LRESULT artist_index = SendDlgItemMessage(IDC_BULKSEARCH_LIST, LVM_INSERTCOLUMN, 1, (LPARAM)&artist_column);
     assert(artist_index >= 0);
 
@@ -117,9 +98,116 @@ BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
     SendDlgItemMessage(IDC_BULKSEARCH_LIST, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
     SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_SETSTEP, 1, 0);
-    SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_SETRANGE32, 0, m_tracks_to_search.size());
 
-    for(const TrackAndInfo& track : m_tracks_to_search)
+    add_tracks_to_ui(m_tracks_to_search);
+
+    UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 0, nullptr);
+    if (result != BULK_SEARCH_UPDATE_TIMER)
+    {
+        LOG_WARN("Unexpected timer result when starting bulk search update timer");
+    }
+
+    ShowWindow(SW_SHOW);
+    return TRUE;
+}
+
+void BulkLyricSearch::OnDestroyDialog()
+{
+    core_api::ensure_main_thread();
+    assert(g_active_bulk_search_panel == this);
+    g_active_bulk_search_panel = nullptr;
+
+    if(m_child_update.has_value())
+    {
+        bool completed = m_child_update.value().wait_for_complete(10'000);
+        if(!completed)
+        {
+            LOG_WARN("Failed to complete custom lyric search before closing the window");
+        }
+
+        OnTimer(0); // Process the result, if we have one
+    }
+
+    KillTimer(BULK_SEARCH_UPDATE_TIMER);
+}
+
+void BulkLyricSearch::OnClose()
+{
+    m_child_abort.abort();
+    DestroyWindow();
+}
+
+void BulkLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
+{
+    OnClose();
+}
+
+void BulkLyricSearch::add_tracks(const std::vector<metadb_handle_ptr>& tracks_to_search)
+{
+    const size_t track_count = tracks_to_search.size();
+    std::vector<TrackAndInfo> new_tracks;
+    new_tracks.reserve(track_count);
+    for(metadb_handle_ptr handle : tracks_to_search)
+    {
+        new_tracks.push_back(TrackAndInfo{handle, {}});
+    }
+
+    metadb_v2::ptr meta;
+    if(metadb_v2::tryGet(meta)) // metadb_v2 is only available from fb2k v2.0 onwards
+    {
+        pfc::list_t<metadb_handle_ptr> track_info_query_list;
+        track_info_query_list.prealloc(track_count);
+        for(metadb_handle_ptr handle : tracks_to_search)
+        {
+            track_info_query_list.add_item(handle);
+        }
+        const auto fill_track_info = [&new_tracks](size_t idx, const metadb_v2_rec_t& rec)
+        {
+            new_tracks[idx].track_info = rec;
+        };
+        meta->queryMultiParallel_(track_info_query_list, fill_track_info);
+    }
+    else
+    {
+        for(size_t i=0; i<track_count; i++)
+        {
+            new_tracks[i].track_info = get_full_metadata(tracks_to_search[i]);
+        }
+    }
+
+    const bool had_finished = (m_next_search_index >= m_tracks_to_search.size());
+    m_tracks_to_search.insert(m_tracks_to_search.end(), new_tracks.begin(), new_tracks.end());
+    if(m_hWnd != nullptr)
+    {
+        add_tracks_to_ui(new_tracks);
+
+        // Only start the timer if we were still busy searching for a track.
+        // This prevents users from skipping the 10 second extra wait time between remote
+        // searches by adding tracks one-by-one.
+        if(had_finished)
+        {
+            LVITEM subitem_status = {};
+            subitem_status.mask = LVIF_TEXT;
+            subitem_status.iItem = m_next_search_index;
+            subitem_status.iSubItem = 2;
+            subitem_status.pszText = _T("Searching...");
+            LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, m_next_search_index, (LPARAM)&subitem_status);
+            assert(status_success);
+
+            UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 0, nullptr);
+            if (result != BULK_SEARCH_UPDATE_TIMER)
+            {
+                LOG_WARN("Unexpected timer result when starting bulk search update timer");
+            }
+        }
+    }
+}
+
+void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_tracks)
+{
+    if(new_tracks.empty()) return;
+
+    for(const TrackAndInfo& track : new_tracks)
     {
         std::tstring ui_title = to_tstring(track_metadata(track.track_info, "title"));
         std::tstring ui_artist = to_tstring(track_metadata(track.track_info, "artist"));
@@ -149,43 +237,9 @@ BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
         assert(status_success);
     }
 
-    UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 0, nullptr);
-    if (result != BULK_SEARCH_UPDATE_TIMER)
-    {
-        LOG_WARN("Unexpected timer result when initially starting bulk search update timer");
-    }
-
     update_status_text();
-
-    ShowWindow(SW_SHOW);
-    return TRUE;
-}
-
-void BulkLyricSearch::OnDestroyDialog()
-{
-    if(m_child_update.has_value())
-    {
-        bool completed = m_child_update.value().wait_for_complete(10'000);
-        if(!completed)
-        {
-            LOG_WARN("Failed to complete custom lyric search before closing the window");
-        }
-
-        OnTimer(0); // Process the result, if we have one
-    }
-
-    KillTimer(BULK_SEARCH_UPDATE_TIMER);
-}
-
-void BulkLyricSearch::OnClose()
-{
-    m_child_abort.abort();
-    DestroyWindow();
-}
-
-void BulkLyricSearch::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /*btn*/)
-{
-    OnClose();
+    SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_SETRANGE32, 0, m_tracks_to_search.size());
+    SetDlgItemText(IDC_BULKSEARCH_CLOSE, _T("Cancel"));
 }
 
 void BulkLyricSearch::update_status_text()
@@ -250,6 +304,12 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
     }
     else
     {
+        // We mark the row as "Searching" here, rather than when we start the actual search so
+        // that there is always one row that says it's searching, even during the extra delay
+        // time between searches of online sources.
+        // This is just to make it look better to the user, who might easily think it's broken
+        // if it visibly just sits for several seconds between searches (which...admittedly it
+        // does do, but it's by design, it's not a bug).
         LVITEM subitem_status = {};
         subitem_status.mask = LVIF_TEXT;
         subitem_status.iItem = m_next_search_index;
@@ -287,7 +347,14 @@ HWND SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
 {
     if(tracks_to_search.empty())
     {
-        return nullptr;;
+        return nullptr;
+    }
+
+    core_api::ensure_main_thread();
+    if(g_active_bulk_search_panel != nullptr)
+    {
+        g_active_bulk_search_panel->add_tracks(tracks_to_search);
+        return g_active_bulk_search_panel->m_hWnd;
     }
 
     LOG_INFO("Spawning bulk search window...");
@@ -295,6 +362,7 @@ HWND SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
     try
     {
         auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<BulkLyricSearch>>(core_api::get_main_window(), tracks_to_search);
+        g_active_bulk_search_panel = new_window;
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)

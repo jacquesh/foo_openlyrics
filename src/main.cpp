@@ -30,6 +30,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Add basic support for network music streams\n"
     "- Allow subdirectories (with '\\') in the 'file name format' save setting\n"
+    "- Bulk searches now add to the search queue instead of creating a new one\n"
     "- Update foobar2k SDK to version 20221116\n"
     "- Fix failing to load lyrics from meta tags in some situations\n"
     "- Fix lyrics being mangled when loaded from UTF-16-encoded text\n"

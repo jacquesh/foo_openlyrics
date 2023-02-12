@@ -211,13 +211,6 @@ BEGIN
     0
 END
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Icon
-//
-
-
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -282,7 +275,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     PUSHBUTTON      "Cancel",IDC_BULKSEARCH_CLOSE,252,155,50,14
     CONTROL         "",IDC_BULKSEARCH_PROGRESS,"msctls_progress32",PBS_SMOOTH | WS_BORDER,7,19,295,14
-    LTEXT           "Searching... 7/10",IDC_BULKSEARCH_STATUS,7,7,57,8
+    LTEXT           "Searching...",IDC_BULKSEARCH_STATUS,7,7,146,8
     CONTROL         "",IDC_BULKSEARCH_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,39,295,111
 END
 
