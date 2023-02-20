@@ -1,79 +1,8 @@
-//#include <assert.h>
+#define BVTF_IMPLEMENTATION
+#include "bvtf.h"
 
+#include "common_test_data.h"
 #include "lyric_io.h"
-
-// TODO: This requires shared.dll to be copied to the binaries directory from the fb2k install dir.
-// That kinda sucks but it's a consequence of linking to the fb2k SDK and the plugin DLL directly.
-// I wonder if we can extract the relevant logic out into a static lib that doesn't depend on fb2k.
-
-// TODO: Begin "bvtf": The Basic Viability Test Framework
-#include <stdio.h>
-// TODO: Do a debugbreak if the debugger is attached?
-#define ASSERT(CONDITION) do{if(!(CONDITION)){ *bvtf_error_count = *bvtf_error_count + 1; return; }}while(false)
-#define CHECK(CONDITION) do{if(!(CONDITION)){ *bvtf_error_count = *bvtf_error_count + 1; }}while(false)
-
-typedef void(BVTF_TEST_FUNCTION_TYPE)(int*);
-
-typedef struct
-{
-    BVTF_TEST_FUNCTION_TYPE* ptr;
-    const char* name;
-} bvtf_function_metadata;
-
-static int bvtf_test_count = 0;
-static bvtf_function_metadata* bvtf_test_functions = nullptr;
-int bvtf_register_function(BVTF_TEST_FUNCTION_TYPE* ptr, const char* name)
-{
-    // TODO: Only realloc when we reach a new power of 2 in the test count, to minimise reallocs
-    bvtf_test_functions = (bvtf_function_metadata*)realloc(bvtf_test_functions, sizeof(*bvtf_test_functions) * (bvtf_test_count+1));
-    bvtf_test_functions[bvtf_test_count] = { ptr, name };
-    bvtf_test_count++;
-    return bvtf_test_count;
-}
-
-#define BVTF_TEST(TEST_NAME) BVTF_TEST_FUNCTION_TYPE TEST_NAME; static int bvtf_test_##TEST_NAME = bvtf_register_function(&TEST_NAME, #TEST_NAME); void TEST_NAME(int* bvtf_error_count)
-
-int main()
-{
-    int return_code = 0;
-    printf("Executing %d test functions...\n", bvtf_test_count);
-    for(int i=0; i<bvtf_test_count; i++)
-    {
-        int error_count = 0;
-        bvtf_test_functions[i].ptr(&error_count);
-
-        const char* status_str = "";
-        if(error_count == 0)
-        {
-            status_str = "\033[32m" "PASSED" "\033[39m";
-        }
-        else
-        {
-            status_str = "\033[31m" "FAILED" "\033[39m";
-            return_code = 1;
-        }
-        printf("[%s] %s\n", status_str, bvtf_test_functions[i].name);
-    }
-
-    printf("Done");
-    return return_code;
-}
-// TODO: End "bvtf"
-
-
-static bool g_all_bools[] = { true, false };
-static AutoSaveStrategy g_all_save_strategies[] =
-{
-    AutoSaveStrategy::Never,
-    AutoSaveStrategy::Always,
-    AutoSaveStrategy::OnlySynced,
-    AutoSaveStrategy::OnlyUnsynced
-};
-const LyricUpdateHandle::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
-{
-    LyricUpdateHandle::Type::AutoSearch,
-    LyricUpdateHandle::Type::ManualSearch
-};
 
 BVTF_TEST(always_save_edit_updates)
 {
@@ -178,25 +107,3 @@ BVTF_TEST(only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
     ASSERT(save_unsynced);
 }
 
-// TODO: These tests for a different function should really be moved to their own file, but that requires us to pull the test framework out to its own header, which hasn't been done yet
-BVTF_TEST(dont_apply_autoedits_to_edit_results)
-{
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
-
-    for(bool loaded_from_local_src : g_all_bools)
-    {
-        const bool applied = io::should_auto_edits_be_applied(loaded_from_local_src, update_type);
-        ASSERT(!applied);
-    }
-}
-
-BVTF_TEST(apply_autoedits_to_search_results_only_from_remote_sources)
-{
-    for(LyricUpdateHandle::Type update_type : g_search_update_types)
-    {
-        const bool applied_remote = io::should_auto_edits_be_applied(false, update_type);
-        const bool applied_local =  io::should_auto_edits_be_applied(true, update_type);
-        ASSERT(applied_remote);
-        ASSERT(!applied_local);
-    }
-}
