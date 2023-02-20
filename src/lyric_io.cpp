@@ -472,11 +472,17 @@ bool io::should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrate
     return should_save;
 }
 
-bool io::save_overwrite_allowed(bool loaded_from_local_src, LyricUpdateHandle::Type update_type)
+bool io::save_overwrite_allowed(LyricUpdateHandle::Type update_type)
 {
-    const bool allow_overwrite = (update_type == LyricUpdateHandle::Type::Edit)
-                                || ((update_type == LyricUpdateHandle::Type::ManualSearch) && !loaded_from_local_src);
+    const bool allow_overwrite = (update_type == LyricUpdateHandle::Type::Edit) || (update_type == LyricUpdateHandle::Type::ManualSearch);
     return allow_overwrite;
+}
+
+bool io::should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdateHandle::Type update_type)
+{
+    const bool was_search = (update_type == LyricUpdateHandle::Type::AutoSearch) || (update_type == LyricUpdateHandle::Type::ManualSearch);
+    const bool should_auto_edit = was_search && !loaded_from_local_src;
+    return should_auto_edit;
 }
 
 std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& update)
@@ -496,30 +502,17 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
         return {};
     }
 
-    AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
-    bool should_autosave = (autosave == AutoSaveStrategy::Always) ||
-                           ((autosave == AutoSaveStrategy::OnlySynced) && lyrics.IsTimestamped()) ||
-                           ((autosave == AutoSaveStrategy::OnlyUnsynced) && !lyrics.IsTimestamped());
+    const LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
+    const bool loaded_from_local_src = ((source != nullptr) && source->is_local());
+    const AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
 
-    bool user_requested = (update.get_type() == LyricUpdateHandle::Type::Edit) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
-
-    LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
-    bool loaded_from_local_src = ((source != nullptr) && source->is_local());
-
-    // NOTE: We previously changed this to:
-    //       `should_autosave && (is_edit || !loaded_from_local_src)`
-    //       This makes all the behaviour consistent in the sense that the *only* time it will
-    //       save if you set auto-save to "never" is when you explicitly click the "Save" button
-    //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
-    //       this doesn't really make sense. If you make an edit then you almost certainly want
-    //       to save your edits (and if you just made them then you can always undo them).
-    const bool should_save = user_requested || (should_autosave && !loaded_from_local_src); // Don't save to the source we just loaded from
+    const bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update.get_type(), lyrics.IsTimestamped());
     if(should_save)
     {
         try
         {
-            bool was_search = (update.get_type() == LyricUpdateHandle::Type::AutoSearch) || (update.get_type() == LyricUpdateHandle::Type::ManualSearch);
-            if(was_search && (source != nullptr) && !source->is_local())
+            const bool should_auto_edit = should_auto_edits_be_applied(loaded_from_local_src, update.get_type());
+            if(should_auto_edit)
             {
                 for(AutoEditType type : preferences::editing::automated_auto_edits())
                 {
@@ -531,7 +524,7 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
                 }
             }
 
-            const bool allow_overwrite = user_requested;
+            const bool allow_overwrite = save_overwrite_allowed(update.get_type());
             io::save_lyrics(update.get_track(), update.get_track_info(), lyrics, allow_overwrite, update.get_checked_abort());
         }
         catch(const std::exception& e)
@@ -541,10 +534,11 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
     }
     else
     {
-        LOG_INFO("Skipping lyric save. User-requested: %s, Autosave: %s, Local: %s",
-                user_requested ? "yes" : "no",
-                should_autosave ? "yes" : "no",
-                loaded_from_local_src ? "yes" : "no");
+        LOG_INFO("Skipping lyric save. Type: %d, Local: %s, Timestamped: %s, Autosave: %d",
+                int(update.get_type()),
+                loaded_from_local_src ? "yes" : "no",
+                lyrics.IsTimestamped() ? "yes" : "no",
+                int(autosave));
     }
 
     return {std::move(lyrics)};

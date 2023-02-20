@@ -76,6 +76,7 @@ namespace io
     bool delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics);
 
     OPENLYRICS_TESTABLE_FUNC bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdateHandle::Type update_type, bool is_timestamped); // TODO: Naming
-    OPENLYRICS_TESTABLE_FUNC bool save_overwrite_allowed(bool loaded_from_local_src, LyricUpdateHandle::Type update_type);
+    OPENLYRICS_TESTABLE_FUNC bool save_overwrite_allowed(LyricUpdateHandle::Type update_type);
+    OPENLYRICS_TESTABLE_FUNC bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdateHandle::Type update_type);
 }
 

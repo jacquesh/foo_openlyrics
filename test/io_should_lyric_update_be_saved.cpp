@@ -10,6 +10,7 @@
 #include <stdio.h>
 // TODO: Do a debugbreak if the debugger is attached?
 #define ASSERT(CONDITION) do{if(!(CONDITION)){ *bvtf_error_count = *bvtf_error_count + 1; return; }}while(false)
+#define CHECK(CONDITION) do{if(!(CONDITION)){ *bvtf_error_count = *bvtf_error_count + 1; }}while(false)
 
 typedef void(BVTF_TEST_FUNCTION_TYPE)(int*);
 
@@ -177,3 +178,25 @@ BVTF_TEST(only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
     ASSERT(save_unsynced);
 }
 
+// TODO: These tests for a different function should really be moved to their own file, but that requires us to pull the test framework out to its own header, which hasn't been done yet
+BVTF_TEST(dont_apply_autoedits_to_edit_results)
+{
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
+
+    for(bool loaded_from_local_src : g_all_bools)
+    {
+        const bool applied = io::should_auto_edits_be_applied(loaded_from_local_src, update_type);
+        ASSERT(!applied);
+    }
+}
+
+BVTF_TEST(apply_autoedits_to_search_results_only_from_remote_sources)
+{
+    for(LyricUpdateHandle::Type update_type : g_search_update_types)
+    {
+        const bool applied_remote = io::should_auto_edits_be_applied(false, update_type);
+        const bool applied_local =  io::should_auto_edits_be_applied(true, update_type);
+        ASSERT(applied_remote);
+        ASSERT(!applied_local);
+    }
+}
