@@ -10,3 +10,9 @@
 #include <string>
 #include <string_view>
 #pragma warning(pop)
+
+#ifdef BUILDING_OPENLYRICS_DLL
+#define OPENLYRICS_TESTABLE_FUNC __declspec(dllexport)
+#else
+#define OPENLYRICS_TESTABLE_FUNC __declspec(dllimport)
+#endif // BUILDING_OPENLYRICS_DLL

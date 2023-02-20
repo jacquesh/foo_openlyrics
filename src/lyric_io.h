@@ -5,23 +5,6 @@
 #include "lyric_data.h"
 #include "tag_util.h"
 
-class LyricUpdateHandle;
-
-namespace io
-{
-    void search_for_lyrics(LyricUpdateHandle& handle, bool local_only);
-    void search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title);
-
-    std::optional<LyricData> process_available_lyric_update(LyricUpdateHandle& update);
-
-    // Updates the lyric data with the ID of the source used for saving, as well as the persistence path that it reports.
-    // Returns a success flag
-    bool save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
-
-    bool delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics);
-}
-
-
 class LyricUpdateHandle
 {
 public:
@@ -78,4 +61,21 @@ private:
     std::string m_progress;
     bool m_searched_remote_sources;
 };
+
+namespace io
+{
+    void search_for_lyrics(LyricUpdateHandle& handle, bool local_only);
+    void search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title);
+
+    std::optional<LyricData> process_available_lyric_update(LyricUpdateHandle& update);
+
+    // Updates the lyric data with the ID of the source used for saving, as well as the persistence path that it reports.
+    // Returns a success flag
+    bool save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
+
+    bool delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics);
+
+    OPENLYRICS_TESTABLE_FUNC bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdateHandle::Type update_type, bool is_timestamped); // TODO: Naming
+    OPENLYRICS_TESTABLE_FUNC bool save_overwrite_allowed(bool loaded_from_local_src, LyricUpdateHandle::Type update_type);
+}
 

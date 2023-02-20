@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "columns_ui_sdk", "..\3rdpar
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tidy-static", "..\3rdparty\tidy-html5-5.8.0\openlyrics_build\tidy-static.vcxproj", "{7172CDEB-2391-41C4-883D-BD2C7B60C715}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_foo_openlyrics", "test_foo_openlyrics.vcxproj", "{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -107,6 +109,14 @@ Global
 		{7172CDEB-2391-41C4-883D-BD2C7B60C715}.Release|x64.Build.0 = Release|x64
 		{7172CDEB-2391-41C4-883D-BD2C7B60C715}.Release|x86.ActiveCfg = Release|Win32
 		{7172CDEB-2391-41C4-883D-BD2C7B60C715}.Release|x86.Build.0 = Release|Win32
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Debug|x64.ActiveCfg = Debug|x64
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Debug|x64.Build.0 = Debug|x64
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Debug|x86.ActiveCfg = Debug|Win32
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Debug|x86.Build.0 = Debug|Win32
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Release|x64.ActiveCfg = Release|x64
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Release|x64.Build.0 = Release|x64
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Release|x86.ActiveCfg = Release|Win32
+		{1A6E6173-AF42-4A1A-B62C-2393476B5B4F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

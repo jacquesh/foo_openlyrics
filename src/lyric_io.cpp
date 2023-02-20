@@ -451,6 +451,34 @@ void io::search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, st
     });
 }
 
+bool io::should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdateHandle::Type update_type, bool is_timestamped)
+{
+    const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always) ||
+                                           ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped) ||
+                                           ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped);
+    const bool should_autosave = ((update_type == LyricUpdateHandle::Type::AutoSearch) && is_configured_to_autosave && !loaded_from_local_src);
+
+    const bool is_a_user_edit = (update_type == LyricUpdateHandle::Type::Edit);
+    const bool user_requested_search = ((update_type == LyricUpdateHandle::Type::ManualSearch) && !loaded_from_local_src);
+
+    // NOTE: We previously changed this to:
+    //       `should_autosave && (is_edit || !loaded_from_local_src)`
+    //       This makes all the behaviour consistent in the sense that the *only* time it will
+    //       save if you set auto-save to "never" is when you explicitly click the "Save" button
+    //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
+    //       this doesn't really make sense. If you make an edit then you almost certainly want
+    //       to save your edits (and if you just made them then you can always undo them).
+    const bool should_save = should_autosave || is_a_user_edit || user_requested_search; // Don't save to the source we just loaded from
+    return should_save;
+}
+
+bool io::save_overwrite_allowed(bool loaded_from_local_src, LyricUpdateHandle::Type update_type)
+{
+    const bool allow_overwrite = (update_type == LyricUpdateHandle::Type::Edit)
+                                || ((update_type == LyricUpdateHandle::Type::ManualSearch) && !loaded_from_local_src);
+    return allow_overwrite;
+}
+
 std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& update)
 {
     if(!update.has_result())
