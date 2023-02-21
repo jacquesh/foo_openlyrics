@@ -52,7 +52,7 @@ static cfg_int_t<uint32_t>                    cfg_display_fg_colour(GUID_CFG_DIS
 static cfg_int_t<uint32_t>                    cfg_display_bg_colour(GUID_CFG_DISPLAY_BACKGROUND_COLOUR, cfg_display_bg_colour_default);
 static cfg_int_t<uint32_t>                    cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
-static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 500);
+static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 10, 500);
 static cfg_auto_combo<LineScrollDirection, 2> cfg_display_scroll_direction(GUID_CFG_DISPLAY_SCROLL_DIRECTION, IDC_DISPLAY_SCROLL_DIRECTION, LineScrollDirection::Vertical, g_scroll_direction_options);
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
 static cfg_auto_bool                          cfg_debug_logs_enabled(GUID_CFG_DEBUG_LOGS_ENABLED, IDC_DEBUG_LOGS_ENABLED, false);
@@ -458,8 +458,8 @@ void PreferencesDisplay::RepaintColours()
 
 void PreferencesDisplay::UpdateScrollTimePreview()
 {
-    // We get the position specifically because the value passed in the parameter is sometimes 0
-    LRESULT value = SendDlgItemMessage(IDC_DISPLAY_SCROLL_TIME, TBM_GETPOS, 0, 0);
+    // We get the value from the autocfg because that handles the increments correctly
+    int value = cfg_display_scroll_time.get_ui_value();
 
     const int preview_length = 32;
     TCHAR preview[preview_length];
