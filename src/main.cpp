@@ -31,6 +31,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add basic support for network music streams\n"
     "- Allow subdirectories (with '\\') in the 'file name format' save setting\n"
     "- Add support for continuously scrolling synced lyrics\n"
+    "- Allow configuring line scroll time and highlight fade time separately\n"
     "- Bulk searches now add to the search queue instead of creating a new one\n"
     "- Avoid saving lyrics if they're loaded from a local source during search\n"
     "- Restrict the scroll time setting to increments of 10ms\n"

@@ -728,6 +728,9 @@ namespace {
         const double scroll_time = preferences::display::scroll_time_seconds();
         const LyricScrollPosition scroll = get_scroll_position(m_lyrics, playback_time.current_time, scroll_time);
 
+        const double fade_duration = preferences::display::highlight_fade_seconds();
+        const LyricScrollPosition fade = get_scroll_position(m_lyrics, playback_time.current_time, fade_duration);
+
         int text_height_above_active_line = 0;
         int active_line_height = 0;
         if(scroll.active_line_index >= 0)
@@ -749,12 +752,12 @@ namespace {
             const LyricDataLine& line = m_lyrics.lines[line_index];
             if(line_index == scroll.active_line_index)
             {
-                t_ui_color colour = lerp(hl_colour, fg_colour, scroll.next_line_scroll_factor);
+                t_ui_color colour = lerp(hl_colour, fg_colour, fade.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else if(line_index == scroll.active_line_index+1)
             {
-                t_ui_color colour = lerp(fg_colour, hl_colour, scroll.next_line_scroll_factor);
+                t_ui_color colour = lerp(fg_colour, hl_colour, fade.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else
@@ -790,7 +793,7 @@ namespace {
         t_ui_color fg_colour = get_fg_colour();
         t_ui_color hl_colour = get_highlight_colour();
 
-        double scroll_time = preferences::display::scroll_time_seconds();
+        const double scroll_time = preferences::display::scroll_time_seconds();
         const LyricScrollPosition scroll = get_scroll_position(m_lyrics, playback_time.current_time, scroll_time);
 
         bool has_active_text = (scroll.active_line_index >= 0);

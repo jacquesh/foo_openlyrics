@@ -96,6 +96,8 @@ namespace preferences
         LineScrollDirection scroll_direction();
         LineScrollType scroll_type();
         double scroll_time_seconds();
+
+        double highlight_fade_seconds();
         int linegap();
 
         bool debug_logs_enabled();

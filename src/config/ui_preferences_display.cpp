@@ -26,6 +26,7 @@ static const GUID GUID_CFG_DISPLAY_SCROLL_CONTINUOUS = { 0x9ccfe1b0, 0x3c8a, 0x4
 static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_DIRECTION = { 0x6b1f47ae, 0xa383, 0x434b, { 0xa7, 0xd2, 0x43, 0xbe, 0x55, 0x54, 0x2a, 0x33 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TYPE = { 0x3f2f17d8, 0x9309, 0x4721, { 0x9f, 0xa7, 0x79, 0x6d, 0x17, 0x84, 0x2a, 0x5d } };
+static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME = { 0x63c31bb9, 0x2a83, 0x4685, { 0xb4, 0x15, 0x64, 0xd6, 0x5, 0x85, 0xbd, 0xa8 } };
 static const GUID GUID_CFG_DEBUG_LOGS_ENABLED = { 0x57920cbe, 0xa27, 0x4fad, { 0x92, 0xc, 0x2b, 0x61, 0x3b, 0xf9, 0xd6, 0x13 } };
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35,85,125);
@@ -54,9 +55,10 @@ static cfg_int_t<uint32_t>                    cfg_display_bg_colour(GUID_CFG_DIS
 static cfg_int_t<uint32_t>                    cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
 static cfg_auto_bool                          cfg_display_scroll_continuous(GUID_CFG_DISPLAY_SCROLL_CONTINUOUS, IDC_DISPLAY_SCROLL_CONTINUOUS, false);
-static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 10, 500);
+static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 10, 500); // TODO: Set the lower-bound here to 0?
 static cfg_auto_combo<LineScrollDirection, 2> cfg_display_scroll_direction(GUID_CFG_DISPLAY_SCROLL_DIRECTION, IDC_DISPLAY_SCROLL_DIRECTION, LineScrollDirection::Vertical, g_scroll_direction_options);
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
+static cfg_auto_ranged_int                    cfg_display_highlight_fade_time(GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME, IDC_DISPLAY_HIGHLIGHT_FADE_TIME, 0, 1000, 20, 500);
 static cfg_auto_bool                          cfg_debug_logs_enabled(GUID_CFG_DEBUG_LOGS_ENABLED, IDC_DEBUG_LOGS_ENABLED, false);
 
 static cfg_auto_property* g_display_auto_properties[] =
@@ -71,6 +73,8 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_scroll_time,
     &cfg_display_scroll_direction,
     &cfg_display_scroll_type,
+
+    &cfg_display_highlight_fade_time,
 
     &cfg_debug_logs_enabled,
 };
@@ -126,6 +130,11 @@ std::optional<t_ui_color> preferences::display::highlight_colour()
         return (COLORREF)cfg_display_hl_colour.get_value();
     }
     return {};
+}
+
+double preferences::display::highlight_fade_seconds()
+{
+    return static_cast<double>(cfg_display_highlight_fade_time.get_value())/1000.0;
 }
 
 int preferences::display::linegap()
@@ -213,6 +222,8 @@ private:
     void SelectBrushColour(HBRUSH& brush);
     void RepaintColours();
     void UpdateScrollTimePreview();
+    void UpdateFadeTimePreview();
+    void UpdateRangedIntegerPreview(const cfg_auto_ranged_int& cfg, int preview_control_id);
     void SetScrollTimeEnabled(bool enabled);
 
     LOGFONT m_font;
@@ -268,7 +279,9 @@ void PreferencesDisplay::reset()
     m_brush_highlight = CreateSolidBrush(cfg_display_hl_colour_default);
     auto_preferences_page_instance::reset();
 
+    SetScrollTimeEnabled(true);
     UpdateScrollTimePreview();
+    UpdateFadeTimePreview();
     UpdateFontButtonText();
     RepaintColours();
 }
@@ -294,6 +307,7 @@ BOOL PreferencesDisplay::OnInitDialog(CWindow, LPARAM)
     init_auto_preferences();
     UpdateFontButtonText();
     UpdateScrollTimePreview();
+    UpdateFadeTimePreview();
     RepaintColours();
     SetScrollTimeEnabled(!cfg_display_scroll_continuous.get_value());
     return FALSE;
@@ -381,7 +395,16 @@ void PreferencesDisplay::OnScrollTimeChange(int /*request_type*/, int /*new_posi
     // Currently the only scroll bar is the setting for synced-line-scroll-time
     if(source_window == nullptr) return;
 
-    UpdateScrollTimePreview();
+    const int source_control_id = ::GetDlgCtrlID(source_window);
+    if(source_control_id == IDC_DISPLAY_SCROLL_TIME)
+    {
+        UpdateScrollTimePreview();
+    }
+    else if(source_control_id == IDC_DISPLAY_HIGHLIGHT_FADE_TIME)
+    {
+        UpdateFadeTimePreview();
+    }
+
     on_ui_interaction();
 }
 
@@ -490,13 +513,23 @@ void PreferencesDisplay::RepaintColours()
 
 void PreferencesDisplay::UpdateScrollTimePreview()
 {
+    UpdateRangedIntegerPreview(cfg_display_scroll_time, IDC_DISPLAY_SCROLL_TIME_PREVIEW);
+}
+
+void PreferencesDisplay::UpdateFadeTimePreview()
+{
+    UpdateRangedIntegerPreview(cfg_display_highlight_fade_time, IDC_DISPLAY_HIGHLIGHT_FADE_TIME_PREVIEW);
+}
+
+void PreferencesDisplay::UpdateRangedIntegerPreview(const cfg_auto_ranged_int& cfg, int preview_control_id)
+{
     // We get the value from the autocfg because that handles the increments correctly
-    int value = cfg_display_scroll_time.get_ui_value();
+    int value = cfg.get_ui_value();
 
     const int preview_length = 32;
     TCHAR preview[preview_length];
     _sntprintf_s(preview, preview_length, _T("%d milliseconds"), value);
-    SetDlgItemText(IDC_DISPLAY_SCROLL_TIME_PREVIEW, preview);
+    SetDlgItemText(preview_control_id, preview);
 }
 
 class PreferencesDisplayImpl : public preferences_page_impl<PreferencesDisplay>
