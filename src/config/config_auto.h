@@ -176,6 +176,9 @@ struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
         return value * m_increment;
     }
 
+    int get_min_value() const { return m_min_value; }
+    int get_max_value() const { return m_max_value; }
+
 private:
     int m_control_id;
     int m_min_value;

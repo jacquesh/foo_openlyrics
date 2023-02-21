@@ -687,6 +687,30 @@ namespace {
         }
     }
 
+    struct LyricScrollPosition
+    {
+        int active_line_index;
+        double next_line_scroll_factor; // How far away from the active line (and towards the next line) we should be scrolled. Values are in the range [0,1]
+    };
+
+    static LyricScrollPosition get_scroll_position(const LyricData& lyrics, double current_time, double scroll_duration)
+    {
+        int active_line_index = -1;
+        int lyric_line_count = static_cast<int>(lyrics.lines.size());
+        while((active_line_index+1 < lyric_line_count) && (current_time > lyrics.LineTimestamp(active_line_index+1)))
+        {
+            active_line_index++;
+        }
+
+        const double active_line_time = lyrics.LineTimestamp(active_line_index);
+        const double next_line_time = lyrics.LineTimestamp(active_line_index+1);
+
+        const double scroll_start_time = max(active_line_time, next_line_time - scroll_duration);
+        const double scroll_end_time = next_line_time;
+
+        double next_line_scroll_factor = lerp_inverse_clamped(scroll_start_time, scroll_end_time, current_time);
+        return {active_line_index, next_line_scroll_factor};
+    }
 
     void LyricPanel::DrawTimestampedLyricsVertical(HDC dc, CRect client_area)
     {
@@ -701,37 +725,36 @@ namespace {
         t_ui_color hl_colour = get_highlight_colour();
 
         const PlaybackTimeInfo playback_time = get_playback_time();
+        const double scroll_time = preferences::display::scroll_time_seconds();
+        const LyricScrollPosition scroll = get_scroll_position(m_lyrics, playback_time.current_time, scroll_time);
 
-        int active_line_height = 0;
         int text_height_above_active_line = 0;
-        int active_line_index = -1;
-        int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (playback_time.current_time > m_lyrics.LineTimestamp(active_line_index+1)))
+        int active_line_height = 0;
+        if(scroll.active_line_index >= 0)
         {
-            active_line_index++;
-            text_height_above_active_line += active_line_height;
-            active_line_height = ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[active_line_index].text);
+            for(int i=0; i<scroll.active_line_index; i++)
+            {
+                text_height_above_active_line += ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[i].text);;
+            }
+            active_line_height = ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[scroll.active_line_index].text);
         }
 
-        double next_line_time = m_lyrics.LineTimestamp(active_line_index+1);
-        double scroll_time = preferences::display::scroll_time_seconds();
-        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, playback_time.current_time);
-
         CPoint centre = client_area.CenterPoint();
-        int next_line_scroll = (int)((double)active_line_height * next_line_scroll_factor);
+        int next_line_scroll = (int)((double)active_line_height * scroll.next_line_scroll_factor);
         int top_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll + baseline_centre_correction);
         CPoint origin = {centre.x, top_y};
+        const int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
         for(int line_index=0; line_index < lyric_line_count; line_index++)
         {
             const LyricDataLine& line = m_lyrics.lines[line_index];
-            if(line_index == active_line_index)
+            if(line_index == scroll.active_line_index)
             {
-                t_ui_color colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
+                t_ui_color colour = lerp(hl_colour, fg_colour, scroll.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
-            else if(line_index == active_line_index+1)
+            else if(line_index == scroll.active_line_index+1)
             {
-                t_ui_color colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
+                t_ui_color colour = lerp(fg_colour, hl_colour, scroll.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else
@@ -767,30 +790,25 @@ namespace {
         t_ui_color fg_colour = get_fg_colour();
         t_ui_color hl_colour = get_highlight_colour();
 
-        int active_line_index = -1;
-        int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
-        while((active_line_index+1 < lyric_line_count) && (playback_time.current_time > m_lyrics.LineTimestamp(active_line_index+1)))
-        {
-            active_line_index++;
-        }
-        size_t next_line_index = static_cast<size_t>(active_line_index + 1);
+        double scroll_time = preferences::display::scroll_time_seconds();
+        const LyricScrollPosition scroll = get_scroll_position(m_lyrics, playback_time.current_time, scroll_time);
 
-        bool has_active_text = (active_line_index >= 0);
-        bool has_preactive_text = (active_line_index > 0);
-        bool has_postactive_text = (active_line_index < static_cast<int>(m_lyrics.lines.size() - 1));
+        bool has_active_text = (scroll.active_line_index >= 0);
+        bool has_preactive_text = (scroll.active_line_index > 0);
+        bool has_postactive_text = (scroll.active_line_index < static_cast<int>(m_lyrics.lines.size() - 1));
         std::tstring active_line_text;
         std::tstring next_line_text;
         std::tstring pre_active_line_text;
         std::tstring post_active_line_text;
         if(has_active_text)
         {
-            active_line_text = m_lyrics.lines[active_line_index].text;
+            active_line_text = m_lyrics.lines[scroll.active_line_index].text;
         }
         if(has_preactive_text)
         {
             auto start = m_lyrics.lines.begin();
             auto end = m_lyrics.lines.begin();
-            std::advance(end, active_line_index);
+            std::advance(end, scroll.active_line_index);
 
             pre_active_line_text = std::accumulate(++start, end, m_lyrics.lines[0].text,
                                                    [&glue](const std::tstring& accum, const LyricDataLine& line)
@@ -806,6 +824,7 @@ namespace {
 
         if(has_postactive_text)
         {
+            const int next_line_index = scroll.active_line_index + 1;
             next_line_text = glue + m_lyrics.lines[next_line_index].text;
 
             auto end = m_lyrics.lines.end();
@@ -844,16 +863,12 @@ namespace {
         int post_active_width = post_active_extents.value().cx;
         int glue_width = glue_extents.value().cx;
 
-        double next_line_time = m_lyrics.LineTimestamp(next_line_index);
-        double scroll_time = preferences::display::scroll_time_seconds();
-        double next_line_scroll_factor = lerp_inverse_clamped(next_line_time - scroll_time, next_line_time, playback_time.current_time);
-
         // NOTE: We want to scroll by half of the active line and half of the next line because
         //       the rendering origin is at the centre of the text. However the "next line"
         //       already contains the glue string for rendering, so when we half that, we need
         //       to add in an extra half of the glue string width.
         int total_scroll_to_next_line = active_line_width + glue_width;
-        int next_line_scroll = (int)((double)total_scroll_to_next_line * next_line_scroll_factor);
+        int next_line_scroll = (int)((double)total_scroll_to_next_line * scroll.next_line_scroll_factor);
 
         CPoint centre = client_area.CenterPoint();
         int centre_y = centre.y + baseline_centre_correction;
@@ -866,12 +881,12 @@ namespace {
         draw_success &= DrawTextOut(dc, left_x + pre_active_width/2, centre_y, pre_active_line_text);
         left_x += pre_active_width;
 
-        COLORREF active_line_colour = lerp(hl_colour, fg_colour, next_line_scroll_factor);
+        COLORREF active_line_colour = lerp(hl_colour, fg_colour, scroll.next_line_scroll_factor);
         SetTextColor(dc, active_line_colour);
         draw_success &= DrawTextOut(dc, left_x + active_line_width/2, centre_y, active_line_text);
         left_x += active_line_width;
 
-        COLORREF next_line_colour = lerp(fg_colour, hl_colour, next_line_scroll_factor);
+        COLORREF next_line_colour = lerp(fg_colour, hl_colour, scroll.next_line_scroll_factor);
         SetTextColor(dc, next_line_colour);
         draw_success &= DrawTextOut(dc, left_x + next_line_width/2, centre_y, next_line_text);
         left_x += next_line_width;

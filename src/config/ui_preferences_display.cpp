@@ -22,6 +22,7 @@ static const GUID GUID_CFG_DISPLAY_FOREGROUND_COLOUR = { 0x36724d22, 0xe51e, 0x4
 static const GUID GUID_CFG_DISPLAY_BACKGROUND_COLOUR = { 0x7eaeeae6, 0xd41d, 0x4c0d, { 0x97, 0x86, 0x20, 0xa2, 0x8f, 0x27, 0x98, 0xd4 } };
 static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR = { 0xfa16da6c, 0xb22d, 0x49cb, { 0x97, 0x53, 0x94, 0x8c, 0xec, 0xf8, 0x37, 0x35 } };
 static const GUID GUID_CFG_DISPLAY_LINEGAP = { 0x4cc61a5c, 0x58dd, 0x47ce, { 0xa9, 0x35, 0x9, 0xbb, 0xfa, 0xc6, 0x40, 0x43 } };
+static const GUID GUID_CFG_DISPLAY_SCROLL_CONTINUOUS = { 0x9ccfe1b0, 0x3c8a, 0x4f3d, { 0x91, 0x1f, 0x1e, 0x3e, 0xdf, 0x71, 0x88, 0xd7 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_DIRECTION = { 0x6b1f47ae, 0xa383, 0x434b, { 0xa7, 0xd2, 0x43, 0xbe, 0x55, 0x54, 0x2a, 0x33 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TYPE = { 0x3f2f17d8, 0x9309, 0x4721, { 0x9f, 0xa7, 0x79, 0x6d, 0x17, 0x84, 0x2a, 0x5d } };
@@ -52,6 +53,7 @@ static cfg_int_t<uint32_t>                    cfg_display_fg_colour(GUID_CFG_DIS
 static cfg_int_t<uint32_t>                    cfg_display_bg_colour(GUID_CFG_DISPLAY_BACKGROUND_COLOUR, cfg_display_bg_colour_default);
 static cfg_int_t<uint32_t>                    cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
+static cfg_auto_bool                          cfg_display_scroll_continuous(GUID_CFG_DISPLAY_SCROLL_CONTINUOUS, IDC_DISPLAY_SCROLL_CONTINUOUS, false);
 static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 10, 500);
 static cfg_auto_combo<LineScrollDirection, 2> cfg_display_scroll_direction(GUID_CFG_DISPLAY_SCROLL_DIRECTION, IDC_DISPLAY_SCROLL_DIRECTION, LineScrollDirection::Vertical, g_scroll_direction_options);
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
@@ -65,6 +67,7 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_custom_hl_colour,
 
     &cfg_display_linegap,
+    &cfg_display_scroll_continuous,
     &cfg_display_scroll_time,
     &cfg_display_scroll_direction,
     &cfg_display_scroll_type,
@@ -132,6 +135,12 @@ int preferences::display::linegap()
 
 double preferences::display::scroll_time_seconds()
 {
+    const bool continuous = cfg_display_scroll_continuous.get_value();
+    if(continuous)
+    {
+        return DBL_MAX;
+    }
+
     return ((double)cfg_display_scroll_time.get_value())/1000.0;
 }
 
@@ -181,6 +190,7 @@ public:
         COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR, BN_CLICKED, OnBgColourChange)
         COMMAND_HANDLER_EX(IDC_HIGHLIGHT_COLOUR, BN_CLICKED, OnHlColourChange)
         COMMAND_HANDLER_EX(IDC_RENDER_LINEGAP_EDIT, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_CONTINUOUS, BN_CLICKED, OnScrollContinuousChange)
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_DIRECTION, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
@@ -194,6 +204,7 @@ private:
     void OnBgColourChange(UINT, int, CWindow);
     void OnHlColourChange(UINT, int, CWindow);
     void OnCustomToggle(UINT, int, CWindow);
+    void OnScrollContinuousChange(UINT, int, CWindow);
     void OnUIChange(UINT, int, CWindow);
     void OnScrollTimeChange(int, int, HWND);
     LRESULT ColourButtonPreDraw(UINT, WPARAM, LPARAM);
@@ -202,6 +213,7 @@ private:
     void SelectBrushColour(HBRUSH& brush);
     void RepaintColours();
     void UpdateScrollTimePreview();
+    void SetScrollTimeEnabled(bool enabled);
 
     LOGFONT m_font;
     HBRUSH m_brush_foreground;
@@ -283,6 +295,7 @@ BOOL PreferencesDisplay::OnInitDialog(CWindow, LPARAM)
     UpdateFontButtonText();
     UpdateScrollTimePreview();
     RepaintColours();
+    SetScrollTimeEnabled(!cfg_display_scroll_continuous.get_value());
     return FALSE;
 }
 
@@ -335,6 +348,25 @@ void PreferencesDisplay::OnCustomToggle(UINT, int, CWindow)
 {
     UpdateFontButtonText();
     RepaintColours();
+    on_ui_interaction();
+}
+
+void PreferencesDisplay::SetScrollTimeEnabled(bool enabled)
+{
+    CWindow scroll_time = GetDlgItem(IDC_DISPLAY_SCROLL_TIME);
+    CWindow scroll_label = GetDlgItem(IDC_DISPLAY_SCROLL_TIME_PREVIEW);
+    assert((scroll_time != nullptr) && (scroll_label != nullptr));
+
+    scroll_time.EnableWindow(enabled);
+    scroll_label.EnableWindow(enabled);
+}
+
+void PreferencesDisplay::OnScrollContinuousChange(UINT, int, CWindow)
+{
+    LRESULT continuous = SendDlgItemMessage(IDC_DISPLAY_SCROLL_CONTINUOUS, BM_GETCHECK, 0, 0);
+    const bool is_continuous = (continuous == BST_CHECKED);
+    SetScrollTimeEnabled(!is_continuous);
+
     on_ui_interaction();
 }
 
