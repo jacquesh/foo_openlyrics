@@ -55,7 +55,7 @@ static cfg_int_t<uint32_t>                    cfg_display_bg_colour(GUID_CFG_DIS
 static cfg_int_t<uint32_t>                    cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
 static cfg_auto_bool                          cfg_display_scroll_continuous(GUID_CFG_DISPLAY_SCROLL_CONTINUOUS, IDC_DISPLAY_SCROLL_CONTINUOUS, false);
-static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 10, 2000, 10, 500); // TODO: Set the lower-bound here to 0?
+static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 0, 2000, 20, 500);
 static cfg_auto_combo<LineScrollDirection, 2> cfg_display_scroll_direction(GUID_CFG_DISPLAY_SCROLL_DIRECTION, IDC_DISPLAY_SCROLL_DIRECTION, LineScrollDirection::Vertical, g_scroll_direction_options);
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
 static cfg_auto_ranged_int                    cfg_display_highlight_fade_time(GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME, IDC_DISPLAY_HIGHLIGHT_FADE_TIME, 0, 1000, 20, 500);
