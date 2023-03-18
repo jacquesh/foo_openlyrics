@@ -8,6 +8,7 @@
 #include "logging.h"
 #include "parsers.h"
 #include "lyric_io.h"
+#include "ui_hooks.h"
 #include "win32_util.h"
 
 class LyricEditor : public CDialogImpl<LyricEditor>, private play_callback_impl_base
@@ -149,6 +150,12 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
     // NOTE: Sending EM_SCROLLCARET does nothing if called before ShowWindow()
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
+
+    const t_ui_font font = get_editor_font();
+    if(font != nullptr)
+    {
+        GetDlgItem(IDC_LYRIC_TEXT).SetFont(font);
+    }
 
     return FALSE; // Tell Windows that we've set the keyboard focus already
 }

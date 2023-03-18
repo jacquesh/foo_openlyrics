@@ -27,6 +27,15 @@ namespace {
     class LyricPanel;
     static std::vector<LyricPanel*> g_active_panels;
 
+    // There is (as far as I'm aware) no way to access fb2k's configured default font from outside
+    // a ui_element instance. Since the editor dialog is not a UI element instance, the only place
+    // we can get this info is here, in the lyric panel. Technically this means that if the user
+    // does not have an instance of the OpenLyrics display panel on their UI and they open the
+    // lyric editor, then they'll get the default font regardless of fb2k's config.
+    // If the fb2k SDK at some point adds the ability to get the font config from anywhere then
+    // this variable (and the restriction above) can be removed.
+    static t_ui_font g_editor_font = NULL; // We can't access
+
     class LyricPanel : public ui_element_instance, public CWindowImpl<LyricPanel>, private play_callback_impl_base
     {
     public:
@@ -169,6 +178,10 @@ namespace {
     {
         if ((what == ui_element_notify_colors_changed) || (what == ui_element_notify_font_changed))
         {
+            // If the font changed then the previously-stored font handle will now be invalid, so we
+            // need to re-store the (possibly new) font handle to avoid getting the default font.
+            g_editor_font = m_callback->query_font_ex(ui_font_default);
+
             // we use global colors and fonts - trigger a repaint whenever these change.
             Invalidate();
         }
@@ -249,6 +262,7 @@ namespace {
         }
 
         g_active_panels.push_back(this);
+        g_editor_font = m_callback->query_font_ex(ui_font_default);
         return 0;
     }
 
@@ -1600,3 +1614,7 @@ void repaint_all_lyric_panels()
     });
 }
 
+t_ui_font get_editor_font()
+{
+    return g_editor_font;
+}
