@@ -3,6 +3,7 @@
 #pragma warning(push, 0)
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -155,10 +156,14 @@ private:
     bool SourceListHasChanged();
 
     DWORD m_default_password_char;
+
+    fb2k::CCoreDarkModeHooks m_dark;
 };
 
 BOOL PreferencesRoot::OnInitDialog(CWindow, LPARAM)
 {
+    m_dark.AddDialogWithControls(m_hWnd);
+
     SourceListInitialise();
     init_auto_preferences();
 

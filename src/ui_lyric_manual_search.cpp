@@ -3,6 +3,7 @@
 #pragma warning(push, 0)
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
 #include "logging.h"
@@ -64,6 +65,8 @@ private:
 
     int m_sort_column_index;
     bool m_sort_ascending;
+
+    fb2k::CCoreDarkModeHooks m_dark;
 };
 
 static const UINT_PTR MANUAL_SEARCH_UPDATE_TIMER = 7917213;
@@ -80,6 +83,10 @@ ManualLyricSearch::~ManualLyricSearch()
 BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing manual search window...");
+    // TODO: We can't enable dark mode for this dialog because it adds items to a list
+    //       after initialisation and that causes failures in the darkmode code, which doesn't
+    //       fully support list UIs.
+    //m_dark.AddDialogWithControls(m_hWnd);
     m_sort_column_index = -1;
 
     LVCOLUMN title_column = {};

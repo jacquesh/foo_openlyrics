@@ -371,7 +371,7 @@ public:
     // preferences_page_instance methods (not all of them - get_wnd() is supplied by preferences_page_impl helpers)
     t_uint32 get_state() override
     {
-        t_uint32 state = preferences_state::resettable;
+        t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
         if (has_changed()) state |= preferences_state::changed;
         return state;
     }

@@ -3,6 +3,7 @@
 #pragma warning(push, 0)
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -230,6 +231,8 @@ private:
     HBRUSH m_brush_foreground;
     HBRUSH m_brush_background;
     HBRUSH m_brush_highlight;
+
+    fb2k::CCoreDarkModeHooks m_dark;
 };
 
 PreferencesDisplay::PreferencesDisplay(preferences_page_callback::ptr callback) :
@@ -304,6 +307,8 @@ bool PreferencesDisplay::has_changed()
 
 BOOL PreferencesDisplay::OnInitDialog(CWindow, LPARAM)
 {
+    m_dark.AddDialogWithControls(m_hWnd);
+
     init_auto_preferences();
     UpdateFontButtonText();
     UpdateScrollTimePreview();

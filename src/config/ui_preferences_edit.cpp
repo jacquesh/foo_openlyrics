@@ -3,6 +3,7 @@
 #pragma warning(push, 0)
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -72,6 +73,8 @@ private:
     preferences_page_callback::ptr m_callback;
     void on_ui_interaction();
     t_uint32 get_state() override;
+
+    fb2k::CCoreDarkModeHooks m_dark;
 };
 
 void PreferencesEdit::on_ui_interaction()
@@ -80,13 +83,15 @@ void PreferencesEdit::on_ui_interaction()
 }
 t_uint32 PreferencesEdit::get_state()
 {
-    t_uint32 state = preferences_state::resettable;
+    t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
     if (has_changed()) state |= preferences_state::changed;
     return state;
 }
 
 BOOL PreferencesEdit::OnInitDialog(CWindow, LPARAM)
 {
+    m_dark.AddDialogWithControls(m_hWnd);
+
     EditListInitialise();
     return FALSE;
 }

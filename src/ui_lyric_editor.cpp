@@ -3,6 +3,7 @@
 #pragma warning(push, 0)
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
 #include "logging.h"
@@ -75,6 +76,8 @@ private:
 
     HWND m_offset_apply_tooltip;
     HWND m_offset_sync_tooltip;
+
+    fb2k::CCoreDarkModeHooks m_dark;
 };
 
 LyricEditor::LyricEditor(LyricDataUnstructured lyrics, LyricUpdateHandle& update) :
@@ -122,6 +125,8 @@ static void add_tooltip(HWND control, HWND tooltip, TCHAR* text)
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
+    m_dark.AddDialogWithControls(m_hWnd);
+
     service_ptr_t<playback_control> playback = playback_control::get();
     update_time_text(playback->playback_get_position());
     update_play_button();

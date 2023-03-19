@@ -4,6 +4,7 @@
 #include <ShObjIdl_core.h>
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
+#include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -250,6 +251,7 @@ private:
     void SetCustomPathEnabled();
 
     AutoSaveStrategy m_last_select_autosave_strategy;
+    fb2k::CCoreDarkModeHooks m_dark;
 };
 
 void PreferencesSaving::on_playback_new_track(metadb_handle_ptr /*track*/)
@@ -260,6 +262,8 @@ void PreferencesSaving::on_playback_new_track(metadb_handle_ptr /*track*/)
 
 BOOL PreferencesSaving::OnInitDialog(CWindow, LPARAM)
 {
+    m_dark.AddDialogWithControls(m_hWnd);
+
     init_auto_preferences();
     SetMethodFieldsEnabled();
     m_last_select_autosave_strategy = cfg_save_auto_save_strategy.get_value();
