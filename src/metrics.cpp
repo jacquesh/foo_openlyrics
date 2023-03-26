@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include <time.h>
+#include <chrono>
 
 #pragma warning(push, 0)
 #include <bcrypt.h>
@@ -13,10 +13,10 @@
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 
-static const GUID GUID_METRICS_INSTALL_DATE = { 0x6ce22b14, 0x3237, 0x4afb, { 0x9d, 0x66, 0xe8, 0xe9, 0x9b, 0xa4, 0xee, 0xe6 } };
+static const GUID GUID_METRICS_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH = { 0x6ce22b14, 0x3237, 0x4afb, { 0x9d, 0x66, 0xe8, 0xe9, 0x9b, 0xa4, 0xee, 0xe6 } };
 static const GUID GUID_METRICS_GENERATION = { 0xf2d97e96, 0x38ab, 0x4e5e, { 0x83, 0x7c, 0xe3, 0x3b, 0x5a, 0x82, 0x43, 0xca } };
 
-static cfg_int_t<uint64_t> cfg_metrics_install_date(GUID_METRICS_INSTALL_DATE, 0);
+static cfg_int_t<uint64_t> cfg_metrics_install_date_days_since_unix_epoch(GUID_METRICS_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
 static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 
 constexpr uint64_t current_metrics_generation = 2;
@@ -147,7 +147,11 @@ std::string collect_metrics(abort_callback& abort)
     const std::string hash_str = get_openlyrics_dll_hash(abort);
     cJSON_AddStringToObject(json, "ol.version", hash_str.c_str());
     cJSON_AddNumberToObject(json, "ol.num_panels", double(num_lyric_panels()));
-    cJSON_AddStringToObject(json, "ol.installed_since", "TODO: Date of installation of the plugin?");
+
+    const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_install_date_days_since_unix_epoch.get_value())}};
+    char install_ymd_str[64] = {};
+    snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
+    cJSON_AddStringToObject(json, "ol.installed_since",install_ymd_str);
 
     const auto get_source_name = [](GUID guid) -> std::string
     {
@@ -275,7 +279,6 @@ public:
         uint32_t popup_result = popup_message_v3::buttonRetry;
         do
         {
-            // TODO: What happens with the result if we allow the user to say "don't ask again"?
             popup_result = popup_message_v3::get()->show_query_modal(query);
             if(popup_result == popup_message_v3::buttonRetry)
             {
@@ -305,29 +308,30 @@ static initquit_factory_t<foo_send_metrics_on_init> metrics_factory;
 
 void foo_send_metrics_on_init::on_init()
 {
-    LOG_INFO("on metrics init!");
+    const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
+    const int days_since_unix_epoch = std::chrono::floor<std::chrono::days>(since_unix_epoch).count();
+    if(cfg_metrics_install_date_days_since_unix_epoch.get_value() == 0)
+    {
+        cfg_metrics_install_date_days_since_unix_epoch = static_cast<uint64_t>(days_since_unix_epoch);
+    }
+
+    // We use our "installed-date" config to delay initial metrics by at least a week from first
+    // install. This lets people have some time to use the plugin before we prompt for metrics.
+    // We don't want to bother somebody on their very first launch (they might just be trying it
+    // out and not plan to use it long-term, and it probably wouldn't garner any favour from new users).
+    // Immediately after install is also the least useful time to collect metrics since new users
+    // will not have had the opportunity to change any configuration yet.
+    const int min_days_of_delay_after_install = 7;
+    if(days_since_unix_epoch < min_days_of_delay_after_install + cfg_metrics_install_date_days_since_unix_epoch.get_value())
+    {
+        return;
+    }
+
     if(cfg_metrics_generation.get_value() >= current_metrics_generation)
     {
         return;
     }
     cfg_metrics_generation = current_metrics_generation;
-
-    // TODO: Use our "installed-date" option to delay this by at least a week from first install
-    //       (we don't want to bother somebody if they install it, try it out, and then
-    //       immediately uninstall it...only if they actually keep it around!)
-    //if(cfg_metrics_install_date.get_value() == 0)
-    //{
-    //    tm tm_epoch = {};
-    //    tm_epoch.tm_year = 1970;
-    //    tm_epoch.tm_mday = 1;
-    //    tm_epoch.tm_mon = 1;
-    //    time_t epoch = std::mktime(&tm_epoch);
-
-    //    const time_t now = time(nullptr);
-
-    //    // TODO: init
-    //    //cfg_metrics_install_date = 1;
-    //}
 
     bool kickoff_success = threaded_process::g_run_modeless(new service_impl_t<AsyncMetricsCollectionAndSubmission>(),
                                                             threaded_process::flag_show_abort | threaded_process::flag_show_delayed,
@@ -341,5 +345,4 @@ void foo_send_metrics_on_init::on_init()
     {
         LOG_WARN("Failed to initiate metrics collection");
     }
-
 }
