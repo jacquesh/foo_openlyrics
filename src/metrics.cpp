@@ -228,18 +228,18 @@ void submit_metrics(std::string metrics)
     bool cast_success = request_generic->cast(request);
     assert(cast_success);
 
-    std::string url = "https://some-aws-url-for-a-lambda-that-ingests-metrics.amazonaws.com"; // TODO
-    LOG_INFO("Submitting metrics to %s...", url.c_str());
+    const char* metrics_ingest_url = "https://degwclvqbs7p6e24szelk7uxui0jhsxo.lambda-url.eu-west-2.on.aws/";
+    LOG_INFO("Submitting metrics to %s...", metrics_ingest_url);
 
     try
     {
         request->set_post_data(metrics.c_str(), metrics.length(), "application/json");
-        request->run(url.c_str(), abort);
-        LOG_INFO("Successfully submitted metrics to %s", url.c_str());
+        request->run(metrics_ingest_url, abort);
+        LOG_INFO("Successfully submitted metrics to %s", metrics_ingest_url);
     }
     catch(const std::exception& e)
     {
-        LOG_WARN("Failed to submit metrics to %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to submit metrics to %s: %s", metrics_ingest_url, e.what());
     }
 }
 

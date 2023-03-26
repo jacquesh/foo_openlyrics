@@ -35,6 +35,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add dark mode support to the preferences pages and some dialogs\n"
     "- Bulk searches now add to the search queue instead of creating a new one\n"
     "- Avoid saving lyrics if they're loaded from a local source during search\n"
+    "- Add support for asking users to submit once-off usage metrics\n"
     "- Restrict the scroll time setting to increments of 20ms\n"
     "- Update foobar2k SDK to version 20221116\n"
     "- The lyric editor now respects fb2k's configured 'Default' font\n"

@@ -31,6 +31,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_foo_openlyrics", "test
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "foo_pluginstall", "..\foo_pluginstall\foo_pluginstall.vcxproj", "{9DBC980D-D0FB-4812-958D-8A077EF62450}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "metrics", "metrics", "{0F97C53B-0767-4B5E-B082-1C1E6A735895}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenLyricsMetrics", "..\metrics\metrics_server\OpenLyricsMetrics.csproj", "{EF666738-04E0-4AAB-A269-058CDA62EDD0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -127,6 +131,14 @@ Global
 		{9DBC980D-D0FB-4812-958D-8A077EF62450}.Release|x64.Build.0 = Release|x64
 		{9DBC980D-D0FB-4812-958D-8A077EF62450}.Release|x86.ActiveCfg = Release|Win32
 		{9DBC980D-D0FB-4812-958D-8A077EF62450}.Release|x86.Build.0 = Release|Win32
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Debug|x64.Build.0 = Debug|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Debug|x86.Build.0 = Debug|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Release|x64.ActiveCfg = Release|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Release|x64.Build.0 = Release|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Release|x86.ActiveCfg = Release|Any CPU
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -140,6 +152,7 @@ Global
 		{07CF01C0-B887-499D-AD9C-799CB6A9FE64} = {672374B4-6DE8-4A88-8A6A-30BCC1D9C9F9}
 		{3181FC06-B4ED-4609-8B4F-7220571C6992} = {672374B4-6DE8-4A88-8A6A-30BCC1D9C9F9}
 		{7172CDEB-2391-41C4-883D-BD2C7B60C715} = {672374B4-6DE8-4A88-8A6A-30BCC1D9C9F9}
+		{EF666738-04E0-4AAB-A269-058CDA62EDD0} = {0F97C53B-0767-4B5E-B082-1C1E6A735895}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {22D08569-C9E4-4F2E-BE8F-FE796300FAEB}
