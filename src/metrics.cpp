@@ -59,6 +59,10 @@ std::string collect_metrics(abort_callback& abort)
             return status >= 0; // According to the example code at https://learn.microsoft.com/en-us/windows/win32/seccng/creating-a-hash-with-cng
         };
 
+        // BCryptGetProperty wants to output the number of bytes written to the output buffer.
+        // This parameter is meant to be optional but we get failures without it.
+        ULONG get_property_bytes_written = 0;
+
         BCRYPT_ALG_HANDLE hash_alg = {};
         NTSTATUS status = BCryptOpenAlgorithmProvider(&hash_alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
         if(!is_success(status))
@@ -66,8 +70,8 @@ std::string collect_metrics(abort_callback& abort)
             return "<hopen-error>";
         }
 
-        size_t hash_obj_size = 0;
-        status = BCryptGetProperty(hash_alg, BCRYPT_OBJECT_LENGTH, (UCHAR*)&hash_obj_size, sizeof(hash_obj_size), nullptr, 0);
+        DWORD hash_obj_size = 0;
+        status = BCryptGetProperty(hash_alg, BCRYPT_OBJECT_LENGTH, (UCHAR*)&hash_obj_size, sizeof(hash_obj_size), &get_property_bytes_written, 0);
         if(!is_success(status))
         {
             return "<hgetsize-error>";
@@ -114,9 +118,8 @@ std::string collect_metrics(abort_callback& abort)
             return "<fileio-error>";
         }
 
-        size_t hash_out_size = 0;
-        ULONG hash_out_size_written = 0;
-        status = BCryptGetProperty(hash_alg, BCRYPT_HASH_LENGTH, (UCHAR*)&hash_out_size, sizeof(hash_out_size), nullptr, 0);
+        DWORD hash_out_size = 0;
+        status = BCryptGetProperty(hash_alg, BCRYPT_HASH_LENGTH, (UCHAR*)&hash_out_size, sizeof(hash_out_size), &get_property_bytes_written, 0);
         if(!is_success(status))
         {
             return "<hgetlength-error>";
