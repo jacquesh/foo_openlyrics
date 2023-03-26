@@ -19,6 +19,8 @@ static const GUID GUID_METRICS_GENERATION = { 0xf2d97e96, 0x38ab, 0x4e5e, { 0x83
 static cfg_int_t<uint64_t> cfg_metrics_install_date_days_since_unix_epoch(GUID_METRICS_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
 static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 
+// The metrics "generation", which tells us whether or not we need to send a new batch of metrics.
+// Manually bump this when a new round of metrics collection is desired.
 constexpr uint64_t current_metrics_generation = 2;
 
 
@@ -210,11 +212,20 @@ std::string collect_metrics(abort_callback& abort)
     return result;
 }
 
-void submit_metrics(std::string metrics, abort_callback& abort)
+void submit_metrics(std::string metrics)
 {
+    // The async_task_manager exposes an abort_callback that gets triggered when fb2k is closed.
+    // This function is currently run via fb2k::splitTask, which will prevent the fb2k process
+    // from terminating before all tasks are complete. By using the on-shutdown aborter, we
+    // ensure that the metrics upload will not prevent fb2k from closing. This would be annoying
+    // once the metrics server is offline since then if anybody tries to open fb2k, submits metrics
+    // and then tries to restart it by closing and quickly re-opening, it won't work since the
+    // previous (shutting down) instance will still be running.
+    abort_callback& abort = async_task_manager::get()->get_aborter();
+
     http_request_post_v2::ptr request;
     http_request::ptr request_generic = http_client::get()->create_request("POST");
-    bool cast_success = request->cast(request_generic);
+    bool cast_success = request_generic->cast(request);
     assert(cast_success);
 
     std::string url = "https://some-aws-url-for-a-lambda-that-ingests-metrics.amazonaws.com"; // TODO
@@ -271,7 +282,7 @@ public:
 
         popup_message_v3::query_t query = {};
         query.title = "OpenLyrics metrics";
-        query.msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic data about usage of foo_openlyrics among the community.\n\nThis usage data will help to inform which features are added or enhanced, as well as potentially which features get removed (e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information will be used exclusively to inform foo_openlyrics' development, will never be sold or used for marketting (by anybody), and will be deleted after 6 months.\n\nYou can click 'Retry' to view the exact data to be submitted.";
+        query.msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to inform which features are added or enhanced, as well as potentially which features get removed (e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information will be used exclusively to inform foo_openlyrics' development, will never be sold or used for marketting (by anybody), and will be deleted after 6 months.\n\nYou can click 'Retry' to view the exact data that would be submitted.";
         query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo | popup_message_v3::buttonRetry;
         query.defButton = popup_message_v3::buttonNo;
         query.icon = popup_message_v3::iconQuestion;
@@ -286,19 +297,16 @@ public:
             }
             else if(popup_result == popup_message_v3::buttonYes)
             {
-                const auto upload_metrics = [metrics = this->m_metrics](threaded_process_status& /*status*/, abort_callback& abort)
-                {
-                    // TODO submit_metrics(metrics, abort);
-                    popup_message_v2::g_show(core_api::get_main_window(), "Thank you for helping to inform the continue development effort!", "OpenLyrics metrics");
-                };
-                bool start_submit_success = threaded_process::g_run_modeless(threaded_process_callback_lambda::create(upload_metrics),
-                                                                             threaded_process::flag_show_abort | threaded_process::flag_show_delayed,
-                                                                             core_api::get_main_window(),
-                                                                             "Sending metrics for foo_openlyrics...");
-                if(!start_submit_success)
-                {
-                    LOG_WARN("Failed to initate metrics submission");
-                }
+                fb2k::splitTask([metrics = this->m_metrics](){
+                    submit_metrics(metrics);
+                });
+
+                popup_message_v3::query_t thank_query = {};
+                thank_query.title = "OpenLyrics metrics";
+                thank_query.msg = "Thank you for helping to inform the continue development effort!";
+                thank_query.buttons = popup_message_v3::buttonOK;
+                thank_query.defButton = popup_message_v3::buttonOK;
+                popup_message_v3::get()->show_query(thank_query);
             }
         } while(popup_result == popup_message_v3::buttonRetry);
     }
@@ -327,6 +335,7 @@ void foo_send_metrics_on_init::on_init()
         return;
     }
 
+    // Don't send metrics for this "generation" if we've already done so.
     if(cfg_metrics_generation.get_value() >= current_metrics_generation)
     {
         return;
