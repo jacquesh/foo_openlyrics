@@ -127,7 +127,7 @@ public:
                 metadb_handle_ptr track = data.get_item(0);
 
                 auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, get_full_metadata(track), fb2k::noAbort/*TODO*/);
-                if(are_there_any_lyric_panels())
+                if(num_lyric_panels() > 0)
                 {
                     SpawnManualLyricSearch(core_api::get_main_window(), *update);
                 }
@@ -156,7 +156,7 @@ public:
                         {
                             auto edit_update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, track, track_info, fb2k::noAbort);
 
-                            if(are_there_any_lyric_panels())
+                            if(num_lyric_panels() > 0)
                             {
                                 SpawnLyricEditor(core_api::get_main_window(), lyrics, *edit_update);
                             }

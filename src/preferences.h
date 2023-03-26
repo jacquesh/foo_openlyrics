@@ -66,6 +66,11 @@ namespace preferences
         bool exclude_trailing_brackets();
 
         std::string musixmatch_api_key();
+
+        namespace raw
+        {
+            std::vector<GUID> active_sources_configured();
+        }
     }
 
     namespace editing
@@ -84,6 +89,11 @@ namespace preferences
         std::string_view timestamped_tag();
 
         bool merge_equivalent_lrc_lines();
+
+        namespace raw
+        {
+            SaveDirectoryClass directory_class();
+        }
     }
 
     namespace display
@@ -101,5 +111,10 @@ namespace preferences
         int linegap();
 
         bool debug_logs_enabled();
+
+        namespace raw
+        {
+            bool font_is_custom();
+        }
     }
 }

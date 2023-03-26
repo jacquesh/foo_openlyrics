@@ -1541,9 +1541,9 @@ namespace {
 
 } // namespace
 
-bool are_there_any_lyric_panels()
+size_t num_lyric_panels()
 {
-    return !g_active_panels.empty();
+    return g_active_panels.size();
 }
 
 void register_update_handle_with_lyric_panels(std::unique_ptr<LyricUpdateHandle>&& handle)

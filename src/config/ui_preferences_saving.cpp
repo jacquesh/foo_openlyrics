@@ -208,6 +208,11 @@ bool preferences::saving::merge_equivalent_lrc_lines()
     return cfg_save_merge_lrc_lines.get_value();
 }
 
+SaveDirectoryClass preferences::saving::raw::directory_class()
+{
+    return cfg_save_dir_class.get_value();
+}
+
 class PreferencesSaving : public CDialogImpl<PreferencesSaving>, public auto_preferences_page_instance, private play_callback_impl_base
 {
 public:

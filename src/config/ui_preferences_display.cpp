@@ -169,6 +169,11 @@ bool preferences::display::debug_logs_enabled()
     return cfg_debug_logs_enabled.get_value();
 }
 
+bool preferences::display::raw::font_is_custom()
+{
+    return cfg_display_custom_font.get_value();
+}
+
 //
 // Preference page UI
 //

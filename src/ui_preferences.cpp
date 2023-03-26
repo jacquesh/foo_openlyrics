@@ -55,7 +55,7 @@ std::vector<GUID> preferences::searching::active_sources()
     GUID save_source_guid = preferences::saving::save_source();
     bool save_source_seen = false;
 
-    size_t source_count = cfg_search_active_sources.get_size();
+    const size_t source_count = cfg_search_active_sources.get_size();
     std::vector<GUID> result;
     result.reserve(source_count+1);
     for(size_t i=0; i<source_count; i++)
@@ -104,6 +104,19 @@ bool preferences::searching::exclude_trailing_brackets()
 std::string preferences::searching::musixmatch_api_key()
 {
     return std::string(cfg_search_musixmatch_token.get_ptr(), cfg_search_musixmatch_token.get_length());
+}
+
+std::vector<GUID> preferences::searching::raw::active_sources_configured()
+{
+    const size_t source_count = cfg_search_active_sources.get_size();
+    std::vector<GUID> result;
+    result.reserve(source_count+1);
+    for(size_t i=0; i<source_count; i++)
+    {
+        result.push_back(cfg_search_active_sources[i]);
+    }
+
+    return result;
 }
 
 const LRESULT MAX_SOURCE_NAME_LENGTH = 64;
