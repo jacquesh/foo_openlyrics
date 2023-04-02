@@ -20,7 +20,7 @@ int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char
         start_index = 1;
     }
 
-    int bytes_required = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+    int bytes_required = WideCharToMultiByte(codepage, WC_ERR_INVALID_CHARS,
                                              wide.data() + start_index, wide.length() - start_index,
                                              nullptr, 0, nullptr, nullptr);
     if(bytes_required <= 0)
@@ -29,7 +29,7 @@ int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char
     }
 
     out_buffer.resize(bytes_required);
-    int bytes_written = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+    int bytes_written = WideCharToMultiByte(codepage, WC_ERR_INVALID_CHARS,
                                             wide.data() + start_index, wide.length() - start_index,
                                             out_buffer.data(), out_buffer.size(),
                                             nullptr, nullptr);
@@ -58,11 +58,9 @@ int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wch
 std::tstring to_tstring(std::string_view string)
 {
 #ifdef UNICODE
-    size_t wide_len = pfc::stringcvt::estimate_utf8_to_wide(string.data(), string.length());
-    wchar_t* out_buffer = new wchar_t[wide_len];
-    pfc::stringcvt::convert_utf8_to_wide(out_buffer, wide_len, string.data(), string.length());
-    std::wstring result = std::wstring(out_buffer);
-    delete[] out_buffer;
+    std::vector<wchar_t> tmp_wide;
+    int chars_written = narrow_to_wide_string(CP_UTF8, string, tmp_wide);
+    const std::wstring result = std::wstring(tmp_wide.data(), chars_written);
     return result;
 #else // UNICODE
     static_assert(sizeof(TCHAR) == sizeof(char), "UNICODE is defined but TCHAR is not a char");
@@ -83,10 +81,9 @@ std::tstring to_tstring(const pfc::string8& string)
 std::string from_tstring(std::tstring_view string)
 {
 #ifdef UNICODE
-    size_t narrow_len = pfc::stringcvt::estimate_wide_to_utf8(string.data(), string.length());
-    std::string result(narrow_len, '\0');
-    size_t chars_converted = pfc::stringcvt::convert_wide_to_utf8(result.data(), narrow_len, string.data(), string.length());
-    result.resize(chars_converted);
+    std::vector<char> tmp_narrow;
+    int bytes_written = wide_to_narrow_string(CP_UTF8, string, tmp_narrow);
+    const std::string result = std::string(tmp_narrow.data(), bytes_written);
     return result;
 #else // UNICODE
     static_assert(sizeof(TCHAR) == sizeof(char), "UNICODE is defined but TCHAR is not a char");
