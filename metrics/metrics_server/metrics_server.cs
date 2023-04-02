@@ -20,10 +20,20 @@ namespace OpenLyricsMetrics
                 return;
             }
 
+            string dataToStore = evt.Body;
+            const int maxBodyLength = 8192; // Truncate anything longer than 8K
+            if(dataToStore.Length > maxBodyLength)
+            {
+                dataToStore = "TRUNCATED" + dataToStore.Substring(0, maxBodyLength);
+            }
+
+            string nowStr = DateTime.UtcNow.ToString("yyyy-MM-dd HH-mm");
+            dataToStore = $"{{ \"ingest_time_utc\": \"{nowStr}\", \"metrics\": {dataToStore} }}";
+
             PutObjectRequest putRequest = new();
             putRequest.BucketName = "foo-openlyrics-metrics";
             putRequest.Key = Guid.NewGuid().ToString();
-            putRequest.ContentBody = evt.Body;
+            putRequest.ContentBody = dataToStore;
             PutObjectResponse resp = await s3.PutObjectAsync(putRequest);
             ctx.Logger.LogInformation($"Completed writing {evt.Body.Length} characters to S3 with result: {resp.HttpStatusCode}");
         }
