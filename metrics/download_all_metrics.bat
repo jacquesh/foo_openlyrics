@@ -1,3 +1,4 @@
+@echo off
 REM Change to the script's directory: https://serverfault.com/questions/95686/change-current-directory-to-the-batch-file-directory
 pushd "%~dp0"
 
