@@ -57,29 +57,9 @@ jobs:
 
     - name: Create GitHub release
       id: release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ env.RELEASE_VERSION }}
-        release_name: ${{ env.RELEASE_VERSION }}
+        files: |
+          ${{ env.RELEASE_NAME }}.fb2k-component
+          ${{ env.RELEASE_NAME }}-with_debug_symbols.zip
 
-    - name: Upload component archive
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ${{ env.RELEASE_NAME }}.fb2k-component
-        asset_name: ${{ env.RELEASE_NAME }}.fb2k-component
-        asset_content_type: application/octet-stream
-
-    - name: Upload debug symbols
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ${{ env.RELEASE_NAME }}-with_debug_symbols.zip
-        asset_name: ${{ env.RELEASE_NAME }}-with_debug_symbols.zip
-        asset_content_type: application/octet-stream
