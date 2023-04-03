@@ -1,6 +1,9 @@
 name: release
 on:
-  workflow_dispatch:
+  # NOTE: We specifically do *not* support `workflow_dispatch` here, because if we run this from
+  # workflow_dispatch, it will create a tag & release named /refs/heads/master or similar.
+  # This is a pain to deal with and we can always just delete the tag and tag a later commit
+  # if we need to make fixes as part of the release process.
   push:
     tags:
       - '*'
