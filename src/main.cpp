@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "1.5-dev"
+#define OPENLYRICS_VERSION "1.5"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -27,7 +27,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Source available at https://github.com/jacquesh/foo_openlyrics\n";
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
-    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    out += "Version 1.5 (2023-04-03):\n"
     "- Add basic support for network music streams\n"
     "- Allow subdirectories (with '\\') in the 'file name format' save setting\n"
     "- Add support for continuously scrolling synced lyrics\n"
