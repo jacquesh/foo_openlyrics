@@ -28,7 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
-    "- TODO\n"
+    "- Fix crash on startup when running on fb2k v2, beta 31 or earlier\n"
     "\n";
     out += "Version 1.5 (2023-04-03):\n"
     "- Add basic support for network music streams\n"

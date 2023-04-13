@@ -35,13 +35,14 @@ static const char* get_windows_version_string()
     return "old";
 }
 
-std::string collect_metrics(abort_callback& abort)
+std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
 {
+    LOG_INFO("Metrics collection start");
     cJSON* json = cJSON_CreateObject();
 
     cJSON_AddStringToObject(json, "fb2k.version", core_version_info::g_get_version_string());
     cJSON_AddBoolToObject(json, "fb2k.is_portable", core_api::is_portable_mode_enabled());
-    cJSON_AddBoolToObject(json, "fb2k.is_dark_mode", fb2k::isDarkMode());
+    cJSON_AddBoolToObject(json, "fb2k.is_dark_mode", is_dark_mode);
 
     // NOTE: We use GetDeviceCaps instead of GetDpiForMonitor (or similar functions) because
     //       fb2k supports Windows 7 and so we should too.
@@ -209,6 +210,8 @@ std::string collect_metrics(abort_callback& abort)
     char* json_str = cJSON_Print(json);
     std::string result(json_str);
     free(json_str);
+
+    LOG_INFO("Metrics collection complete");
     return result;
 }
 
@@ -252,13 +255,20 @@ class AsyncMetricsCollectionAndSubmission : public threaded_process_callback
 {
     std::string m_metrics;
 
+    bool is_dark_mode;
+
 public:
+    void on_init(ctx_t p_wnd) override
+    {
+        LOG_INFO("Initiating pre-collection metrics flow...");
+        is_dark_mode = fb2k::isDarkMode(); // In fb2k v2 beta 31 and earlier, isDarkMode() should only be called from the main/UI thread.
+    }
+
     void run(threaded_process_status& /*status*/, abort_callback& abort) override
     {
         try
         {
-            m_metrics = collect_metrics(abort);
-            LOG_INFO("Successfully collected metrics");
+            m_metrics = collect_metrics(abort, is_dark_mode);
         }
         catch(const std::exception& ex)
         {
