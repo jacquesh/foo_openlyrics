@@ -83,24 +83,6 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
         return localfiles_source->save(track, track_info, is_timestamped, lyric_view, allow_overwrite, abort);
     }
 
-    LOG_INFO("Saving lyrics to an ID3 tag...");
-    struct MetaCompletionLogger : public completion_notify
-    {
-        const std::string metatag;
-        MetaCompletionLogger(std::string_view tag) : metatag(tag) {}
-        void on_completion(unsigned int result_code) final
-        {
-            if(result_code == metadb_io::update_info_success)
-            {
-                LOG_INFO("Successfully saved lyrics to %s", metatag.c_str());
-            }
-            else
-            {
-                LOG_WARN("Failed to save lyrics to tag %s: %u", metatag.c_str(), result_code);
-            }
-        }
-    };
-
     std::string tag_name;
     if(is_timestamped)
     {
@@ -112,94 +94,142 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
     }
     LOG_INFO("Saving lyrics to ID3 tag %s...", tag_name.c_str());
 
-    std::string lyrics(lyric_view);
-    auto update_meta_tag = [tag_name, lyrics, allow_overwrite](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
-    {
-        t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
-        if(!allow_overwrite && (tag_index != pfc::infinite_size))
-        {
-            LOG_INFO("Save tag already exists and overwriting is disallowed. The tag will not be modified");
-            return false;
-        }
-        info.meta_set_ex(tag_name.data(), tag_name.length(), lyrics.data(), lyrics.length());
-        return true;
-    };
-
     // NOTE: I'm actually not 100% sure this is necessary but lets ensure we've loaded the full tag data
     //       before we save it so that we don't accidentally overwrite some esoteric tag that wasn't loaded.
     track->get_full_info_ref(abort);
 
-    service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
-    service_ptr_t<MetaCompletionLogger> completion = fb2k::service_new<MetaCompletionLogger>(tag_name);
-    service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
-    meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
-                               updater,
-                               core_api::get_main_window(),
-                               metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
-                               completion);
-    LOG_INFO("Successfully wrote lyrics to ID3 tag %s", tag_name.c_str());
-    return tag_name;
-}
-
-bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::string& path)
-{
-    struct MetaRemovalCompletionLogger : public completion_notify
+    std::string lyrics(lyric_view);
+    const auto update_lyric_tag = [](metadb_handle_ptr track, const metadb_v2_rec_t& track_info, const std::string& tag_name, const std::string& lyrics, bool allow_overwrite)
     {
-        std::string metatag;
-        MetaRemovalCompletionLogger(std::string_view tag) : metatag(tag) {}
-        void on_completion(unsigned int result_code) final
+        struct MetaCompletionLogger : public completion_notify
         {
-            if(result_code == metadb_io::update_info_success)
+            const std::string metatag;
+            MetaCompletionLogger(std::string_view tag) : metatag(tag) {}
+            void on_completion(unsigned int result_code) final
             {
-                LOG_INFO("Successfully removed lyrics stored in tag '%s'", metatag.c_str());
+                if(result_code == metadb_io::update_info_success)
+                {
+                    LOG_INFO("Successfully saved lyrics to %s", metatag.c_str());
+                }
+                else
+                {
+                    LOG_WARN("Failed to save lyrics to tag %s: %u", metatag.c_str(), result_code);
+                }
             }
-            else
-            {
-                LOG_WARN("Failed to remove lyrics stored in tag '%s': %u", metatag.c_str(), result_code);
-            }
-        }
-    };
+        };
 
-    try
-    {
-        auto update_meta_tag = [path](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+        const auto update_meta_tag = [tag_name, lyrics, allow_overwrite](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
         {
-            size_t lyric_value_index = info.meta_find_ex(path.c_str(), path.length());
-            if(lyric_value_index == pfc::infinite_size)
+            t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
+            if(!allow_overwrite && (tag_index != pfc::infinite_size))
             {
+                LOG_INFO("Save tag already exists and overwriting is disallowed. The tag will not be modified");
                 return false;
             }
-
-            t_size tag_index = info.meta_find_ex(path.data(), path.length());
-            if(tag_index == pfc::infinite_size)
-            {
-                LOG_WARN("Failed to find persisted tag '%s' for deletion", path.c_str());
-                return false;
-            }
-            info.meta_remove_index(tag_index);
+            info.meta_set_ex(tag_name.data(), tag_name.length(), lyrics.data(), lyrics.length());
             return true;
         };
 
-        // NOTE: I'm actually not 100% sure this is necessary but lets ensure we've loaded the full tag data
-        //       before we save it so that we don't accidentally overwrite some esoteric tag that wasn't loaded.
-        track->get_full_info_ref(fb2k::noAbort);
-
         service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
-        service_ptr_t<MetaRemovalCompletionLogger> completion = fb2k::service_new<MetaRemovalCompletionLogger>(path);
+        service_ptr_t<MetaCompletionLogger> completion = fb2k::service_new<MetaCompletionLogger>(tag_name);
         service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
         meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
                                    updater,
                                    core_api::get_main_window(),
                                    metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
                                    completion);
-        return true;
-    }
-    catch(const std::exception& ex)
+        LOG_INFO("Successfully wrote lyrics to ID3 tag %s", tag_name.c_str());
+    };
+
+    // metadb_io_v2's async need to be called from the main thread, but we want to have some idea of
+    // whether or not we succeeded. So if we're already on the main thread then call it directly and
+    // return the result, otherwise queue the update for the main thread and assume we succeeded.
+    if(core_api::is_main_thread())
     {
-        LOG_WARN("Failed to delete lyrics file %s: %s", path.c_str(), ex.what());
+        update_lyric_tag(track, track_info, tag_name, lyrics, allow_overwrite);
+    }
+    else
+    {
+        fb2k::inMainThread2([update_lyric_tag, track, track_info, tag_name, lyrics, allow_overwrite]() { update_lyric_tag(track, track_info, tag_name, lyrics, allow_overwrite); });
     }
 
-    return false;
+    return tag_name;
+}
+
+bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::string& path)
+{
+    const auto delete_lyric_tag = [](metadb_handle_ptr track, const std::string& path) -> bool
+    {
+        struct MetaRemovalCompletionLogger : public completion_notify
+        {
+            std::string metatag;
+            MetaRemovalCompletionLogger(std::string_view tag) : metatag(tag) {}
+            void on_completion(unsigned int result_code) final
+            {
+                if(result_code == metadb_io::update_info_success)
+                {
+                    LOG_INFO("Successfully removed lyrics stored in tag '%s'", metatag.c_str());
+                }
+                else
+                {
+                    LOG_WARN("Failed to remove lyrics stored in tag '%s': %u", metatag.c_str(), result_code);
+                }
+            }
+        };
+
+        try
+        {
+            const auto update_meta_tag = [path](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+            {
+                size_t lyric_value_index = info.meta_find_ex(path.c_str(), path.length());
+                if(lyric_value_index == pfc::infinite_size)
+                {
+                    return false;
+                }
+
+                t_size tag_index = info.meta_find_ex(path.data(), path.length());
+                if(tag_index == pfc::infinite_size)
+                {
+                    LOG_WARN("Failed to find persisted tag '%s' for deletion", path.c_str());
+                    return false;
+                }
+                info.meta_remove_index(tag_index);
+                return true;
+            };
+
+            // NOTE: I'm actually not 100% sure this is necessary but lets ensure we've loaded the full tag data
+            //       before we save it so that we don't accidentally overwrite some esoteric tag that wasn't loaded.
+            track->get_full_info_ref(fb2k::noAbort);
+
+            service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
+            service_ptr_t<MetaRemovalCompletionLogger> completion = fb2k::service_new<MetaRemovalCompletionLogger>(path);
+            service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
+            meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
+                                       updater,
+                                       core_api::get_main_window(),
+                                       metadb_io_v2::op_flag_delay_ui | metadb_io_v2::op_flag_partial_info_aware,
+                                       completion);
+            return true;
+        }
+        catch(const std::exception& ex)
+        {
+            LOG_WARN("Failed to delete lyrics file %s: %s", path.c_str(), ex.what());
+        }
+        return false;
+    };
+
+    // metadb_io_v2's async need to be called from the main thread, but we want to have some idea of
+    // whether or not we succeeded. So if we're already on the main thread then call it directly and
+    // return the result, otherwise queue the update for the main thread and assume we succeeded.
+    if(core_api::is_main_thread())
+    {
+        return delete_lyric_tag(track, path);
+    }
+    else
+    {
+        fb2k::inMainThread2([delete_lyric_tag, track, path]() { delete_lyric_tag(track, path); });
+        return true;
+    }
 }
 
 std::tstring ID3TagLyricSource::get_file_path(metadb_handle_ptr track, const LyricData& lyrics)
