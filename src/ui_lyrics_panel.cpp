@@ -1244,6 +1244,7 @@ namespace {
                         break;
                     }
 
+                    LOG_INFO("Marking current track as instrumental from the panel context menu");
                     if(!m_lyrics.IsEmpty())
                     {
                         io::delete_saved_lyrics(m_now_playing, m_lyrics);
@@ -1286,6 +1287,7 @@ namespace {
                 {
                     if(m_now_playing == nullptr) break;
 
+                    LOG_INFO("Removing persisted lyrics and re-saving them without timestamps");
                     io::delete_saved_lyrics(m_now_playing, m_lyrics);
                     updated_lyrics = auto_edit::RemoveTimestamps(m_lyrics);
                 } break;
@@ -1313,6 +1315,7 @@ namespace {
                         break;
                     }
 
+                    LOG_INFO("Removing current track lyrics from the panel context menu");
                     bool deleted = io::delete_saved_lyrics(m_now_playing, m_lyrics);
                     if(deleted)
                     {

@@ -230,6 +230,7 @@ public:
                         }
                     }
 
+                    LOG_INFO("Marking %d tracks as instrumental from the context menu...", int(track_count));
                     for(size_t i=0; i<track_count; i++)
                     {
                         metadb_handle_ptr track = data_copy.get_item(i);
@@ -252,6 +253,7 @@ public:
                         }
                         search_avoidance_force_avoidance(track);
                     }
+                    LOG_INFO("Finished marking %d tracks as instrumental with %d failures", int(failure_count));
 
                     fb2k::inMainThread2([failure_count, track_count]()
                     {
@@ -287,6 +289,7 @@ public:
             } break;
 
             default:
+                LOG_ERROR("Unexpected openlyrics context menu command: %d", int(index));
                 uBugCheck();
         }
     }
