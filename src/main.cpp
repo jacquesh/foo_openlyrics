@@ -29,6 +29,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Add a source for metal-archives.com\n"
+    "- Fix retrieval failing from some sources when no 'album' tag is present\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
     "- Fix LRC offset tags being ignored if they contained a space\n"
     "\n";

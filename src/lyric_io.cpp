@@ -220,8 +220,10 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
 
             for(LyricDataRaw& result : search_results)
             {
-                // NOTE: Some sources don't return an album so we ignore album data if the source didn't give us any
-                bool tag_match = (result.album.empty() || tag_values_match(tag_album, result.album)) &&
+                // NOTE: Some sources don't return an album so we ignore album data if the source didn't give us any.
+                //       Similarly, the local tag data might not contain an album, in which case we shouldn't reject
+                //       candidates because they have non-empty album data.
+                bool tag_match = (result.album.empty() || tag_album.empty() || tag_values_match(tag_album, result.album)) &&
                                  tag_values_match(tag_artist, result.artist) &&
                                  tag_values_match(tag_title, result.title);
                 if(!tag_match)
