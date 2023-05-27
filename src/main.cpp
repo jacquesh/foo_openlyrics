@@ -30,6 +30,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Add a source for metal-archives.com\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
+    "- Fix LRC offset tags being ignored if they contained a space\n"
     "\n";
     out += "Version 1.6 (2023-04-13):\n"
     "- Fix crash on startup when running on fb2k v2, beta 31 or earlier\n"

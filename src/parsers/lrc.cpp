@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "parsers.h"
+#include "tag_util.h"
 #include "win32_util.h"
 
 namespace parsers::lrc
@@ -108,10 +109,10 @@ std::optional<double> try_parse_offset_tag(std::string_view line)
 
     std::string_view tag_key(line.data() + 1, colon_index - 1); // +-1 to avoid the leading '['
 
-    size_t val_start = colon_index + 1;
-    size_t val_end = line.length() - 1;
-    size_t val_length = val_end - val_start;
-    std::string_view tag_val(line.data() + val_start, val_length);
+    const size_t val_start = colon_index + 1;
+    const size_t val_end = line.length() - 1;
+    const size_t val_length = val_end - val_start;
+    const std::string_view tag_val = trim_surrounding_whitespace(line.substr(val_start, val_length));
 
     if(tag_key != "offset") return {};
     std::optional<int64_t> maybe_offset = strtoi64(tag_val);
