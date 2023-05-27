@@ -28,6 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Add a source for metal-archives.com\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
     "\n";
     out += "Version 1.6 (2023-04-13):\n"
