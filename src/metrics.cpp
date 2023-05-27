@@ -258,7 +258,7 @@ class AsyncMetricsCollectionAndSubmission : public threaded_process_callback
     bool is_dark_mode;
 
 public:
-    void on_init(ctx_t p_wnd) override
+    void on_init(ctx_t /*p_wnd*/) override
     {
         LOG_INFO("Initiating pre-collection metrics flow...");
         is_dark_mode = fb2k::isDarkMode(); // In fb2k v2 beta 31 and earlier, isDarkMode() should only be called from the main/UI thread.

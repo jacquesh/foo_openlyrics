@@ -214,7 +214,7 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
 {
     LOG_INFO("Synchronising editor line...");
     // NOTE: Passing -1 will give the line index of the line containing the start of the current selection
-    LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, -1, 0);
+    LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, WPARAM(-1), 0);
     LRESULT curr_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index, 0);
     LRESULT curr_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, curr_line_start, 0);
 
@@ -293,7 +293,7 @@ void LyricEditor::SelectLineWithTimestampGreaterOrEqual(double threshold_timesta
             line_buffer_len = line_length;
         }
 
-        line_buffer[0] = line_buffer_len; // EM_GETLINE reads the first word as the number of characters in the buffer
+        line_buffer[0] = TCHAR(line_buffer_len); // EM_GETLINE reads the first word as the number of characters in the buffer
         LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
         std::string linestr = from_tstring(std::tstring_view{line_buffer, (size_t)chars_copied});
         if(linestr.empty() || ((linestr.length() == 1) && (linestr[0] == ' '))) continue;
@@ -363,7 +363,7 @@ void LyricEditor::OnOffsetSync(UINT /*btn_id*/, int /*notify_code*/, CWindow /*b
 
     LOG_INFO("Synchronising editor line...");
     // NOTE: Passing -1 will give the line index of the line containing the start of the current selection
-    LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, -1, 0);
+    LRESULT curr_line_index = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEFROMCHAR, WPARAM(-1), 0);
     LRESULT curr_line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, curr_line_index, 0);
     LRESULT curr_line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, curr_line_start, 0);
     assert((curr_line_length >= 0) && (curr_line_length <= INT_MAX));
@@ -435,7 +435,7 @@ void LyricEditor::on_playback_stop(play_control::t_stop_reason /*reason*/)
     update_time_text(0);
 }
 
-void LyricEditor::on_playback_pause(bool state)
+void LyricEditor::on_playback_pause(bool /*state*/)
 {
     update_play_button();
 }
@@ -563,7 +563,7 @@ std::tstring LyricEditor::GetEditorContents()
 
     TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
     UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
-    if(chars_copied != lyric_length)
+    if(chars_copied != UINT(lyric_length))
     {
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);
     }

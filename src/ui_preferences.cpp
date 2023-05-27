@@ -168,7 +168,7 @@ private:
     void SourceListApply();
     bool SourceListHasChanged();
 
-    DWORD m_default_password_char;
+    LRESULT m_default_password_char;
 
     fb2k::CCoreDarkModeHooks m_dark;
 };
@@ -371,7 +371,7 @@ void PreferencesRoot::OnActiveSourceSelect(UINT, int, CWindow)
     LRESULT item_count = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCOUNT, 0, 0);
     assert(item_count != LB_ERR);
 
-    SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETCURSEL, -1);
+    SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETCURSEL, WPARAM(-1));
 
     CWindow activate_btn = GetDlgItem(IDC_SOURCE_ACTIVATE_BTN);
     CWindow deactivate_btn = GetDlgItem(IDC_SOURCE_DEACTIVATE_BTN);
@@ -391,7 +391,7 @@ void PreferencesRoot::OnActiveSourceSelect(UINT, int, CWindow)
 
 void PreferencesRoot::OnInactiveSourceSelect(UINT, int, CWindow)
 {
-    SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETCURSEL, -1);
+    SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETCURSEL, WPARAM(-1));
 
     CWindow activate_btn = GetDlgItem(IDC_SOURCE_ACTIVATE_BTN);
     CWindow deactivate_btn = GetDlgItem(IDC_SOURCE_DEACTIVATE_BTN);

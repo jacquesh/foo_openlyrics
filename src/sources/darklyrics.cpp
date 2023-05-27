@@ -81,10 +81,10 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std:
 {
     http_request::ptr request = http_client::get()->create_request("GET");
 
-    std::string url_artist = remove_chars_for_url(artist);
-    std::string url_album = remove_chars_for_url(album);
-    std::string url_title = remove_chars_for_url(title);
-    std::string url = "http://darklyrics.com/lyrics/" + url_artist + "/" + url_album + ".html";;
+    const std::string url_artist = remove_chars_for_url(artist);
+    const std::string url_album = remove_chars_for_url(album);
+    const std::string url_title = remove_chars_for_url(title);
+    const std::string url = "http://darklyrics.com/lyrics/" + url_artist + "/" + url_album + ".html";
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
     pfc::string8 content;
@@ -175,8 +175,6 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std:
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }
-
-    return {};
 }
 
 bool DarkLyricsSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)

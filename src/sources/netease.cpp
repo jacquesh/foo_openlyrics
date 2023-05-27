@@ -18,7 +18,7 @@ class NetEaseLyricsSource : public LyricSourceRemote
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
-    std::vector<LyricDataRaw> parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title);
+    std::vector<LyricDataRaw> parse_song_ids(cJSON* json);
 };
 static const LyricSourceFactory<NetEaseLyricsSource> src_factory;
 
@@ -34,7 +34,7 @@ static http_request::ptr make_post_request()
     return request;
 }
 
-std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json, const std::string_view artist, const std::string_view album, const std::string_view title)
+std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
 {
     if((json == nullptr) || (json->type != cJSON_Object))
     {
@@ -129,7 +129,7 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json, const
     return output;
 }
 
-std::vector<LyricDataRaw> NetEaseLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> NetEaseLyricsSource::search(std::string_view artist, std::string_view /*album*/, std::string_view title, abort_callback& abort)
 {
     std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(artist) + '+' + urlencode(title) + "&type=1&offset=0&sub=false&limit=5";
     LOG_INFO("Querying for song ID from %s...", url.c_str());
@@ -149,7 +149,7 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::search(std::string_view artist, s
     }
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
-    std::vector<LyricDataRaw> song_ids = parse_song_ids(json, artist, album, title);
+    std::vector<LyricDataRaw> song_ids = parse_song_ids(json);
     cJSON_Delete(json);
 
     return song_ids;

@@ -24,7 +24,7 @@ class ID3TagLyricSource : public LyricSourceBase
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort)
+std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& /*abort*/)
 {
     std::vector<LyricDataRaw> result;
     const file_info& info = track_info.info->info();
@@ -99,7 +99,7 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
     track->get_full_info_ref(abort);
 
     std::string lyrics(lyric_view);
-    const auto update_lyric_tag = [](metadb_handle_ptr track, const metadb_v2_rec_t& track_info, const std::string& tag_name, const std::string& lyrics, bool allow_overwrite)
+    const auto update_lyric_tag = [](metadb_handle_ptr track, const std::string& tag_name, const std::string& lyrics, bool allow_overwrite)
     {
         struct MetaCompletionLogger : public completion_notify
         {
@@ -146,11 +146,11 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
     // return the result, otherwise queue the update for the main thread and assume we succeeded.
     if(core_api::is_main_thread())
     {
-        update_lyric_tag(track, track_info, tag_name, lyrics, allow_overwrite);
+        update_lyric_tag(track, tag_name, lyrics, allow_overwrite);
     }
     else
     {
-        fb2k::inMainThread2([update_lyric_tag, track, track_info, tag_name, lyrics, allow_overwrite]() { update_lyric_tag(track, track_info, tag_name, lyrics, allow_overwrite); });
+        fb2k::inMainThread2([update_lyric_tag, track, tag_name, lyrics, allow_overwrite]() { update_lyric_tag(track, tag_name, lyrics, allow_overwrite); });
     }
 
     return tag_name;

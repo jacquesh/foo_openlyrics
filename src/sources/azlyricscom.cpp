@@ -180,8 +180,6 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }
-
-    return {};
 }
 
 bool AZLyricsComSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)

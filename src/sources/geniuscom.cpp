@@ -167,8 +167,6 @@ std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }
-
-    return {};
 }
 
 bool GeniusComSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)

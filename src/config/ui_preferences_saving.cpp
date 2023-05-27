@@ -424,7 +424,7 @@ LRESULT PreferencesSaving::OnSyntaxHelpClicked(NMHDR* /*notify_msg*/)
     return 0;
 }
 
-void PreferencesSaving::UpdateFormatPreview(int edit_id, int preview_id, bool is_path)
+void PreferencesSaving::UpdateFormatPreview(int edit_id, int preview_id, bool /*is_path*/)
 {
     CWindow preview_item = GetDlgItem(preview_id);
     assert(preview_item != nullptr);

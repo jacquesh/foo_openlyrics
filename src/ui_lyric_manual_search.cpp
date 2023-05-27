@@ -377,12 +377,12 @@ void ManualLyricSearch::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn
     DestroyWindow();
 }
 
-void ManualLyricSearch::OnApply(UINT btn_id, int notify_code, CWindow btn)
+void ManualLyricSearch::OnApply(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
     save_selected_item();
 }
 
-void ManualLyricSearch::OnSearchRequested(UINT btn_id, int notify_code, CWindow btn)
+void ManualLyricSearch::OnSearchRequested(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
     start_search();
 }
