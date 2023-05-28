@@ -336,14 +336,15 @@ namespace {
 
         // This serves as an upper bound on the number of chars we draw on a single line.
         // Used to prevent GDI from having to compute the size of very long strings.
-        size_t generous_max_chars = 256;
+        int generous_max_chars = 256;
         if(font_metrics.tmAveCharWidth > 0)
         {
             assert(visible_width >= 0);
-            size_t avg_chars_that_fit = ((size_t)visible_width/(size_t)font_metrics.tmAveCharWidth) + 1;
+            const int avg_chars_that_fit = (visible_width/font_metrics.tmAveCharWidth) + 1;
             generous_max_chars = 3*avg_chars_that_fit;
         }
 
+        assert(line.length() <= INT_MAX);
         std::tstring_view text_outstanding = line;
         int total_height = 0;
         while(text_outstanding.length() > 0)
@@ -359,7 +360,7 @@ namespace {
             }
 
             size_t next_line_start_index = text_outstanding.length();
-            size_t chars_to_draw = min(text_outstanding.length(), generous_max_chars);
+            int chars_to_draw = min(int(text_outstanding.length()), generous_max_chars);
             while(true)
             {
                 SIZE line_size;
@@ -380,7 +381,7 @@ namespace {
                 else
                 {
                     assert(chars_to_draw > 0);
-                    size_t previous_space_index = text_outstanding.rfind(' ', chars_to_draw-1);
+                    const int previous_space_index = int(text_outstanding.rfind(' ', chars_to_draw-1));
                     if(previous_space_index == std::tstring::npos)
                     {
                         // There is a single word that doesn't fit on the line
@@ -647,10 +648,11 @@ namespace {
                                     return accum + glue + line.text;
                                  });
 
+        assert(joined.length() <= INT_MAX);
         SIZE line_size;
         BOOL extent_success = GetTextExtentPoint32(dc,
                                                    joined.c_str(),
-                                                   joined.length(),
+                                                   int(joined.length()),
                                                    &line_size);
         if(!extent_success)
         {
@@ -1213,8 +1215,8 @@ namespace {
                         // See Raymond Chen's "The default verb is not necessarily 'open'": https://devblogs.microsoft.com/oldnewthing/20070430-00/?p=27063
                         // This is important to ensure that the directory is opened in the default file explorer, if users have defined one other
                         // than Windows Explorer (e.g https://github.com/derceg/explorerplusplus)
-                        int exec_result = (int)ShellExecute(get_wnd(), nullptr, pathstr.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-                        if(exec_result <= 32)
+                        HINSTANCE exec_result = ShellExecute(get_wnd(), nullptr, pathstr.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+                        if(exec_result <= HINSTANCE(32))
                         {
                             LOG_WARN("Failed to open lyric file directory: %d", exec_result);
                         }

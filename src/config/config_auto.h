@@ -44,7 +44,7 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
     {
         LRESULT text_length_result = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
         if(text_length_result < 0) return;
-        size_t text_length = (size_t)text_length_result;
+        int text_length = (int)text_length_result;
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
@@ -61,7 +61,7 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         {
             return true;
         }
-        size_t text_length = (size_t)text_length_result;
+        int text_length = (int)text_length_result;
         TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
         UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
 
@@ -325,8 +325,10 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
         LRESULT ui_index = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
         LRESULT logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
         assert(logical_value != CB_ERR);
+        assert(logical_value >= INT_MIN);
+        assert(logical_value <= INT_MAX);
 
-        cfg_int_t<int>::operator=(logical_value);
+        cfg_int_t<int>::operator=(int(logical_value));
     }
 
     bool HasChanged() override

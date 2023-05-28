@@ -283,8 +283,12 @@ void LyricEditor::SelectLineWithTimestampGreaterOrEqual(double threshold_timesta
     int line_count = (int)SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINECOUNT, 0, 0);
     for(int i=0; i<line_count; i++)
     {
-        LRESULT line_start = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, i, 0);
-        LRESULT line_length = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, line_start, 0);
+        const LRESULT line_start_result = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINEINDEX, i, 0);
+        const LRESULT line_length_result = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_LINELENGTH, line_start_result, 0);
+        assert(line_start_result <= INT_MAX);
+        assert(line_length_result <= INT_MAX);
+        const int line_start = int(line_start_result);
+        const int line_length = int(line_length_result);
         if(line_length <= 0) continue;
 
         if(line_buffer_len < line_length)
@@ -495,10 +499,11 @@ void LyricEditor::update_play_button()
 
 bool LyricEditor::HasContentChanged(size_t* new_length)
 {
-    LRESULT lyric_length_result = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
+    const LRESULT lyric_length_result = SendDlgItemMessage(IDC_LYRIC_TEXT, WM_GETTEXTLENGTH, 0, 0);
     assert(lyric_length_result >= 0);
+    assert(lyric_length_result <= INT_MAX);
 
-    size_t lyric_length = static_cast<size_t>(lyric_length_result);
+    const size_t lyric_length = static_cast<size_t>(lyric_length_result);
     if(new_length)
     {
         *new_length = lyric_length;
@@ -512,10 +517,10 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
     if(lyric_length > 0)
     {
         TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
-        UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
+        UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, int(lyric_length)+1);
         if(chars_copied != lyric_length)
         {
-            LOG_WARN("Dialog character count mismatch. Expected %u, got %u", lyric_length, chars_copied);
+            LOG_WARN("Dialog character count mismatch. Expected %ju, got %u", lyric_length, chars_copied);
         }
 
         bool changed = (_tcscmp(lyric_buffer, m_input_text.c_str()) != 0);
@@ -560,9 +565,10 @@ std::tstring LyricEditor::GetEditorContents()
     {
         return _T("");
     }
+    assert(lyric_length <= INT_MAX);
 
     TCHAR* lyric_buffer = new TCHAR[lyric_length+1]; // +1 for the null-terminator
-    UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, lyric_length+1);
+    UINT chars_copied = GetDlgItemText(IDC_LYRIC_TEXT, lyric_buffer, int(lyric_length)+1);
     if(chars_copied != UINT(lyric_length))
     {
         LOG_WARN("Dialog character count mismatch while saving. Expected %u, got %u", lyric_length, chars_copied);

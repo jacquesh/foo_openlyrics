@@ -84,7 +84,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
         hash_memory.resize(hash_obj_size);
 
         BCRYPT_HASH_HANDLE hash_handle = {};
-        status = BCryptCreateHash(hash_alg, &hash_handle, hash_memory.data(), hash_memory.size(), nullptr, 0, 0);
+        status = BCryptCreateHash(hash_alg, &hash_handle, hash_memory.data(), hash_obj_size, nullptr, 0, 0);
         if(!is_success(status))
         {
             return "<hcreate-error>";
@@ -109,7 +109,8 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
                     break;
                 }
 
-                status = BCryptHashData(hash_handle, tmp_buffer, bytes_read, 0);
+                assert(bytes_read < ULONG_MAX);
+                status = BCryptHashData(hash_handle, tmp_buffer, ULONG(bytes_read), 0);
                 if(!is_success(status))
                 {
                     return "<hdata-error>";
@@ -130,7 +131,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
 
         std::vector<UCHAR> hash_out;
         hash_out.resize(hash_out_size);
-        status = BCryptFinishHash(hash_handle, hash_out.data(), hash_out.size(), 0);
+        status = BCryptFinishHash(hash_handle, hash_out.data(), hash_out_size, 0);
         if(!is_success(status))
         {
             return "<hfinish-error>";

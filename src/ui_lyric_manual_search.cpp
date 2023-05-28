@@ -428,8 +428,10 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         item.iItem = (int)m_all_lyrics.size(); // Technically the resulting index will be 1 less than this, but as long as this is greater than the current length it'll go at the end
         item.pszText = const_cast<TCHAR*>(ui_title.c_str());
         item.lParam = (LPARAM)&lyrics;
-        LRESULT item_index = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTITEM, 0, (LPARAM)&item);
-        assert(item_index >= 0);
+        const LRESULT item_index_result = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTITEM, 0, (LPARAM)&item);
+        assert(item_index_result >= 0);
+        assert(item_index_result <= INT_MAX);
+        const int item_index = int(item_index_result);
 
         LVITEM subitem_album = {};
         subitem_album.mask = LVIF_TEXT;

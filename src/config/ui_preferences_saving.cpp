@@ -434,7 +434,7 @@ void PreferencesSaving::UpdateFormatPreview(int edit_id, int preview_id, bool /*
     {
         size_t format_text_length = (size_t)format_text_length_result;
         TCHAR* format_text_buffer = new TCHAR[format_text_length+1]; // +1 for null-terminator
-        GetDlgItemText(edit_id, format_text_buffer, format_text_length+1);
+        GetDlgItemText(edit_id, format_text_buffer, int(format_text_length+1));
         std::string format_text = from_tstring(std::tstring_view{format_text_buffer, format_text_length});
         delete[] format_text_buffer;
 

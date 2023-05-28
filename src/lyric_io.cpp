@@ -108,8 +108,9 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
         return errorMsgBuffer;
     };
 
+    assert(text_bytes.size() < INT_MAX);
     int utf8success = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
-                                          (char*)text_bytes.data(), text_bytes.size(),
+                                          (char*)text_bytes.data(), (int)text_bytes.size(),
                                           nullptr, 0);
     if(utf8success > 0)
     {

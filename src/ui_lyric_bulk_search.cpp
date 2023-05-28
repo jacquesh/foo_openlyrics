@@ -54,7 +54,7 @@ private:
     abort_callback_impl m_child_abort;
 
     std::vector<TrackAndInfo> m_tracks_to_search;
-    size_t m_next_search_index;
+    int m_next_search_index;
 
     fb2k::CCoreDarkModeHooks m_dark;
 };
@@ -182,7 +182,8 @@ void BulkLyricSearch::add_tracks(const std::vector<metadb_handle_ptr>& tracks_to
         }
     }
 
-    const bool had_finished = (m_next_search_index >= m_tracks_to_search.size());
+    assert(m_tracks_to_search.size() + new_tracks.size() <= INT_MAX);
+    const bool had_finished = (m_next_search_index >= int(m_tracks_to_search.size()));
     m_tracks_to_search.insert(m_tracks_to_search.end(), new_tracks.begin(), new_tracks.end());
     if(m_hWnd != nullptr)
     {
@@ -225,10 +226,11 @@ void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_trac
         item.pszText = const_cast<TCHAR*>(ui_title.c_str());
         LRESULT item_index = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_INSERTITEM, 0, (LPARAM)&item);
         assert(item_index >= 0);
+        assert(item_index <= INT_MAX);
 
         LVITEM subitem_artist = {};
         subitem_artist.mask = LVIF_TEXT;
-        subitem_artist.iItem = item_index;
+        subitem_artist.iItem = int(item_index);
         subitem_artist.iSubItem = 1;
         subitem_artist.pszText = const_cast<TCHAR*>(ui_artist.c_str());
         LRESULT artist_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_artist);
@@ -237,7 +239,7 @@ void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_trac
         const TCHAR* status_string = ((item_index == 0) ? _T("Searching...") : _T(""));
         LVITEM subitem_status = {};
         subitem_status.mask = LVIF_TEXT;
-        subitem_status.iItem = item_index;
+        subitem_status.iItem = int(item_index);
         subitem_status.iSubItem = 2;
         subitem_status.pszText = const_cast<TCHAR*>(status_string);
         LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_status);
@@ -253,7 +255,7 @@ void BulkLyricSearch::update_status_text()
 {
     TCHAR buffer[64] = {};
     const size_t buffer_len = sizeof(buffer)/sizeof(buffer[0]);
-    _sntprintf_s(buffer, buffer_len, _T("Searching %zu/%zu"), m_next_search_index+1, m_tracks_to_search.size());
+    _sntprintf_s(buffer, buffer_len, _T("Searching %d/%zu"), m_next_search_index+1, m_tracks_to_search.size());
     SetDlgItemText(IDC_BULKSEARCH_STATUS, buffer);
 }
 
@@ -261,7 +263,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
 {
     if(!m_child_update.has_value())
     {
-        assert((m_next_search_index >= 0) && (m_next_search_index < m_tracks_to_search.size()));
+        assert((m_next_search_index >= 0) && (m_next_search_index < int(m_tracks_to_search.size())));
 
         const TrackAndInfo& track = m_tracks_to_search[m_next_search_index];
         m_child_update.emplace(LyricUpdateHandle::Type::ManualSearch, track.track, track.track_info, m_child_abort);
@@ -288,7 +290,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
     m_child_update.reset();
 
     SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_STEPIT, 0, 0);
-    if(m_next_search_index < m_tracks_to_search.size())
+    if(m_next_search_index < int(m_tracks_to_search.size()))
     {
         const bool lyrics_found = lyrics.has_value() && !lyrics.value().IsEmpty();
         const TCHAR* status_text = lyrics_found ? _T("Found") : _T("Not found");
@@ -303,7 +305,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         m_next_search_index++;
     }
 
-    if(m_next_search_index >= m_tracks_to_search.size())
+    if(m_next_search_index >= int(m_tracks_to_search.size()))
     {
         WIN32_OP(KillTimer(BULK_SEARCH_UPDATE_TIMER))
         SetDlgItemText(IDC_BULKSEARCH_STATUS, _T("Done"));

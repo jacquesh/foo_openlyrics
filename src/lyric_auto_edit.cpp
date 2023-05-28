@@ -153,7 +153,7 @@ std::optional<LyricData> auto_edit::RemoveAllBlankLines(const LyricData& lyrics)
         return first_not_whitespace == line.text.end();
     };
     auto new_end = std::remove_if(new_lyrics.lines.begin(), new_lyrics.lines.end(), line_is_empty);
-    int lines_removed = std::distance(new_end, new_lyrics.lines.end());
+    ptrdiff_t lines_removed = std::distance(new_end, new_lyrics.lines.end());
     new_lyrics.lines.erase(new_end, new_lyrics.lines.end());
     LOG_INFO("Auto-removal removed %d blank lines", lines_removed);
 
