@@ -188,6 +188,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\config\config_font.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_display_background.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_edit.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_display.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_saving.cpp" />

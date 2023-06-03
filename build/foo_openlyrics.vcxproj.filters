@@ -129,6 +129,9 @@
     <ClCompile Include="..\src\sources\metalarchives.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\config\ui_preferences_display_background.cpp">
+      <Filter>Source Files\config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">
