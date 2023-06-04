@@ -56,6 +56,19 @@ enum class AutoEditType : int
     RemoveTimestamps         = 8,
 };
 
+enum class BackgroundMode : int
+{
+    SolidColour = 0,
+    AlbumArt    = 1,
+};
+
+enum class BackgroundColourType : int
+{
+    Default     = 0,
+    SolidColour = 1,
+    Gradient    = 2,
+};
+
 namespace preferences
 {
     namespace searching
@@ -100,7 +113,6 @@ namespace preferences
     {
         t_ui_font font();
         std::optional<t_ui_color> foreground_colour();
-        std::optional<t_ui_color> background_colour();
         std::optional<t_ui_color> highlight_colour();
 
         LineScrollDirection scroll_direction();
@@ -116,5 +128,20 @@ namespace preferences
         {
             bool font_is_custom();
         }
+    }
+
+    namespace background
+    {
+        BackgroundMode mode();
+        BackgroundColourType colour_type();
+
+        t_ui_color colour();
+        t_ui_color gradient_tl();
+        t_ui_color gradient_tr();
+        t_ui_color gradient_bl();
+        t_ui_color gradient_br();
+
+        double image_opacity();
+        int blur_radius();
     }
 }

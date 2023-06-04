@@ -116,7 +116,6 @@ private:
 };
 
 typedef cfg_auto_int_t<t_int32> cfg_auto_int;
-typedef cfg_auto_int_t<double> cfg_auto_double;
 
 struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
 {
@@ -345,6 +344,109 @@ private:
     int m_control_id;
     const cfg_auto_combo_option<TEnum>* const m_options;
     TEnum m_default_value;
+};
+
+struct cfg_auto_colour : private cfg_int_t<uint32_t>, public cfg_auto_property
+{
+private:
+    static inline COLORREF g_custom_colours[16] = {
+        RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
+        RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
+    };
+
+public:
+    cfg_auto_colour(const GUID& guid, int control_id, COLORREF default_value) :
+        cfg_int_t<uint32_t>(guid, static_cast<uint32_t>(default_value)),
+        m_control_id(control_id),
+        m_default_value(default_value),
+        m_brush(nullptr)
+    {
+    }
+
+    ~cfg_auto_colour()
+    {
+        DeleteObject(m_brush);
+    }
+
+    COLORREF get_value()
+    {
+        return (COLORREF)cfg_int_t<uint32_t>::get_value();
+    }
+
+    HBRUSH get_brush_handle()
+    {
+        return m_brush;
+    }
+
+    bool SelectNewColour()
+    {
+        LOGBRUSH brush = {};
+        GetObject(m_brush, sizeof(brush), &brush);
+
+        CHOOSECOLOR colourOpts = {};
+        colourOpts.lStructSize = sizeof(colourOpts);
+        colourOpts.hwndOwner = m_hWnd;
+        colourOpts.rgbResult = brush.lbColor;
+        colourOpts.lpCustColors = g_custom_colours; 
+        colourOpts.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
+        BOOL colour_selected = ChooseColor(&colourOpts);
+        if(!colour_selected)
+        {
+            return false;
+        }
+
+        DeleteObject(m_brush);
+        m_brush = CreateSolidBrush(colourOpts.rgbResult);
+
+        CWindow handle = GetDlgItem(m_hWnd, m_control_id);
+        if(handle != nullptr)
+        {
+            handle.RedrawWindow(nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_UPDATENOW);
+        }
+        return true;
+    }
+
+    void Initialise(HWND container) override
+    {
+        m_brush = CreateSolidBrush(get_value());
+
+        cfg_auto_property::Initialise(container);
+    }
+
+    void ResetFromSaved() override
+    {
+        uint32_t saved_logical_value = cfg_int_t<uint32_t>::get_value();
+        DeleteObject(m_brush);
+        m_brush = CreateSolidBrush(saved_logical_value);
+        // TODO: Repaint?
+    }
+
+    void ResetToDefault() override
+    {
+        DeleteObject(m_brush);
+        m_brush = CreateSolidBrush(m_default_value);
+        // TODO: Repaint
+    }
+
+    void Apply() override
+    {
+        LOGBRUSH brush = {};
+        GetObject(m_brush, sizeof(brush), &brush);
+        cfg_int_t<uint32_t>::operator=(brush.lbColor);
+    }
+
+    bool HasChanged() override
+    {
+        LOGBRUSH brush = {};
+        GetObject(m_brush, sizeof(brush), &brush);
+        const uint32_t stored_value = cfg_int_t<uint32_t>::get_value();
+        return brush.lbColor != stored_value;
+    }
+
+private:
+    int m_control_id;
+    COLORREF m_default_value;
+    HBRUSH m_brush;
 };
 
 class auto_preferences_page_instance : public preferences_page_instance
