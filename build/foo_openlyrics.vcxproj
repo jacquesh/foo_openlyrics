@@ -192,6 +192,7 @@
     <ClCompile Include="..\src\config\ui_preferences_edit.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_display.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_saving.cpp" />
+    <ClCompile Include="..\src\img_processing.cpp" />
     <ClCompile Include="..\src\lyric_auto_edit.cpp" />
     <ClCompile Include="..\src\lyric_data.cpp" />
     <ClCompile Include="..\src\lyric_io.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="..\3rdparty\stb\stb_image_resize.h" />
     <ClInclude Include="..\src\config\config_auto.h" />
     <ClInclude Include="..\src\config\config_font.h" />
+    <ClInclude Include="..\src\img_processing.h" />
     <ClInclude Include="..\src\logging.h" />
     <ClInclude Include="..\src\lyric_auto_edit.h" />
     <ClInclude Include="..\src\lyric_data.h" />

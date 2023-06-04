@@ -129,6 +129,9 @@
     <ClCompile Include="..\src\sources\metalarchives.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\img_processing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\config\ui_preferences_display_background.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
@@ -193,6 +196,9 @@
     </ClInclude>
     <ClInclude Include="..\3rdparty\stb\stb_image_resize.h">
       <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\img_processing.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
