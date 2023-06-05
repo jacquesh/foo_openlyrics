@@ -333,6 +333,15 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
     bool HasChanged() override
     {
         LRESULT ui_index = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETCURSEL, 0, 0);
+        if(ui_index == CB_ERR)
+        {
+            // No item is selected. This happens if we send fb2k a WM_CLOSE while there's
+            // a preferences page with an auto_combo on it. In this case we don't want to save
+            // anything (and in general we don't expect users to be able to not have any
+            // options selected from a combo box), so we'll claim that nothing has changed.
+            return false;
+        }
+
         LRESULT logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
         assert(logical_value != CB_ERR);
 
