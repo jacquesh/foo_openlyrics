@@ -47,8 +47,8 @@ static cfg_auto_bool                          cfg_display_custom_font(GUID_CFG_D
 static cfg_auto_bool                          cfg_display_custom_fg_colour(GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_hl_colour(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR_CUSTOM, false);
 static cfg_font_t                             cfg_display_font(GUID_CFG_DISPLAY_FONT);
-static cfg_int_t<uint32_t>                    cfg_display_fg_colour(GUID_CFG_DISPLAY_FOREGROUND_COLOUR, cfg_display_fg_colour_default);
-static cfg_int_t<uint32_t>                    cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
+static cfg_auto_colour                        cfg_display_fg_colour(GUID_CFG_DISPLAY_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR, cfg_display_fg_colour_default);
+static cfg_auto_colour                        cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
 static cfg_auto_bool                          cfg_display_scroll_continuous(GUID_CFG_DISPLAY_SCROLL_CONTINUOUS, IDC_DISPLAY_SCROLL_CONTINUOUS, false);
 static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 0, 2000, 20, 500);
@@ -63,6 +63,8 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_custom_fg_colour,
     &cfg_display_custom_hl_colour,
 
+    &cfg_display_fg_colour,
+    &cfg_display_hl_colour,
     &cfg_display_linegap,
     &cfg_display_scroll_continuous,
     &cfg_display_scroll_time,
@@ -78,10 +80,6 @@ static cfg_auto_property* g_display_auto_properties[] =
 // Globals
 //
 static HFONT g_display_font = nullptr;
-static COLORREF g_custom_colours[16] = {
-    RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
-    RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
-};
 
 //
 // Preference retrieval functions
@@ -104,7 +102,7 @@ std::optional<t_ui_color> preferences::display::foreground_colour()
 {
     if(cfg_display_custom_fg_colour.get_value())
     {
-        return (COLORREF)cfg_display_fg_colour.get_value();
+        return cfg_display_fg_colour.get_value();
     }
     return {};
 }
@@ -113,7 +111,7 @@ std::optional<t_ui_color> preferences::display::highlight_colour()
 {
     if(cfg_display_custom_hl_colour.get_value())
     {
-        return (COLORREF)cfg_display_hl_colour.get_value();
+        return cfg_display_hl_colour.get_value();
     }
     return {};
 }
@@ -208,7 +206,6 @@ private:
     LRESULT ColourButtonPreDraw(UINT, WPARAM, LPARAM);
 
     void UpdateFontButtonText();
-    void SelectBrushColour(HBRUSH& brush);
     void RepaintColours();
     void UpdateScrollTimePreview();
     void UpdateFadeTimePreview();
@@ -216,8 +213,6 @@ private:
     void SetScrollTimeEnabled(bool enabled);
 
     LOGFONT m_font;
-    HBRUSH m_brush_foreground;
-    HBRUSH m_brush_highlight;
 
     fb2k::CCoreDarkModeHooks m_dark;
 };
@@ -226,14 +221,10 @@ PreferencesDisplay::PreferencesDisplay(preferences_page_callback::ptr callback) 
     auto_preferences_page_instance(callback, g_display_auto_properties)
 {
     m_font = cfg_display_font.get_value();
-    m_brush_foreground = CreateSolidBrush(cfg_display_fg_colour.get_value());
-    m_brush_highlight = CreateSolidBrush(cfg_display_hl_colour.get_value());
 }
 
 PreferencesDisplay::~PreferencesDisplay()
 {
-    DeleteObject(m_brush_foreground);
-    DeleteObject(m_brush_highlight);
 }
 
 void PreferencesDisplay::apply()
@@ -243,12 +234,6 @@ void PreferencesDisplay::apply()
     g_display_font = nullptr;
     cfg_display_font.set_value(m_font);
 
-    LOGBRUSH brushes[2] = {};
-    GetObject(m_brush_foreground, sizeof(brushes[0]), &brushes[0]);
-    GetObject(m_brush_highlight, sizeof(brushes[0]), &brushes[1]);
-    cfg_display_fg_colour = brushes[0].lbColor;
-    cfg_display_hl_colour = brushes[1].lbColor;
-
     auto_preferences_page_instance::apply();
     repaint_all_lyric_panels();
 }
@@ -257,10 +242,6 @@ void PreferencesDisplay::reset()
 {
     m_font = cfg_display_font.get_value();
 
-    DeleteObject(m_brush_foreground);
-    DeleteObject(m_brush_highlight);
-    m_brush_foreground = CreateSolidBrush(cfg_display_fg_colour_default);
-    m_brush_highlight = CreateSolidBrush(cfg_display_hl_colour_default);
     auto_preferences_page_instance::reset();
 
     SetScrollTimeEnabled(true);
@@ -272,14 +253,8 @@ void PreferencesDisplay::reset()
 
 bool PreferencesDisplay::has_changed()
 {
-    LOGBRUSH brushes[2] = {};
-    GetObject(m_brush_foreground, sizeof(brushes[0]), &brushes[0]);
-    GetObject(m_brush_highlight, sizeof(brushes[0]), &brushes[1]);
-
     bool changed = false;
     changed |= !(cfg_display_font == m_font);
-    changed |= (cfg_display_fg_colour != brushes[0].lbColor);
-    changed |= (cfg_display_hl_colour != brushes[1].lbColor);
 
     return changed || auto_preferences_page_instance::has_changed();
 }
@@ -320,7 +295,11 @@ void PreferencesDisplay::OnFgColourChange(UINT, int, CWindow)
     LRESULT custom = SendDlgItemMessage(IDC_FOREGROUND_COLOUR_CUSTOM, BM_GETCHECK, 0, 0);
     if(custom == BST_CHECKED)
     {
-        SelectBrushColour(m_brush_foreground);
+        const bool changed = cfg_display_fg_colour.SelectNewColour();
+        if(changed)
+        {
+            on_ui_interaction();
+        }
     }
 }
 
@@ -329,7 +308,11 @@ void PreferencesDisplay::OnHlColourChange(UINT, int, CWindow)
     LRESULT custom = SendDlgItemMessage(IDC_HIGHLIGHT_COLOUR_CUSTOM, BM_GETCHECK, 0, 0);
     if(custom == BST_CHECKED)
     {
-        SelectBrushColour(m_brush_highlight);
+        const bool changed = cfg_display_hl_colour.SelectNewColour();
+        if(changed)
+        {
+            on_ui_interaction();
+        }
     }
 }
 
@@ -393,7 +376,7 @@ LRESULT PreferencesDisplay::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
         LRESULT custom_fg = SendDlgItemMessage(IDC_FOREGROUND_COLOUR_CUSTOM, BM_GETCHECK, 0, 0);
         if(custom_fg == BST_CHECKED)
         {
-            return (LRESULT)m_brush_foreground;
+            return (LRESULT)cfg_display_fg_colour.get_brush_handle();
         }
     }
     else if(btn_id == IDC_HIGHLIGHT_COLOUR)
@@ -401,7 +384,7 @@ LRESULT PreferencesDisplay::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
         LRESULT custom_hl = SendDlgItemMessage(IDC_HIGHLIGHT_COLOUR_CUSTOM, BM_GETCHECK, 0, 0);
         if(custom_hl == BST_CHECKED)
         {
-            return (LRESULT)m_brush_highlight;
+            return (LRESULT)cfg_display_hl_colour.get_brush_handle();
         }
     }
 
@@ -437,28 +420,6 @@ void PreferencesDisplay::UpdateFontButtonText()
 
     font_btn.SetWindowText(font_str.c_str());
     ReleaseDC(dc);
-}
-
-void PreferencesDisplay::SelectBrushColour(HBRUSH& handle)
-{
-    LOGBRUSH brush = {};
-    GetObject(handle, sizeof(LOGBRUSH), &brush);
-
-    CHOOSECOLOR colourOpts = {};
-    colourOpts.lStructSize = sizeof(colourOpts);
-    colourOpts.hwndOwner = m_hWnd;
-    colourOpts.rgbResult = brush.lbColor;
-    colourOpts.lpCustColors = g_custom_colours; 
-    colourOpts.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
-    BOOL colour_selected = ChooseColor(&colourOpts);
-    if(colour_selected)
-    {
-        DeleteObject(handle);
-        handle = CreateSolidBrush(colourOpts.rgbResult);
-
-        RepaintColours();
-        on_ui_interaction();
-    }
 }
 
 void PreferencesDisplay::RepaintColours()
