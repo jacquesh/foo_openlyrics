@@ -6,6 +6,7 @@
 #include <foobar2000/SDK/metadb_info_container_impl.h>
 #pragma warning(pop)
 
+#include "img_processing.h"
 #include "logging.h"
 #include "lyric_auto_edit.h"
 #include "lyric_data.h"
@@ -15,6 +16,7 @@
 #include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
+#include "timer_block.h"
 #include "ui_hooks.h"
 #include "ui_util.h"
 #include "uie_shim_panel.h"
@@ -43,6 +45,7 @@ namespace {
         DECLARE_WND_CLASS_EX(TEXT("{32CB89E1-3EA5-4AE7-A6E6-2DEA68A04D53}"), CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS, (-1))
 
         LyricPanel(ui_element_config::ptr,ui_element_instance_callback_ptr p_callback);
+
         HWND get_wnd() override;
         void initialize_window(HWND parent);
         void set_configuration(ui_element_config::ptr config) override;
@@ -61,6 +64,10 @@ namespace {
         void on_playback_stop(play_control::t_stop_reason reason) override;
         void on_playback_pause(bool state) override;
         void on_playback_seek(double time) override;
+
+        CRect compute_background_image_rect();
+        void load_custom_background_image();
+        void compute_background_image();
 
     private:
         BEGIN_MSG_MAP_EX(LyricPanel)
@@ -91,9 +98,10 @@ namespace {
         void OnLMBDown(UINT virtualKeys, CPoint point);
         void OnLMBUp(UINT virtualKeys, CPoint point);
 
+        void on_album_art_retrieved(album_art_data::ptr art_data);
+
         t_ui_font get_font();
         t_ui_color get_fg_colour();
-        t_ui_color get_bg_colour();
         t_ui_color get_highlight_colour();
 
         void StartTimer();
@@ -134,6 +142,11 @@ namespace {
         std::optional<CPoint> m_manual_scroll_start;
         int m_manual_scroll_distance;
 
+        now_playing_album_art_notify* m_albumart_listen_handle = nullptr;
+        Image m_albumart_original = {};
+        Image m_custom_img_original = {};
+        Image m_background_img = {};
+
     protected:
         // this must be declared as protected for ui_element_impl_withpopup<> to work.
         const ui_element_instance_callback_ptr m_callback;
@@ -156,6 +169,161 @@ namespace {
         m_lyrics(),
         m_callback(p_callback)
     {
+    }
+
+    void LyricPanel::on_album_art_retrieved(album_art_data::ptr art_data)
+    {
+        if(art_data == nullptr)
+        {
+            return;
+        }
+        if(preferences::background::image_type() != BackgroundImageType::AlbumArt)
+        {
+            return;
+        }
+
+        TIME_FUNCTION();
+        LOG_INFO("New album art data retrieved");
+
+        std::optional<Image> maybe_img = decode_image((const uint8_t*)art_data->data(), art_data->size());
+        if(!maybe_img.has_value())
+        {
+            LOG_WARN("Failed to load album art image");
+            return;
+        }
+        m_albumart_original = std::move(maybe_img.value());
+        compute_background_image();
+    }
+
+    CRect LyricPanel::compute_background_image_rect()
+    {
+        CRect client_rect;
+        WIN32_OP_D(GetClientRect(&client_rect))
+
+        CSize size = {};
+        size.cx = client_rect.Width();
+        size.cy = client_rect.Height();
+
+        if(preferences::background::maintain_img_aspect_ratio())
+        {
+            const double img_aspect_ratio = double(m_albumart_original.width)/double(m_albumart_original.height);
+            const int width_when_scaling_to_fit_y = int(double(client_rect.Height()) * img_aspect_ratio);
+            const int height_when_scaling_to_fit_x = int(double(client_rect.Width()) / img_aspect_ratio);
+
+            if(width_when_scaling_to_fit_y > client_rect.Width())
+            {
+                size.cx = client_rect.Width();
+                size.cy = height_when_scaling_to_fit_x;
+            }
+            else if(height_when_scaling_to_fit_x > client_rect.Height())
+            {
+                size.cx = width_when_scaling_to_fit_y;
+                size.cy = client_rect.Height();
+            }
+        }
+
+        // Centre the image in the available space
+        CPoint topleft = {};
+        topleft.x = (client_rect.Width() - size.cx)/2;
+        topleft.y = (client_rect.Height() - size.cy)/2;
+
+        CRect result = {};
+        result.left = topleft.x;
+        result.top = topleft.y;
+        result.right = topleft.x + size.cx;
+        result.bottom = topleft.y + size.cy;
+        return result;
+    }
+
+    void LyricPanel::load_custom_background_image()
+    {
+        const std::string path = preferences::background::custom_image_path();
+        LOG_INFO("Load custom background image from: %s", path.c_str());
+
+        std::optional<Image> maybe_img = load_image(path.c_str());
+        if(maybe_img.has_value())
+        {
+            assert(maybe_img.value().valid());
+            LOG_INFO("Loaded custom %dx%d background image", maybe_img.value().width, maybe_img.value().height);
+            m_custom_img_original = std::move(maybe_img.value());
+        }
+        else
+        {
+            LOG_WARN("Failed to load custom background image from path: %s", path.c_str());
+            m_custom_img_original = {};
+        }
+    }
+
+    void LyricPanel::compute_background_image()
+    {
+        TIME_FUNCTION();
+
+        CRect client_rect;
+        WIN32_OP_D(GetClientRect(&client_rect))
+        Image bg_colour = {};
+        switch(preferences::background::fill_type())
+        {
+            case BackgroundFillType::Default:
+            {
+                const RGBAColour colour = from_colorref(m_callback->query_std_color(ui_color_background));
+                bg_colour = generate_background_colour(client_rect.Width(), client_rect.Height(), colour);
+            } break;
+
+            case BackgroundFillType::SolidColour:
+            {
+                const RGBAColour colour = from_colorref(preferences::background::colour());
+                bg_colour = generate_background_colour(client_rect.Width(), client_rect.Height(), colour);
+            } break;
+
+            case BackgroundFillType::Gradient:
+            {
+                RGBAColour topleft = from_colorref(preferences::background::gradient_tl());
+                RGBAColour topright = from_colorref(preferences::background::gradient_tr());
+                RGBAColour botleft = from_colorref(preferences::background::gradient_bl());
+                RGBAColour botright = from_colorref(preferences::background::gradient_br());
+                bg_colour = generate_background_colour(client_rect.Width(), client_rect.Height(), topleft, topright, botleft, botright);
+            } break;
+        }
+
+        const BackgroundImageType img_type = preferences::background::image_type();
+        if(img_type == BackgroundImageType::None)
+        {
+            m_background_img = std::move(bg_colour);
+        }
+        else
+        {
+            const CRect img_rect = compute_background_image_rect();
+            const double bg_opacity = preferences::background::image_opacity();
+            const int blur_radius = preferences::background::blur_radius();
+
+            Image resized_img = {};
+            if(img_type == BackgroundImageType::AlbumArt)
+            {
+                resized_img = resize_image(m_albumart_original, img_rect.Width(), img_rect.Height());
+            }
+            else if(img_type == BackgroundImageType::CustomImage)
+            {
+                resized_img = resize_image(m_custom_img_original, img_rect.Width(), img_rect.Height());
+            }
+            else
+            {
+                LOG_WARN("Unrecognised background image type: %d", int(img_type));
+                assert(false);
+            }
+
+            // The resized image will be invalid if there was no album art or no custom image.
+            if(resized_img.valid())
+            {
+                const Image combined_img = lerp_offset_image(bg_colour, resized_img, img_rect.TopLeft(), bg_opacity);
+                m_background_img = blur_image(combined_img, blur_radius);
+            }
+            else
+            {
+                m_background_img = std::move(bg_colour);
+            }
+        }
+
+        toggle_image_rgba_bgra_inplace(m_background_img);
     }
 
     void LyricPanel::initialize_window(HWND parent)
@@ -189,6 +357,7 @@ namespace {
 
     void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     {
+        const bool track_changed = (track != m_now_playing);
         m_now_playing = track;
         m_now_playing_info = get_full_metadata(track);
         m_manual_scroll_distance = 0;
@@ -201,6 +370,19 @@ namespace {
         if(!playback->is_paused())
         {
             StartTimer();
+        }
+
+        m_albumart_original = {};
+        if(preferences::background::image_type() == BackgroundImageType::AlbumArt)
+        {
+            if(track_changed)
+            {
+                m_background_img = {};
+            }
+        }
+        else
+        {
+            compute_background_image();
         }
     }
 
@@ -232,6 +414,9 @@ namespace {
         m_lyrics = {};
         m_auto_search_avoided = false;
         StopTimer();
+
+        m_albumart_original = {};
+        compute_background_image();
         Invalidate(); // Draw one more time to clear the panel
     }
 
@@ -263,6 +448,18 @@ namespace {
 
         g_active_panels.push_back(this);
         g_editor_font = m_callback->query_font_ex(ui_font_default);
+
+        // Register for notifications about available album art
+        now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
+        m_albumart_listen_handle = art_manager->add([this](album_art_data::ptr art_data) { return on_album_art_retrieved(art_data); });
+
+        if(preferences::background::image_type() == BackgroundImageType::CustomImage)
+        {
+            load_custom_background_image();
+            // We don't need to compute the composited background image here, because this
+            // callback is going to be followed shortly by WM_SIZE, where we'll recompute
+            // anyway.
+        }
         return 0;
     }
 
@@ -270,6 +467,10 @@ namespace {
     {
         if(m_back_buffer_bitmap != nullptr) DeleteObject(m_back_buffer_bitmap);
         if(m_back_buffer != nullptr) DeleteDC(m_back_buffer);
+
+        // Prevent us from getting album-art callbacks after destruction
+        now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
+        art_manager->remove(m_albumart_listen_handle);
 
         // Cancel and clean up any pending updates
         m_child_abort.abort();
@@ -302,6 +503,14 @@ namespace {
         if(align_result == GDI_ERROR)
         {
             LOG_WARN("Failed to set text alignment: %d", GetLastError());
+        }
+
+        if(!m_background_img.valid() ||
+            (client_rect.Width() != m_background_img.width) ||
+            (client_rect.Height() != m_background_img.height)
+          )
+        {
+            compute_background_image();
         }
     }
 
@@ -981,9 +1190,37 @@ namespace {
         CRect client_rect;
         WIN32_OP_D(GetClientRect(&client_rect))
 
-        HBRUSH bg_brush = CreateSolidBrush(get_bg_colour());
-        FillRect(m_back_buffer, &client_rect, bg_brush);
-        DeleteObject(bg_brush);
+        if(m_background_img.valid())
+        {
+            BITMAPINFO bmp = {};
+            bmp.bmiHeader.biSize = sizeof(bmp.bmiHeader);
+            bmp.bmiHeader.biWidth = m_background_img.width;
+            bmp.bmiHeader.biHeight = -m_background_img.height; // Positive for origin in bottom-left, negative for origin in top-left
+            bmp.bmiHeader.biPlanes = 1;
+            bmp.bmiHeader.biBitCount = 32;
+            bmp.bmiHeader.biCompression = BI_RGB;
+            int scan_lines_copied = StretchDIBits(
+              m_back_buffer,
+              client_rect.left, client_rect.top,
+              client_rect.Width(), client_rect.Height(),
+              0, 0,
+              m_background_img.width, m_background_img.height,
+              m_background_img.pixels,
+              &bmp,
+              DIB_RGB_COLORS, SRCCOPY
+            );
+            if(scan_lines_copied == 0)
+            {
+                LOG_WARN("Failed to draw background gradient");
+            }
+        }
+        else
+        {
+            const t_ui_color bg_colour = m_callback->query_std_color(ui_color_background);
+            HBRUSH bg_brush = CreateSolidBrush(bg_colour);
+            FillRect(m_back_buffer, &client_rect, bg_brush);
+            DeleteObject(bg_brush);
+        }
 
         SelectObject(m_back_buffer, get_font());
         COLORREF color_result = SetTextColor(m_back_buffer, get_fg_colour());
@@ -1457,19 +1694,6 @@ namespace {
         }
     }
 
-    t_ui_color LyricPanel::get_bg_colour()
-    {
-        std::optional<t_ui_color> colour = preferences::display::background_colour();
-        if(colour.has_value())
-        {
-            return colour.value();
-        }
-        else
-        {
-            return m_callback->query_std_color(ui_color_background);
-        }
-    }
-
     t_ui_color LyricPanel::get_highlight_colour()
     {
         std::optional<t_ui_color> colour = preferences::display::highlight_colour();
@@ -1615,6 +1839,30 @@ void repaint_all_lyric_panels()
         {
             assert(panel != nullptr);
             InvalidateRect(panel->get_wnd(), nullptr, TRUE);
+        }
+    });
+}
+
+void recompute_lyric_panel_backgrounds()
+{
+    fb2k::inMainThread2([]()
+    {
+        core_api::ensure_main_thread();
+        for(LyricPanel* panel : g_active_panels)
+        {
+            assert(panel != nullptr);
+
+            if(preferences::background::image_type() == BackgroundImageType::AlbumArt)
+            {
+                now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
+                panel->on_album_art_retrieved(art_manager->current());
+            }
+
+            if(preferences::background::image_type() == BackgroundImageType::CustomImage)
+            {
+                panel->load_custom_background_image();
+            }
+            panel->compute_background_image();
         }
     });
 }

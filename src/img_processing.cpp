@@ -74,7 +74,7 @@ Image::~Image()
     free(pixels);
 }
 
-bool Image::valid()
+bool Image::valid() const
 {
     return pixels != nullptr;
 }
@@ -129,7 +129,32 @@ std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_
     return result;
 }
 
-Image generate_background_image(int width, int height, RGBAColour topleft, RGBAColour topright, RGBAColour botleft, RGBAColour botright)
+Image generate_background_colour(int width, int height, RGBAColour colour)
+{
+    assert(width >= 0);
+    assert(height >= 0);
+    uint8_t* pixels = (uint8_t*)malloc(width * height * 4);
+
+    for(int y=0; y<height; y++)
+    {
+        for(int x=0; x<width; x++)
+        {
+            uint8_t* px = pixels + 4*(y*width + x);
+            px[0] = colour.r;
+            px[1] = colour.g;
+            px[2] = colour.b;
+            px[3] = 255; // It's the background, we don't care about transparency
+        }
+    }
+
+    Image result = {};
+    result.pixels = pixels;
+    result.width = width;
+    result.height = height;
+    return result;
+}
+
+Image generate_background_colour(int width, int height, RGBAColour topleft, RGBAColour topright, RGBAColour botleft, RGBAColour botright)
 {
     assert(width >= 0);
     assert(height >= 0);
@@ -192,8 +217,75 @@ Image lerp_image(const Image& lhs, const Image& rhs, double t)
     return result;
 }
 
+Image lerp_offset_image(const Image& full_img, const Image& offset_img, CPoint offset, double t)
+{
+    assert(offset.x >= 0);
+    assert(offset.y >= 0);
+    assert(full_img.width >= offset.x + offset_img.width);
+    assert(full_img.height >= offset.y + offset_img.height);
+
+    const uint8_t factor = uint8_t(255.0 * t);
+    uint8_t* pixels = (uint8_t*)malloc(full_img.width * full_img.height * 4);
+
+    // Just memcopy whatever rows at the top contain only the full image
+    memcpy(pixels, full_img.pixels, full_img.width * offset.y * 4);
+
+    for(int y=0; y<offset_img.height; y++)
+    {
+        const int full_y = offset.y + y;
+        uint8_t* out_row = pixels + 4*full_img.width*full_y;
+        uint8_t* in_full_row = full_img.pixels + 4*full_img.width*full_y;
+        uint8_t* in_offset_row = offset_img.pixels + 4*offset_img.width*y;
+
+        // memcopy pixels to the left of the offset image
+        memcpy(out_row, in_full_row, offset.x * 4);
+
+        for(int x=0; x<offset_img.width; x++)
+        {
+            const int full_x = offset.x + x;
+            uint8_t* full_px = in_full_row + 4*full_x;
+            uint8_t* offset_px = in_offset_row + 4*x;
+            uint8_t* out_px = out_row + 4*full_x;
+
+            RGBAColour full_colour = *((RGBAColour*)full_px);
+            RGBAColour offset_colour = *((RGBAColour*)offset_px);
+            RGBAColour out_colour = lerp_colour(full_colour, offset_colour, factor);
+
+            out_px[0] = out_colour.r;
+            out_px[1] = out_colour.g;
+            out_px[2] = out_colour.b;
+            out_px[3] = 255;
+        }
+
+        const int columns_on_or_before_offset_img = offset.x + offset_img.width;
+        const int columns_after_offset_img = full_img.width - columns_on_or_before_offset_img;
+        const int post_offsetimg_row_offset = 4*columns_after_offset_img;
+        assert(columns_after_offset_img >= 0);
+        memcpy(out_row + post_offsetimg_row_offset, in_full_row + post_offsetimg_row_offset, 4*columns_after_offset_img);
+    }
+
+    // Just memcopy whatever rows at the bottom contain only the full image
+    const int rows_on_or_above_offset_img = offset.y + offset_img.height;
+    const int rows_below_offset_img = full_img.height - rows_on_or_above_offset_img;
+    uint8_t* first_full_pixel_below_offset_img = full_img.pixels + 4*full_img.width*rows_on_or_above_offset_img;
+    uint8_t* first_out_pixels_below_offset_img = pixels + 4*full_img.width*rows_on_or_above_offset_img;
+    assert(rows_below_offset_img >= 0);
+    memcpy(first_out_pixels_below_offset_img, first_full_pixel_below_offset_img, full_img.width * rows_below_offset_img * 4);
+
+    Image result = {};
+    result.pixels = pixels;
+    result.width = full_img.width;
+    result.height = full_img.height;
+    return result;
+}
+
 Image resize_image(const Image& input, int out_width, int out_height)
 {
+    if(!input.valid())
+    {
+        return {};
+    }
+
     uint8_t* resized_pixels = (uint8_t*)malloc(out_width * out_height * 4);
     int success = stbir_resize_uint8(input.pixels, input.width, input.height, 0,
                                      resized_pixels, out_width, out_height, 0,

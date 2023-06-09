@@ -56,17 +56,18 @@ enum class AutoEditType : int
     RemoveTimestamps         = 8,
 };
 
-enum class BackgroundMode : int
-{
-    SolidColour = 0,
-    AlbumArt    = 1,
-};
-
-enum class BackgroundColourType : int
+enum class BackgroundFillType : int
 {
     Default     = 0,
     SolidColour = 1,
     Gradient    = 2,
+};
+
+enum class BackgroundImageType : int
+{
+    None        = 0,
+    AlbumArt    = 1,
+    CustomImage = 2,
 };
 
 namespace preferences
@@ -132,8 +133,8 @@ namespace preferences
 
     namespace background
     {
-        BackgroundMode mode();
-        BackgroundColourType colour_type();
+        BackgroundFillType fill_type();
+        BackgroundImageType image_type();
 
         t_ui_color colour();
         t_ui_color gradient_tl();
@@ -141,7 +142,9 @@ namespace preferences
         t_ui_color gradient_bl();
         t_ui_color gradient_br();
 
+        bool maintain_img_aspect_ratio();
         double image_opacity();
         int blur_radius();
+        std::string custom_image_path();
     }
 }
