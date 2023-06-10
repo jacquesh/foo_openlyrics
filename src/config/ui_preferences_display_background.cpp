@@ -54,8 +54,8 @@ static cfg_auto_colour                         cfg_background_gradient_TL(GUID_C
 static cfg_auto_colour                         cfg_background_gradient_TR(GUID_CFG_BACKGROUND_GRADIENT_TR, IDC_BACKGROUND_GRADIENT_TR, cfg_background_gradient_tr_default);
 static cfg_auto_colour                         cfg_background_gradient_BL(GUID_CFG_BACKGROUND_GRADIENT_BL, IDC_BACKGROUND_GRADIENT_BL, cfg_background_gradient_bl_default);
 static cfg_auto_colour                         cfg_background_gradient_BR(GUID_CFG_BACKGROUND_GRADIENT_BR, IDC_BACKGROUND_GRADIENT_BR, cfg_background_gradient_br_default);
-static cfg_auto_ranged_int                     cfg_background_image_opacity(GUID_CFG_BACKGROUND_IMAGE_OPACITY, IDC_BACKGROUND_IMG_OPACITY, 0, 100, 1, 30);
-static cfg_auto_int                            cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS, IDC_BACKGROUND_BLUR_EDIT, 10);
+static cfg_auto_ranged_int                     cfg_background_image_opacity(GUID_CFG_BACKGROUND_IMAGE_OPACITY, IDC_BACKGROUND_IMG_OPACITY, 0, 100, 1, 16);
+static cfg_auto_int                            cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS, IDC_BACKGROUND_BLUR_EDIT, 6);
 static cfg_auto_bool                           cfg_background_maintain_img_aspect_ratio(GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, true);
 static cfg_auto_string                         cfg_background_custom_img_path(GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH, IDC_BACKGROUND_CUSTOM_IMG_PATH, "");
 
@@ -160,7 +160,7 @@ public:
         COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_TR, BN_CLICKED, OnColourChangeRequest)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BL, BN_CLICKED, OnColourChangeRequest)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BR, BN_CLICKED, OnColourChangeRequest)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_IMAGE_TYPE, CBN_SELCHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_BACKGROUND_IMAGE_TYPE, CBN_SELCHANGE, OnImageTypeChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_FILL_TYPE, CBN_SELCHANGE, OnFillTypeChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_BLUR_EDIT, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_IMG_OPACITY, WM_HSCROLL, OnUIChange)
@@ -176,11 +176,13 @@ private:
     void OnColourChangeRequest(UINT, int, CWindow);
     void OnUIChange(UINT, int, CWindow);
     void OnFillTypeChange(UINT, int, CWindow);
+    void OnImageTypeChange(UINT, int, CWindow);
     void OnSliderMoved(int, int, HWND);
     void OnCustomImageBrowse(UINT, int, CWindow);
     LRESULT ColourButtonPreDraw(UINT, WPARAM, LPARAM);
 
     void RepaintColours();
+    void SetImageFieldsEnabled();
 
     fb2k::CCoreDarkModeHooks m_dark;
 };
@@ -215,7 +217,13 @@ BOOL PreferencesDisplayBg::OnInitDialog(CWindow, LPARAM)
 {
     m_dark.AddDialogWithControls(m_hWnd);
 
+    HWND blur_edit = GetDlgItem(IDC_BACKGROUND_BLUR_EDIT);
+    SendDlgItemMessage(IDC_BACKGROUND_BLUR_SPINNER, UDM_SETBUDDY, (WPARAM)blur_edit, 0);
+    SendDlgItemMessage(IDC_BACKGROUND_BLUR_SPINNER, UDM_SETRANGE, 0, MAKELPARAM(1024, 0));
+
     init_auto_preferences();
+
+    SetImageFieldsEnabled();
     return FALSE;
 }
 
@@ -282,6 +290,12 @@ void PreferencesDisplayBg::OnUIChange(UINT, int, CWindow)
 void PreferencesDisplayBg::OnFillTypeChange(UINT, int, CWindow)
 {
     RepaintColours();
+    on_ui_interaction();
+}
+
+void PreferencesDisplayBg::OnImageTypeChange(UINT, int, CWindow)
+{
+    SetImageFieldsEnabled();
     on_ui_interaction();
 }
 
@@ -425,6 +439,25 @@ void PreferencesDisplayBg::RepaintColours()
             handle.RedrawWindow(nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_UPDATENOW);
         }
     }
+}
+
+void PreferencesDisplayBg::SetImageFieldsEnabled()
+{
+    // NOTE: the auto-combo config sets item-data to the integral representation of that option's enum value
+    const LRESULT ui_index = SendDlgItemMessage(IDC_BACKGROUND_IMAGE_TYPE, CB_GETCURSEL, 0, 0);
+    const LRESULT logical_value = SendDlgItemMessage(IDC_BACKGROUND_IMAGE_TYPE, CB_GETITEMDATA, ui_index, 0);
+    assert(logical_value != CB_ERR);
+    const BackgroundImageType img_type = static_cast<BackgroundImageType>(logical_value);
+
+    const bool has_img = (img_type != BackgroundImageType::None);
+    const bool is_img_custom = (img_type == BackgroundImageType::CustomImage);
+
+    GetDlgItem(IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO).EnableWindow(has_img);
+    GetDlgItem(IDC_BACKGROUND_BLUR_EDIT).EnableWindow(has_img);
+    GetDlgItem(IDC_BACKGROUND_BLUR_SPINNER).EnableWindow(has_img);
+    GetDlgItem(IDC_BACKGROUND_IMG_OPACITY).EnableWindow(has_img);
+    GetDlgItem(IDC_BACKGROUND_CUSTOM_IMG_PATH).EnableWindow(is_img_custom);
+    GetDlgItem(IDC_BACKGROUND_CUSTOM_IMG_BROWSE).EnableWindow(is_img_custom);
 }
 
 class PreferencesDisplayBgImpl : public preferences_page_impl<PreferencesDisplayBg>

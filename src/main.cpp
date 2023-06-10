@@ -28,6 +28,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Add support for album art or a custom image file as the panel background\n"
+    "- Add support for gradients to the background colour preferences\n"
     "- Add a source for metal-archives.com\n"
     "- Fix retrieval failing from some sources when no 'album' tag is present\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
