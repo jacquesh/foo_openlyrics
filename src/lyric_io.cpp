@@ -202,6 +202,11 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     {
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
+        if(source == nullptr)
+        {
+            LOG_WARN("Attempt to search unrecognised lyric source, ignoring...");
+            continue;
+        }
 
         std::string friendly_name = from_tstring(source->friendly_name());
         if(local_only && !source->is_local())
@@ -405,6 +410,11 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
     {
         LyricSourceBase* source = LyricSourceBase::get(source_id);
         assert(source != nullptr);
+        if(source == nullptr)
+        {
+            LOG_WARN("Attempt to search unrecognised lyric source, ignoring...");
+            continue;
+        }
 
         source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         LyricUpdateHandle& src_handle = source_handles.back();

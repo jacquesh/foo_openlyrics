@@ -524,6 +524,11 @@ void PreferencesRoot::SourceListResetFromSaved()
         GUID src_guid = cfg_search_active_sources[active_source_index];
         LyricSourceBase* src = LyricSourceBase::get(src_guid);
         assert(src != nullptr);
+        if(src == nullptr)
+        {
+            LOG_WARN("Search configuration contains an unrecognised active source, ignoring...");
+            continue;
+        }
 
         bool found = false;
         for(size_t i=0; i<total_source_count; i++)
@@ -549,6 +554,11 @@ void PreferencesRoot::SourceListResetFromSaved()
 
         LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
         assert(src != nullptr);
+        if(src == nullptr)
+        {
+            LOG_WARN("Search configuration contains an unrecognised inactive source, ignoring...");
+            continue;
+        }
 
         LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name().data());
         LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
@@ -570,6 +580,11 @@ void PreferencesRoot::SourceListResetToDefault()
     {
         LyricSourceBase* src = LyricSourceBase::get(src_guid);
         assert(src != nullptr);
+        if(src == nullptr)
+        {
+            LOG_WARN("Search configuration contains an unrecognised active source, ignoring...");
+            continue;
+        }
 
         bool found = false;
         for(size_t i=0; i<total_source_count; i++)
@@ -595,6 +610,11 @@ void PreferencesRoot::SourceListResetToDefault()
 
         LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
         assert(src != nullptr);
+        if(src == nullptr)
+        {
+            LOG_WARN("All-source list contains an unrecognised source, ignoring...");
+            continue;
+        }
 
         LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_ADDSTRING, 0, (LPARAM)src->friendly_name().data());
         LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
