@@ -122,6 +122,7 @@ set title "Sources enabled"
 set output 'out_sources.png'
 plot "export_sources.csv" using 0:2:($0+1):xtic(1) with boxes linecolor variable title columnhead, \
          '' using 0:2:(sprintf("%.2f%%", $2)) with labels offset 0,1 font ",10" title columnhead
+set xtics norotate autojustify
 
 
 #WITH accumlocal AS (

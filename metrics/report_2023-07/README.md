@@ -31,13 +31,13 @@ Not really. This is good for me, it means I can remove that feature (which has r
 
 The intended usage is that users select a save source (local files or metadata tags), always save lyrics retrieved from the internet, and then have that same source configured as the first search source (so that we'll always first check whatever they've saved locally before consulting the internet, thereby avoiding spamming lyric services with many unnecessary requests).
 
-![](out_localfirst.png)
+![](img/out_localfirst.png)
 
 Except that this is not the case for a surprisingly large number of users. I do not understand why. In the long term I plan to enforce this because in addition to reducing traffic on lyric sources, it also significantly reduces the search latency when a new track starts playing (it's obviously much faster to search the local disk than to search the internet...which is just somebody else's "local disk").
 
 While we're at it, which sources are people usually searching anyway?
 
-![](out_sources.png)
+![](img/out_sources.png)
 
 Unsurprisingly the sources that are enabled by default have way more users than those that are not. This is your regularly-scheduled reminder that defaults are important and powerful. To be completely honest, I don't know why we got so many "Unknown" entries in that list, it suggests that there is either a bug or that people have configuration that references a source that does not exist. That's very weird, I'll have to look into it.
 
@@ -45,13 +45,13 @@ Unsurprisingly the sources that are enabled by default have way more users than 
 
 Stats about versions in-use are always interesting, but in this case they're also useful:
 
-![](out_fb2kversions.png)
+![](img/out_fb2kversions.png)
 
 We currently list v1.5 as our minimum supported version, but very few users are actually using foobar2000 v1.5. That means we can bump the required version (and access new, more powerful functionality provided by fb2k in the process) without affecting many users. I was somewhat surprised by the number of users on v2.0 and I would actually expect that number to generally be increasing over time (v2.0 was released shortly after we began collecting metrics) and so it might even be reasonable to bump the required version to v2.0.
  
 The version stats for openlyrics are less useful (since the metrics collection is tied to a version number) but we have it anyway so:
 
-![](out_openlyricsver.png)
+![](img/out_openlyricsver.png)
 
 I think the interesting thing here is the split between x64 and x86 users, with x64 coming out just slightly ahead. Good to know.
 
@@ -59,12 +59,12 @@ I think the interesting thing here is the split between x64 and x86 users, with 
 ## Miscellaneous
 I won't provide any commentary but for completeness the remainder of the graphs I produced are below:
 
-![](out_autosave.png)
-![](out_savedir.png)
-![](out_savesrc.png)
-![](out_portable.png)
-![](out_darkmode.png)
-![](out_dpi.png)
-![](out_scrolltime.png)
-![](out_scrolltype.png)
-![](out_autoedits.png)
+![](img/out_autosave.png)
+![](img/out_savedir.png)
+![](img/out_savesrc.png)
+![](img/out_portable.png)
+![](img/out_darkmode.png)
+![](img/out_dpi.png)
+![](img/out_scrolltime.png)
+![](img/out_scrolltype.png)
+![](img/out_autoedits.png)
