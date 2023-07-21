@@ -13,6 +13,7 @@
 #include "lyric_io.h"
 #include "math_util.h"
 #include "metadb_index_search_avoidance.h"
+#include "metrics.h"
 #include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
@@ -1463,6 +1464,7 @@ namespace {
                 case ID_AUTO_MARK_INSTRUMENTAL:
                 {
                     if(m_now_playing == nullptr) break;
+                    metrics::log_used_mark_instrumental();
 
                     std::string msg = "This will delete the lyrics stored locally for the current track ";
                     std::string track_str = get_track_friendly_string(m_now_playing_info);
@@ -1494,37 +1496,44 @@ namespace {
 
                 case ID_AUTO_REMOVE_EXTRA_SPACES:
                 {
+                    metrics::log_used_auto_edit();
                     updated_lyrics = auto_edit::RemoveRepeatedSpaces(m_lyrics);
                 } break;
 
                 case ID_AUTO_REMOVE_EXTRA_BLANK_LINES:
                 {
+                    metrics::log_used_auto_edit();
                     updated_lyrics = auto_edit::RemoveRepeatedBlankLines(m_lyrics);
                 } break;
 
                 case ID_AUTO_REMOVE_ALL_BLANK_LINES:
                 {
+                    metrics::log_used_auto_edit();
                     updated_lyrics = auto_edit::RemoveAllBlankLines(m_lyrics);
                 } break;
 
                 case ID_AUTO_REPLACE_XML_CHARS:
                 {
+                    metrics::log_used_auto_edit();
                     updated_lyrics = auto_edit::ReplaceHtmlEscapedChars(m_lyrics);
                 } break;
 
                 case ID_AUTO_RESET_CAPITALISATION:
                 {
+                    metrics::log_used_auto_edit();
                     updated_lyrics = auto_edit::ResetCapitalisation(m_lyrics);
                 } break;
 
                 case ID_AUTO_FIX_MALFORMED_TIMESTAMPS:
                 {
+                    metrics::log_used_auto_edit();
                     updated_lyrics = auto_edit::FixMalformedTimestamps(m_lyrics);
                 } break;
 
                 case ID_AUTO_REMOVE_TIMESTAMPS:
                 {
                     if(m_now_playing == nullptr) break;
+                    metrics::log_used_auto_edit();
 
                     LOG_INFO("Removing persisted lyrics and re-saving them without timestamps");
                     io::delete_saved_lyrics(m_now_playing, m_lyrics);
@@ -1534,6 +1543,7 @@ namespace {
                 case ID_DELETE_CURRENT_LYRICS:
                 {
                     if(m_now_playing == nullptr) break;
+                    metrics::log_used_auto_edit();
 
                     std::string msg = "This will delete the lyrics stored locally for the current track";
                     std::string track_str = get_track_friendly_string(m_now_playing_info);

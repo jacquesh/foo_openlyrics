@@ -7,6 +7,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "metrics.h"
 #include "parsers.h"
 #include "lyric_io.h"
 #include "ui_hooks.h"
@@ -125,6 +126,7 @@ static void add_tooltip(HWND control, HWND tooltip, TCHAR* text)
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
+    metrics::log_used_lyric_editor();
     m_dark.AddDialogWithControls(m_hWnd);
 
     service_ptr_t<playback_control> playback = playback_control::get();

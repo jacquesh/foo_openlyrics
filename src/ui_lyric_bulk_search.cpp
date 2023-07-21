@@ -7,6 +7,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "metrics.h"
 #include "parsers.h"
 #include "lyric_io.h"
 #include "sources/lyric_source.h"
@@ -74,6 +75,8 @@ BulkLyricSearch::~BulkLyricSearch()
 BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing bulk search window...");
+    metrics::log_used_bulk_search();
+
     // TODO: We can't enable dark mode for this dialog because it adds items to a list
     //       after initialisation and that causes failures in the darkmode code, which doesn't
     //       fully support list UIs.

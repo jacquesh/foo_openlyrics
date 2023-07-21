@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "lyric_io.h"
 #include "metadb_index_search_avoidance.h"
+#include "metrics.h"
 #include "parsers.h"
 #include "ui_hooks.h"
 #include "ui_util.h"
@@ -67,6 +68,8 @@ public:
             case cmd_show_lyrics:
             {
                 if(data.get_count() == 0) break;
+                metrics::log_used_show_lyrics();
+
                 metadb_handle_ptr track = data.get_item(0);
 
                 const auto async_search = [track](threaded_process_status& /*status*/, abort_callback& abort)
@@ -177,6 +180,8 @@ public:
 
             case cmd_mark_instrumental:
             {
+                metrics::log_used_mark_instrumental();
+
                 size_t track_count = data.get_count();
                 std::string msg;
                 if(track_count == 1)

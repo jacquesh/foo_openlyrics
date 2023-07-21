@@ -10,6 +10,7 @@
 #include "cJSON.h"
 
 #include "logging.h"
+#include "metrics.h"
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 
@@ -23,6 +24,73 @@ static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 // Manually bump this when a new round of metrics collection is desired.
 constexpr uint64_t current_metrics_generation = 2;
 
+struct FeatureTracker
+{
+    cfg_int_t<uint64_t> m_last_used; // Days since the unix epoch
+
+    FeatureTracker(GUID last_used_guid)
+        : m_last_used(last_used_guid, 0)
+    {}
+
+    void log_usage()
+    {
+        const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
+        const uint64_t days_since_unix_epoch  = std::chrono::floor<std::chrono::days>(since_unix_epoch).count();
+
+        if(m_last_used < days_since_unix_epoch)
+        {
+            m_last_used = days_since_unix_epoch;
+        }
+    }
+
+    uint64_t last_used()
+    {
+        return m_last_used;
+    }
+};
+
+static const GUID ft_bulksearch = { 0x10f5f5c1, 0x472d, 0x4bc6, { 0xa4, 0xb4, 0x70, 0x54, 0x85, 0x0f, 0xc5, 0xe2 } };
+static const GUID ft_manualsearch = { 0x452cd5bf, 0x4c0c, 0x4814, { 0x8f, 0x4e, 0x1b, 0xda, 0x2f, 0x53, 0x4c, 0x6a } };
+static const GUID ft_editor = { 0x3304c89e, 0xec50, 0x4af1, { 0xa1, 0xa0, 0x21, 0xe3, 0xfd, 0xea, 0x12, 0x32 } };
+static const GUID ft_autoedit = { 0xb1df2480, 0xde3a, 0x49ec, { 0xbf, 0xd, 0x7d, 0x39, 0x31, 0xc8, 0x41, 0x24 } };
+static const GUID ft_instrumental = { 0x12253c20, 0x9324, 0x4095, { 0x89, 0xb8, 0x3e, 0xc8, 0x3f, 0x13, 0xf8, 0x23 } };
+static const GUID ft_showlyrics = { 0xa6665198, 0xd2d1, 0x44ac, { 0xa8, 0xde, 0x1c, 0x6c, 0xb5, 0xbe, 0x0d, 0x81 } };
+static FeatureTracker featuretrack_bulksearch(ft_bulksearch);
+static FeatureTracker featuretrack_manualsearch(ft_manualsearch);
+static FeatureTracker featuretrack_lyriceditor(ft_editor);
+static FeatureTracker featuretrack_autoedit(ft_autoedit);
+static FeatureTracker featuretrack_instrumental(ft_instrumental);
+static FeatureTracker featuretrack_showlyrics(ft_showlyrics);
+
+void metrics::log_used_bulk_search()
+{
+    featuretrack_bulksearch.log_usage();
+}
+
+void metrics::log_used_manual_search()
+{
+    featuretrack_manualsearch.log_usage();
+}
+
+void metrics::log_used_lyric_editor()
+{
+    featuretrack_lyriceditor.log_usage();
+}
+
+void metrics::log_used_auto_edit()
+{
+    featuretrack_autoedit.log_usage();
+}
+
+void metrics::log_used_mark_instrumental()
+{
+    featuretrack_instrumental.log_usage();
+}
+
+void metrics::log_used_show_lyrics()
+{
+    featuretrack_showlyrics.log_usage();
+}
 
 static const char* get_windows_version_string()
 {
@@ -150,12 +218,19 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
 
     const std::string hash_str = get_openlyrics_dll_hash(abort);
     cJSON_AddStringToObject(json, "ol.version", hash_str.c_str());
-    cJSON_AddNumberToObject(json, "ol.num_panels", double(num_lyric_panels()));
 
     const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_install_date_days_since_unix_epoch.get_value())}};
     char install_ymd_str[64] = {};
     snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
     cJSON_AddStringToObject(json, "ol.installed_since",install_ymd_str);
+
+    cJSON_AddNumberToObject(json, "ol.usage.num_panels", double(num_lyric_panels()));
+    cJSON_AddNumberToObject(json, "ol.usage.bulksearch", double(featuretrack_bulksearch.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.manualsearch", double(featuretrack_manualsearch.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.lyriceditor", double(featuretrack_lyriceditor.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.autoedit", double(featuretrack_autoedit.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.markinstrumental", double(featuretrack_instrumental.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.showlyrics", double(featuretrack_showlyrics.last_used()));
 
     const auto get_source_name = [](GUID guid) -> std::string
     {

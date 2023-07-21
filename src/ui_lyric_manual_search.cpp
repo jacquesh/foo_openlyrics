@@ -7,6 +7,7 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "metrics.h"
 #include "parsers.h"
 #include "lyric_io.h"
 #include "sources/lyric_source.h"
@@ -299,6 +300,8 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
 
 void ManualLyricSearch::start_search()
 {
+    metrics::log_used_manual_search();
+
     SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, _T(""));
     SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_DELETEALLITEMS, 0, 0);
     m_all_lyrics.clear();
