@@ -23,6 +23,7 @@ static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 // The metrics "generation", which tells us whether or not we need to send a new batch of metrics.
 // Manually bump this when a new round of metrics collection is desired.
 constexpr uint64_t current_metrics_generation = 2;
+constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2023), std::chrono::month(07), std::chrono::day(10)};
 
 struct FeatureTracker
 {
@@ -416,6 +417,15 @@ void foo_send_metrics_on_init::on_init()
     // will not have had the opportunity to change any configuration yet.
     const int min_days_of_delay_after_install = 7;
     if(days_since_unix_epoch < min_days_of_delay_after_install + cfg_metrics_install_date_days_since_unix_epoch.get_value())
+    {
+        return;
+    }
+
+    // Set an end-date after which we don't prompt for metrics anymore (at least not for this generation).
+    // This prevents us from prompting new users for metrics collection forever, long
+    // after we've turned off the collection server.
+    const std::chrono::year_month_day current_day = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
+    if(current_day > last_metrics_collection_day)
     {
         return;
     }
