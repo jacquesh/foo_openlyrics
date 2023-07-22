@@ -958,6 +958,7 @@ namespace {
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
         int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
 
+        t_ui_color past_text_colour = preferences::display::past_text_colour();
         t_ui_color main_text_colour = preferences::display::main_text_colour();
         t_ui_color hl_colour = preferences::display::highlight_colour();
 
@@ -989,13 +990,17 @@ namespace {
             const LyricDataLine& line = m_lyrics.lines[line_index];
             if(line_index == scroll.active_line_index)
             {
-                t_ui_color colour = lerp(hl_colour, main_text_colour, fade.next_line_scroll_factor);
+                t_ui_color colour = lerp(hl_colour, past_text_colour, fade.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else if(line_index == scroll.active_line_index+1)
             {
                 t_ui_color colour = lerp(main_text_colour, hl_colour, fade.next_line_scroll_factor);
                 SetTextColor(dc, colour);
+            }
+            else if(line_index < scroll.active_line_index)
+            {
+                SetTextColor(dc, past_text_colour);
             }
             else
             {

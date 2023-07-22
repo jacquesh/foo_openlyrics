@@ -8,6 +8,7 @@
 
 #include "config/config_auto.h"
 #include "config/config_font.h"
+#include "img_processing.h"
 #include "logging.h"
 #include "preferences.h"
 #include "ui_hooks.h"
@@ -27,8 +28,11 @@ static const GUID GUID_CFG_DISPLAY_SCROLL_DIRECTION = { 0x6b1f47ae, 0xa383, 0x43
 static const GUID GUID_CFG_DISPLAY_SCROLL_TYPE = { 0x3f2f17d8, 0x9309, 0x4721, { 0x9f, 0xa7, 0x79, 0x6d, 0x17, 0x84, 0x2a, 0x5d } };
 static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME = { 0x63c31bb9, 0x2a83, 0x4685, { 0xb4, 0x15, 0x64, 0xd6, 0x5, 0x85, 0xbd, 0xa8 } };
 static const GUID GUID_CFG_DEBUG_LOGS_ENABLED = { 0x57920cbe, 0xa27, 0x4fad, { 0x92, 0xc, 0x2b, 0x61, 0x3b, 0xf9, 0xd6, 0x13 } };
+static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOUR = { 0x8189faa4, 0x40f2, 0x464b, { 0x9e, 0xb, 0x53, 0xd2, 0x6, 0x9c, 0x74, 0xc9 } };
+static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOURTYPE = { 0xc7b2908, 0x2ce2, 0x46e8, { 0xa1, 0x46, 0x51, 0xe2, 0x60, 0x0, 0xde, 0xdc } };
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35,85,125);
+static const COLORREF cfg_display_pasttext_colour_default = RGB(190, 190, 190);
 static const COLORREF cfg_display_hl_colour_default = RGB(225,65,60);
 
 static const cfg_auto_combo_option<LineScrollDirection> g_scroll_direction_options[] =
@@ -43,12 +47,22 @@ static const cfg_auto_combo_option<LineScrollType> g_scroll_type_options[] =
     {_T("Manual"), LineScrollType::Manual},
 };
 
+static const cfg_auto_combo_option<PastTextColourType> g_pasttext_colour_type_options[] =
+{
+    {_T("Blend with background"), PastTextColourType::BlendBackground},
+    {_T("Main text colour"), PastTextColourType::SameAsMainText},
+    {_T("Highlight colour"), PastTextColourType::SameAsHighlight},
+    {_T("Custom"), PastTextColourType::Custom},
+};
+
 static cfg_auto_bool                          cfg_display_custom_font(GUID_CFG_DISPLAY_CUSTOM_FONT, IDC_FONT_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_fg_colour(GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_hl_colour(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR_CUSTOM, false);
 static cfg_font_t                             cfg_display_font(GUID_CFG_DISPLAY_FONT);
 static cfg_auto_colour                        cfg_display_fg_colour(GUID_CFG_DISPLAY_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR, cfg_display_fg_colour_default);
 static cfg_auto_colour                        cfg_display_hl_colour(GUID_CFG_DISPLAY_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR, cfg_display_hl_colour_default);
+static cfg_auto_colour                        cfg_display_pasttext_colour(GUID_CFG_DISPLAY_PASTTEXT_COLOUR, IDC_PAST_FOREGROUND_COLOUR, cfg_display_pasttext_colour_default);
+static cfg_auto_combo<PastTextColourType,4>   cfg_display_pasttext_colour_type(GUID_CFG_DISPLAY_PASTTEXT_COLOURTYPE, IDC_PAST_FOREGROUND_COLOUR_TYPE, PastTextColourType::BlendBackground, g_pasttext_colour_type_options);
 static cfg_auto_int                           cfg_display_linegap(GUID_CFG_DISPLAY_LINEGAP, IDC_RENDER_LINEGAP_EDIT, 4);
 static cfg_auto_bool                          cfg_display_scroll_continuous(GUID_CFG_DISPLAY_SCROLL_CONTINUOUS, IDC_DISPLAY_SCROLL_CONTINUOUS, false);
 static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 0, 2000, 20, 500);
@@ -62,9 +76,11 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_custom_font,
     &cfg_display_custom_fg_colour,
     &cfg_display_custom_hl_colour,
-
+    &cfg_display_pasttext_colour_type,
     &cfg_display_fg_colour,
     &cfg_display_hl_colour,
+    &cfg_display_pasttext_colour,
+
     &cfg_display_linegap,
     &cfg_display_scroll_continuous,
     &cfg_display_scroll_time,
@@ -114,6 +130,47 @@ t_ui_color preferences::display::highlight_colour()
         return cfg_display_hl_colour.get_value();
     }
     return defaultui::highlight_colour();
+}
+
+t_ui_color preferences::display::past_text_colour()
+{
+    switch(cfg_display_pasttext_colour_type.get_value())
+    {
+        case PastTextColourType::BlendBackground:
+        {
+            RGBAColour bg_colour = {};
+
+            const BackgroundFillType bg_fill = preferences::background::fill_type();
+            switch(bg_fill)
+            {
+                case BackgroundFillType::Default:
+                {
+                    bg_colour = from_colorref(defaultui::background_colour());
+                } break;
+
+                case BackgroundFillType::SolidColour:
+                {
+                    bg_colour = from_colorref(preferences::background::colour());
+                } break;
+
+                case BackgroundFillType::Gradient:
+                {
+                    const RGBAColour topleft = from_colorref(preferences::background::gradient_tl());
+                    const RGBAColour topright = from_colorref(preferences::background::gradient_tr());
+                    bg_colour = lerp_colour(topleft, topright, 127);
+                } break;
+            }
+
+            const RGBAColour fg_colour = from_colorref(main_text_colour());
+            RGBAColour blended = lerp_colour(fg_colour, bg_colour, 190);
+            return RGB(blended.r, blended.g, blended.b);
+        }
+
+        case PastTextColourType::SameAsMainText: return main_text_colour();
+        case PastTextColourType::SameAsHighlight: return highlight_colour();
+        case PastTextColourType::Custom: return cfg_display_pasttext_colour.get_value();
+        default: return defaultui::text_colour();
+    }
 }
 
 double preferences::display::highlight_fade_seconds()
@@ -185,10 +242,11 @@ public:
         COMMAND_HANDLER_EX(IDC_FONT, BN_CLICKED, OnFontChange)
         COMMAND_HANDLER_EX(IDC_FOREGROUND_COLOUR, BN_CLICKED, OnFgColourChange)
         COMMAND_HANDLER_EX(IDC_HIGHLIGHT_COLOUR, BN_CLICKED, OnHlColourChange)
+        COMMAND_HANDLER_EX(IDC_PAST_FOREGROUND_COLOUR, BN_CLICKED, OnPastTextColourChange)
         COMMAND_HANDLER_EX(IDC_RENDER_LINEGAP_EDIT, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_CONTINUOUS, BN_CLICKED, OnScrollContinuousChange)
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_DIRECTION, CBN_SELCHANGE, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_PAST_FOREGROUND_COLOUR_TYPE, CBN_SELCHANGE, OnCustomToggle)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
         COMMAND_HANDLER_EX(IDC_DEBUG_LOGS_ENABLED, BN_CLICKED, OnUIChange)
     END_MSG_MAP()
@@ -198,6 +256,7 @@ private:
     void OnFontChange(UINT, int, CWindow);
     void OnFgColourChange(UINT, int, CWindow);
     void OnHlColourChange(UINT, int, CWindow);
+    void OnPastTextColourChange(UINT, int, CWindow);
     void OnCustomToggle(UINT, int, CWindow);
     void OnScrollContinuousChange(UINT, int, CWindow);
     void OnUIChange(UINT, int, CWindow);
@@ -315,6 +374,24 @@ void PreferencesDisplay::OnHlColourChange(UINT, int, CWindow)
     }
 }
 
+void PreferencesDisplay::OnPastTextColourChange(UINT, int, CWindow)
+{
+    // NOTE: the auto-combo config sets item-data to the integral representation of that option's enum value
+    LRESULT ui_index = SendDlgItemMessage(IDC_PAST_FOREGROUND_COLOUR_TYPE, CB_GETCURSEL, 0, 0);
+    LRESULT logical_value = SendDlgItemMessage(IDC_PAST_FOREGROUND_COLOUR_TYPE, CB_GETITEMDATA, ui_index, 0);
+    assert(logical_value != CB_ERR);
+    const PastTextColourType colour_type = static_cast<PastTextColourType>(logical_value);
+
+    if(colour_type == PastTextColourType::Custom)
+    {
+        const bool changed = cfg_display_pasttext_colour.SelectNewColour();
+        if(changed)
+        {
+            on_ui_interaction();
+        }
+    }
+}
+
 void PreferencesDisplay::OnCustomToggle(UINT, int, CWindow)
 {
     UpdateFontButtonText();
@@ -386,6 +463,18 @@ LRESULT PreferencesDisplay::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
             return (LRESULT)cfg_display_hl_colour.get_brush_handle();
         }
     }
+    else if(btn_id == IDC_PAST_FOREGROUND_COLOUR)
+    {
+        // NOTE: the auto-combo config sets item-data to the integral representation of that option's enum value
+        LRESULT ui_index = SendDlgItemMessage(IDC_PAST_FOREGROUND_COLOUR_TYPE, CB_GETCURSEL, 0, 0);
+        LRESULT logical_value = SendDlgItemMessage(IDC_PAST_FOREGROUND_COLOUR_TYPE, CB_GETITEMDATA, ui_index, 0);
+        assert(logical_value != CB_ERR);
+        const PastTextColourType colour_type = static_cast<PastTextColourType>(logical_value);
+        if(colour_type == PastTextColourType::Custom)
+        {
+            return (LRESULT)cfg_display_pasttext_colour.get_brush_handle();
+        }
+    }
 
     return FALSE;
 }
@@ -425,6 +514,7 @@ void PreferencesDisplay::RepaintColours()
 {
     int ids_to_repaint[] = {
         IDC_FOREGROUND_COLOUR,
+        IDC_PAST_FOREGROUND_COLOUR,
         IDC_HIGHLIGHT_COLOUR
     };
     for(int id : ids_to_repaint)

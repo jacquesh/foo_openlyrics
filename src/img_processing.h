@@ -27,6 +27,7 @@ struct Image
 };
 
 RGBAColour from_colorref(COLORREF colour);
+RGBAColour lerp_colour(RGBAColour lhs, RGBAColour rhs, uint8_t factor);
 
 std::optional<Image> load_image(const char* file_path);
 std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_length);

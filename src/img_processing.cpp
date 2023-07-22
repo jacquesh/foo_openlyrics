@@ -31,7 +31,7 @@ static uint8_t nmul(uint8_t a, uint8_t b)
 // Linear interpolation between `lhs` and `rhs` by `factor.
 // lerp_colour(lhs, rhs, 0) = lhs
 // lerp_colour(lhs, rhs, 255) = rhs
-static RGBAColour lerp_colour(RGBAColour lhs, RGBAColour rhs, uint8_t factor)
+RGBAColour lerp_colour(RGBAColour lhs, RGBAColour rhs, uint8_t factor)
 {
     uint8_t r = nmul(lhs.r, 255 - factor) + nmul(rhs.r, factor);
     uint8_t g = nmul(lhs.g, 255 - factor) + nmul(rhs.g, factor);

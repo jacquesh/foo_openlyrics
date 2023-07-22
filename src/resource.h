@@ -90,6 +90,8 @@
 #define IDC_BACKGROUND_BLUR_SPINNER     1113
 #define IDC_BACKGROUND_BLUR_EDIT        1114
 #define IDC_BACKGROUND_FILL_TYPE        1115
+#define IDC_PAST_FOREGROUND_COLOUR      1116
+#define IDC_PAST_FOREGROUND_COLOUR_TYPE 1117
 
 // Next default values for new objects
 // 
@@ -97,7 +99,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1116
+#define _APS_NEXT_CONTROL_VALUE         1118
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

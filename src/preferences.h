@@ -70,6 +70,14 @@ enum class BackgroundImageType : int
     CustomImage = 2,
 };
 
+enum class PastTextColourType : int
+{
+    BlendBackground = 0,
+    SameAsMainText  = 1,
+    Custom          = 2,
+    SameAsHighlight = 3,
+};
+
 namespace preferences
 {
     namespace searching
@@ -115,6 +123,7 @@ namespace preferences
         t_ui_font font();
         t_ui_color main_text_colour();
         t_ui_color highlight_colour();
+        t_ui_color past_text_colour();
 
         LineScrollDirection scroll_direction();
         LineScrollType scroll_type();
