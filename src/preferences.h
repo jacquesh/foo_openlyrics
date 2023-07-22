@@ -31,12 +31,6 @@ enum class AutoSaveStrategy : int
     OnlyUnsynced = 3,
 };
 
-enum class LineScrollDirection : int
-{
-    Vertical   = 0,
-    Horizontal = 1
-};
-
 enum class LineScrollType : int
 {
     Automatic = 0,
@@ -125,7 +119,6 @@ namespace preferences
         t_ui_color highlight_colour();
         t_ui_color past_text_colour();
 
-        LineScrollDirection scroll_direction();
         LineScrollType scroll_type();
         double scroll_time_seconds();
 

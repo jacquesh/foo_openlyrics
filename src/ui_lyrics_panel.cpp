@@ -112,10 +112,8 @@ namespace {
         void StopTimer();
 
         void DrawNoLyrics(HDC dc, CRect client_area);
-        void DrawUntimedLyricsVertical(HDC dc, CRect client_area);
-        void DrawUntimedLyricsHorizontal(HDC dc, CRect client_area);
-        void DrawTimestampedLyricsVertical(HDC dc, CRect client_area);
-        void DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area);
+        void DrawUntimedLyrics(HDC dc, CRect client_area);
+        void DrawTimestampedLyrics(HDC dc, CRect client_area);
 
         void InitiateLyricSearch();
 
@@ -774,7 +772,7 @@ namespace {
         }
     }
 
-    void LyricPanel::DrawUntimedLyricsVertical(HDC dc, CRect client_area)
+    void LyricPanel::DrawUntimedLyrics(HDC dc, CRect client_area)
     {
         const PlaybackTimeInfo playback_time = get_playback_time();
         const double track_fraction = playback_time.current_time / playback_time.track_length;
@@ -850,80 +848,6 @@ namespace {
         }
     }
 
-    void LyricPanel::DrawUntimedLyricsHorizontal(HDC dc, CRect client_area)
-    {
-        if(m_lyrics.lines.empty()) return;
-        assert(m_lyrics.lines.size() > 0);
-
-        size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
-        std::tstring glue(linegap, _T(' '));
-
-        assert(preferences::display::scroll_direction() == LineScrollDirection::Horizontal);
-        const PlaybackTimeInfo playback_time = get_playback_time();
-        const double track_fraction = playback_time.current_time / playback_time.track_length;
-
-        std::tstring joined = m_lyrics.lines[0].text;
-        joined = std::accumulate(++m_lyrics.lines.begin(), m_lyrics.lines.end(), joined,
-                                 [&glue](const std::tstring& accum, const LyricDataLine& line)
-                                 {
-                                    return accum + glue + line.text;
-                                 });
-
-        assert(joined.length() <= INT_MAX);
-        SIZE line_size;
-        BOOL extent_success = GetTextExtentPoint32(dc,
-                                                   joined.c_str(),
-                                                   int(joined.length()),
-                                                   &line_size);
-        if(!extent_success)
-        {
-            LOG_ERROR("Failed to compute unsynced text width");
-            StopTimer();
-            return;
-        }
-
-        // NOTE: The drawing call uses the glyph baseline as the origin.
-        //       We want our text to be perfectly vertically centered, so we need to offset it
-        //       but the difference between the baseline and the vertical centre of the font.
-        TEXTMETRIC font_metrics = {};
-        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
-        int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
-
-        CPoint centre = client_area.CenterPoint();
-        CPoint origin = centre;
-        if(preferences::display::scroll_type() == LineScrollType::Manual)
-        {
-            const int half_width = client_area.Width()/2;
-            const int min_scroll = -line_size.cx + half_width;
-            const int max_scroll = half_width;
-            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
-            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
-
-            origin.x += (line_size.cx - client_area.Width())/2 + m_manual_scroll_distance;
-        }
-        else
-        {
-            origin.x += (int)((0.5 - track_fraction) * (double)line_size.cx);
-
-            // NOTE: We support the manual scroll distance here so that people can offset
-            //       the default automated scrolling (which is often significantly wrong)
-            const int epsilon = 16;
-            const int min_scroll = - origin.x - line_size.cx/2 + epsilon; // origin.x + line_size.cx/2 + m_manual_scroll_distance > 0
-            const int max_scroll = client_area.Width() - origin.x + line_size.cx/2 - epsilon; // origin.x - line_size.cx/2 + m_manual_scroll_distance < client_area.Width()
-            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
-            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
-            origin.x += m_manual_scroll_distance;
-        }
-        origin.y += baseline_centre_correction;
-
-        BOOL draw_success = DrawTextOut(dc, origin.x, origin.y, joined);
-        if(!draw_success)
-        {
-            LOG_ERROR("Failed to draw unsynced text");
-            StopTimer();
-        }
-    }
-
     struct LyricScrollPosition
     {
         int active_line_index;
@@ -949,7 +873,7 @@ namespace {
         return {active_line_index, next_line_scroll_factor};
     }
 
-    void LyricPanel::DrawTimestampedLyricsVertical(HDC dc, CRect client_area)
+    void LyricPanel::DrawTimestampedLyrics(HDC dc, CRect client_area)
     {
         // NOTE: The drawing call uses the glyph baseline as the origin.
         //       We want our text to be perfectly vertically centered, so we need to offset it
@@ -1016,133 +940,6 @@ namespace {
             }
 
             origin.y += wrapped_line_height;
-        }
-    }
-
-    void LyricPanel::DrawTimestampedLyricsHorizontal(HDC dc, CRect client_area)
-    {
-        // NOTE: The drawing call uses the glyph baseline as the origin.
-        //       We want our text to be perfectly vertically centered, so we need to offset it
-        //       but the difference between the baseline and the vertical centre of the font.
-        TEXTMETRIC font_metrics = {};
-        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
-        int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
-
-        const PlaybackTimeInfo playback_time = get_playback_time();
-
-        size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
-        std::tstring glue(linegap, _T(' '));
-        t_ui_color fg_colour = preferences::display::main_text_colour();
-        t_ui_color hl_colour = preferences::display::highlight_colour();
-
-        const double scroll_time = preferences::display::scroll_time_seconds();
-        const LyricScrollPosition scroll = get_scroll_position(m_lyrics, playback_time.current_time, scroll_time);
-
-        bool has_active_text = (scroll.active_line_index >= 0);
-        bool has_preactive_text = (scroll.active_line_index > 0);
-        bool has_postactive_text = (scroll.active_line_index < static_cast<int>(m_lyrics.lines.size() - 1));
-        std::tstring active_line_text;
-        std::tstring next_line_text;
-        std::tstring pre_active_line_text;
-        std::tstring post_active_line_text;
-        if(has_active_text)
-        {
-            active_line_text = m_lyrics.lines[scroll.active_line_index].text;
-        }
-        if(has_preactive_text)
-        {
-            auto start = m_lyrics.lines.begin();
-            auto end = m_lyrics.lines.begin();
-            std::advance(end, scroll.active_line_index);
-
-            pre_active_line_text = std::accumulate(++start, end, m_lyrics.lines[0].text,
-                                                   [&glue](const std::tstring& accum, const LyricDataLine& line)
-                                                   {
-                                                      return accum + glue + line.text;
-                                                   });
-
-            if(has_active_text)
-            {
-                pre_active_line_text += glue;
-            }
-        }
-
-        if(has_postactive_text)
-        {
-            const int next_line_index = scroll.active_line_index + 1;
-            next_line_text = glue + m_lyrics.lines[next_line_index].text;
-
-            auto end = m_lyrics.lines.end();
-            auto start = m_lyrics.lines.begin();
-            std::advance(start, next_line_index + 1);
-
-            if(start != end)
-            {
-                std::tstring initial_value = glue + start->text;
-                post_active_line_text = std::accumulate(++start, end, initial_value,
-                                                        [&glue](const std::tstring& accum, const LyricDataLine& line)
-                                                        {
-                                                           return accum + glue + line.text;
-                                                        });
-            }
-        }
-
-        std::optional<SIZE> active_line_extents = GetTextExtents(dc, active_line_text);
-        std::optional<SIZE> next_line_extents = GetTextExtents(dc, next_line_text);
-        std::optional<SIZE> pre_active_extents = GetTextExtents(dc, pre_active_line_text);
-        std::optional<SIZE> post_active_extents = GetTextExtents(dc, post_active_line_text);
-        std::optional<SIZE> glue_extents = GetTextExtents(dc, glue);
-        if(!active_line_extents.has_value() ||
-                !next_line_extents.has_value() ||
-                !pre_active_extents.has_value() ||
-                !post_active_extents.has_value() ||
-                !glue_extents.has_value())
-        {
-            LOG_ERROR("Failed to compute synced text width");
-            StopTimer();
-            return;
-        }
-        int active_line_width = active_line_extents.value().cx;
-        int next_line_width = next_line_extents.value().cx;
-        int pre_active_width = pre_active_extents.value().cx;
-        int post_active_width = post_active_extents.value().cx;
-        int glue_width = glue_extents.value().cx;
-
-        // NOTE: We want to scroll by half of the active line and half of the next line because
-        //       the rendering origin is at the centre of the text. However the "next line"
-        //       already contains the glue string for rendering, so when we half that, we need
-        //       to add in an extra half of the glue string width.
-        int total_scroll_to_next_line = active_line_width + glue_width;
-        int next_line_scroll = (int)((double)total_scroll_to_next_line * scroll.next_line_scroll_factor);
-
-        CPoint centre = client_area.CenterPoint();
-        int centre_y = centre.y + baseline_centre_correction;
-        double active_x_alignment_factor = 0.15;
-        int active_left_x = client_area.left + (int)((double)client_area.Width() * active_x_alignment_factor);
-        int left_x = active_left_x - pre_active_width - next_line_scroll;
-        BOOL draw_success = TRUE;
-
-        SetTextColor(dc, fg_colour);
-        draw_success &= DrawTextOut(dc, left_x + pre_active_width/2, centre_y, pre_active_line_text);
-        left_x += pre_active_width;
-
-        COLORREF active_line_colour = lerp(hl_colour, fg_colour, scroll.next_line_scroll_factor);
-        SetTextColor(dc, active_line_colour);
-        draw_success &= DrawTextOut(dc, left_x + active_line_width/2, centre_y, active_line_text);
-        left_x += active_line_width;
-
-        COLORREF next_line_colour = lerp(fg_colour, hl_colour, scroll.next_line_scroll_factor);
-        SetTextColor(dc, next_line_colour);
-        draw_success &= DrawTextOut(dc, left_x + next_line_width/2, centre_y, next_line_text);
-        left_x += next_line_width;
-
-        SetTextColor(dc, fg_colour);
-        draw_success &= DrawTextOut(dc, left_x + post_active_width/2, centre_y, post_active_line_text);
-
-        if(!draw_success)
-        {
-            LOG_ERROR("Failed to draw horizontally-scrolling synced text");
-            StopTimer();
         }
     }
 
@@ -1253,27 +1050,11 @@ namespace {
         else if(m_lyrics.IsTimestamped() &&
                 (preferences::display::scroll_type() == LineScrollType::Automatic))
         {
-            LineScrollDirection dir = preferences::display::scroll_direction();
-            switch(dir)
-            {
-                case LineScrollDirection::Vertical: DrawTimestampedLyricsVertical(m_back_buffer, client_rect); break;
-                case LineScrollDirection::Horizontal: DrawTimestampedLyricsHorizontal(m_back_buffer, client_rect); break;
-                default:
-                    LOG_ERROR("Unsupported scroll direction: %d", (int)dir);
-                    uBugCheck();
-            }
+            DrawTimestampedLyrics(m_back_buffer, client_rect);
         }
         else // We have lyrics, but no timestamps
         {
-            LineScrollDirection dir = preferences::display::scroll_direction();
-            switch(dir)
-            {
-                case LineScrollDirection::Vertical: DrawUntimedLyricsVertical(m_back_buffer, client_rect); break;
-                case LineScrollDirection::Horizontal: DrawUntimedLyricsHorizontal(m_back_buffer, client_rect); break;
-                default:
-                    LOG_ERROR("Unsupported scroll direction: %d", (int)dir);
-                    uBugCheck();
-            }
+            DrawUntimedLyrics(m_back_buffer, client_rect);
         }
 
         BitBlt(front_buffer, client_rect.left, client_rect.top,
@@ -1630,29 +1411,9 @@ namespace {
         // rotation < 0 (usually -120) means we scrolled down
         double scroll_ticks = double(rotation)/double(WHEEL_DELTA);
 
-        switch(preferences::display::scroll_direction())
-        {
-            case LineScrollDirection::Horizontal:
-            {
-                // NOTE: It's not clear how far we should scroll here so we just use the height
-                //       of an empty line as a reasonable first approximation.
-                RECT fake_client_area = {};
-                int one_line_height = ComputeWrappedLyricLineHeight(m_back_buffer, fake_client_area, _T(""));
-                m_manual_scroll_distance += int(scroll_ticks * one_line_height);
-            } break;
-
-            case LineScrollDirection::Vertical:
-            {
-                RECT fake_client_area = {};
-                int one_line_height = ComputeWrappedLyricLineHeight(m_back_buffer, fake_client_area, _T(""));
-                m_manual_scroll_distance += int(scroll_ticks * one_line_height);
-            } break;
-
-            default:
-                LOG_ERROR("Unexpected scroll direction setting: %d", int(preferences::display::scroll_direction()));
-                assert(false);
-                break;
-        }
+        RECT fake_client_area = {};
+        int one_line_height = ComputeWrappedLyricLineHeight(m_back_buffer, fake_client_area, _T(""));
+        m_manual_scroll_distance += int(scroll_ticks * one_line_height);
 
         Invalidate();
         return 0;
@@ -1662,23 +1423,7 @@ namespace {
     {
         if(m_manual_scroll_start.has_value())
         {
-            int scroll_delta = 0;
-            switch(preferences::display::scroll_direction())
-            {
-                case LineScrollDirection::Horizontal:
-                    scroll_delta = point.x - m_manual_scroll_start.value().x;
-                    break;
-
-                case LineScrollDirection::Vertical:
-                    scroll_delta = point.y - m_manual_scroll_start.value().y;
-                    break;
-
-                default:
-                    LOG_ERROR("Unexpected scroll direction setting: %d", int(preferences::display::scroll_direction()));
-                    assert(false);
-                    break;
-            }
-
+            const int scroll_delta = point.y - m_manual_scroll_start.value().y;
             m_manual_scroll_distance += scroll_delta;
             m_manual_scroll_start = point;
             Invalidate();
