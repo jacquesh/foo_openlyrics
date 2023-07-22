@@ -95,25 +95,25 @@ t_ui_font preferences::display::font()
         }
         return g_display_font;
     }
-    return nullptr;
+    return defaultui::console_font();
 }
 
-std::optional<t_ui_color> preferences::display::foreground_colour()
+t_ui_color preferences::display::main_text_colour()
 {
     if(cfg_display_custom_fg_colour.get_value())
     {
         return cfg_display_fg_colour.get_value();
     }
-    return {};
+    return defaultui::text_colour();
 }
 
-std::optional<t_ui_color> preferences::display::highlight_colour()
+t_ui_color preferences::display::highlight_colour()
 {
     if(cfg_display_custom_hl_colour.get_value())
     {
         return cfg_display_hl_colour.get_value();
     }
-    return {};
+    return defaultui::highlight_colour();
 }
 
 double preferences::display::highlight_fade_seconds()

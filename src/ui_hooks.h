@@ -12,4 +12,14 @@ void register_update_handle_with_lyric_panels(std::unique_ptr<LyricUpdateHandle>
 void repaint_all_lyric_panels();
 void recompute_lyric_panel_backgrounds();
 
-t_ui_font get_editor_font();
+// Provides fb2k's default UI parameters, usually only available through UI components.
+// These should be queried just-in-time as the values they return may change if the user
+// changes their preferences (e.g to switch to dark mode).
+namespace defaultui
+{
+    t_ui_font default_font();
+    t_ui_font console_font();
+    t_ui_color background_colour();
+    t_ui_color text_colour();
+    t_ui_color highlight_colour();
+}

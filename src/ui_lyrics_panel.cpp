@@ -30,14 +30,21 @@ namespace {
     class LyricPanel;
     static std::vector<LyricPanel*> g_active_panels;
 
-    // There is (as far as I'm aware) no way to access fb2k's configured default font from outside
-    // a ui_element instance. Since the editor dialog is not a UI element instance, the only place
-    // we can get this info is here, in the lyric panel. Technically this means that if the user
-    // does not have an instance of the OpenLyrics display panel on their UI and they open the
-    // lyric editor, then they'll get the default font regardless of fb2k's config.
-    // If the fb2k SDK at some point adds the ability to get the font config from anywhere then
-    // this variable (and the restriction above) can be removed.
-    static t_ui_font g_editor_font = NULL; // We can't access
+    // There is (as far as I'm aware) no way to access fb2k's default fonts & colours from outside
+    // a ui_element instance. We need those values elsewhere though, so that we can do things like
+    // set the editor dialog to use the correct font (even though the editor dialog is not itself
+    // a UI element instance) or use the default colours in the preferences code to compute the
+    // correct values if we need to blend from a custom colour to a default colour.
+    // To achieve this we cache the UI-provided defaults here, in the lyric panel.  Technically
+    // this means that if the user does not have an instance of the OpenLyrics display panel on
+    // their UI and they open the lyric editor, then they'll get the default font regardless of
+    // fb2k's config. If the fb2k SDK at some point adds the ability to get the font config from
+    // anywhere then these variables (and the restriction above) can be removed.
+    static t_ui_font g_defaultui_default_font = nullptr;
+    static t_ui_font g_defaultui_console_font = nullptr;
+    static t_ui_color g_defaultui_background_colour = {};
+    static t_ui_color g_defaultui_text_colour = {};
+    static t_ui_color g_defaultui_highlight_colour = {};
 
     class LyricPanel : public ui_element_instance, public CWindowImpl<LyricPanel>, private play_callback_impl_base
     {
@@ -100,10 +107,6 @@ namespace {
         void OnLMBUp(UINT virtualKeys, CPoint point);
 
         void on_album_art_retrieved(album_art_data::ptr art_data);
-
-        t_ui_font get_font();
-        t_ui_color get_fg_colour();
-        t_ui_color get_highlight_colour();
 
         void StartTimer();
         void StopTimer();
@@ -349,7 +352,11 @@ namespace {
         {
             // If the font changed then the previously-stored font handle will now be invalid, so we
             // need to re-store the (possibly new) font handle to avoid getting the default font.
-            g_editor_font = m_callback->query_font_ex(ui_font_default);
+            g_defaultui_default_font = m_callback->query_font_ex(ui_font_default);
+            g_defaultui_console_font = m_callback->query_font_ex(ui_font_console);
+            g_defaultui_background_colour = m_callback->query_std_color(ui_color_background);
+            g_defaultui_text_colour = m_callback->query_std_color(ui_color_text);
+            g_defaultui_highlight_colour = m_callback->query_std_color(ui_color_highlight);
 
             // we use global colors and fonts - trigger a repaint whenever these change.
             Invalidate();
@@ -448,7 +455,11 @@ namespace {
         }
 
         g_active_panels.push_back(this);
-        g_editor_font = m_callback->query_font_ex(ui_font_default);
+        g_defaultui_default_font = m_callback->query_font_ex(ui_font_default);
+        g_defaultui_console_font = m_callback->query_font_ex(ui_font_console);
+        g_defaultui_background_colour = m_callback->query_std_color(ui_color_background);
+        g_defaultui_text_colour = m_callback->query_std_color(ui_color_text);
+        g_defaultui_highlight_colour = m_callback->query_std_color(ui_color_highlight);
 
         // Register for notifications about available album art
         now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
@@ -947,8 +958,8 @@ namespace {
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
         int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
 
-        t_ui_color fg_colour = get_fg_colour();
-        t_ui_color hl_colour = get_highlight_colour();
+        t_ui_color main_text_colour = preferences::display::main_text_colour();
+        t_ui_color hl_colour = preferences::display::highlight_colour();
 
         const PlaybackTimeInfo playback_time = get_playback_time();
         const double scroll_time = preferences::display::scroll_time_seconds();
@@ -978,17 +989,17 @@ namespace {
             const LyricDataLine& line = m_lyrics.lines[line_index];
             if(line_index == scroll.active_line_index)
             {
-                t_ui_color colour = lerp(hl_colour, fg_colour, fade.next_line_scroll_factor);
+                t_ui_color colour = lerp(hl_colour, main_text_colour, fade.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else if(line_index == scroll.active_line_index+1)
             {
-                t_ui_color colour = lerp(fg_colour, hl_colour, fade.next_line_scroll_factor);
+                t_ui_color colour = lerp(main_text_colour, hl_colour, fade.next_line_scroll_factor);
                 SetTextColor(dc, colour);
             }
             else
             {
-                SetTextColor(dc, fg_colour);
+                SetTextColor(dc, main_text_colour);
             }
 
             int wrapped_line_height = DrawWrappedLyricLine(dc, client_area, line.text, origin);
@@ -1016,8 +1027,8 @@ namespace {
 
         size_t linegap = static_cast<size_t>(max(0, preferences::display::linegap()));
         std::tstring glue(linegap, _T(' '));
-        t_ui_color fg_colour = get_fg_colour();
-        t_ui_color hl_colour = get_highlight_colour();
+        t_ui_color fg_colour = preferences::display::main_text_colour();
+        t_ui_color hl_colour = preferences::display::highlight_colour();
 
         const double scroll_time = preferences::display::scroll_time_seconds();
         const LyricScrollPosition scroll = get_scroll_position(m_lyrics, playback_time.current_time, scroll_time);
@@ -1223,8 +1234,8 @@ namespace {
             DeleteObject(bg_brush);
         }
 
-        SelectObject(m_back_buffer, get_font());
-        COLORREF color_result = SetTextColor(m_back_buffer, get_fg_colour());
+        SelectObject(m_back_buffer, preferences::display::font());
+        COLORREF color_result = SetTextColor(m_back_buffer, preferences::display::main_text_colour());
         if(color_result == CLR_INVALID)
         {
             LOG_WARN("Failed to set text colour: %d", GetLastError());
@@ -1681,42 +1692,6 @@ namespace {
         ReleaseCapture();
     }
 
-    t_ui_font LyricPanel::get_font()
-    {
-        t_ui_font result = preferences::display::font();
-        if(result == nullptr)
-        {
-            result = m_callback->query_font_ex(ui_font_console);
-        }
-        return result;
-    }
-
-    t_ui_color LyricPanel::get_fg_colour()
-    {
-        std::optional<t_ui_color> colour = preferences::display::foreground_colour();
-        if(colour.has_value())
-        {
-            return colour.value();
-        }
-        else
-        {
-            return m_callback->query_std_color(ui_color_text);
-        }
-    }
-
-    t_ui_color LyricPanel::get_highlight_colour()
-    {
-        std::optional<t_ui_color> colour = preferences::display::highlight_colour();
-        if(colour.has_value())
-        {
-            return colour.value();
-        }
-        else
-        {
-            return m_callback->query_std_color(ui_color_highlight);
-        }
-    }
-
     void LyricPanel::StartTimer()
     {
         if (m_timerRunning) return;
@@ -1877,7 +1852,27 @@ void recompute_lyric_panel_backgrounds()
     });
 }
 
-t_ui_font get_editor_font()
+t_ui_font defaultui::default_font()
 {
-    return g_editor_font;
+    return g_defaultui_default_font;
+}
+
+t_ui_font defaultui::console_font()
+{
+    return g_defaultui_console_font;
+}
+
+t_ui_color defaultui::background_colour()
+{
+    return g_defaultui_background_colour;
+}
+
+t_ui_color defaultui::text_colour()
+{
+    return g_defaultui_text_colour;
+}
+
+t_ui_color defaultui::highlight_colour()
+{
+    return g_defaultui_highlight_colour;
 }

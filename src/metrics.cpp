@@ -275,8 +275,6 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
     cJSON_AddNumberToObject(json, "ol.cfg.save.dir_type", int(preferences::saving::raw::directory_class()));
     cJSON_AddBoolToObject(json, "ol.cfg.save.merge_lrc_lines", preferences::saving::merge_equivalent_lrc_lines());
     cJSON_AddBoolToObject(json, "ol.cfg.display.font", preferences::display::raw::font_is_custom());
-    cJSON_AddBoolToObject(json, "ol.cfg.display.fg_color", preferences::display::foreground_colour().has_value());
-    cJSON_AddBoolToObject(json, "ol.cfg.display.hl_color", preferences::display::highlight_colour().has_value());
     cJSON_AddNumberToObject(json, "ol.cfg.display.scroll_dir", int(preferences::display::scroll_direction()));
     cJSON_AddNumberToObject(json, "ol.cfg.display.scroll_type", int(preferences::display::scroll_type()));
     cJSON_AddNumberToObject(json, "ol.cfg.display.scroll_time", preferences::display::scroll_time_seconds());

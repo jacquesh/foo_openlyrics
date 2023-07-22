@@ -158,7 +158,7 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     // NOTE: Sending EM_SCROLLCARET does nothing if called before ShowWindow()
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
 
-    const t_ui_font font = get_editor_font();
+    const t_ui_font font = defaultui::default_font();
     if(font != nullptr)
     {
         GetDlgItem(IDC_LYRIC_TEXT).SetFont(font);
