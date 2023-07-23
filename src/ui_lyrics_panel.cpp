@@ -509,12 +509,6 @@ namespace {
         ReleaseDC(front_buffer);
 
         SetBkMode(m_back_buffer, TRANSPARENT);
-        UINT align_result = SetTextAlign(m_back_buffer, TA_BASELINE | TA_CENTER);
-        if(align_result == GDI_ERROR)
-        {
-            LOG_WARN("Failed to set text alignment: %d", GetLastError());
-        }
-
         if(!m_background_img.valid() ||
             (client_rect.Width() != m_background_img.width) ||
             (client_rect.Height() != m_background_img.height)
@@ -677,6 +671,19 @@ namespace {
         return _WrapCompoundLyricsLineToRect(dc, clip_rect, line, &origin);
     }
 
+    static LONG get_text_origin_x(CRect client_rect)
+    {
+        switch(preferences::display::horizontal_alignment())
+        {
+            case HorizontalTextAlignment::Centre: return client_rect.CenterPoint().x;
+            case HorizontalTextAlignment::Left: return client_rect.left;
+            case HorizontalTextAlignment::Right: return client_rect.right;
+            default:
+                LOG_WARN("Unrecognised horizontal text alignment option");
+                return 0;
+        }
+    }
+
     void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
     {
         if(m_now_playing == nullptr)
@@ -721,7 +728,7 @@ namespace {
 
         CPoint centre = client_rect.CenterPoint();
         int top_y = centre.y - total_height/2 + font_metrics.tmAscent;
-        CPoint origin = {centre.x, top_y};
+        CPoint origin = {get_text_origin_x(client_rect), top_y};
         if(!artist_line.empty())
         {
             origin.y += DrawWrappedLyricLine(dc, client_rect, artist_line, origin);
@@ -834,7 +841,7 @@ namespace {
             top_y += m_manual_scroll_distance;
         }
 
-        CPoint origin = {centre.x, top_y};
+        CPoint origin = {get_text_origin_x(client_area), top_y};
         for(const LyricDataLine& line : m_lyrics.lines)
         {
             int wrapped_line_height = DrawWrappedLyricLine(dc, client_area, line.text, origin);
@@ -907,7 +914,7 @@ namespace {
         CPoint centre = client_area.CenterPoint();
         int next_line_scroll = (int)((double)active_line_height * scroll.next_line_scroll_factor);
         int top_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll + baseline_centre_correction);
-        CPoint origin = {centre.x, top_y};
+        CPoint origin = {get_text_origin_x(client_area), top_y};
         const int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
         for(int line_index=0; line_index < lyric_line_count; line_index++)
         {
@@ -1043,6 +1050,19 @@ namespace {
             LOG_WARN("Failed to set text colour: %d", GetLastError());
         }
 
+        UINT horizontal_alignment = 0;
+        switch(preferences::display::horizontal_alignment())
+        {
+            case HorizontalTextAlignment::Centre: horizontal_alignment = TA_CENTER; break;
+            case HorizontalTextAlignment::Left: horizontal_alignment = TA_LEFT; break;
+            case HorizontalTextAlignment::Right: horizontal_alignment = TA_RIGHT; break;
+            default: LOG_WARN("Unrecognised horizontal text alignment option"); break;
+        }
+        UINT align_result = SetTextAlign(m_back_buffer, TA_BASELINE | horizontal_alignment);
+        if(align_result == GDI_ERROR)
+        {
+            LOG_WARN("Failed to set text alignment: %d", GetLastError());
+        }
         if(m_lyrics.IsEmpty())
         {
             DrawNoLyrics(m_back_buffer, client_rect);

@@ -72,6 +72,13 @@ enum class PastTextColourType : int
     SameAsHighlight = 3,
 };
 
+enum class HorizontalTextAlignment : int
+{
+    Centre = 0,
+    Left   = 1,
+    Right  = 2,
+};
+
 namespace preferences
 {
     namespace searching
@@ -121,6 +128,8 @@ namespace preferences
 
         LineScrollType scroll_type();
         double scroll_time_seconds();
+
+        HorizontalTextAlignment horizontal_alignment();
 
         double highlight_fade_seconds();
         int linegap();

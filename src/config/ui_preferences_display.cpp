@@ -29,6 +29,7 @@ static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME = { 0x63c31bb9, 0x2a83, 0
 static const GUID GUID_CFG_DEBUG_LOGS_ENABLED = { 0x57920cbe, 0xa27, 0x4fad, { 0x92, 0xc, 0x2b, 0x61, 0x3b, 0xf9, 0xd6, 0x13 } };
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOUR = { 0x8189faa4, 0x40f2, 0x464b, { 0x9e, 0xb, 0x53, 0xd2, 0x6, 0x9c, 0x74, 0xc9 } };
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOURTYPE = { 0xc7b2908, 0x2ce2, 0x46e8, { 0xa1, 0x46, 0x51, 0xe2, 0x60, 0x0, 0xde, 0xdc } };
+static const GUID GUID_CFG_DISPLAY_TEXT_ALIGNMENT = { 0xfd228452, 0x6374, 0x4496, { 0xb9, 0xec, 0x19, 0xb9, 0x50, 0x2, 0xb, 0xaa } };
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35,85,125);
 static const COLORREF cfg_display_pasttext_colour_default = RGB(190, 190, 190);
@@ -56,6 +57,13 @@ static const cfg_auto_combo_option<PastTextColourType> g_pasttext_colour_type_op
     {_T("Custom"), PastTextColourType::Custom},
 };
 
+static const cfg_auto_combo_option<HorizontalTextAlignment> g_text_alignment_options[] =
+{
+    {_T("Centre"), HorizontalTextAlignment::Centre},
+    {_T("Left"), HorizontalTextAlignment::Left},
+    {_T("Right"), HorizontalTextAlignment::Right},
+};
+
 static cfg_auto_bool                          cfg_display_custom_font(GUID_CFG_DISPLAY_CUSTOM_FONT, IDC_FONT_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_fg_colour(GUID_CFG_DISPLAY_CUSTOM_FOREGROUND_COLOUR, IDC_FOREGROUND_COLOUR_CUSTOM, false);
 static cfg_auto_bool                          cfg_display_custom_hl_colour(GUID_CFG_DISPLAY_CUSTOM_HIGHLIGHT_COLOUR, IDC_HIGHLIGHT_COLOUR_CUSTOM, false);
@@ -70,6 +78,7 @@ static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_D
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
 static cfg_auto_ranged_int                    cfg_display_highlight_fade_time(GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME, IDC_DISPLAY_HIGHLIGHT_FADE_TIME, 0, 1000, 20, 500);
 static cfg_auto_bool                          cfg_debug_logs_enabled(GUID_CFG_DEBUG_LOGS_ENABLED, IDC_DEBUG_LOGS_ENABLED, false);
+static cfg_auto_combo<HorizontalTextAlignment,3> cfg_display_horizontal_alignment(GUID_CFG_DISPLAY_TEXT_ALIGNMENT, IDC_TEXT_ALIGNMENT, HorizontalTextAlignment::Centre, g_text_alignment_options);
 
 static cfg_auto_property* g_display_auto_properties[] =
 {
@@ -86,6 +95,7 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_scroll_time,
     &cfg_display_scroll_type,
 
+    &cfg_display_horizontal_alignment,
     &cfg_display_highlight_fade_time,
 
     &cfg_debug_logs_enabled,
@@ -193,6 +203,11 @@ double preferences::display::scroll_time_seconds()
     return ((double)cfg_display_scroll_time.get_value())/1000.0;
 }
 
+HorizontalTextAlignment preferences::display::horizontal_alignment()
+{
+    return cfg_display_horizontal_alignment.get_value();
+}
+
 LineScrollType preferences::display::scroll_type()
 {
     return cfg_display_scroll_type.get_value();
@@ -242,6 +257,8 @@ public:
         COMMAND_HANDLER_EX(IDC_PAST_FOREGROUND_COLOUR_TYPE, CBN_SELCHANGE, OnCustomToggle)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
         COMMAND_HANDLER_EX(IDC_DEBUG_LOGS_ENABLED, BN_CLICKED, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_TEXT_ALIGNMENT, CBN_SELCHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
     END_MSG_MAP()
 
 private:
