@@ -32,6 +32,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add support for gradients to the background colour preferences\n"
     "- Add support for showing already-passed lyric lines in a different colour\n"
     "- Add a source for metal-archives.com\n"
+    "- Show the active sort order in column headers of the manual search window\n"
     "- Stop asking users to submit metrics after a pre-defined date\n"
     "- Remove support for horizontal scrolling\n"
     "- Fix retrieval failing from some sources when no 'album' tag is present\n"

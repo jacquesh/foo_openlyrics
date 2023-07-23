@@ -245,15 +245,32 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
         case LVN_COLUMNCLICK:
         {
             NMLISTVIEW* list = (NMLISTVIEW*)notify;
-            int selected_column_index = list->iSubItem;
+            const int selected_column_index = list->iSubItem;
+            HWND header = ListView_GetHeader(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST));
+            HDITEM header_item = {
+                .mask = HDI_FORMAT
+            };
             if(selected_column_index == m_sort_column_index)
             {
                 m_sort_ascending = !m_sort_ascending;
+
+                Header_GetItem(header, selected_column_index, &header_item);
+                header_item.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
+                header_item.fmt |= (m_sort_ascending ? HDF_SORTUP : HDF_SORTDOWN);
+                Header_SetItem(header, selected_column_index, &header_item);
             }
             else
             {
+                Header_GetItem(header, m_sort_column_index, &header_item);
+                header_item.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
+                Header_SetItem(header, m_sort_column_index, &header_item);
+
                 m_sort_column_index = selected_column_index;
                 m_sort_ascending = true;
+
+                Header_GetItem(header, selected_column_index, &header_item);
+                header_item.fmt |= HDF_SORTUP;
+                Header_SetItem(header, selected_column_index, &header_item);
             }
             int sort_data = (m_sort_column_index & 0xFF) | ((m_sort_ascending ? 1 : 0) << 8);
             SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_SORTITEMS, sort_data, (LPARAM)column_sort_fn);
