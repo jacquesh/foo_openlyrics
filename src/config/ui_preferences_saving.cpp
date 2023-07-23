@@ -103,6 +103,51 @@ GUID preferences::saving::save_source()
     }
 }
 
+// Windows struggles to deal with directories whose names contain trailing spaces or dots.
+// In both cases explorer fails to delete such a directory and in the trailing-dot case
+// explorer won't even navigate into it.
+// We therefore avoid these problems entirely by just removing trailing spaces and dots
+// from all directory names in paths that we write to.
+static bool trim_bad_trailing_directory_chars(pfc::string8& path)
+{
+    pfc::string parent = pfc::io::path::getParent(path);
+    if(parent == "file://\\\\")
+    {
+        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a network filesystem).
+        // filesystem::g_exists fails (at least in SDK version 20200728 with fb2k version 1.6.7) on a path like that.
+        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just return here
+        // as if it does and then either the existence checks further down the path tree will fail, or the actual file write will fail.
+        // Both are guarded against IO failure, so that'd be fine (we'd just do slightly more work).
+        return false;
+    }
+
+    bool parent_modified = false;
+    if(!parent.isEmpty())
+    {
+        parent_modified = trim_bad_trailing_directory_chars(parent);
+    }
+
+    if(parent_modified || path.endsWith(' ') || path.endsWith('.'))
+    {
+        pfc::string filename = pfc::io::path::getFileName(path);
+        while(!filename.is_empty()
+            && ((filename[filename.length()-1] == ' ')
+                || filename[filename.length()-1] == '.')
+            )
+        {
+            filename.truncate(filename.length()-1);
+        }
+
+        path = parent;
+        path.add_filename(filename);
+        return true;
+    }
+    else
+    {
+        return parent_modified;
+    }
+}
+
 std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
     const char* name_format_str = cfg_save_filename_format.c_str();
@@ -182,6 +227,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
 
     pfc::string8 result = formatted_directory;
     result.add_filename(formatted_name);
+    trim_bad_trailing_directory_chars(result);
     LOG_INFO("Save file name format '%s' with directory class '%s' evaluated to '%s'", name_format_str, dir_class_name.c_str(), result.c_str());
 
     if(formatted_directory.is_empty() || formatted_name.is_empty())
