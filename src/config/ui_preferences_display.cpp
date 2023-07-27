@@ -57,11 +57,14 @@ static const cfg_auto_combo_option<PastTextColourType> g_pasttext_colour_type_op
     {_T("Custom"), PastTextColourType::Custom},
 };
 
-static const cfg_auto_combo_option<HorizontalTextAlignment> g_text_alignment_options[] =
+static const cfg_auto_combo_option<TextAlignment> g_text_alignment_options[] =
 {
-    {_T("Centre"), HorizontalTextAlignment::Centre},
-    {_T("Left"), HorizontalTextAlignment::Left},
-    {_T("Right"), HorizontalTextAlignment::Right},
+    {_T("Centre"), TextAlignment::MidCentre},
+    {_T("Left"), TextAlignment::MidLeft},
+    {_T("Right"), TextAlignment::MidRight},
+    {_T("Top centre"), TextAlignment::TopCentre},
+    {_T("Top left"), TextAlignment::TopLeft},
+    {_T("Top right"), TextAlignment::TopRight},
 };
 
 static cfg_auto_bool                          cfg_display_custom_font(GUID_CFG_DISPLAY_CUSTOM_FONT, IDC_FONT_CUSTOM, false);
@@ -78,7 +81,7 @@ static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_D
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
 static cfg_auto_ranged_int                    cfg_display_highlight_fade_time(GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME, IDC_DISPLAY_HIGHLIGHT_FADE_TIME, 0, 1000, 20, 500);
 static cfg_auto_bool                          cfg_debug_logs_enabled(GUID_CFG_DEBUG_LOGS_ENABLED, IDC_DEBUG_LOGS_ENABLED, false);
-static cfg_auto_combo<HorizontalTextAlignment,3> cfg_display_horizontal_alignment(GUID_CFG_DISPLAY_TEXT_ALIGNMENT, IDC_TEXT_ALIGNMENT, HorizontalTextAlignment::Centre, g_text_alignment_options);
+static cfg_auto_combo<TextAlignment,6>        cfg_display_text_alignment(GUID_CFG_DISPLAY_TEXT_ALIGNMENT, IDC_TEXT_ALIGNMENT, TextAlignment::MidCentre, g_text_alignment_options);
 
 static cfg_auto_property* g_display_auto_properties[] =
 {
@@ -95,7 +98,7 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_display_scroll_time,
     &cfg_display_scroll_type,
 
-    &cfg_display_horizontal_alignment,
+    &cfg_display_text_alignment,
     &cfg_display_highlight_fade_time,
 
     &cfg_debug_logs_enabled,
@@ -203,9 +206,9 @@ double preferences::display::scroll_time_seconds()
     return ((double)cfg_display_scroll_time.get_value())/1000.0;
 }
 
-HorizontalTextAlignment preferences::display::horizontal_alignment()
+TextAlignment preferences::display::text_alignment()
 {
-    return cfg_display_horizontal_alignment.get_value();
+    return cfg_display_text_alignment.get_value();
 }
 
 LineScrollType preferences::display::scroll_type()

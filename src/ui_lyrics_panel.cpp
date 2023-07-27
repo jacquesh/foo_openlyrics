@@ -671,16 +671,77 @@ namespace {
         return _WrapCompoundLyricsLineToRect(dc, clip_rect, line, &origin);
     }
 
-    static LONG get_text_origin_x(CRect client_rect)
+    static CPoint get_text_origin(CRect client_rect, TEXTMETRIC& font_metrics)
     {
-        switch(preferences::display::horizontal_alignment())
+        const CPoint centre = client_rect.CenterPoint();
+        LONG top_x = 0;
+        LONG top_y = 0;
+        switch(preferences::display::text_alignment())
         {
-            case HorizontalTextAlignment::Centre: return client_rect.CenterPoint().x;
-            case HorizontalTextAlignment::Left: return client_rect.left;
-            case HorizontalTextAlignment::Right: return client_rect.right;
+            case TextAlignment::MidCentre:
+            case TextAlignment::TopCentre:
+                top_x = centre.x;
+                break;
+
+            case TextAlignment::MidLeft:
+            case TextAlignment::TopLeft:
+                top_x = client_rect.left;
+                break;
+
+            case TextAlignment::MidRight:
+            case TextAlignment::TopRight:
+                top_x = client_rect.right;
+                break;
+
             default:
                 LOG_WARN("Unrecognised horizontal text alignment option");
-                return 0;
+                return {};
+        }
+
+        switch(preferences::display::text_alignment())
+        {
+            case TextAlignment::MidCentre:
+            case TextAlignment::MidLeft:
+            case TextAlignment::MidRight:
+                top_y = centre.y;
+                break;
+
+            case TextAlignment::TopCentre:
+            case TextAlignment::TopLeft:
+            case TextAlignment::TopRight:
+                top_y = client_rect.top + font_metrics.tmAscent;
+                break;
+
+            default:
+                LOG_WARN("Unrecognised horizontal text alignment option");
+                return {};
+        }
+
+        // NOTE: The drawing call uses the glyph baseline as the origin.
+        //       We want our text to be perfectly vertically centered, so we need to offset it
+        //       but the difference between the baseline and the vertical centre of the font.
+        const int baseline_centre_correction = (font_metrics.tmAscent - font_metrics.tmDescent)/2;
+        top_y += baseline_centre_correction;
+        return {top_x, top_y};
+    }
+
+    static bool is_text_top_aligned()
+    {
+        switch(preferences::display::text_alignment())
+        {
+            case TextAlignment::TopCentre:
+            case TextAlignment::TopLeft:
+            case TextAlignment::TopRight:
+                return true;
+
+            case TextAlignment::MidCentre:
+            case TextAlignment::MidLeft:
+            case TextAlignment::MidRight:
+                return false;
+
+            default:
+                LOG_WARN("Unrecognised text alignment option");
+                return false;
         }
     }
 
@@ -720,15 +781,14 @@ namespace {
             total_height += ComputeWrappedLyricLineHeight(dc, client_rect, title_line);
         }
 
-        // NOTE: Since our calculation is for the *top* of the rendered text, we need to
-        //       shift down by the font's ascent so that we get to the baseline (which
-        //       is what is used as the rendering origin).
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        CPoint origin = get_text_origin(client_rect, font_metrics);
+        if(!is_text_top_aligned())
+        {
+            origin.y -= total_height/2;
+        }
 
-        CPoint centre = client_rect.CenterPoint();
-        int top_y = centre.y - total_height/2 + font_metrics.tmAscent;
-        CPoint origin = {get_text_origin_x(client_rect), top_y};
         if(!artist_line.empty())
         {
             origin.y += DrawWrappedLyricLine(dc, client_rect, artist_line, origin);
@@ -781,67 +841,48 @@ namespace {
 
     void LyricPanel::DrawUntimedLyrics(HDC dc, CRect client_area)
     {
-        const PlaybackTimeInfo playback_time = get_playback_time();
-        const double track_fraction = playback_time.current_time / playback_time.track_length;
-
-        int one_line_height = ComputeWrappedLyricLineHeight(dc, client_area, _T(""));
-        int total_height = std::accumulate(m_lyrics.lines.begin(), m_lyrics.lines.end(), 0,
-                                           [dc, client_area](int x, const LyricDataLine& line)
-                                           {
-                                               return x + ComputeWrappedLyricLineHeight(dc, client_area, line.text);
-                                           });
-
-        CPoint centre = client_area.CenterPoint();
-        int top_y = 0;
-        if(preferences::display::scroll_type() == LineScrollType::Manual)
+        double track_fraction = 0.0;
+        if(preferences::display::scroll_type() == LineScrollType::Automatic)
         {
-            // Shift the 'top' Y down by a single line so we can see the first line of text,
-            // because the 'top y' is actually used as the *baseline*
-            int default_top_y = one_line_height;
-            if(total_height < client_area.Height())
+            const PlaybackTimeInfo playback_time = get_playback_time();
+            track_fraction = playback_time.current_time / playback_time.track_length;
+        }
+
+        TEXTMETRIC font_metrics = {};
+        WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+
+        const int total_height = std::accumulate(m_lyrics.lines.begin(), m_lyrics.lines.end(), 0,
+            [dc, client_area](int x, const LyricDataLine& line)
             {
-                int centre_y = client_area.Height()/2;
-                default_top_y = centre_y + one_line_height - total_height/2;
-            }
+                return x + ComputeWrappedLyricLineHeight(dc, client_area, line.text);
+            });
+        const int total_scrollable_height = total_height - font_metrics.tmHeight - preferences::display::linegap();
 
-            // We want:
-            // 1) bottom_y >= one_line_height
-            //    top_y + total_height >= one_line_height
-            //    top_y >= one_line_height - total_height
-            //    default_top_y - one_line_height + m_manual_scroll_distance >= one_line_height - total_height
-            //    m_manual_scroll_distance >= one_line_height - total_height - default_top_y + one_line_height
-            // 2) top_y <= panel_height
-            //    default_top_y + m_manual_scroll_distance <= panel_height
-            //    m_manual_scroll_distance <= panel_height - default_top_y
-            // So:
-            //    (one_line_height - total_height - default_top_y + one_line_height) <= m_manual_scroll_distance <= (panel_height - default_top_y)
-            int min_scroll = one_line_height - total_height - default_top_y + one_line_height;
-            int max_scroll = client_area.Height() - default_top_y;
-            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
-            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
+        CPoint origin = get_text_origin(client_area, font_metrics);
+        origin.y -=  (int)(track_fraction * total_scrollable_height);
 
-            top_y = default_top_y + m_manual_scroll_distance;
-        }
-        else
-        {
-            // NOTE: Since our calculation is for the *top* of the rendered text, we need to
-            //       shift down by the font's ascent so that we get to the baseline (which
-            //       is what is used as the rendering origin).
-            TEXTMETRIC font_metrics = {};
-            WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
+        // NOTE: We support the manual scroll distance here so that people can offset
+        //       the default automated scrolling (which is often significantly wrong)
+        //       We want to restrict it to:
+        //
+        //       1) Not scroll completely off the top of the panel ("minimum" scroll):
+        //          bottom_baseline_y >= ascent
+        //          top_baseline_y + total_scrollable_height >= ascent
+        //          top_baseline_y >= ascent - total_scrollable_height
+        //          origin_y - (fraction * total_scrollable_height) + m_manual_scroll_distance >= ascent - total_scrollable_height
+        //          m_manual_scroll_distance >= ascent - total_scrollable_height - (origin_y - (fraction * total_scrollable_height))
+        //       2) Not scroll completely off the bottom of the panel ("maximum" scroll)
+        //          top_baseline_y <= panel_height  ("maximum" scroll)
+        //          origin_y - (fraction * total_scrollable_height) + m_manual_scroll_distance <= panel_height
+        //          m_manual_scroll_distance <= panel_height - (origin_y - (fraction * total_scrollable_height))
+        //
+        //       and recall that we've already subtracted fraction*total_scrollable_height from origin_y above,
+        //       so we don't need to do it again below, we just use the origin value as-is.
+        const int min_scroll = font_metrics.tmAscent - total_scrollable_height - origin.y;
+        const int max_scroll = client_area.Height() - origin.y;
+        m_manual_scroll_distance = min(max(m_manual_scroll_distance, min_scroll), max_scroll);
+        origin.y += m_manual_scroll_distance;
 
-            top_y = centre.y - (int)(track_fraction * total_height) + font_metrics.tmAscent;
-
-            // NOTE: We support the manual scroll distance here so that people can offset
-            //       the default automated scrolling (which is often significantly wrong)
-            const int min_scroll = - top_y - total_height + 2*one_line_height;
-            const int max_scroll = client_area.Height() - top_y - font_metrics.tmAscent;
-            if(m_manual_scroll_distance < min_scroll) m_manual_scroll_distance = min_scroll;
-            if(m_manual_scroll_distance > max_scroll) m_manual_scroll_distance = max_scroll;
-            top_y += m_manual_scroll_distance;
-        }
-
-        CPoint origin = {get_text_origin_x(client_area), top_y};
         for(const LyricDataLine& line : m_lyrics.lines)
         {
             int wrapped_line_height = DrawWrappedLyricLine(dc, client_area, line.text, origin);
@@ -887,7 +928,6 @@ namespace {
         //       but the difference between the baseline and the vertical centre of the font.
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
-        int baseline_centre_correction = (font_metrics.tmAscent + font_metrics.tmDescent)/2;
 
         t_ui_color past_text_colour = preferences::display::past_text_colour();
         t_ui_color main_text_colour = preferences::display::main_text_colour();
@@ -911,10 +951,10 @@ namespace {
             active_line_height = ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[scroll.active_line_index].text);
         }
 
-        CPoint centre = client_area.CenterPoint();
         int next_line_scroll = (int)((double)active_line_height * scroll.next_line_scroll_factor);
-        int top_y = (int)((double)centre.y - text_height_above_active_line - next_line_scroll + baseline_centre_correction);
-        CPoint origin = {get_text_origin_x(client_area), top_y};
+        CPoint origin = get_text_origin(client_area, font_metrics);
+        origin.y -= text_height_above_active_line + next_line_scroll;
+
         const int lyric_line_count = static_cast<int>(m_lyrics.lines.size());
         for(int line_index=0; line_index < lyric_line_count; line_index++)
         {
@@ -1051,12 +1091,26 @@ namespace {
         }
 
         UINT horizontal_alignment = 0;
-        switch(preferences::display::horizontal_alignment())
+        switch(preferences::display::text_alignment())
         {
-            case HorizontalTextAlignment::Centre: horizontal_alignment = TA_CENTER; break;
-            case HorizontalTextAlignment::Left: horizontal_alignment = TA_LEFT; break;
-            case HorizontalTextAlignment::Right: horizontal_alignment = TA_RIGHT; break;
-            default: LOG_WARN("Unrecognised horizontal text alignment option"); break;
+            case TextAlignment::MidCentre:
+            case TextAlignment::TopCentre:
+                horizontal_alignment = TA_CENTER;
+                break;
+
+            case TextAlignment::MidLeft:
+            case TextAlignment::TopLeft:
+                horizontal_alignment = TA_LEFT;
+                break;
+
+            case TextAlignment::MidRight:
+            case TextAlignment::TopRight:
+                horizontal_alignment = TA_RIGHT;
+                break;
+
+            default:
+                LOG_WARN("Unrecognised horizontal text alignment option");
+                break;
         }
         UINT align_result = SetTextAlign(m_back_buffer, TA_BASELINE | horizontal_alignment);
         if(align_result == GDI_ERROR)
