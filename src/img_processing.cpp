@@ -259,7 +259,7 @@ Image lerp_offset_image(const Image& full_img, const Image& offset_img, CPoint o
 
         const int columns_on_or_before_offset_img = offset.x + offset_img.width;
         const int columns_after_offset_img = full_img.width - columns_on_or_before_offset_img;
-        const int post_offsetimg_row_offset = 4*columns_after_offset_img;
+        const int post_offsetimg_row_offset = 4*columns_on_or_before_offset_img;
         assert(columns_after_offset_img >= 0);
         memcpy(out_row + post_offsetimg_row_offset, in_full_row + post_offsetimg_row_offset, 4*columns_after_offset_img);
     }
