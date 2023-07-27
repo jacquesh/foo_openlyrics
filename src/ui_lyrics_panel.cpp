@@ -534,11 +534,11 @@ namespace {
         return TRUE;
     }
 
-    int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, const CPoint* origin)
+    static int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, const CPoint* origin)
     {
         TEXTMETRIC font_metrics = {};
         WIN32_OP_D(GetTextMetrics(dc, &font_metrics))
-        int line_height = font_metrics.tmHeight + preferences::display::linegap();
+        const int line_height = font_metrics.tmHeight + preferences::display::linegap();
 
         if(line.length() == 0)
         {
@@ -636,7 +636,7 @@ namespace {
     // However if multiple lines have the exact same timestamp, they get combined and are presented
     // here as a single "line" that contains newline chars.
     // We refer to these here as simple & compound lines.
-    int _WrapCompoundLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, CPoint* origin)
+    static int _WrapCompoundLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_view line, CPoint* origin)
     {
         if(line.length() == 0)
         {
@@ -661,12 +661,12 @@ namespace {
         return result;
     }
 
-    int ComputeWrappedLyricLineHeight(HDC dc, CRect clip_rect, const std::tstring& line)
+    static int ComputeWrappedLyricLineHeight(HDC dc, CRect clip_rect, const std::tstring& line)
     {
         return _WrapCompoundLyricsLineToRect(dc, clip_rect, line, nullptr);
     }
 
-    int DrawWrappedLyricLine(HDC dc, CRect clip_rect, const std::tstring_view line, CPoint origin)
+    static int DrawWrappedLyricLine(HDC dc, CRect clip_rect, const std::tstring_view line, CPoint origin)
     {
         return _WrapCompoundLyricsLineToRect(dc, clip_rect, line, &origin);
     }
@@ -694,7 +694,7 @@ namespace {
                 break;
 
             default:
-                LOG_WARN("Unrecognised horizontal text alignment option");
+                LOG_WARN("Unrecognised text alignment option");
                 return {};
         }
 
@@ -713,7 +713,7 @@ namespace {
                 break;
 
             default:
-                LOG_WARN("Unrecognised horizontal text alignment option");
+                LOG_WARN("Unrecognised text alignment option");
                 return {};
         }
 
@@ -946,7 +946,7 @@ namespace {
         {
             for(int i=0; i<scroll.active_line_index; i++)
             {
-                text_height_above_active_line += ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[i].text);;
+                text_height_above_active_line += ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[i].text);
             }
             active_line_height = ComputeWrappedLyricLineHeight(dc, client_area, m_lyrics.lines[scroll.active_line_index].text);
         }
@@ -1109,7 +1109,7 @@ namespace {
                 break;
 
             default:
-                LOG_WARN("Unrecognised horizontal text alignment option");
+                LOG_WARN("Unrecognised text alignment option");
                 break;
         }
         UINT align_result = SetTextAlign(m_back_buffer, TA_BASELINE | horizontal_alignment);
