@@ -31,6 +31,7 @@ static http_request::ptr make_post_request()
     request->add_header("Cookie", "appver=2.0.2");
     request->add_header("charset", "utf-8");
     request->add_header("Content-Type", "application/x-www-form-urlencoded");
+    request->add_header("X-Real-IP", "202.106.0.0");
     return request;
 }
 
