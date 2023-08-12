@@ -1,9 +1,5 @@
 #pragma once
 
-#include "stdafx.h"
-
-#include "preferences.h"
-
 namespace metrics
 {
     // 'Log' to internal tracking that a feature was used, so we can later report metrics
