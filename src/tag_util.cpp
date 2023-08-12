@@ -138,6 +138,11 @@ bool tag_values_match(std::string_view tagA, std::string_view tagB)
 
 std::string track_metadata(const metadb_v2_rec_t& track, std::string_view key)
 {
+    if(track.info == nullptr)
+    {
+        return {};
+    }
+
     const file_info& track_info = track.info->info();
     return track_metadata(track_info, key);
 }

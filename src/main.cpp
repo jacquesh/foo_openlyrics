@@ -38,6 +38,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Remove support for horizontal scrolling\n"
     "- Fix retrieval failing from some sources when no 'album' tag is present\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
+    "- Fix crash when playing tracks that have no tag metadata at all\n"
     "- Fix LRC offset tags being ignored if they contained a space\n"
     "- Fix a potential crash when opening preferences, caused by corrupt config\n"
     "- Avoid sometimes creating difficult-to-delete folders when saving to file\n"
