@@ -135,6 +135,9 @@
     <ClCompile Include="..\src\config\ui_preferences_display_background.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\ui_lyrics_uielement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">

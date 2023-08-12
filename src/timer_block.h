@@ -1,3 +1,5 @@
+#pragma once
+
 #include "stdafx.h"
 
 #define TIME_FUNCTION() TimerBlock __function_timer(__FUNCTION__)
