@@ -129,6 +129,16 @@ std::tstring normalise_utf8(std::tstring_view input)
     return result;
 }
 
+bool hr_success(HRESULT result, const char* filename, int line_number)
+{
+    const bool success = (result == S_OK);
+    if(!success)
+    {
+        LOG_WARN("HRESULT indicated failure @ %s:%d: 0x%x", filename, line_number, uint32_t(result));
+    }
+    return success;
+}
+
 std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string)
 {
     assert(string.length() <= INT_MAX);

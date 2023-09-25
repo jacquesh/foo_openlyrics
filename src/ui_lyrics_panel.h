@@ -21,7 +21,7 @@ public:
 
     CRect compute_background_image_rect();
     void load_custom_background_image();
-    void compute_background_image();
+    virtual void compute_background_image(); // TODO: Only virtual to support the external window
 
 protected:
     BEGIN_MSG_MAP_EX(LyricPanel)
@@ -45,11 +45,13 @@ protected:
     void on_album_art_retrieved(album_art_data::ptr art_data);
 
 private:
-    LRESULT OnWindowCreate(LPCREATESTRUCT);
-    void OnWindowDestroy();
-    void OnWindowResize(UINT request_type, CSize new_size);
+protected: // TODO: These 3 are only protected & virtual to support the external window
+    virtual LRESULT OnWindowCreate(LPCREATESTRUCT);
+    virtual void OnWindowDestroy();
+    virtual void OnWindowResize(UINT request_type, CSize new_size);
+private:
     LRESULT OnTimer(WPARAM);
-    void OnPaint(CDCHandle);
+    virtual void OnPaint(CDCHandle); // TODO: Only virtual to support the external window
     BOOL OnEraseBkgnd(CDCHandle);
     void OnContextMenu(CWindow window, CPoint point);
     void OnDoubleClick(UINT virtualKeys, CPoint cursorPos);
@@ -59,7 +61,9 @@ private:
     void OnLMBUp(UINT virtualKeys, CPoint point);
 
     void StartTimer();
+protected: // TODO: Only protected to support the external window
     void StopTimer();
+private:
 
     void DrawNoLyrics(HDC dc, CRect client_area);
     void DrawUntimedLyrics(HDC dc, CRect client_area);
@@ -67,21 +71,27 @@ private:
 
     void InitiateLyricSearch();
 
+protected: // TODO: Only protected to support the external window
     struct PlaybackTimeInfo
     {
         double current_time;
         double track_length;
     };
     PlaybackTimeInfo get_playback_time();
+private:
 
     abort_callback_impl m_child_abort;
 
     bool m_timerRunning = false;
 
+protected: // TODO: These two are only protected to support the external window
     metadb_handle_ptr m_now_playing;
     metadb_v2_rec_t m_now_playing_info;
+private:
     double m_now_playing_time_offset = 0.0;
+protected: // TODO: Only protected to support the external window
     LyricData m_lyrics;
+private:
     bool m_search_pending = false;
     bool m_auto_search_avoided = false;
     uint64_t m_auto_search_avoided_timestamp = 0;
@@ -95,5 +105,6 @@ private:
     now_playing_album_art_notify* m_albumart_listen_handle = nullptr;
     Image m_albumart_original = {};
     Image m_custom_img_original = {};
+protected: // TODO: Only protected to support the external window
     Image m_background_img = {};
 };

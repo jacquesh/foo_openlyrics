@@ -95,7 +95,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-Win32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-Win32.lib;bcrypt.lib;d2d1.lib;d3d11.lib;dcomp.lib;dwrite.lib;dxguid.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -110,7 +110,7 @@
       <PreprocessorDefinitions>BUILDING_OPENLYRICS_DLL;TIDY_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-x64.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-x64.lib;bcrypt.lib;d2d1.lib;d3d11.lib;dcomp.lib;dwrite.lib;dxguid.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -142,7 +142,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-Win32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-Win32.lib;bcrypt.lib;d2d1.lib;d3d11.lib;dcomp.lib;dwrite.lib;dxguid.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -163,7 +163,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-x64.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-x64.lib;bcrypt.lib;d2d1.lib;d3d11.lib;dcomp.lib;dwrite.lib;dxguid.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -222,6 +222,7 @@
     <ClCompile Include="..\src\tag_util.cpp" />
     <ClCompile Include="..\src\ui_contextmenu.cpp" />
     <ClCompile Include="..\src\ui_lyrics_uielement.cpp" />
+    <ClCompile Include="..\src\ui_lyrics_externalwindow.cpp" />
     <ClCompile Include="..\src\ui_lyric_bulk_search.cpp" />
     <ClCompile Include="..\src\ui_lyric_editor.cpp" />
     <ClCompile Include="..\src\ui_lyric_manual_search.cpp" />
@@ -262,6 +263,7 @@
     <ClInclude Include="..\src\tag_util.h" />
     <ClInclude Include="..\src\uie_shim_panel.h" />
     <ClInclude Include="..\src\ui_hooks.h" />
+    <ClInclude Include="..\src\ui_lyrics_externalwindow.h" />
     <ClInclude Include="..\src\win32_util.h" />
   </ItemGroup>
   <ItemGroup>

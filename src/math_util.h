@@ -7,6 +7,11 @@ inline double lerp(double x, double y, double t)
     return x + (y-x)*t;
 }
 
+inline float lerp(float x, float y, float t)
+{
+    return x + (y-x)*t;
+}
+
 inline t_ui_color lerp(t_ui_color x, t_ui_color y, double t)
 {
     double r = lerp((double)GetRValue(x), (double)GetRValue(y), t);

@@ -138,6 +138,9 @@
     <ClCompile Include="..\src\ui_lyrics_uielement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\ui_lyrics_externalwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">
@@ -202,6 +205,9 @@
     </ClInclude>
     <ClInclude Include="..\src\img_processing.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ui_lyrics_externalwindow.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
