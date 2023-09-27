@@ -13,6 +13,7 @@
 
 #include "logging.h"
 #include "math_util.h"
+#include "metrics.h"
 #include "preferences.h"
 #include "ui_hooks.h"
 #include "ui_lyrics_externalwindow.h"
@@ -73,6 +74,7 @@ static ExternalLyricWindow* g_external_window = nullptr;
 ExternalLyricWindow::ExternalLyricWindow()
     : LyricPanel()
 {
+    metrics::log_used_external_window();
     SetUp();
 }
 void ExternalLyricWindow::SetUp()

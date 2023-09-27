@@ -10,5 +10,6 @@ namespace metrics
     void log_used_auto_edit();
     void log_used_mark_instrumental();
     void log_used_show_lyrics();
+    void log_used_external_window();
 }
 
