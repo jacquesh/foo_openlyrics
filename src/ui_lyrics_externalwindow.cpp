@@ -709,7 +709,12 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
     }
     else
     {
-        const float device_dpi = 96.0f; // TODO: Consider high-dpi: GetDeviceCaps(hDC, LOGPIXELSY), or GetDpiForMonitor (which is not available on Win7)
+        // If we upgraded our minimum OS version to Windows 10 then we could replace
+        // this with GetDpiForWindow() which doesn't need an HDC.
+        HDC dc = GetDC();
+        const float device_dpi = float(GetDeviceCaps(dc, LOGPIXELSY));
+        ReleaseDC(dc);
+
         const float font_point_size = -72.0f * float(logfont.lfHeight)/device_dpi; // See https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-logfontw
         render.pixels_per_em = font_point_size * device_dpi * (1.0f/72.0f);
 
