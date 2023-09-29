@@ -32,6 +32,7 @@ protected:
     BEGIN_MSG_MAP_EX(LyricPanel)
         MSG_WM_CREATE(OnWindowCreate)
         MSG_WM_DESTROY(OnWindowDestroy)
+        MSG_WM_MOVE(OnWindowMove)
         MSG_WM_SIZE(OnWindowResize)
         MSG_WM_TIMER(OnTimer)
         MSG_WM_ERASEBKGND(OnEraseBkgnd)
@@ -53,6 +54,7 @@ private:
 protected: // TODO: These 3 are only protected & virtual to support the external window
     virtual LRESULT OnWindowCreate(LPCREATESTRUCT);
     virtual void OnWindowDestroy();
+    virtual void OnWindowMove(CPoint /*new_origin*/) {}
     virtual void OnWindowResize(UINT request_type, CSize new_size);
 private:
     LRESULT OnTimer(WPARAM);

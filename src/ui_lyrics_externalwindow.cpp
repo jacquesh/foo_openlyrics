@@ -21,6 +21,17 @@
 
 #include "timer_block.h"
 
+static const GUID GUID_EXTERNAL_WINDOW_WAS_OPEN = { 0x8af70b0e, 0x4c7, 0x423b, { 0xa5, 0x59, 0x9e, 0x53, 0x65, 0xd8, 0x28, 0x29 } };
+static const GUID GUID_EXTERNAL_WINDOW_PREVIOUS_X = { 0x9f9f3255, 0xefd2, 0x4cbd, { 0x91, 0xd0, 0xd5, 0xcb, 0xa0, 0x2c, 0xd1, 0xb5 } };
+static const GUID GUID_EXTERNAL_WINDOW_PREVIOUS_Y = { 0x203d9d71, 0x7ee3, 0x4f36, { 0xb4, 0xe, 0x6e, 0x3e, 0x28, 0x76, 0xa0, 0x3a } };
+static const GUID GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_X = { 0x66fabbce, 0x2594, 0x426a, { 0xa0, 0x9d, 0x2e, 0xa5, 0x53, 0x8d, 0x8f, 0x10 } };
+static const GUID GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_Y = { 0x808ad0e1, 0xb60c, 0x4c77, { 0xb9, 0xb7, 0x5e, 0xe3, 0xaa, 0xc7, 0x2a, 0xfb } };
+static cfg_int_t<uint64_t> cfg_external_window_was_open(GUID_EXTERNAL_WINDOW_WAS_OPEN, 0);
+static cfg_int_t<int> cfg_external_window_previous_x(GUID_EXTERNAL_WINDOW_PREVIOUS_X, 0);
+static cfg_int_t<int> cfg_external_window_previous_y(GUID_EXTERNAL_WINDOW_PREVIOUS_Y, 0);
+static cfg_int_t<int> cfg_external_window_previous_size_x(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_X, 0);
+static cfg_int_t<int> cfg_external_window_previous_size_y(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_Y, 0);
+
 struct D2DTextRenderContext
 {
     ID2D1DeviceContext* device;
@@ -44,6 +55,7 @@ public:
 
     LRESULT OnWindowCreate(LPCREATESTRUCT) override;
     void OnWindowDestroy() override;
+    void OnWindowMove(CPoint new_origin) override;
     void OnWindowResize(UINT request_type, CSize new_size) override;
 
     void OnPaint(CDCHandle) override;
@@ -90,7 +102,13 @@ void ExternalLyricWindow::SetUp()
     //       visible after creation, fb2k does this for us already.
     //       See: https://github.com/jacquesh/foo_openlyrics/issues/132
 
-    WIN32_OP(Create(parent, nullptr, window_name, style, ex_style) != NULL)
+    RECT window_rect = {
+        cfg_external_window_previous_x.get_value(),
+        cfg_external_window_previous_y.get_value(),
+        cfg_external_window_previous_x.get_value() + cfg_external_window_previous_size_x.get_value(),
+        cfg_external_window_previous_y.get_value() + cfg_external_window_previous_size_y.get_value()
+    };
+    WIN32_OP(Create(parent, &window_rect, window_name, style, ex_style) != NULL)
 
     const auto GetLastErrorString = []() -> const char*
     {
@@ -630,6 +648,8 @@ void ExternalLyricWindow::DrawTimestampedLyrics(D2DTextRenderContext& render)
 void ExternalLyricWindow::OnWindowDestroy()
 {
     LyricPanel::OnWindowDestroy();
+    cfg_external_window_was_open = 0;
+
     m_swap_chain = nullptr;
     m_d3d_device = nullptr;
     m_d2d_device = nullptr;
@@ -643,16 +663,27 @@ void ExternalLyricWindow::OnWindowDestroy()
 
 LRESULT ExternalLyricWindow::OnWindowCreate(LPCREATESTRUCT params)
 {
+    cfg_external_window_was_open = 1;
+
     SetUpDX(); // TODO: This is kinda silly because we're going to immediately call this again after we return in the on_resize callback
     return LyricPanel::OnWindowCreate(params);
+}
+
+void ExternalLyricWindow::OnWindowMove(CPoint new_origin)
+{
+    LyricPanel::OnWindowMove(new_origin);
+    cfg_external_window_previous_x = new_origin.x;
+    cfg_external_window_previous_y = new_origin.y;
 }
 
 void ExternalLyricWindow::OnWindowResize(UINT request_type, CSize new_size)
 {
     SetUpDX();
     LyricPanel::OnWindowResize(request_type, new_size);
-
     Invalidate();
+
+    cfg_external_window_previous_size_x = new_size.cx;
+    cfg_external_window_previous_size_y = new_size.cy;
 }
 
 void ExternalLyricWindow::OnPaint(CDCHandle)
@@ -913,7 +944,11 @@ class ExternalWindowLifetimeWarden : public initquit
 {
     void on_init() final
     {
-        // TODO: Open the window in it's last rect, if there is one
+        const bool was_open = (cfg_external_window_was_open.get_value() != 0);
+        if(was_open)
+        {
+            show_external_lyric_window();
+        }
     }
     void on_quit() final
     {
