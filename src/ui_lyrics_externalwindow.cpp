@@ -92,7 +92,7 @@ void ExternalLyricWindow::SetUp()
 {
     const HWND parent = nullptr;
     const TCHAR* window_name = _T("OpenLyrics external window");
-    const DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+    const DWORD style = WS_OVERLAPPEDWINDOW;
     const DWORD ex_style = WS_EX_NOREDIRECTIONBITMAP;
 
     // NOTE: We specifically need to exclude the WS_VISIBLE style (which causes the window
@@ -102,26 +102,33 @@ void ExternalLyricWindow::SetUp()
     //       visible after creation, fb2k does this for us already.
     //       See: https://github.com/jacquesh/foo_openlyrics/issues/132
 
-    RECT window_rect = {
-        cfg_external_window_previous_x.get_value(),
-        cfg_external_window_previous_y.get_value(),
-        cfg_external_window_previous_x.get_value() + cfg_external_window_previous_size_x.get_value(),
-        cfg_external_window_previous_y.get_value() + cfg_external_window_previous_size_y.get_value()
-    };
-    WIN32_OP(Create(parent, &window_rect, window_name, style, ex_style) != NULL)
+    WIN32_OP(Create(parent, nullptr, window_name, style, ex_style) != NULL)
 
-    const auto GetLastErrorString = []() -> const char*
-    {
-        DWORD error = GetLastError();
-        static char errorMsgBuffer[4096];
-        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error, 0, errorMsgBuffer, sizeof(errorMsgBuffer), nullptr);
-        return errorMsgBuffer;
-    };
-    BOOL success = SetWindowPos(HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    // NOTE: We need to do this separately because the rect passed to CreateWindow appears
+    //       to include the non-client area, whereas all our other measurements are
+    //       specifically for the client area. So if we were to pass this size as-is to
+    //       CreateWindow then it would create a window that is slightly smaller than we
+    //       intended, and that size would be saved so the next window would again be
+    //       slightly smaller etc until we have just a thin line for our window.
+    BOOL success = SetWindowPos(
+            HWND_TOPMOST,
+            cfg_external_window_previous_x.get_value(),
+            cfg_external_window_previous_y.get_value(),
+            cfg_external_window_previous_size_x.get_value(),
+            cfg_external_window_previous_size_y.get_value(),
+            SWP_NOMOVE | SWP_NOSIZE);
     if(!success)
     {
+        const auto GetLastErrorString = []() -> const char*
+        {
+            DWORD error = GetLastError();
+            static char errorMsgBuffer[4096];
+            FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error, 0, errorMsgBuffer, sizeof(errorMsgBuffer), nullptr);
+            return errorMsgBuffer;
+        };
         LOG_WARN("Failed to set window to always-on-top: %d/%s", GetLastError(), GetLastErrorString());
     }
+    ShowWindow(SW_SHOW);
 
     // We don't need to call SetUpDX explicitly, because it will be called
     // on resize and that happens immediately when the window is created.
