@@ -5,7 +5,7 @@
 #include "img_processing.h"
 #include "lyric_io.h"
 
-class LyricPanel : public CWindowImpl<LyricPanel>, private play_callback_impl_base
+class LyricPanel : public CWindowImpl<LyricPanel>, private play_callback
 {
 public:
     // ATL window class declaration. Replace class name with your own when reusing code.
@@ -13,11 +13,16 @@ public:
 
     LyricPanel();
 
+    void on_playback_starting(play_control::t_track_command /*cmd*/, bool /*paused*/) override {}
     void on_playback_new_track(metadb_handle_ptr track) override;
-    void on_playback_dynamic_info_track(const file_info& info) override;
     void on_playback_stop(play_control::t_stop_reason reason) override;
-    void on_playback_pause(bool state) override;
     void on_playback_seek(double time) override;
+    void on_playback_pause(bool state) override;
+    void on_playback_edited(metadb_handle_ptr /*track*/) override {}
+    void on_playback_dynamic_info(const file_info& /*info*/) override {}
+    void on_playback_dynamic_info_track(const file_info& info) override;
+    void on_playback_time(double /*time*/) override {}
+    void on_volume_change(float /*new_volume*/) override {}
 
     CRect compute_background_image_rect();
     void load_custom_background_image();

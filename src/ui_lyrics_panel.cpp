@@ -296,11 +296,15 @@ LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
         // callback is going to be followed shortly by WM_SIZE, where we'll recompute
         // anyway.
     }
+
+    play_callback_manager::get()->register_callback(this, flag_on_playback_all, false);
     return 0;
 }
 
 void LyricPanel::OnWindowDestroy()
 {
+    play_callback_manager::get()->unregister_callback(this);
+
     if(m_back_buffer_bitmap != nullptr) DeleteObject(m_back_buffer_bitmap);
     if(m_back_buffer != nullptr) DeleteDC(m_back_buffer);
 
