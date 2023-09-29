@@ -75,7 +75,6 @@ ExternalLyricWindow::ExternalLyricWindow()
     : LyricPanel()
 {
     metrics::log_used_external_window();
-    SetUp();
 }
 void ExternalLyricWindow::SetUp()
 {
@@ -640,8 +639,6 @@ void ExternalLyricWindow::OnWindowDestroy()
     m_dcomp_device = nullptr;
     m_dcomp_target = nullptr;
     m_dcomp_visual = nullptr;
-
-    g_external_window = nullptr;
 }
 
 LRESULT ExternalLyricWindow::OnWindowCreate(LPCREATESTRUCT params)
@@ -906,7 +903,10 @@ void show_external_lyric_window()
     {
         g_external_window = new ExternalLyricWindow();
     }
-    // TODO: Show one if it already exists
+    if(!g_external_window->IsWindow())
+    {
+        g_external_window->SetUp();
+    }
 }
 
 class ExternalWindowLifetimeWarden : public initquit
@@ -919,7 +919,7 @@ class ExternalWindowLifetimeWarden : public initquit
     {
         if(g_external_window != nullptr)
         {
-            if(g_external_window->IsWindowVisible())
+            if(g_external_window->IsWindow())
             {
                 g_external_window->DestroyWindow();
             }
