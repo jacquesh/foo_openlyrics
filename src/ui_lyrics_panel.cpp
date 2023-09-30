@@ -289,6 +289,14 @@ LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
     now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
     m_albumart_listen_handle = art_manager->add([this](album_art_data::ptr art_data) { return on_album_art_retrieved(art_data); });
 
+    // If there's already a track playing that we have art for, then immediately process
+    // that art, because we're not going to get a callback for it (that's already happened!)
+    album_art_data::ptr current_art = art_manager->current();
+    if(current_art != nullptr)
+    {
+        on_album_art_retrieved(current_art);
+    }
+
     if(preferences::background::image_type() == BackgroundImageType::CustomImage)
     {
         load_custom_background_image();
