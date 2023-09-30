@@ -206,9 +206,6 @@
     <ClInclude Include="..\src\img_processing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ui_lyrics_externalwindow.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\foo_openlyrics.rc">

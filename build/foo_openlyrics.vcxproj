@@ -263,7 +263,6 @@
     <ClInclude Include="..\src\tag_util.h" />
     <ClInclude Include="..\src\uie_shim_panel.h" />
     <ClInclude Include="..\src\ui_hooks.h" />
-    <ClInclude Include="..\src\ui_lyrics_externalwindow.h" />
     <ClInclude Include="..\src\win32_util.h" />
   </ItemGroup>
   <ItemGroup>

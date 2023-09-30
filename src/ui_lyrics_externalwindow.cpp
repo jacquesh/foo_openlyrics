@@ -16,7 +16,6 @@
 #include "metrics.h"
 #include "preferences.h"
 #include "ui_hooks.h"
-#include "ui_lyrics_externalwindow.h"
 #include "ui_lyrics_panel.h"
 
 #include "timer_block.h"
