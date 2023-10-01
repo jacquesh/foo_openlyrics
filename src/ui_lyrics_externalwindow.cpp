@@ -654,7 +654,10 @@ void ExternalLyricWindow::DrawTimestampedLyrics(D2DTextRenderContext& render)
 void ExternalLyricWindow::OnWindowDestroy()
 {
     LyricPanel::OnWindowDestroy();
-    cfg_external_window_was_open = 0;
+    if(!core_api::is_shutting_down())
+    {
+        cfg_external_window_was_open = 0;
+    }
 
     m_swap_chain = nullptr;
     m_d3d_device = nullptr;
