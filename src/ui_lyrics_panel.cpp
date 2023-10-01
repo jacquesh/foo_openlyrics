@@ -131,6 +131,16 @@ void LyricPanel::compute_background_image()
 
     CRect client_rect;
     WIN32_OP_D(GetClientRect(&client_rect))
+    if((client_rect.Width() == 0) || (client_rect.Height() == 0))
+    {
+        // This happens, for example, when we minimize the external window.
+        // In that case there's no point re-computing the (now empty) background.
+        // If we keep the original image around then it'll still be here when we
+        // maximise again.
+        LOG_INFO("Ignoring request to compute zero-size background image");
+        return;
+    }
+
     Image bg_colour = {};
     switch(preferences::background::fill_type())
     {

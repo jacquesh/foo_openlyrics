@@ -51,7 +51,7 @@ class ExternalLyricWindow : public LyricPanel
 public:
     ExternalLyricWindow();
     void SetUp();
-    void SetUpDX();
+    void SetUpDX(bool force);
 
     LRESULT OnWindowCreate(LPCREATESTRUCT) override;
     void OnWindowDestroy() override;
@@ -136,8 +136,26 @@ void ExternalLyricWindow::SetUp()
     // TODO: Load existing lyrics!
 }
 
-void ExternalLyricWindow::SetUpDX()
+void ExternalLyricWindow::SetUpDX(bool force)
 {
+    TIME_FUNCTION();
+
+    CRect rect = {};
+    GetClientRect(&rect);
+    if(m_d2d_bitmap != nullptr)
+    {
+        const D2D1_SIZE_U current_size = m_d2d_bitmap->GetPixelSize();
+        const bool size_changed = (m_d2d_bitmap == nullptr)
+            || (current_size.width != UINT(rect.Width()))
+            || (current_size.height != UINT(rect.Height()));
+        const bool is_empty = ((rect.Width() == 0) || (rect.Height() == 0));
+        if(!force && (!size_changed || is_empty))
+        {
+            LOG_INFO("DirectX target size has not changed and setup was not forced, skipping setup...");
+            return;
+        }
+    }
+
     m_swap_chain.Reset();
     m_d3d_device.Reset();
     m_d2d_device.Reset();
@@ -201,9 +219,6 @@ void ExternalLyricWindow::SetUpDX()
             return;
         }
 
-        RECT rect = {};
-        GetClientRect(&rect);
-
         DXGI_SWAP_CHAIN_DESC1 description = {};
         description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
         description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -211,8 +226,8 @@ void ExternalLyricWindow::SetUpDX()
         description.BufferCount = 2;
         description.SampleDesc.Count = 1;
         description.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
-        description.Width  = UINT(rect.right - rect.left);
-        description.Height = UINT(rect.bottom - rect.top);
+        description.Width  = UINT(rect.Width());
+        description.Height = UINT(rect.Height());
 
         if((description.Width == 0) || (description.Height == 0))
         {
@@ -656,7 +671,7 @@ LRESULT ExternalLyricWindow::OnWindowCreate(LPCREATESTRUCT params)
 {
     cfg_external_window_was_open = 1;
 
-    SetUpDX(); // TODO: This is kinda silly because we're going to immediately call this again after we return in the on_resize callback
+    SetUpDX(false); // TODO: This is kinda silly because we're going to immediately call this again after we return in the on_resize callback
     return LyricPanel::OnWindowCreate(params);
 }
 
@@ -669,7 +684,7 @@ void ExternalLyricWindow::OnWindowMove(CPoint new_origin)
 
 void ExternalLyricWindow::OnWindowResize(UINT request_type, CSize new_size)
 {
-    SetUpDX();
+    SetUpDX(false);
     LyricPanel::OnWindowResize(request_type, new_size);
     Invalidate();
 
@@ -679,6 +694,17 @@ void ExternalLyricWindow::OnWindowResize(UINT request_type, CSize new_size)
 
 void ExternalLyricWindow::OnPaint(CDCHandle)
 {
+    // Tell GDI that we've redrawn the window.
+    // We do this here because even if drawing fails below, we don't want to keep getting
+    // called to redraw. It failed once it will almost certainly fail next time too.
+    ValidateRect(nullptr);
+
+    if(IsIconic())
+    {
+        // The window is minimized, don't bother drawing
+        return;
+    }
+
     if(m_search_pending)
     {
         m_search_pending = false;
@@ -711,14 +737,8 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         LyricUpdateQueue::check_for_available_updates();
     }
 
-    // Tell GDI that we've redrawn the window.
-    // We do this here because even if drawing fails below, we don't want to keep getting
-    // called to redraw. It failed once it will almost certainly fail next time too.
-    ValidateRect(nullptr);
-
     if(m_d2d_dc == nullptr)
     {
-        LOG_WARN("No D2D device context is available. Nothing will be drawn.");
         return;
     }
     D2DTextRenderContext render = {};
@@ -846,13 +866,13 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
 
         if(m_d2d_albumart_bitmap != nullptr)
         {
-            // render.device->DrawBitmap(
-            //         m_d2d_albumart_bitmap.Get(),
-            //         nullptr, // rectangle,
-            //         1.0f, // opacity,
-            //         D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-            //         nullptr //source_rectangle
-            //         );
+            render.device->DrawBitmap(
+                    m_d2d_albumart_bitmap.Get(),
+                    nullptr, // rectangle,
+                    1.0f, // opacity,
+                    D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+                    nullptr //source_rectangle
+                    );
         }
 
         if(m_lyrics.IsEmpty())
@@ -873,7 +893,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         if(end_result == D2DERR_RECREATE_TARGET)
         {
             LOG_INFO("Draw failed with a request to recreate the render target");
-            SetUpDX();
+            SetUpDX(true);
         }
         else if(end_result != S_OK)
         {
@@ -886,7 +906,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         if(!HR_SUCCESS(m_swap_chain->Present(sync, flags)))
         {
             LOG_WARN("DirectX Present failed, reinitializing...");
-            SetUpDX();
+            SetUpDX(true);
         }
     }
 }
@@ -900,6 +920,12 @@ void ExternalLyricWindow::compute_background_image()
 {
     LyricPanel::compute_background_image();
     m_d2d_albumart_bitmap.Reset();
+
+    if(m_d2d_dc == nullptr)
+    {
+        LOG_INFO("No Direct2D context available, skipping background image recompute");
+        return;
+    }
 
     bool success = true;
     Microsoft::WRL::ComPtr<IWICImagingFactory> wic_factory = nullptr;
