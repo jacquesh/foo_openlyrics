@@ -25,16 +25,21 @@
 #include "win32_util.h"
 
 namespace {
-    static const UINT_PTR PANEL_UPDATE_TIMER = 2304692;
+    // NOTE: This needs to be stored per-instance so that they all have their own
+    //       timers, and stopping/starting doesn't fail when they conflict
+    //       (e.g by having several panels all try to stop the same timer).
+    static UINT_PTR PANEL_UPDATE_TIMER = 2304692;
 
     static std::vector<LyricPanel*> g_active_panels;
 }
 
 LyricPanel::LyricPanel() :
+    m_panel_update_timer(PANEL_UPDATE_TIMER),
     m_now_playing(nullptr),
     m_update_handles(),
     m_lyrics()
 {
+    PANEL_UPDATE_TIMER++;
 }
 
 void LyricPanel::on_album_art_retrieved(album_art_data::ptr art_data)
@@ -1359,8 +1364,8 @@ void LyricPanel::StartTimer()
     if (m_timerRunning) return;
     m_timerRunning = true;
 
-    UINT_PTR result = SetTimer(PANEL_UPDATE_TIMER, 16, nullptr);
-    if (result != PANEL_UPDATE_TIMER)
+    UINT_PTR result = SetTimer(m_panel_update_timer, 16, nullptr);
+    if (result != m_panel_update_timer)
     {
         LOG_WARN("Unexpected timer result when starting playback timer");
     }
@@ -1371,7 +1376,7 @@ void LyricPanel::StopTimer()
     if (!m_timerRunning) return;
     m_timerRunning = false;
 
-    WIN32_OP(KillTimer(PANEL_UPDATE_TIMER))
+    WIN32_OP(KillTimer(m_panel_update_timer))
 }
 
 void LyricPanel::InitiateLyricSearch()

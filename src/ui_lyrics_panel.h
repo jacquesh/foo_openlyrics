@@ -90,6 +90,7 @@ private:
     abort_callback_impl m_child_abort;
 
     bool m_timerRunning = false;
+    UINT_PTR m_panel_update_timer;
 
 protected: // TODO: These two are only protected to support the external window
     metadb_handle_ptr m_now_playing;
