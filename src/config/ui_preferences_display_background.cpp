@@ -26,6 +26,7 @@ static const GUID GUID_CFG_BACKGROUND_GRADIENT_BL = { 0x1d5eec1c, 0x4981, 0x4b20
 static const GUID GUID_CFG_BACKGROUND_GRADIENT_BR = { 0x3c71b4fa, 0xe5a4, 0x46c6, { 0x92, 0x5c, 0xb2, 0xa, 0x3f, 0x3, 0x10, 0xc } };
 static const GUID GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO = { 0xb031bbce, 0xdb0c, 0x468f, { 0x9f, 0x64, 0xf1, 0xe8, 0xd, 0x5f, 0x2, 0x3c } };
 static const GUID GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH = { 0xc8ef264b, 0xa679, 0x4a63, { 0x99, 0x6, 0xc2, 0x5b, 0xff, 0x49, 0xe, 0x86 } };
+static const GUID GUID_CFG_BACKGROUND_EXTERNALWIN_OPACITY = { 0xd7937a05, 0xbf33, 0x4647, { 0x8b, 0x24, 0xf4, 0x88, 0xb6, 0xc0, 0xca, 0x76 } };
 
 static const COLORREF cfg_background_colour_default = RGB(255,255,255);
 static const COLORREF cfg_background_gradient_tl_default = RGB( 11, 145, 255);
@@ -58,6 +59,7 @@ static cfg_auto_ranged_int                     cfg_background_image_opacity(GUID
 static cfg_auto_int                            cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS, IDC_BACKGROUND_BLUR_EDIT, 6);
 static cfg_auto_bool                           cfg_background_maintain_img_aspect_ratio(GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, true);
 static cfg_auto_string                         cfg_background_custom_img_path(GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH, IDC_BACKGROUND_CUSTOM_IMG_PATH, "");
+static cfg_auto_bool                           cfg_background_externalwin_opaque(GUID_CFG_BACKGROUND_EXTERNALWIN_OPACITY , IDC_BACKGROUND_EXTWIN_OPAQUE, false);
 
 static cfg_auto_property* g_display_auto_properties[] =
 {
@@ -72,6 +74,7 @@ static cfg_auto_property* g_display_auto_properties[] =
     &cfg_background_blur_radius,
     &cfg_background_maintain_img_aspect_ratio,
     &cfg_background_custom_img_path,
+    &cfg_background_externalwin_opaque,
 };
 
 //
@@ -134,6 +137,15 @@ std::string preferences::background::custom_image_path()
     return std::string(result.c_str(), result.length());
 }
 
+float preferences::background::external_window_opacity()
+{
+    if(cfg_background_externalwin_opaque.get_value())
+    {
+        return 1.0f;
+    }
+    return 0.0f;
+}
+
 //
 // Preference page UI
 //
@@ -167,6 +179,7 @@ public:
         COMMAND_HANDLER_EX(IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_BROWSE, BN_CLICKED, OnCustomImageBrowse)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_PATH, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_BACKGROUND_EXTWIN_OPAQUE, BN_CLICKED, OnUIChange)
         MSG_WM_HSCROLL(OnSliderMoved)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
     END_MSG_MAP()

@@ -176,6 +176,8 @@ BEGIN
     GROUPBOX        "Custom solid colour",IDC_STATIC,6,42,152,55
     GROUPBOX        "Background Image",IDC_STATIC,0,114,323,127
     GROUPBOX        "Background colour",IDC_STATIC,0,0,323,100
+    CONTROL         "External window background opaque",IDC_BACKGROUND_EXTWIN_OPAQUE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,249,134,10
 END
 
 

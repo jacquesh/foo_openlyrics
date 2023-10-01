@@ -924,7 +924,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
             render.device->DrawBitmap(
                     m_d2d_albumart_bitmap.Get(),
                     nullptr, // rectangle,
-                    1.0f, // opacity,
+                    preferences::background::external_window_opacity(),
                     D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
                     nullptr //source_rectangle
                     );
