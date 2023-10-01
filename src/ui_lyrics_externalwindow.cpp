@@ -148,7 +148,7 @@ void ExternalLyricWindow::SetUp()
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error, 0, errorMsgBuffer, sizeof(errorMsgBuffer), nullptr);
             return errorMsgBuffer;
         };
-        LOG_WARN("Failed to set window to always-on-top: %d/%s", GetLastError(), GetLastErrorString());
+        LOG_WARN("Failed to set window to always-on-top: 0x%x/%s", GetLastError(), GetLastErrorString());
     }
     ShowWindow(SW_SHOW);
 
@@ -190,7 +190,7 @@ void ExternalLyricWindow::SetUpDX(bool force)
     // Approach to pixel-perfect window transparency adapted from: https://learn.microsoft.com/en-us/archive/msdn-magazine/2014/june/windows-with-c-high-performance-window-layering-using-the-windows-composition-engine
     const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0};
     UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#ifndef _NDEBUG
+#ifndef NDEBUG
     flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -209,12 +209,12 @@ void ExternalLyricWindow::SetUpDX(bool force)
                                            nullptr);
         if((result == S_OK) && (m_d3d_device.Get() != nullptr))
         {
-            LOG_INFO("Successfully created D3D device using driver type %d", int(driver_type));
+            LOG_INFO("Successfully created D3D device using driver type 0x%x", int(driver_type));
             break;
         }
         else
         {
-            LOG_WARN("Failed to create D3D device using driver type %d: %u", int(driver_type), uint32_t(result));
+            LOG_WARN("Failed to create D3D device using driver type 0x%x: 0x%x", int(driver_type), uint32_t(result));
         }
     }
     if(m_d3d_device == nullptr)
@@ -605,7 +605,7 @@ void ExternalLyricWindow::DrawUntimedLyrics(LyricData& lyrics, D2DTextRenderCont
         int wrapped_line_height = DrawWrappedLyricLine(render, canvas_size, line.text, origin_y);
         if(wrapped_line_height <= 0)
         {
-            LOG_WARN("Failed to draw unsynced text: %d", GetLastError());
+            LOG_WARN("Failed to draw unsynced text: 0x%x", GetLastError());
             break;
         }
         origin_y += wrapped_line_height;
@@ -952,7 +952,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         }
         else if(end_result != S_OK)
         {
-            LOG_WARN("Failed to draw unsynced lyrics: %d", int(end_result));
+            LOG_WARN("Failed to draw unsynced lyrics: 0x%x", uint32_t(end_result));
             StopTimer();
         }
 
