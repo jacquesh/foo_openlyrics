@@ -50,6 +50,7 @@ class ExternalLyricWindow : public LyricPanel
 {
 public:
     ExternalLyricWindow();
+    ~ExternalLyricWindow() override;
     void SetUp();
     void SetUpDX(bool force);
 
@@ -67,6 +68,8 @@ private:
     void DrawNoLyrics(D2DTextRenderContext& render);
     void DrawUntimedLyrics(LyricData& lyrics, D2DTextRenderContext& render);
     void DrawTimestampedLyrics(D2DTextRenderContext& render);
+
+    HMODULE m_direct_composition = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swap_chain = nullptr;
     Microsoft::WRL::ComPtr<ID3D11Device> m_d3d_device = nullptr;
@@ -87,13 +90,32 @@ ExternalLyricWindow::ExternalLyricWindow()
     : LyricPanel()
 {
     metrics::log_used_external_window();
+
+    // NOTE: We manually load this because it's only available from Windows 8 onwards
+    //       and fb2k supports Windows 7. It's only required for the transparent window
+    //       background, and we'd rather not make all of openlyrics unavailable to the
+    //       few remaining Win7 users just for that. So we load it dynamically at
+    //       runtime and just don't support transparent backgrounds on Win7.
+    //       If we later drop support for Win7, we can remove all of this and link
+    //       to DirectComposition at compile time.
+    m_direct_composition = LoadLibrary(_T("Dcomp.dll"));
 }
+
+ExternalLyricWindow::~ExternalLyricWindow()
+{
+    if(m_direct_composition != nullptr)
+    {
+        FreeLibrary(m_direct_composition);
+        m_direct_composition = nullptr;
+    }
+}
+
 void ExternalLyricWindow::SetUp()
 {
     const HWND parent = nullptr;
     const TCHAR* window_name = _T("OpenLyrics external window");
     const DWORD style = WS_OVERLAPPEDWINDOW;
-    const DWORD ex_style = WS_EX_NOREDIRECTIONBITMAP;
+    const DWORD ex_style = (m_direct_composition == nullptr) ? 0 : WS_EX_NOREDIRECTIONBITMAP;
 
     // NOTE: We specifically need to exclude the WS_VISIBLE style (which causes the window
     //       to be created already-visible) because including it results in ColumnsUI
@@ -222,10 +244,8 @@ void ExternalLyricWindow::SetUpDX(bool force)
         DXGI_SWAP_CHAIN_DESC1 description = {};
         description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
         description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         description.BufferCount = 2;
         description.SampleDesc.Count = 1;
-        description.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
         description.Width  = UINT(rect.Width());
         description.Height = UINT(rect.Height());
 
@@ -235,14 +255,36 @@ void ExternalLyricWindow::SetUpDX(bool force)
             return;
         }
 
-        if(!HR_SUCCESS(dxgi_factory->CreateSwapChainForComposition(
-                        dxgi_device.Get(),
-                        &description,
-                        nullptr,
-                        m_swap_chain.GetAddressOf())))
+        if(m_direct_composition == nullptr)
         {
-            LOG_ERROR("Failed to create DirectX swap chain. Unable to draw lyric panel");
-            return;
+            description.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+            description.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+            if(!HR_SUCCESS(dxgi_factory->CreateSwapChainForHwnd(
+                            dxgi_device.Get(),
+                            m_hWnd,
+                            &description,
+                            nullptr,
+                            nullptr,
+                            m_swap_chain.GetAddressOf()
+                            )))
+            {
+                LOG_ERROR("Failed to create DirectX swap chain for window. Unable to draw lyric panel");
+                return;
+            }
+        }
+        else
+        {
+            description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+            description.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+            if(!HR_SUCCESS(dxgi_factory->CreateSwapChainForComposition(
+                            dxgi_device.Get(),
+                            &description,
+                            nullptr,
+                            m_swap_chain.GetAddressOf())))
+            {
+                LOG_ERROR("Failed to create DirectX swap chain for composition. Unable to draw lyric panel");
+                return;
+            }
         }
     }
 
@@ -260,16 +302,24 @@ void ExternalLyricWindow::SetUpDX(bool force)
         return;
     }
 
-    // Create DirectComposition device for composing the swapchain into our window
     bool success = true;
-    success = success && HR_SUCCESS(DCompositionCreateDevice(dxgi_device.Get(),
-                __uuidof(m_dcomp_device), // TODO: Define our own IID GUID for this?
-                (void **)m_dcomp_device.GetAddressOf()));
-    success = success && HR_SUCCESS(m_dcomp_device->CreateTargetForHwnd(m_hWnd, true, m_dcomp_target.GetAddressOf()));
-    success = success && HR_SUCCESS(m_dcomp_device->CreateVisual(m_dcomp_visual.GetAddressOf()));
-    success = success && HR_SUCCESS(m_dcomp_visual->SetContent(m_swap_chain.Get()));
-    success = success && HR_SUCCESS(m_dcomp_target->SetRoot(m_dcomp_visual.Get()));
-    success = success && HR_SUCCESS(m_dcomp_device->Commit());
+    if(m_direct_composition != nullptr)
+    {
+        HRESULT (STDAPICALLTYPE *MyDCompositionCreateDevice)(IDXGIDevice *dxgiDevice, REFIID iid, void **dcompositionDevice) = nullptr;
+        FARPROC dcomp_create_device_proc = GetProcAddress(m_direct_composition, "DCompositionCreateDevice");
+        MyDCompositionCreateDevice = (HRESULT (STDAPICALLTYPE*)(IDXGIDevice *dxgiDevice, REFIID iid, void **dcompositionDevice))dcomp_create_device_proc;
+        success = success && (MyDCompositionCreateDevice != nullptr);
+
+        // Create DirectComposition device for composing the swapchain into our window
+        success = success && HR_SUCCESS(MyDCompositionCreateDevice(dxgi_device.Get(),
+                    __uuidof(m_dcomp_device),
+                    (void **)m_dcomp_device.GetAddressOf()));
+        success = success && HR_SUCCESS(m_dcomp_device->CreateTargetForHwnd(m_hWnd, true, m_dcomp_target.GetAddressOf()));
+        success = success && HR_SUCCESS(m_dcomp_device->CreateVisual(m_dcomp_visual.GetAddressOf()));
+        success = success && HR_SUCCESS(m_dcomp_visual->SetContent(m_swap_chain.Get()));
+        success = success && HR_SUCCESS(m_dcomp_target->SetRoot(m_dcomp_visual.Get()));
+        success = success && HR_SUCCESS(m_dcomp_device->Commit());
+    }
     if(!success)
     {
         LOG_ERROR("Failed to setup the required DirectComposition infrastructure. Unable to draw the lyric panel");
@@ -279,7 +329,14 @@ void ExternalLyricWindow::SetUpDX(bool force)
     if(HR_SUCCESS(m_d2d_device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, m_d2d_dc.GetAddressOf())))
     {
         D2D1_BITMAP_PROPERTIES1 properties = {};
-        properties.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+        if(m_direct_composition == nullptr)
+        {
+            properties.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
+        }
+        else
+        {
+            properties.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+        }
         properties.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
         properties.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
 
@@ -466,11 +523,6 @@ void ExternalLyricWindow::DrawNoLyrics(D2DTextRenderContext& render)
     }
 
     const D2D1_SIZE_F canvas_size = render.device->GetSize();
-
-    // TODO: If we make this text configurable in future and we want to also show some text
-    //       telling you that it didn't search because nothing was found, look into:
-    //       metadb.h (in foo_SDK) -> metadb_display_field_provider
-    //       which exists to let you hook into the title format process and add new fields.
 
     std::string artist = track_metadata(m_now_playing_info, "artist");
     std::string album = track_metadata(m_now_playing_info, "album");
