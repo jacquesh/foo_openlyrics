@@ -31,12 +31,12 @@ namespace {
     static UINT_PTR PANEL_UPDATE_TIMER = 2304692;
 
     static std::vector<LyricPanel*> g_active_panels;
+    static std::vector<std::unique_ptr<LyricUpdateHandle>> g_update_handles;
 }
 
 LyricPanel::LyricPanel() :
     m_panel_update_timer(PANEL_UPDATE_TIMER),
     m_now_playing(nullptr),
-    m_update_handles(),
     m_lyrics()
 {
     PANEL_UPDATE_TIMER++;
@@ -327,7 +327,6 @@ void LyricPanel::OnWindowDestroy()
 
     // Cancel and clean up any pending updates
     m_child_abort.abort();
-    m_update_handles.clear();
 
     auto panel_iter = std::find(g_active_panels.begin(), g_active_panels.end(), this);
     assert(panel_iter != g_active_panels.end());
@@ -645,27 +644,11 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
         origin.y += DrawWrappedLyricLine(dc, client_rect, title_line, origin);
     }
 
-    if(!m_update_handles.empty())
+    std::optional<std::string> progress_msg = LyricUpdateQueue::get_progress_message();
+    if(progress_msg.has_value())
     {
-        bool is_search = false;
-        std::string progress_msg;
-        for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
-        {
-            if((update != nullptr) &&
-                (update->get_type() == LyricUpdateHandle::Type::AutoSearch) &&
-                (update->get_track() == m_now_playing))
-            {
-                progress_msg = update->get_progress();
-                is_search = true;
-                break;
-            }
-        }
-
-        if(is_search)
-        {
-            std::tstring progress_text = to_tstring(progress_msg);
-            origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
-        }
+        std::tstring progress_text = to_tstring(progress_msg.value());
+        origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
     }
 
     if(m_auto_search_avoided)
@@ -849,7 +832,10 @@ void LyricPanel::OnPaint(CDCHandle)
             //       again at least once, possibly finding something if there are new active sources.
             if(search_avoidance_allows_search(m_now_playing))
             {
-                InitiateLyricSearch();
+                if(should_panel_search(this))
+                {
+                    InitiateLyricSearch();
+                }
             }
             else
             {
@@ -861,28 +847,9 @@ void LyricPanel::OnPaint(CDCHandle)
         }
     }
 
-    for(auto iter=m_update_handles.begin(); iter!=m_update_handles.end(); /*omitted*/)
+    if(should_panel_search(this))
     {
-        std::unique_ptr<LyricUpdateHandle>& update = *iter;
-        if(update->has_result())
-        {
-            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(*update);
-
-            if((maybe_lyrics.has_value()) && (update->get_track() == m_now_playing))
-            {
-                m_lyrics = std::move(maybe_lyrics.value());
-                m_auto_search_avoided = false;
-            }
-        }
-
-        if(update->is_complete())
-        {
-            iter = m_update_handles.erase(iter);
-        }
-        else
-        {
-            ++iter;
-        }
+        LyricUpdateQueue::check_for_available_updates();
     }
 
     // As suggested in this article: https://docs.microsoft.com/en-us/previous-versions/ms969905(v=msdn.10)
@@ -1084,7 +1051,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
                 auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_now_playing_info, m_child_abort);
                 SpawnManualLyricSearch(m_hWnd, *update);
-                m_update_handles.push_back(std::move(update));
+                LyricUpdateQueue::add_handle(std::move(update));
             } break;
 
             case ID_SAVE_LYRICS:
@@ -1119,7 +1086,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
                 auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
                 SpawnLyricEditor(m_hWnd, m_lyrics, *update);
-                m_update_handles.push_back(std::move(update));
+                LyricUpdateQueue::add_handle(std::move(update));
             } break;
 
             case ID_OPEN_FILE_DIR:
@@ -1318,7 +1285,7 @@ void LyricPanel::OnDoubleClick(UINT /*virtualKeys*/, CPoint /*cursorPos*/)
 
     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
     SpawnLyricEditor(m_hWnd, m_lyrics, *update);
-    m_update_handles.push_back(std::move(update));
+    LyricUpdateQueue::add_handle(std::move(update));
 }
 
 LRESULT LyricPanel::OnMouseWheel(UINT /*virtualKeys*/, short rotation, CPoint /*point*/)
@@ -1386,7 +1353,7 @@ void LyricPanel::InitiateLyricSearch()
 
     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
     io::search_for_lyrics(*update, false);
-    m_update_handles.push_back(std::move(update));
+    LyricUpdateQueue::add_handle(std::move(update));
 }
 
 // (Attempt to) Compute the current playback time and duration for the currently-playing track.
@@ -1413,6 +1380,72 @@ LyricPanel::PlaybackTimeInfo LyricPanel::get_playback_time()
     }
 
     return result;
+}
+
+void LyricPanel::LyricUpdateQueue::add_handle(std::unique_ptr<LyricUpdateHandle> handle)
+{
+    core_api::ensure_main_thread();
+
+    g_update_handles.push_back(std::move(handle));
+}
+
+void LyricPanel::LyricUpdateQueue::check_for_available_updates()
+{
+    core_api::ensure_main_thread();
+
+    metadb_handle_ptr now_playing = nullptr;
+    service_ptr_t<playback_control> playback = playback_control::get();
+    playback->get_now_playing(now_playing);
+
+    const auto is_complete = [now_playing](const std::unique_ptr<LyricUpdateHandle>& update)
+    {
+        if(update->has_result())
+        {
+            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(*update);
+
+            if((maybe_lyrics.has_value()) && (update->get_track() == now_playing))
+            {
+                for(LyricPanel* panel : g_active_panels)
+                {
+                    assert(panel != nullptr);
+                    panel->m_lyrics = maybe_lyrics.value();
+                    panel->m_auto_search_avoided = false;
+                    ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
+                }
+            }
+        }
+
+        return update->is_complete();
+    };
+    auto new_end = std::remove_if(g_update_handles.begin(),
+                                  g_update_handles.end(),
+                                  is_complete);
+    g_update_handles.erase(new_end, g_update_handles.end());
+}
+
+std::optional<std::string> LyricPanel::LyricUpdateQueue::get_progress_message()
+{
+    core_api::ensure_main_thread();
+
+    metadb_handle_ptr now_playing = nullptr;
+    service_ptr_t<playback_control> playback = playback_control::get();
+    const bool has_now_playing = playback->get_now_playing(now_playing);
+
+    if(has_now_playing)
+    {
+        for(std::unique_ptr<LyricUpdateHandle>& update : g_update_handles)
+        {
+            if((update != nullptr) &&
+                (update->get_type() == LyricUpdateHandle::Type::AutoSearch) &&
+                (update->get_track() == now_playing))
+            {
+                const std::string progress_msg = update->get_progress();
+                return std::move(progress_msg);
+            }
+        }
+    }
+
+    return {};
 }
 
 size_t num_lyric_panels()
@@ -1447,30 +1480,7 @@ void register_update_handle_with_lyric_panels(std::unique_ptr<LyricUpdateHandle>
         }
         else
         {
-            if(g_active_panels.size() > 1)
-            {
-                // We're going to ignore all of them except the first one
-                service_ptr_t<playback_control> playback = playback_control::get();
-                metadb_handle_ptr now_playing;
-                bool now_playing_success = playback->get_now_playing(now_playing);
-
-                // If a different track is playing then it doesn't matter. The update will be saved
-                // and the panel would not have changed anyway.
-                if(!now_playing_success || (now_playing == update->get_track()))
-                {
-                    popup_message_v3::query_t query = {};
-                    query.title = "Multiple OpenLyrics lyric panels";
-                    query.msg = "There are multiple OpenLyrics lyric panels on the UI. Only one of them will automatically update with your edited or downloaded lyrics. You can update the others by playing a new track or by requesting a search on each one.";
-                    query.buttons = popup_message_v3::buttonOK;
-                    query.icon = popup_message_v3::iconWarning;
-                    popup_message_v3::get()->show_query_modal(query);
-                }
-            }
-
-            LyricPanel* panel = g_active_panels[0];
-            assert(panel != nullptr);
-
-            panel->m_update_handles.push_back(std::move(update));
+            LyricPanel::LyricUpdateQueue::add_handle(std::move(update));
         }
     });
 }
@@ -1510,4 +1520,33 @@ void recompute_lyric_panel_backgrounds()
             panel->compute_background_image();
         }
     });
+}
+
+bool should_panel_search(const LyricPanel* panel)
+{
+    if(panel == nullptr)
+    {
+        // It doesn't even make sense to search from a null panel.
+        // Also guards against null references below.
+        return false;
+    }
+
+    assert(!g_active_panels.empty());
+    if(g_active_panels.empty())
+    {
+        LOG_WARN("Attempt to check if a panel should search when there are no known lyric panels. It will not search.");
+        return false;
+    }
+
+    const LyricPanel* external_window = get_external_lyric_window();
+    const bool is_primary = (panel == g_active_panels[0]);
+    const bool is_external = (panel == external_window);
+    if(external_window != nullptr)
+    {
+        return is_external;
+    }
+    else
+    {
+        return is_primary;
+    }
 }

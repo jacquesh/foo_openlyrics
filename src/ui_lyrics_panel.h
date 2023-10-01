@@ -47,7 +47,6 @@ protected:
 
     virtual bool is_panel_ui_in_edit_mode() = 0;
 
-    std::vector<std::unique_ptr<LyricUpdateHandle>> m_update_handles;
     void on_album_art_retrieved(album_art_data::ptr art_data);
 
 private:
@@ -76,9 +75,9 @@ private:
     void DrawUntimedLyrics(HDC dc, CRect client_area);
     void DrawTimestampedLyrics(HDC dc, CRect client_area);
 
+protected: // TODO: Only protected to support the external window
     void InitiateLyricSearch();
 
-protected: // TODO: Only protected to support the external window
     struct PlaybackTimeInfo
     {
         double current_time;
@@ -99,8 +98,8 @@ private:
     double m_now_playing_time_offset = 0.0;
 protected: // TODO: Only protected to support the external window
     LyricData m_lyrics;
-private:
     bool m_search_pending = false;
+private:
     bool m_auto_search_avoided = false;
     uint64_t m_auto_search_avoided_timestamp = 0;
 
@@ -115,4 +114,17 @@ private:
     Image m_custom_img_original = {};
 protected: // TODO: Only protected to support the external window
     Image m_background_img = {};
+
+public: // TODO: This need not be in a header at all, but we need it in the external window because it completely re-implements OnPaint
+    class LyricUpdateQueue
+    {
+    public:
+        static void add_handle(std::unique_ptr<LyricUpdateHandle> handle);
+        static void check_for_available_updates();
+        static std::optional<std::string> get_progress_message();
+
+    private:
+        LyricUpdateQueue() = delete;
+        ~LyricUpdateQueue() = delete;
+    };
 };

@@ -13,6 +13,7 @@
 
 #include "logging.h"
 #include "math_util.h"
+#include "metadb_index_search_avoidance.h"
 #include "metrics.h"
 #include "preferences.h"
 #include "ui_hooks.h"
@@ -499,27 +500,11 @@ void ExternalLyricWindow::DrawNoLyrics(D2DTextRenderContext& render)
         origin_y += DrawWrappedLyricLine(render, canvas_size, title_line, origin_y);
     }
 
-    if(!m_update_handles.empty())
+    std::optional<std::string> progress_msg = LyricUpdateQueue::get_progress_message();
+    if(progress_msg.has_value())
     {
-        bool is_search = false;
-        std::string progress_msg;
-        for(std::unique_ptr<LyricUpdateHandle>& update : m_update_handles)
-        {
-            if((update != nullptr) &&
-                (update->get_type() == LyricUpdateHandle::Type::AutoSearch) &&
-                (update->get_track() == m_now_playing))
-            {
-                progress_msg = update->get_progress();
-                is_search = true;
-                break;
-            }
-        }
-
-        if(is_search)
-        {
-            std::tstring progress_text = to_tstring(progress_msg);
-            origin_y += DrawWrappedLyricLine(render, canvas_size, progress_text, origin_y);
-        }
+        std::tstring progress_text = to_tstring(progress_msg.value());
+        origin_y += DrawWrappedLyricLine(render, canvas_size, progress_text, origin_y);
     }
 }
 
@@ -694,27 +679,36 @@ void ExternalLyricWindow::OnWindowResize(UINT request_type, CSize new_size)
 
 void ExternalLyricWindow::OnPaint(CDCHandle)
 {
-    // TODO: This is slimmed down, don't keep this. Use the one from ui_lyrics_panel
-    for(auto iter=m_update_handles.begin(); iter!=m_update_handles.end(); /*omitted*/)
+    if(m_search_pending)
     {
-        std::unique_ptr<LyricUpdateHandle>& update = *iter;
-        if(update->has_result())
+        m_search_pending = false;
+
+        // We need to check that there is a now-playing track still.
+        // There might not be one if a new track started while fb2k was minimised (so we don't repaint) and then playback stopped before fb2k got maximised again.
+        // In that case we'd previously try to use m_now_playing to power the search & search-avoidance and would crash.
+        if(m_now_playing != nullptr)
         {
-            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(*update);
-            if((maybe_lyrics.has_value()))
+            // NOTE: We also track a generation counter that increments every time you change the search config
+            //       so that if you don't find lyrics with some active sources and then add more, it'll search
+            //       again at least once, possibly finding something if there are new active sources.
+            if(search_avoidance_allows_search(m_now_playing))
             {
-                m_lyrics = std::move(maybe_lyrics.value());
+                if(should_panel_search(this))
+                {
+                    InitiateLyricSearch();
+                }
+            }
+            else
+            {
+                LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
+                m_lyrics = {};
             }
         }
+    }
 
-        if(update->is_complete())
-        {
-            iter = m_update_handles.erase(iter);
-        }
-        else
-        {
-            ++iter;
-        }
+    if(should_panel_search(this))
+    {
+        LyricUpdateQueue::check_for_available_updates();
     }
 
     // Tell GDI that we've redrawn the window.
@@ -944,6 +938,17 @@ void show_external_lyric_window()
     {
         g_external_window->SetUp();
     }
+}
+
+LyricPanel* get_external_lyric_window()
+{
+    if((g_external_window != nullptr)
+        && g_external_window->IsWindow())
+    {
+        return g_external_window;
+    }
+
+    return nullptr;
 }
 
 class ExternalWindowLifetimeWarden : public initquit
