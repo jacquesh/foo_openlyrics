@@ -998,6 +998,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             ID_AUTO_FIX_MALFORMED_TIMESTAMPS,
             ID_AUTO_REMOVE_TIMESTAMPS,
             ID_DELETE_CURRENT_LYRICS,
+            ID_OPEN_EXTERNAL_WINDOW,
             ID_CMD_COUNT,
         };
 
@@ -1023,6 +1024,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
         AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_edit.m_hMenu, _T("Auto-edit lyrics"));
+        AppendMenu(menu, MF_STRING, ID_OPEN_EXTERNAL_WINDOW, _T("Open external window"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_OPEN_FILE_DIR, _T("Open file location"));
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
@@ -1048,6 +1050,10 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
         switch(cmd)
         {
+            case ID_OPEN_EXTERNAL_WINDOW:
+            {
+                show_external_lyric_window();
+            } break;
             case ID_SEARCH_LYRICS:
             {
                 if(m_now_playing == nullptr) break;
