@@ -215,7 +215,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
 
     std::string apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&commontrack_id=" + std::to_string(track_id) + "&usertoken=";
-    LOG_INFO("Get Musixmatch lyrics lyrics from %s", url.c_str());
+    LOG_INFO("Get Musixmatch lyrics from %s", url.c_str());
     url += apikey; // Add this after logging so we don't log sensitive info
     data.source_path = url;
 
@@ -277,6 +277,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
 
     if(strlen(json_lyricstext->valuestring) == 0)
     {
+        LOG_INFO("Received an empty lyric string from musixmatch, no lyrics will be returned");
         cJSON_Delete(json);
         return false;
     }

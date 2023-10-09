@@ -2,7 +2,7 @@
 
 #include "stdafx.h"
 
-#define TIME_FUNCTION() TimerBlock __function_timer(__FUNCTION__)
+#define TIME_FUNCTION() TimerBlock _openlyrics_function_timer(__FUNCTION__)
 struct TimerBlock
 {
     int64_t m_start;
