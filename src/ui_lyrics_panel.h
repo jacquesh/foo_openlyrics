@@ -32,6 +32,11 @@ protected:
     BEGIN_MSG_MAP_EX(LyricPanel)
         MSG_WM_CREATE(OnWindowCreate)
         MSG_WM_DESTROY(OnWindowDestroy)
+
+        MSG_WM_NCCALCSIZE(OnNonClientCalcSize)
+        MSG_WM_NCHITTEST(OnNonClientHitTest)
+        MSG_WM_MOUSELEAVE(OnMouseLeave)
+
         MSG_WM_MOVE(OnWindowMove)
         MSG_WM_SIZE(OnWindowResize)
         MSG_WM_TIMER(OnTimer)
@@ -55,6 +60,10 @@ protected: // TODO: These 3 are only protected & virtual to support the external
     virtual void OnWindowDestroy();
     virtual void OnWindowMove(CPoint /*new_origin*/) {}
     virtual void OnWindowResize(UINT request_type, CSize new_size);
+    virtual UINT OnNonClientHitTest(CPoint point);
+    virtual LRESULT OnNonClientCalcSize(BOOL calc_valid_rects, LPARAM lparam);
+    virtual void OnMouseLeave() {}
+
 private:
     LRESULT OnTimer(WPARAM);
     virtual void OnPaint(CDCHandle); // TODO: Only virtual to support the external window
@@ -62,9 +71,12 @@ private:
     void OnContextMenu(CWindow window, CPoint point);
     void OnDoubleClick(UINT virtualKeys, CPoint cursorPos);
     LRESULT OnMouseWheel(UINT virtualKeys, short rotation, CPoint point);
-    void OnMouseMove(UINT virtualKeys, CPoint point);
-    void OnLMBDown(UINT virtualKeys, CPoint point);
-    void OnLMBUp(UINT virtualKeys, CPoint point);
+
+protected: // TODO: Only protected to support the external window
+    virtual void OnMouseMove(UINT virtualKeys, CPoint point);
+    virtual void OnLMBDown(UINT virtualKeys, CPoint point);
+    virtual void OnLMBUp(UINT virtualKeys, CPoint point);
+private:
 
     void StartTimer();
 protected: // TODO: Only protected to support the external window

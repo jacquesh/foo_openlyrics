@@ -60,6 +60,12 @@ public:
     void OnWindowDestroy() override;
     void OnWindowMove(CPoint new_origin) override;
     void OnWindowResize(UINT request_type, CSize new_size) override;
+    UINT OnNonClientHitTest(CPoint point) override;
+    LRESULT OnNonClientCalcSize(BOOL calc_valid_rects, LPARAM lparam) override;
+    void OnMouseMove(UINT virtual_keys, CPoint mouse_pos) override;
+    void OnMouseLeave() override;
+    void OnLMBDown(UINT virtual_keys, CPoint point) override;
+    void OnLMBUp(UINT virtual_keys, CPoint point) override;
 
     void OnPaint(CDCHandle) override;
 
@@ -85,6 +91,7 @@ private:
     Microsoft::WRL::ComPtr<ID2D1Bitmap> m_d2d_albumart_bitmap = nullptr;
 
     bool m_mouse_hover = false;
+    CPoint m_last_mouse_pos = {};
 };
 
 static ExternalLyricWindow* g_external_window = nullptr;
@@ -118,7 +125,7 @@ void ExternalLyricWindow::SetUp()
 {
     const HWND parent = nullptr;
     const TCHAR* window_name = _T("OpenLyrics external window");
-    const DWORD style = WS_OVERLAPPEDWINDOW;
+    const DWORD style = WS_POPUP;
     const DWORD ex_style = (m_direct_composition == nullptr) ? 0 : WS_EX_NOREDIRECTIONBITMAP;
 
     // NOTE: We specifically need to exclude the WS_VISIBLE style (which causes the window
@@ -128,7 +135,12 @@ void ExternalLyricWindow::SetUp()
     //       visible after creation, fb2k does this for us already.
     //       See: https://github.com/jacquesh/foo_openlyrics/issues/132
 
-    WIN32_OP(Create(parent, nullptr, window_name, style, ex_style) != NULL)
+    RECT window_rect = {};
+    window_rect.left = cfg_external_window_previous_x.get_value();
+    window_rect.top = cfg_external_window_previous_y.get_value();
+    window_rect.right = window_rect.left + cfg_external_window_previous_size_x.get_value();
+    window_rect.bottom = window_rect.top + cfg_external_window_previous_size_y.get_value();
+    WIN32_OP(Create(parent, &window_rect, window_name, style, ex_style) != NULL)
 
     // NOTE: We need to do this separately because the rect passed to CreateWindow appears
     //       to include the non-client area, whereas all our other measurements are
@@ -136,13 +148,7 @@ void ExternalLyricWindow::SetUp()
     //       CreateWindow then it would create a window that is slightly smaller than we
     //       intended, and that size would be saved so the next window would again be
     //       slightly smaller etc until we have just a thin line for our window.
-    BOOL success = SetWindowPos(
-            HWND_TOPMOST,
-            cfg_external_window_previous_x.get_value(),
-            cfg_external_window_previous_y.get_value(),
-            cfg_external_window_previous_size_x.get_value(),
-            cfg_external_window_previous_size_y.get_value(),
-            SWP_NOMOVE | SWP_NOSIZE);
+    BOOL success = SetWindowPos(HWND_TOPMOST, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
     if(!success)
     {
         const auto GetLastErrorString = []() -> const char*
@@ -750,6 +756,129 @@ void ExternalLyricWindow::OnWindowResize(UINT request_type, CSize new_size)
 
     cfg_external_window_previous_size_x = new_size.cx;
     cfg_external_window_previous_size_y = new_size.cy;
+}
+
+UINT ExternalLyricWindow::OnNonClientHitTest(CPoint point)
+{
+    RECT client_rect;
+    GetClientRect(&client_rect);
+    ScreenToClient(&point);
+
+    const int border_thickness = 4;
+    const bool left = (point.x >= client_rect.left - border_thickness) && (point.x <= client_rect.left + border_thickness);
+    const bool right = (point.x >= client_rect.right - border_thickness) && (point.x <= client_rect.right + border_thickness);
+    bool top = (point.y >= client_rect.top - border_thickness) && (point.y <= client_rect.top + border_thickness);
+    bool bottom = (point.y >= client_rect.bottom - border_thickness) && (point.y <= client_rect.bottom + border_thickness);
+
+    if(top && left) return HTTOPLEFT;
+    if(top && right) return HTTOPRIGHT;
+    if(bottom && left) return HTBOTTOMLEFT;
+    if(bottom && right) return HTBOTTOMRIGHT;
+    if(top) return HTTOP;
+    if(bottom) return HTBOTTOM;
+    if(left) return HTLEFT;
+    if(right) return HTRIGHT;
+
+    return HTCLIENT; // TODO: HTCAPTION?
+}
+
+LRESULT ExternalLyricWindow::OnNonClientCalcSize(BOOL calc_valid_rects, LPARAM lparam)
+{
+    if(!calc_valid_rects)
+    {
+        SetMsgHandled(false);
+        return 0;
+    }
+
+    const int resize_border_x = GetSystemMetrics(SM_CXFRAME);
+    const int resize_border_y = GetSystemMetrics(SM_CYFRAME);
+    const int caption_height = GetSystemMetrics(SM_CYCAPTION);
+    const int padding = GetSystemMetrics(SM_CXPADDEDBORDER);
+    (void)caption_height; // TODO
+
+    NCCALCSIZE_PARAMS* params = (NCCALCSIZE_PARAMS*)lparam;
+    params->rgrc->right -= resize_border_x + padding;
+    params->rgrc->left += resize_border_x + padding;
+    params->rgrc->bottom -= resize_border_y + padding;
+
+    return 0;
+}
+
+void ExternalLyricWindow::OnMouseMove(UINT virtual_keys, CPoint mouse_pos)
+{
+    LyricPanel::OnMouseMove(virtual_keys, mouse_pos);
+
+    if((virtual_keys & MK_LBUTTON) == MK_LBUTTON)
+    {
+        ClientToScreen(&mouse_pos);
+        const int delta_x = mouse_pos.x - m_last_mouse_pos.x;
+        const int delta_y = mouse_pos.y - m_last_mouse_pos.y;
+        m_last_mouse_pos = mouse_pos;
+
+        if((delta_x != 0) || (delta_y != 0))
+        {
+            RECT rect = {};
+            GetWindowRect(&rect);
+            const int new_x = rect.left + delta_x;
+            const int new_y = rect.top + delta_y;
+            BOOL success = SetWindowPos(
+                    HWND_TOPMOST,
+                    new_x,
+                    new_y,
+                    0, // New width
+                    0, // New height
+                    SWP_NOSIZE);
+            if(!success)
+            {
+                LOG_WARN("Failed to set external window position while dragging: 0x%x", GetLastError());
+            }
+        }
+    }
+
+    if(!m_mouse_hover)
+    {
+        Invalidate();
+        m_mouse_hover = true;
+
+        TRACKMOUSEEVENT track = {};
+        track.cbSize = sizeof(track);
+        track.dwFlags = TME_LEAVE;
+        track.hwndTrack = m_hWnd;
+        BOOL success = TrackMouseEvent(&track);
+        if(!success)
+        {
+            LOG_WARN("Failed to request mouse-leave event tracking: %x", GetLastError());
+        }
+    }
+}
+
+void ExternalLyricWindow::OnMouseLeave()
+{
+    m_mouse_hover = false;
+    Invalidate();
+}
+
+void ExternalLyricWindow::OnLMBDown(UINT virtual_keys, CPoint point)
+{
+    LyricPanel::OnLMBDown(virtual_keys, point);
+
+    ClientToScreen(&point);
+    m_last_mouse_pos = point;
+}
+
+void ExternalLyricWindow::OnLMBUp(UINT virtual_keys, CPoint point)
+{
+    LyricPanel::OnLMBUp(virtual_keys, point);
+
+    RECT client_rect;
+    GetClientRect(&client_rect);
+    const CPoint close_btn_corner = {client_rect.right, client_rect.top};
+    const CPoint close_offset = {close_btn_corner.x - point.x, close_btn_corner.y - point.y};
+    const bool close_btn_pressed = ((close_offset.x*close_offset.x + close_offset.y*close_offset.y) < int(CLOSE_BTN_RADIUS*CLOSE_BTN_RADIUS));
+    if(close_btn_pressed)
+    {
+        SendMessage(WM_CLOSE, 0, 0);
+    }
 }
 
 void ExternalLyricWindow::OnPaint(CDCHandle)

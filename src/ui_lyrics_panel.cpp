@@ -370,6 +370,18 @@ void LyricPanel::OnWindowResize(UINT /*request_type*/, CSize new_size)
     }
 }
 
+LRESULT LyricPanel::OnNonClientCalcSize(BOOL /*calc_valid_rects*/, LPARAM /*lparam*/)
+{
+    SetMsgHandled(false);
+    return 0;
+}
+
+UINT LyricPanel::OnNonClientHitTest(CPoint /*point*/)
+{
+    SetMsgHandled(false);
+    return 0;
+}
+
 LRESULT LyricPanel::OnTimer(WPARAM /*wParam*/)
 {
     Invalidate();
