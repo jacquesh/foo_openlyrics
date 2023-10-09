@@ -67,6 +67,9 @@ public:
     void OnLMBDown(UINT virtual_keys, CPoint point) override;
     void OnLMBUp(UINT virtual_keys, CPoint point) override;
 
+    void OnNonClientMouseMove(UINT virtual_keys, CPoint point) override;
+    void OnNonClientMouseLeave() override;
+
     void OnPaint(CDCHandle) override;
 
     bool is_panel_ui_in_edit_mode() override;
@@ -91,6 +94,7 @@ private:
     Microsoft::WRL::ComPtr<ID2D1Bitmap> m_d2d_albumart_bitmap = nullptr;
 
     bool m_mouse_hover = false;
+    bool m_nc_mouse_hover = false;
     CPoint m_last_mouse_pos = {};
 };
 
@@ -736,6 +740,7 @@ LRESULT ExternalLyricWindow::OnWindowCreate(LPCREATESTRUCT params)
 {
     cfg_external_window_was_open = 1;
     m_mouse_hover = false;
+    m_nc_mouse_hover = false;
 
     SetUpDX(false); // TODO: This is kinda silly because we're going to immediately call this again after we return in the on_resize callback
     return LyricPanel::OnWindowCreate(params);
@@ -744,18 +749,34 @@ LRESULT ExternalLyricWindow::OnWindowCreate(LPCREATESTRUCT params)
 void ExternalLyricWindow::OnWindowMove(CPoint new_origin)
 {
     LyricPanel::OnWindowMove(new_origin);
-    cfg_external_window_previous_x = new_origin.x;
-    cfg_external_window_previous_y = new_origin.y;
+
+    // We need to use `GetWindowRect` instead of new_origin because the latter is the
+    // origin for the *client area* of the window, and the config values that we pass
+    // to CreateWindow are for the window as a whole, including the non-client area.
+    // If we instead stored new_origin, the window would slowly inch down and to the
+    // right, nudged by the size of the non-client area every time it got created.
+    RECT rect;
+    GetWindowRect(&rect);
+    cfg_external_window_previous_x = rect.left;
+    cfg_external_window_previous_y = rect.top;
 }
 
 void ExternalLyricWindow::OnWindowResize(UINT request_type, CSize new_size)
 {
+    // TODO: Instead look into m_swap_chain->ResizeBuffers/ResizeTarget
     SetUpDX(false);
     LyricPanel::OnWindowResize(request_type, new_size);
     Invalidate();
 
-    cfg_external_window_previous_size_x = new_size.cx;
-    cfg_external_window_previous_size_y = new_size.cy;
+    // We need to use `GetWindowRect` instead of new_size because the latter is the
+    // size of the *client area* of the window, and the config values that we pass
+    // to CreateWindow are for the window as a whole, including the non-client area.
+    // If we instead stored new_size, the window would slowly shrink by the size of
+    // the non-client area every time it got created.
+    RECT rect;
+    GetWindowRect(&rect);
+    cfg_external_window_previous_size_x = rect.right - rect.left;
+    cfg_external_window_previous_size_y = rect.bottom - rect.top;
 }
 
 UINT ExternalLyricWindow::OnNonClientHitTest(CPoint point)
@@ -792,15 +813,11 @@ LRESULT ExternalLyricWindow::OnNonClientCalcSize(BOOL calc_valid_rects, LPARAM l
 
     const int resize_border_x = GetSystemMetrics(SM_CXFRAME);
     const int resize_border_y = GetSystemMetrics(SM_CYFRAME);
-    const int caption_height = GetSystemMetrics(SM_CYCAPTION);
-    const int padding = GetSystemMetrics(SM_CXPADDEDBORDER);
-    (void)caption_height; // TODO
-
     NCCALCSIZE_PARAMS* params = (NCCALCSIZE_PARAMS*)lparam;
-    params->rgrc->right -= resize_border_x + padding;
-    params->rgrc->left += resize_border_x + padding;
-    params->rgrc->bottom -= resize_border_y + padding;
-
+    params->rgrc->right -= resize_border_x;
+    params->rgrc->left += resize_border_x;
+    params->rgrc->bottom -= resize_border_y;
+    params->rgrc->top += resize_border_y;
     return 0;
 }
 
@@ -879,6 +896,31 @@ void ExternalLyricWindow::OnLMBUp(UINT virtual_keys, CPoint point)
     {
         SendMessage(WM_CLOSE, 0, 0);
     }
+}
+
+void ExternalLyricWindow::OnNonClientMouseMove(UINT /*virtual_keys*/, CPoint /*point*/)
+{
+    if(!m_nc_mouse_hover)
+    {
+        Invalidate();
+        m_nc_mouse_hover = true;
+
+        TRACKMOUSEEVENT track = {};
+        track.cbSize = sizeof(track);
+        track.dwFlags = TME_LEAVE | TME_NONCLIENT;
+        track.hwndTrack = m_hWnd;
+        BOOL success = TrackMouseEvent(&track);
+        if(!success)
+        {
+            LOG_WARN("Failed to request non-client mouse-leave event tracking: %x", GetLastError());
+        }
+    }
+}
+
+void ExternalLyricWindow::OnNonClientMouseLeave()
+{
+    m_nc_mouse_hover = false;
+    Invalidate();
 }
 
 void ExternalLyricWindow::OnPaint(CDCHandle)
@@ -1072,6 +1114,9 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
             return rect;
         };
 
+        // We want the window to still highlight as "hovered" while resizing, so
+        // check if we have either the client or non-client hover flag set.
+        const bool is_window_hovered = m_mouse_hover || m_nc_mouse_hover;
         if(preferences::background::external_window_opaque())
         {
             if(m_d2d_albumart_bitmap != nullptr)
@@ -1097,7 +1142,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         {
             // When we have a transparent background we still want to draw a
             // background while the user's mouse is inside the window.
-            if(m_mouse_hover)
+            if(is_window_hovered)
             {
                 const D2D1_RECT_F rect = size2rect(render.device->GetSize());
                 D2D1_COLOR_F bg_colour = get_background_colour();
@@ -1107,7 +1152,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
             }
         }
 
-        if(m_mouse_hover)
+        if(is_window_hovered)
         {
             const float stroke_width = 1.0f;
 

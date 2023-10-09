@@ -35,6 +35,8 @@ protected:
 
         MSG_WM_NCCALCSIZE(OnNonClientCalcSize)
         MSG_WM_NCHITTEST(OnNonClientHitTest)
+        MSG_WM_NCMOUSEMOVE(OnNonClientMouseMove)
+        MSG_WM_NCMOUSELEAVE(OnNonClientMouseLeave)
         MSG_WM_MOUSELEAVE(OnMouseLeave)
 
         MSG_WM_MOVE(OnWindowMove)
@@ -62,6 +64,8 @@ protected: // TODO: These 3 are only protected & virtual to support the external
     virtual void OnWindowResize(UINT request_type, CSize new_size);
     virtual UINT OnNonClientHitTest(CPoint point);
     virtual LRESULT OnNonClientCalcSize(BOOL calc_valid_rects, LPARAM lparam);
+    virtual void OnNonClientMouseMove(UINT /*virtual_keys*/, CPoint /*point*/) {}
+    virtual void OnNonClientMouseLeave() {}
     virtual void OnMouseLeave() {}
 
 private:
