@@ -32,6 +32,8 @@ static cfg_int_t<int> cfg_external_window_previous_y(GUID_EXTERNAL_WINDOW_PREVIO
 static cfg_int_t<int> cfg_external_window_previous_size_x(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_X, 0);
 static cfg_int_t<int> cfg_external_window_previous_size_y(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_Y, 0);
 
+const float CLOSE_BTN_RADIUS = 32.0f;
+
 struct D2DTextRenderContext
 {
     ID2D1DeviceContext* device;
@@ -81,6 +83,8 @@ private:
     Microsoft::WRL::ComPtr<IDCompositionVisual> m_dcomp_visual = nullptr;
 
     Microsoft::WRL::ComPtr<ID2D1Bitmap> m_d2d_albumart_bitmap = nullptr;
+
+    bool m_mouse_hover = false;
 };
 
 static ExternalLyricWindow* g_external_window = nullptr;
@@ -725,6 +729,7 @@ void ExternalLyricWindow::OnWindowDestroy()
 LRESULT ExternalLyricWindow::OnWindowCreate(LPCREATESTRUCT params)
 {
     cfg_external_window_was_open = 1;
+    m_mouse_hover = false;
 
     SetUpDX(false); // TODO: This is kinda silly because we're going to immediately call this again after we return in the on_resize callback
     return LyricPanel::OnWindowCreate(params);
@@ -919,15 +924,87 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         m_d2d_dc->BeginDraw();
         m_d2d_dc->Clear();
 
-        if(m_d2d_albumart_bitmap != nullptr)
+        const auto get_background_colour = []() -> D2D1_COLOR_F
         {
-            render.device->DrawBitmap(
-                    m_d2d_albumart_bitmap.Get(),
-                    nullptr, // rectangle,
-                    preferences::background::external_window_opacity(),
-                    D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-                    nullptr //source_rectangle
-                    );
+            if(preferences::background::fill_type() == BackgroundFillType::SolidColour)
+            {
+                return colour_gdi2dx(preferences::background::colour());
+            }
+            else
+            {
+                return colour_gdi2dx(defaultui::background_colour());
+            }
+        };
+        const auto size2rect = [](D2D1_SIZE_F size) -> D2D1_RECT_F
+        {
+            D2D1_RECT_F rect = {};
+            rect.right = size.width;
+            rect.bottom = size.height;
+            return rect;
+        };
+
+        if(preferences::background::external_window_opaque())
+        {
+            if(m_d2d_albumart_bitmap != nullptr)
+            {
+                render.device->DrawBitmap(
+                        m_d2d_albumart_bitmap.Get(),
+                        nullptr, // rectangle,
+                        1.0f, // opacity
+                        D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+                        nullptr //source_rectangle
+                        );
+            }
+            else
+            {
+                // We don't have an album art image so just fill with the configured background colour
+                const D2D1_RECT_F rect = size2rect(render.device->GetSize());
+                const D2D1_COLOR_F bg_colour = get_background_colour();
+                render.brush->SetColor(bg_colour);
+                render.device->FillRectangle(rect, render.brush);
+            }
+        }
+        else
+        {
+            // When we have a transparent background we still want to draw a
+            // background while the user's mouse is inside the window.
+            if(m_mouse_hover)
+            {
+                const D2D1_RECT_F rect = size2rect(render.device->GetSize());
+                D2D1_COLOR_F bg_colour = get_background_colour();
+                bg_colour.a = 0.75f;
+                render.brush->SetColor(bg_colour);
+                render.device->FillRectangle(rect, render.brush);
+            }
+        }
+
+        if(m_mouse_hover)
+        {
+            const float stroke_width = 1.0f;
+
+            const D2D1_SIZE_F render_size = render.device->GetSize();
+            D2D1_RECT_F close_btn_rect = {};
+            close_btn_rect.left = render_size.width - CLOSE_BTN_RADIUS - stroke_width;
+            close_btn_rect.right = render_size.width + CLOSE_BTN_RADIUS;
+            close_btn_rect.top = -CLOSE_BTN_RADIUS;
+            close_btn_rect.bottom = CLOSE_BTN_RADIUS + stroke_width;
+
+            D2D1_ROUNDED_RECT rounded = {};
+            rounded.rect = close_btn_rect;
+            rounded.radiusX = CLOSE_BTN_RADIUS;
+            rounded.radiusY = CLOSE_BTN_RADIUS;
+
+            render.brush->SetColor(colour_gdi2dx(preferences::display::main_text_colour()));
+            render.device->DrawRoundedRectangle(rounded, render.brush, stroke_width, nullptr);
+
+            const float x_radius = CLOSE_BTN_RADIUS * 0.15f;
+            const D2D1_POINT_2F x_centre = {render_size.width - CLOSE_BTN_RADIUS*0.5f, CLOSE_BTN_RADIUS*0.5f};
+            const D2D1_POINT_2F x_topleft = {x_centre.x - x_radius, x_centre.y - x_radius};
+            const D2D1_POINT_2F x_topright = {x_centre.x + x_radius, x_centre.y - x_radius};
+            const D2D1_POINT_2F x_botleft = {x_centre.x - x_radius, x_centre.y + x_radius};
+            const D2D1_POINT_2F x_botright = {x_centre.x + x_radius, x_centre.y + x_radius};
+            render.device->DrawLine(x_topleft, x_botright, render.brush, stroke_width, nullptr);
+            render.device->DrawLine(x_topright, x_botleft, render.brush, stroke_width, nullptr);
         }
 
         if(m_lyrics.IsEmpty())

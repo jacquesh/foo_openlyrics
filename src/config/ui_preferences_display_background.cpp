@@ -137,13 +137,9 @@ std::string preferences::background::custom_image_path()
     return std::string(result.c_str(), result.length());
 }
 
-float preferences::background::external_window_opacity()
+bool preferences::background::external_window_opaque()
 {
-    if(cfg_background_externalwin_opaque.get_value())
-    {
-        return 1.0f;
-    }
-    return 0.0f;
+    return cfg_background_externalwin_opaque.get_value();
 }
 
 //
