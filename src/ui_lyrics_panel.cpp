@@ -298,6 +298,7 @@ LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
         on_playback_new_track(track);
     }
 
+    m_child_abort.reset(); // Reset this on create so that when the external window get's recreated, this state makes sense
     g_active_panels.push_back(this);
 
     // Register for notifications about available album art
