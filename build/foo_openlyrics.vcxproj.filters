@@ -48,9 +48,6 @@
     <ClCompile Include="..\src\sources\geniuscom.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ui_preferences.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\ui_lyric_editor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -140,6 +137,9 @@
     </ClCompile>
     <ClCompile Include="..\src\ui_lyrics_externalwindow.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\config\ui_preferences_search.cpp">
+      <Filter>Source Files\config</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
