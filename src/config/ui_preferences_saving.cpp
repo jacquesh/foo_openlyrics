@@ -18,8 +18,6 @@ static const GUID GUID_PREFERENCES_PAGE_SAVING = { 0xd5a7534, 0x9f59, 0x444c, { 
 static const GUID GUID_CFG_SAVE_FILENAME_FORMAT = { 0x1f7a3804, 0x7147, 0x4b64, { 0x9d, 0x51, 0x4c, 0xdd, 0x90, 0xa7, 0x6d, 0xd6 } };
 static const GUID GUID_CFG_SAVE_ENABLE_AUTOSAVE = { 0xf25be2d9, 0x4442, 0x4602, { 0xa0, 0xf1, 0x81, 0xd, 0x8e, 0xab, 0x6a, 0x2 } };
 static const GUID GUID_CFG_SAVE_METHOD = { 0xdf39b51c, 0xec55, 0x41aa, { 0x93, 0xd3, 0x32, 0xb6, 0xc0, 0x5d, 0x4f, 0xcc } };
-static const GUID GUID_CFG_SAVE_TAG_UNTIMED = { 0x39b0bc08, 0x5c3a, 0x4359, { 0x9d, 0xdb, 0xd4, 0x90, 0x84, 0xb, 0x31, 0x88 } };
-static const GUID GUID_CFG_SAVE_TAG_TIMESTAMPED = { 0x337d0d40, 0xe9da, 0x4531, { 0xb0, 0x82, 0x13, 0x24, 0x56, 0xe5, 0xc4, 0x2 } };
 static const GUID GUID_CFG_SAVE_DIR_CLASS = { 0xcf49878d, 0xe2ea, 0x4682, { 0x98, 0xb, 0x8f, 0xc1, 0xf3, 0x80, 0x46, 0x7b } };
 static const GUID GUID_CFG_SAVE_PATH_CUSTOM = { 0x84ac099b, 0xa00b, 0x4713, { 0x8f, 0x1c, 0x30, 0x7e, 0x31, 0xc0, 0xa1, 0xdf } };
 static const GUID GUID_CFG_SAVE_MERGE_LRC_LINES = { 0x97229606, 0x8fd5, 0x441a, { 0xa6, 0x84, 0x9f, 0x3d, 0x87, 0xc8, 0x27, 0x18 } };
@@ -52,22 +50,11 @@ static cfg_auto_combo<SaveDirectoryClass, 3> cfg_save_dir_class(GUID_CFG_SAVE_DI
 static cfg_auto_string                       cfg_save_path_custom(GUID_CFG_SAVE_PATH_CUSTOM, IDC_SAVE_CUSTOM_PATH, "C:\\Lyrics\\%artist%");
 static cfg_auto_bool                         cfg_save_merge_lrc_lines(GUID_CFG_SAVE_MERGE_LRC_LINES, IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES, true);
 
-// NOTE: fb2k will silently handle "UNSYNCED LYRICS" as a special case and store the text in a USLT frame rather than a TXXX frame
-//       Documented here: https://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
-//       fb2k does *not* support the SYLT frame, but OpenLyrics will recognise synced lyrics regardless of where they were loaded from, so we default
-//       to using the same tag for both synced and unsynced lyrics to get it to at least save in the dedicated ID3 frame.
-//       Also worth noting that not all container formats support ID3 tags. flac, for example, uses "vorbis comments" instead
-static cfg_auto_string                       cfg_save_tag_untimed(GUID_CFG_SAVE_TAG_UNTIMED, IDC_SAVE_TAG_UNSYNCED, "UNSYNCED LYRICS");
-static cfg_auto_string                       cfg_save_tag_timestamped(GUID_CFG_SAVE_TAG_TIMESTAMPED, IDC_SAVE_TAG_SYNCED, "UNSYNCED LYRICS"); // 
-
-
 static cfg_auto_property* g_saving_auto_properties[] =
 {
     &cfg_save_auto_save_strategy,
     &cfg_save_method,
     &cfg_save_filename_format,
-    &cfg_save_tag_untimed,
-    &cfg_save_tag_timestamped,
     &cfg_save_dir_class,
     &cfg_save_path_custom,
     &cfg_save_merge_lrc_lines,
@@ -239,16 +226,6 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
     return std::string(result.c_str(), result.length());
 }
 
-std::string_view preferences::saving::untimed_tag()
-{
-    return {cfg_save_tag_untimed.get_ptr(), cfg_save_tag_untimed.get_length()};
-}
-
-std::string_view preferences::saving::timestamped_tag()
-{
-    return {cfg_save_tag_timestamped.get_ptr(), cfg_save_tag_timestamped.get_length()};
-}
-
 bool preferences::saving::merge_equivalent_lrc_lines()
 {
     return cfg_save_merge_lrc_lines.get_value();
@@ -272,14 +249,11 @@ public:
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_HANDLER_EX(IDC_SAVE_METHOD_COMBO, CBN_SELCHANGE, OnSaveMethodChange)
         COMMAND_HANDLER_EX(IDC_SAVE_AUTOSAVE_TYPE, CBN_SELCHANGE, OnAutoSaveChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_TAG_SYNCED, EN_CHANGE, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_TAG_UNSYNCED, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
         COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH_BROWSE, BN_CLICKED, OnCustomPathBrowse)
-        COMMAND_HANDLER_EX(IDC_SAVE_TAG_EXPLAIN, BN_CLICKED, OnTagExplain)
         NOTIFY_HANDLER_EX(IDC_SAVE_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
     END_MSG_MAP()
 
@@ -294,7 +268,6 @@ private:
     void OnDirectoryClassChange(UINT, int, CWindow);
     void OnCustomPathFormatChange(UINT, int, CWindow);
     void OnCustomPathBrowse(UINT, int, CWindow);
-    void OnTagExplain(UINT, int, CWindow);
     LRESULT OnSyntaxHelpClicked(NMHDR*);
 
     void UpdateFormatPreview(int edit_id, int preview_id, bool is_path);
@@ -452,18 +425,6 @@ void PreferencesSaving::OnCustomPathBrowse(UINT, int, CWindow)
     }
 }
 
-void PreferencesSaving::OnTagExplain(UINT, int, CWindow)
-{
-    // Documented here: https://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
-    popup_message_v3::query_t query = {};
-    query.title = "Save Tag Help";
-    query.msg = "The 'UNSYNCED LYRICS' tag is handled differently to most other tags. It is stored in a way that is more compatible with other media players that might want to read lyric info.\n\nOpenLyrics will correctly load both synced and unsynced lyrics regardless of the tag in which they are stored.\n\nUnless you have a specific reason for wanting to use a different tag to store synced lyrics, leaving it as the 'UNSYNCED LYRICS' is strongly recommended.";
-    query.buttons = popup_message_v3::buttonOK;
-    query.defButton = popup_message_v3::buttonOK;
-    query.icon = popup_message_v3::iconInformation;
-    popup_message_v3::get()->show_query_modal(query);
-}
-
 LRESULT PreferencesSaving::OnSyntaxHelpClicked(NMHDR* /*notify_msg*/)
 {
     standard_commands::main_titleformat_help();
@@ -576,8 +537,6 @@ void PreferencesSaving::SetMethodFieldsEnabled()
     assert(logical_value != CB_ERR);
     const SaveMethod method = static_cast<SaveMethod>(logical_value);
 
-    GetDlgItem(IDC_SAVE_TAG_SYNCED).EnableWindow(method == SaveMethod::Id3Tag);
-    GetDlgItem(IDC_SAVE_TAG_UNSYNCED).EnableWindow(method == SaveMethod::Id3Tag);
     GetDlgItem(IDC_SAVE_FILENAME_FORMAT).EnableWindow(method == SaveMethod::LocalFile);
     GetDlgItem(IDC_SAVE_DIRECTORY_CLASS).EnableWindow(method == SaveMethod::LocalFile);
     GetDlgItem(IDC_SAVE_CUSTOM_PATH_BROWSE).EnableWindow(method == SaveMethod::LocalFile);

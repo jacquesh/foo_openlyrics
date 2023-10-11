@@ -17,7 +17,6 @@ extern const GUID GUID_PREFERENCES_PAGE_SEARCH = { 0x73e2261d, 0x4a71, 0x427a, {
 
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION = { 0x9046aa4a, 0x352e, 0x4467, { 0xbc, 0xd2, 0xc4, 0x19, 0x47, 0xd2, 0xbf, 0x24 } };
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES = { 0x7d3c9b2c, 0xb87b, 0x4250, { 0x99, 0x56, 0x8d, 0xf5, 0x80, 0xc9, 0x2f, 0x39 } };
-static const GUID GUID_CFG_SEARCH_TAGS = { 0xb7332708, 0xe70b, 0x4a6e, { 0xa4, 0xd, 0x14, 0x6d, 0xe3, 0x74, 0x56, 0x65 } };
 static const GUID GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS = { 0x2cbdf6c3, 0xdb8c, 0x43d4, { 0xb5, 0x40, 0x76, 0xc0, 0x4a, 0x39, 0xa7, 0xc7 } };
 static const GUID GUID_CFG_SEARCH_MUSIXMATCH_TOKEN = { 0xb88a82a7, 0x746d, 0x44f3, { 0xb8, 0x34, 0x9b, 0x9b, 0xe2, 0x6f, 0x8, 0x4c } };
 
@@ -34,13 +33,11 @@ static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid, me
 
 static cfg_int_t<uint64_t> cfg_search_active_sources_generation(GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION, 0);
 static cfg_objList<GUID>   cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
-static cfg_auto_string     cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCED LYRICS;UNSYNCEDLYRICS");
 static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
 static cfg_auto_string     cfg_search_musixmatch_token(GUID_CFG_SEARCH_MUSIXMATCH_TOKEN, IDC_SEARCH_MUSIXMATCH_TOKEN, "");
 
 static cfg_auto_property* g_searching_auto_properties[] =
 {
-    &cfg_search_tags,
     &cfg_search_exclude_trailing_brackets,
     &cfg_search_musixmatch_token,
 };
@@ -69,30 +66,6 @@ std::vector<GUID> preferences::searching::active_sources()
         result.push_back(save_source_guid);
     }
 
-    return result;
-}
-
-std::vector<std::string> preferences::searching::tags()
-{
-    const std::string_view setting = {cfg_search_tags.get_ptr(), cfg_search_tags.get_length()};
-    std::vector<std::string> result;
-
-    size_t prev_index = 0;
-    for(size_t i=0; i<setting.length(); i++) // Avoid infinite loops
-    {
-        size_t next_index = setting.find(';', prev_index);
-        size_t len = next_index - prev_index;
-        if(len > 0)
-        {
-            result.emplace_back(setting.substr(prev_index, len));
-        }
-
-        if((next_index == std::string_view::npos) || (next_index >= setting.length()))
-        {
-            break;
-        }
-        prev_index = next_index + 1;
-    }
     return result;
 }
 
@@ -136,7 +109,6 @@ public:
 
     BEGIN_MSG_MAP_EX(PreferencesSearching)
         MSG_WM_INITDIALOG(OnInitDialog)
-        COMMAND_HANDLER_EX(IDC_SEARCH_TAGS, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_TOKEN, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_UP_BTN, BN_CLICKED, OnMoveUp)

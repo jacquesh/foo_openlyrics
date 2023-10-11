@@ -63,8 +63,6 @@ BEGIN
     PUSHBUTTON      "Down",IDC_SOURCE_MOVE_DOWN_BTN,78,120,44,14,WS_DISABLED
     GROUPBOX        "Searching",IDC_STATIC,0,0,330,164
     LTEXT           "Available sources:",IDC_STATIC,198,12,58,8
-    LTEXT           "Metadata tags to search (separated by a semicolon):",IDC_STATIC,7,185,166,8
-    EDITTEXT        IDC_SEARCH_TAGS,7,194,318,14,ES_AUTOHSCROLL
     CONTROL         "Exclude text in brackets at the end of artist/album names and track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,146,313,10
     GROUPBOX        "Source-specific options",IDC_STATIC,0,170,331,88
@@ -82,13 +80,8 @@ BEGIN
     COMBOBOX        IDC_SAVE_METHOD_COMBO,59,4,92,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_SAVE_FILENAME_FORMAT,90,162,199,14,ES_AUTOHSCROLL
     LTEXT           "Static",IDC_SAVE_FILE_NAME_PREVIEW,89,180,144,8,SS_ENDELLIPSIS
-    LTEXT           "Unsynced tag:",IDC_STATIC,24,96,47,8
-    LTEXT           "Synced tag:",IDC_STATIC,29,114,39,8
-    EDITTEXT        IDC_SAVE_TAG_UNSYNCED,74,93,82,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_SAVE_TAG_SYNCED,74,113,82,14,ES_AUTOHSCROLL
     RTEXT           "File name format:",IDC_STATIC,27,165,59,10
     GROUPBOX        "Local Files",IDC_STATIC,0,150,331,107
-    GROUPBOX        "Metadata Tags",IDC_STATIC,0,81,331,61
     COMBOBOX        IDC_SAVE_DIRECTORY_CLASS,90,202,199,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     RTEXT           "Storage directory:",IDC_STATIC,14,204,71,8
     LTEXT           "Custom directory format:",IDC_STATIC,10,226,79,8
@@ -102,7 +95,6 @@ BEGIN
     CONTROL         "Collapse multiple instances of the same line when saving timestamped lyrics",IDC_SAVE_MERGE_EQUIVALENT_LRC_LINES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,58,252,10
     CONTROL         "<a>Syntax help</a>",IDC_SAVE_SYNTAX_HELP,"SysLink",WS_TABSTOP,7,272,39,9
-    PUSHBUTTON      "?",IDC_SAVE_TAG_EXPLAIN,159,113,16,14
 END
 
 IDD_PREFERENCES_DISPLAY DIALOGEX 0, 0, 333, 287
@@ -126,7 +118,6 @@ BEGIN
     CTEXT           "Static",IDC_DISPLAY_SCROLL_TIME_PREVIEW,83,191,229,8
     COMBOBOX        IDC_DISPLAY_SCROLL_TYPE,47,136,94,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Scroll type:",IDC_STATIC,7,137,36,8
-    CONTROL         "Debug logging enabled",IDC_DEBUG_LOGS_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,270,89,10
     CONTROL         "Continuous scrolling",IDC_DISPLAY_SCROLL_CONTINUOUS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,157,79,10
     GROUPBOX        "Other",IDC_STATIC,0,206,326,54
@@ -187,6 +178,22 @@ BEGIN
     CONTROL         "Debug logging enabled",IDC_DEBUG_LOGS_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,4,89,10
 END
 
+IDD_PREFERENCES_SRC_METATAGS DIALOGEX 0, 0, 332, 288
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
+BEGIN
+    LTEXT           "Tags to search (separated by a semicolon):",IDC_STATIC,7,72,136,8
+    EDITTEXT        IDC_SEARCH_TAGS,7,81,318,14,ES_AUTOHSCROLL
+    LTEXT           "Unsynced lyrics:",IDC_STATIC,31,19,52,8
+    LTEXT           "Synced lyrics:",IDC_STATIC,37,37,44,8
+    EDITTEXT        IDC_SAVE_TAG_UNSYNCED,89,16,82,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SAVE_TAG_SYNCED,89,36,82,14,ES_AUTOHSCROLL
+    GROUPBOX        "Tags to which lyrics will be saved",IDC_STATIC,7,4,331,61
+    PUSHBUTTON      "?",IDC_SAVE_TAG_EXPLAIN,175,36,16,14
+END
+
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -244,6 +251,14 @@ BEGIN
         BOTTOMMARGIN, 280
     END
 
+    IDD_PREFERENCES_SRC_METATAGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 325
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 281
+    END
+
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -279,6 +294,11 @@ BEGIN
 END
 
 IDD_PREFERENCES_ROOT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PREFERENCES_SRC_METATAGS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
