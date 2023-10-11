@@ -26,7 +26,6 @@ static const GUID GUID_CFG_DISPLAY_SCROLL_CONTINUOUS = { 0x9ccfe1b0, 0x3c8a, 0x4
 static const GUID GUID_CFG_DISPLAY_SCROLL_TIME = { 0xc1c7dbf7, 0xd3ce, 0x40dc, { 0x83, 0x29, 0xed, 0xa0, 0xc6, 0xc8, 0xb6, 0x70 } };
 static const GUID GUID_CFG_DISPLAY_SCROLL_TYPE = { 0x3f2f17d8, 0x9309, 0x4721, { 0x9f, 0xa7, 0x79, 0x6d, 0x17, 0x84, 0x2a, 0x5d } };
 static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME = { 0x63c31bb9, 0x2a83, 0x4685, { 0xb4, 0x15, 0x64, 0xd6, 0x5, 0x85, 0xbd, 0xa8 } };
-static const GUID GUID_CFG_DEBUG_LOGS_ENABLED = { 0x57920cbe, 0xa27, 0x4fad, { 0x92, 0xc, 0x2b, 0x61, 0x3b, 0xf9, 0xd6, 0x13 } };
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOUR = { 0x8189faa4, 0x40f2, 0x464b, { 0x9e, 0xb, 0x53, 0xd2, 0x6, 0x9c, 0x74, 0xc9 } };
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOURTYPE = { 0xc7b2908, 0x2ce2, 0x46e8, { 0xa1, 0x46, 0x51, 0xe2, 0x60, 0x0, 0xde, 0xdc } };
 static const GUID GUID_CFG_DISPLAY_TEXT_ALIGNMENT = { 0xfd228452, 0x6374, 0x4496, { 0xb9, 0xec, 0x19, 0xb9, 0x50, 0x2, 0xb, 0xaa } };
@@ -80,7 +79,6 @@ static cfg_auto_bool                          cfg_display_scroll_continuous(GUID
 static cfg_auto_ranged_int                    cfg_display_scroll_time(GUID_CFG_DISPLAY_SCROLL_TIME, IDC_DISPLAY_SCROLL_TIME, 0, 2000, 20, 500);
 static cfg_auto_combo<LineScrollType, 2>      cfg_display_scroll_type(GUID_CFG_DISPLAY_SCROLL_TYPE, IDC_DISPLAY_SCROLL_TYPE, LineScrollType::Automatic, g_scroll_type_options);
 static cfg_auto_ranged_int                    cfg_display_highlight_fade_time(GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME, IDC_DISPLAY_HIGHLIGHT_FADE_TIME, 0, 1000, 20, 500);
-static cfg_auto_bool                          cfg_debug_logs_enabled(GUID_CFG_DEBUG_LOGS_ENABLED, IDC_DEBUG_LOGS_ENABLED, false);
 static cfg_auto_combo<TextAlignment,6>        cfg_display_text_alignment(GUID_CFG_DISPLAY_TEXT_ALIGNMENT, IDC_TEXT_ALIGNMENT, TextAlignment::MidCentre, g_text_alignment_options);
 
 static cfg_auto_property* g_display_auto_properties[] =
@@ -100,8 +98,6 @@ static cfg_auto_property* g_display_auto_properties[] =
 
     &cfg_display_text_alignment,
     &cfg_display_highlight_fade_time,
-
-    &cfg_debug_logs_enabled,
 };
 
 //
@@ -216,11 +212,6 @@ LineScrollType preferences::display::scroll_type()
     return cfg_display_scroll_type.get_value();
 }
 
-bool preferences::display::debug_logs_enabled()
-{
-    return cfg_debug_logs_enabled.get_value();
-}
-
 bool preferences::display::raw::font_is_custom()
 {
     return cfg_display_custom_font.get_value();
@@ -259,7 +250,6 @@ public:
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_CONTINUOUS, BN_CLICKED, OnScrollContinuousChange)
         COMMAND_HANDLER_EX(IDC_PAST_FOREGROUND_COLOUR_TYPE, CBN_SELCHANGE, OnCustomToggle)
         MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
-        COMMAND_HANDLER_EX(IDC_DEBUG_LOGS_ENABLED, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_TEXT_ALIGNMENT, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
     END_MSG_MAP()

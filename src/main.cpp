@@ -38,6 +38,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Stop asking users to submit metrics after a pre-defined date\n"
     "- Automatically display search result in all lyric panels, not of just one\n"
     "- Remove support for horizontal scrolling\n"
+    "- Move preferences for searching onto their own page, named accordingly\n"
     "- Fix retrieval failing from some sources when no 'album' tag is present\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
     "- Fix crash when playing tracks that have no tag metadata at all\n"

@@ -13,7 +13,7 @@
 #include "sources/lyric_source.h"
 #include "win32_util.h"
 
-extern const GUID GUID_PREFERENCES_PAGE_ROOT = { 0x29e96cfa, 0xab67, 0x4793, { 0xa1, 0xc3, 0xef, 0xc3, 0xa, 0xbc, 0x8b, 0x74 } };
+extern const GUID GUID_PREFERENCES_PAGE_SEARCH = { 0x73e2261d, 0x4a71, 0x427a, { 0x92, 0x57, 0xec, 0xaa, 0x17, 0xb9, 0xa8, 0xc8 } };
 
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION = { 0x9046aa4a, 0x352e, 0x4467, { 0xbc, 0xd2, 0xc4, 0x19, 0x47, 0xd2, 0xbf, 0x24 } };
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES = { 0x7d3c9b2c, 0xb87b, 0x4250, { 0x99, 0x56, 0x8d, 0xf5, 0x80, 0xc9, 0x2f, 0x39 } };
@@ -38,7 +38,7 @@ static cfg_auto_string     cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS
 static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
 static cfg_auto_string     cfg_search_musixmatch_token(GUID_CFG_SEARCH_MUSIXMATCH_TOKEN, IDC_SEARCH_MUSIXMATCH_TOKEN, "");
 
-static cfg_auto_property* g_root_auto_properties[] =
+static cfg_auto_property* g_searching_auto_properties[] =
 {
     &cfg_search_tags,
     &cfg_search_exclude_trailing_brackets,
@@ -121,21 +121,20 @@ std::vector<GUID> preferences::searching::raw::active_sources_configured()
 
 const LRESULT MAX_SOURCE_NAME_LENGTH = 64;
 
-// The UI for the root element (for OpenLyrics) in the preferences UI tree
-class PreferencesRoot : public CDialogImpl<PreferencesRoot>, public auto_preferences_page_instance
+class PreferencesSearching : public CDialogImpl<PreferencesSearching>, public auto_preferences_page_instance
 {
 public:
     // Constructor - invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
-    PreferencesRoot(preferences_page_callback::ptr callback) : auto_preferences_page_instance(callback, g_root_auto_properties) {}
+    PreferencesSearching(preferences_page_callback::ptr callback) : auto_preferences_page_instance(callback, g_searching_auto_properties) {}
 
     // Dialog resource ID - Required by WTL/Create()
-    enum {IDD = IDD_PREFERENCES_ROOT};
+    enum {IDD = IDD_PREFERENCES_SEARCHING};
 
     void apply() override;
     void reset() override;
     bool has_changed() override;
 
-    BEGIN_MSG_MAP_EX(PreferencesRoot)
+    BEGIN_MSG_MAP_EX(PreferencesSearching)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_HANDLER_EX(IDC_SEARCH_TAGS, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_TOKEN, EN_CHANGE, OnUIChange)
@@ -173,7 +172,7 @@ private:
     fb2k::CCoreDarkModeHooks m_dark;
 };
 
-BOOL PreferencesRoot::OnInitDialog(CWindow, LPARAM)
+BOOL PreferencesSearching::OnInitDialog(CWindow, LPARAM)
 {
     m_dark.AddDialogWithControls(m_hWnd);
 
@@ -185,12 +184,12 @@ BOOL PreferencesRoot::OnInitDialog(CWindow, LPARAM)
     return FALSE;
 }
 
-void PreferencesRoot::OnUIChange(UINT, int, CWindow)
+void PreferencesSearching::OnUIChange(UINT, int, CWindow)
 {
     on_ui_interaction();
 }
 
-void PreferencesRoot::OnMoveUp(UINT, int, CWindow)
+void PreferencesSearching::OnMoveUp(UINT, int, CWindow)
 {
     LRESULT select_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCURSEL, 0, 0);
     if(select_index == LB_ERR)
@@ -225,7 +224,7 @@ void PreferencesRoot::OnMoveUp(UINT, int, CWindow)
     on_ui_interaction();
 }
 
-void PreferencesRoot::OnMoveDown(UINT, int, CWindow)
+void PreferencesSearching::OnMoveDown(UINT, int, CWindow)
 {
     LRESULT item_count = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCOUNT, 0, 0);
     assert(item_count != LB_ERR);
@@ -263,7 +262,7 @@ void PreferencesRoot::OnMoveDown(UINT, int, CWindow)
     on_ui_interaction();
 }
 
-void PreferencesRoot::OnSourceActivate(UINT, int, CWindow)
+void PreferencesSearching::OnSourceActivate(UINT, int, CWindow)
 {
     LRESULT select_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_GETCURSEL, 0, 0);
     if(select_index == LB_ERR)
@@ -314,7 +313,7 @@ void PreferencesRoot::OnSourceActivate(UINT, int, CWindow)
     on_ui_interaction();
 }
 
-void PreferencesRoot::OnSourceDeactivate(UINT, int, CWindow)
+void PreferencesSearching::OnSourceDeactivate(UINT, int, CWindow)
 {
     LRESULT select_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCURSEL, 0, 0);
     if(select_index == LB_ERR)
@@ -365,7 +364,7 @@ void PreferencesRoot::OnSourceDeactivate(UINT, int, CWindow)
     on_ui_interaction();
 }
 
-void PreferencesRoot::OnActiveSourceSelect(UINT, int, CWindow)
+void PreferencesSearching::OnActiveSourceSelect(UINT, int, CWindow)
 {
     LRESULT select_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCURSEL, 0, 0);
     LRESULT item_count = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCOUNT, 0, 0);
@@ -389,7 +388,7 @@ void PreferencesRoot::OnActiveSourceSelect(UINT, int, CWindow)
     move_down_btn.EnableWindow((select_index != LB_ERR) && (select_index+1 != item_count));
 }
 
-void PreferencesRoot::OnInactiveSourceSelect(UINT, int, CWindow)
+void PreferencesSearching::OnInactiveSourceSelect(UINT, int, CWindow)
 {
     SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETCURSEL, WPARAM(-1));
 
@@ -408,7 +407,7 @@ void PreferencesRoot::OnInactiveSourceSelect(UINT, int, CWindow)
     move_down_btn.EnableWindow(FALSE);
 }
 
-void PreferencesRoot::OnMusixmatchHelp(UINT, int, CWindow)
+void PreferencesSearching::OnMusixmatchHelp(UINT, int, CWindow)
 {
     popup_message_v3::query_t query = {};
     query.title = "Musixmatch Help";
@@ -447,7 +446,7 @@ void PreferencesRoot::OnMusixmatchHelp(UINT, int, CWindow)
     }
 }
 
-void PreferencesRoot::OnMusixmatchShow(UINT, int, CWindow)
+void PreferencesSearching::OnMusixmatchShow(UINT, int, CWindow)
 {
     CWindow token = GetDlgItem(IDC_SEARCH_MUSIXMATCH_TOKEN);
     LRESULT password_char = token.SendMessage(EM_GETPASSWORDCHAR, 0, 0);
@@ -462,13 +461,13 @@ void PreferencesRoot::OnMusixmatchShow(UINT, int, CWindow)
     token.Invalidate(); // Force it to redraw with the new character
 }
 
-void PreferencesRoot::reset()
+void PreferencesSearching::reset()
 {
     SourceListResetToDefault();
     auto_preferences_page_instance::reset();
 }
 
-void PreferencesRoot::apply()
+void PreferencesSearching::apply()
 {
     SourceListApply();
     auto_preferences_page_instance::apply();
@@ -498,18 +497,18 @@ void PreferencesRoot::apply()
     }
 }
 
-bool PreferencesRoot::has_changed()
+bool PreferencesSearching::has_changed()
 {
     if(SourceListHasChanged()) return true;
     return auto_preferences_page_instance::has_changed();
 }
 
-void PreferencesRoot::SourceListInitialise()
+void PreferencesSearching::SourceListInitialise()
 {
     SourceListResetFromSaved();
 }
 
-void PreferencesRoot::SourceListResetFromSaved()
+void PreferencesSearching::SourceListResetFromSaved()
 {
     SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
     SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
@@ -567,7 +566,7 @@ void PreferencesRoot::SourceListResetFromSaved()
     }
 }
 
-void PreferencesRoot::SourceListResetToDefault()
+void PreferencesSearching::SourceListResetToDefault()
 {
     SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
     SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_RESETCONTENT, 0, 0);
@@ -623,7 +622,7 @@ void PreferencesRoot::SourceListResetToDefault()
     }
 }
 
-void PreferencesRoot::SourceListApply()
+void PreferencesSearching::SourceListApply()
 {
     cfg_search_active_sources.remove_all();
 
@@ -641,7 +640,7 @@ void PreferencesRoot::SourceListApply()
     }
 }
 
-bool PreferencesRoot::SourceListHasChanged()
+bool PreferencesSearching::SourceListHasChanged()
 {
     size_t saved_item_count = cfg_search_active_sources.get_count();
     LRESULT ui_item_count_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_GETCOUNT, 0, 0);
@@ -674,12 +673,11 @@ bool PreferencesRoot::SourceListHasChanged()
     return false;
 }
 
-class PreferencesRootImpl : public preferences_page_impl<PreferencesRoot>
+class PreferencesSearchImpl : public preferences_page_impl<PreferencesSearching>
 {
 public:
-    const char* get_name() { return "OpenLyrics"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
-    GUID get_parent_guid() { return guid_tools; }
+    const char* get_name() { return "Searching"; }
+    GUID get_guid() { return GUID_PREFERENCES_PAGE_SEARCH; }
+    GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
 };
-
-static preferences_page_factory_t<PreferencesRootImpl> g_preferences_page_root_factory;
+static preferences_page_factory_t<PreferencesSearchImpl> g_preferences_page_search_factory;

@@ -141,6 +141,9 @@
     <ClCompile Include="..\src\config\ui_preferences_search.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\config\ui_preferences_root.cpp">
+      <Filter>Source Files\config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">

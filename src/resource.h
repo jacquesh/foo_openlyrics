@@ -6,10 +6,11 @@
 #define IDD_MANUAL_SEARCH               121
 #define IDD_BULK_SEARCH                 125
 #define IDD_PREFERENCES_DISPLAY_BACKGROUND 127
-#define IDD_PREFERENCES_ROOT            148
+#define IDD_PREFERENCES_SEARCHING       148
 #define IDD_PREFERENCES_SAVING          149
 #define IDD_PREFERENCES_DISPLAY         150
 #define IDD_PREFERENCES_EDIT            151
+#define IDD_PREFERENCES_ROOT            152
 #define IDC_ACTIVE_SOURCE_LIST          1021
 #define IDC_INACTIVE_SOURCE_LIST        1025
 #define IDC_SOURCE_ACTIVATE_BTN         1026
