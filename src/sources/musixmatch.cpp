@@ -67,7 +67,7 @@ static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
 
 std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const
 {
-    std::string apikey = preferences::searching::musixmatch_api_key();
+    const std::string_view apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + "track.search?" + g_common_params + "&subtitle_format=lrc";
     url += "&q_artist=" + urlencode(artist);
     url += "&q_album=" + urlencode(album);
@@ -213,7 +213,7 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
 {
     assert(data.source_id == id());
 
-    std::string apikey = preferences::searching::musixmatch_api_key();
+    const std::string_view apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&commontrack_id=" + std::to_string(track_id) + "&usertoken=";
     LOG_INFO("Get Musixmatch lyrics from %s", url.c_str());
     url += apikey; // Add this after logging so we don't log sensitive info

@@ -8,7 +8,6 @@
 
 #include "config/config_auto.h"
 #include "logging.h"
-#include "lyric_data.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
 #include "win32_util.h"
@@ -18,7 +17,6 @@ extern const GUID GUID_PREFERENCES_PAGE_SEARCH = { 0x73e2261d, 0x4a71, 0x427a, {
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION = { 0x9046aa4a, 0x352e, 0x4467, { 0xbc, 0xd2, 0xc4, 0x19, 0x47, 0xd2, 0xbf, 0x24 } };
 static const GUID GUID_CFG_SEARCH_ACTIVE_SOURCES = { 0x7d3c9b2c, 0xb87b, 0x4250, { 0x99, 0x56, 0x8d, 0xf5, 0x80, 0xc9, 0x2f, 0x39 } };
 static const GUID GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS = { 0x2cbdf6c3, 0xdb8c, 0x43d4, { 0xb5, 0x40, 0x76, 0xc0, 0x4a, 0x39, 0xa7, 0xc7 } };
-static const GUID GUID_CFG_SEARCH_MUSIXMATCH_TOKEN = { 0xb88a82a7, 0x746d, 0x44f3, { 0xb8, 0x34, 0x9b, 0x9b, 0xe2, 0x6f, 0x8, 0x4c } };
 
 // NOTE: These were copied from the relevant lyric-source source file.
 //       It should not be a problem because these GUIDs must never change anyway (since it would
@@ -34,12 +32,10 @@ static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid, me
 static cfg_int_t<uint64_t> cfg_search_active_sources_generation(GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION, 0);
 static cfg_objList<GUID>   cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
 static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
-static cfg_auto_string     cfg_search_musixmatch_token(GUID_CFG_SEARCH_MUSIXMATCH_TOKEN, IDC_SEARCH_MUSIXMATCH_TOKEN, "");
 
 static cfg_auto_property* g_searching_auto_properties[] =
 {
     &cfg_search_exclude_trailing_brackets,
-    &cfg_search_musixmatch_token,
 };
 
 uint64_t preferences::searching::source_config_generation()
@@ -74,11 +70,6 @@ bool preferences::searching::exclude_trailing_brackets()
     return cfg_search_exclude_trailing_brackets.get_value();
 }
 
-std::string preferences::searching::musixmatch_api_key()
-{
-    return std::string(cfg_search_musixmatch_token.get_ptr(), cfg_search_musixmatch_token.get_length());
-}
-
 std::vector<GUID> preferences::searching::raw::active_sources_configured()
 {
     const size_t source_count = cfg_search_active_sources.get_size();
@@ -109,7 +100,6 @@ public:
 
     BEGIN_MSG_MAP_EX(PreferencesSearching)
         MSG_WM_INITDIALOG(OnInitDialog)
-        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_TOKEN, EN_CHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_UP_BTN, BN_CLICKED, OnMoveUp)
         COMMAND_HANDLER_EX(IDC_SOURCE_MOVE_DOWN_BTN, BN_CLICKED, OnMoveDown)
@@ -117,8 +107,6 @@ public:
         COMMAND_HANDLER_EX(IDC_SOURCE_DEACTIVATE_BTN, BN_CLICKED, OnSourceDeactivate)
         COMMAND_HANDLER_EX(IDC_ACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnActiveSourceSelect)
         COMMAND_HANDLER_EX(IDC_INACTIVE_SOURCE_LIST, LBN_SELCHANGE, OnInactiveSourceSelect)
-        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_HELP, BN_CLICKED, OnMusixmatchHelp)
-        COMMAND_HANDLER_EX(IDC_SEARCH_MUSIXMATCH_SHOW, BN_CLICKED, OnMusixmatchShow)
     END_MSG_MAP()
 
 private:
@@ -130,16 +118,12 @@ private:
     void OnSourceDeactivate(UINT, int, CWindow);
     void OnActiveSourceSelect(UINT, int, CWindow);
     void OnInactiveSourceSelect(UINT, int, CWindow);
-    void OnMusixmatchHelp(UINT, int, CWindow);
-    void OnMusixmatchShow(UINT, int, CWindow);
 
     void SourceListInitialise();
     void SourceListResetFromSaved();
     void SourceListResetToDefault();
     void SourceListApply();
     bool SourceListHasChanged();
-
-    LRESULT m_default_password_char;
 
     fb2k::CCoreDarkModeHooks m_dark;
 };
@@ -151,8 +135,6 @@ BOOL PreferencesSearching::OnInitDialog(CWindow, LPARAM)
     SourceListInitialise();
     init_auto_preferences();
 
-    CWindow token = GetDlgItem(IDC_SEARCH_MUSIXMATCH_TOKEN);
-    m_default_password_char = SendDlgItemMessage(IDC_SEARCH_MUSIXMATCH_TOKEN, EM_GETPASSWORDCHAR, 0, 0);
     return FALSE;
 }
 
@@ -379,60 +361,6 @@ void PreferencesSearching::OnInactiveSourceSelect(UINT, int, CWindow)
     move_down_btn.EnableWindow(FALSE);
 }
 
-void PreferencesSearching::OnMusixmatchHelp(UINT, int, CWindow)
-{
-    popup_message_v3::query_t query = {};
-    query.title = "Musixmatch Help";
-    query.msg = "The Musixmatch source requires an authentication token to work. Without one it will not find any lyrics.\r\n\r\nAn authentication token is roughly like a randomly-generated password that musixmatch uses to differentiate between different users.\r\n\r\nWould you like OpenLyrics to attempt to get a token automatically for you now?";
-    query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo;
-    query.defButton = popup_message_v3::buttonNo;
-    query.icon = popup_message_v3::iconInformation;
-    uint32_t popup_result = popup_message_v3::get()->show_query_modal(query);
-    if(popup_result == popup_message_v3::buttonYes)
-    {
-        std::string output_token;
-        const auto async_search = [&output_token](threaded_process_status& /*status*/, abort_callback& abort)
-        {
-            output_token = musixmatch_get_token(abort);
-        };
-        bool success = threaded_process::g_run_modal(threaded_process_callback_lambda::create(async_search),
-                                                     threaded_process::flag_show_abort,
-                                                     m_hWnd,
-                                                     "Attempting to get Musixmatch token...");
-
-        if(!success || output_token.empty())
-        {
-            popup_message_v3::query_t failed_query = {};
-            failed_query.title = "Musixmatch Help";
-            failed_query.msg = "Failed to automatically get a Musixmatch token.\r\n\r\nYou could try to get a token manually, using the instructions found here:\r\nhttps://github.com/khanhas/genius-spicetify#musicxmatch";
-            failed_query.buttons = popup_message_v3::buttonOK;
-            failed_query.defButton = popup_message_v3::buttonOK;
-            failed_query.icon = popup_message_v3::iconWarning;
-            popup_message_v3::get()->show_query_modal(failed_query);
-        }
-        else
-        {
-            std::tstring ui_token = to_tstring(output_token);
-            SetDlgItemText(IDC_SEARCH_MUSIXMATCH_TOKEN, ui_token.c_str());
-        }
-    }
-}
-
-void PreferencesSearching::OnMusixmatchShow(UINT, int, CWindow)
-{
-    CWindow token = GetDlgItem(IDC_SEARCH_MUSIXMATCH_TOKEN);
-    LRESULT password_char = token.SendMessage(EM_GETPASSWORDCHAR, 0, 0);
-    if(password_char == m_default_password_char)
-    {
-        token.SendMessage(EM_SETPASSWORDCHAR, 0, 0);
-    }
-    else
-    {
-        token.SendMessage(EM_SETPASSWORDCHAR, m_default_password_char, 0);
-    }
-    token.Invalidate(); // Force it to redraw with the new character
-}
-
 void PreferencesSearching::reset()
 {
     SourceListResetToDefault();
@@ -444,7 +372,7 @@ void PreferencesSearching::apply()
     SourceListApply();
     auto_preferences_page_instance::apply();
 
-    bool has_musixmatch_token = (cfg_search_musixmatch_token.get_length() > 0);
+    const bool has_musixmatch_token = !preferences::searching::musixmatch_api_key().empty();
     bool musixmatch_enabled = false;
 
     size_t source_count = cfg_search_active_sources.get_size();

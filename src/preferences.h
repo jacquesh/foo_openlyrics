@@ -92,7 +92,7 @@ namespace preferences
         std::vector<std::string> tags();
         bool exclude_trailing_brackets();
 
-        std::string musixmatch_api_key();
+        std::string_view musixmatch_api_key();
 
         namespace raw
         {

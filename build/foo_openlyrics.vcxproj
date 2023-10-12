@@ -198,6 +198,7 @@
     <ClCompile Include="..\src\config\ui_preferences_search.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_localfiles.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_metadatatags.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp" />
     <ClCompile Include="..\src\img_processing.cpp" />
     <ClCompile Include="..\src\lyric_auto_edit.cpp" />
     <ClCompile Include="..\src\lyric_data.cpp" />
