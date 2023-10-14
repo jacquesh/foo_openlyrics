@@ -91,6 +91,11 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
                                                        our_index_hash,
                                                        data_buffer,
                                                        sizeof(data_buffer));
+    if(data_bytes == 0)
+    {
+        LOG_INFO("No search avoidance info available for track");
+        return {};
+    }
 
     try
     {
@@ -114,7 +119,7 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
     }
     catch(const std::exception& ex)
     {
-        LOG_INFO("Failed to read search-avoidance info: %s", ex.what());
+        LOG_WARN("Failed to read search-avoidance info: %s", ex.what());
         return {};
     }
 }
@@ -135,7 +140,7 @@ SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track)
     const bool expected_to_fail = (avoidance.failed_searches > 3);
     const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
     const bool same_generation = (avoidance.search_config_generation == preferences::searching::source_config_generation());
-    const bool has_repeated_failures = (!same_generation || !expected_to_fail || !trial_period_expired);
+    const bool has_repeated_failures = (same_generation && expected_to_fail && trial_period_expired);
     if(has_repeated_failures)
     {
         return SearchAvoidanceReason::RepeatedFailures;

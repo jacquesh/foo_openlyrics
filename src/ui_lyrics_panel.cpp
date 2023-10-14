@@ -693,7 +693,7 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
                 case SearchAvoidanceReason::MarkedInstrumental:
                 {
                     origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped: track was explicitly marked 'instrumental'"), origin);
-                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Manually request a lyrics search to try again."), origin);
+                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Manually request a lyrics search to clear that status."), origin);
                 } break;
 
                 case SearchAvoidanceReason::MatchesSkipFilter:
