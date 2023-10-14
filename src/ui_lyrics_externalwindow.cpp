@@ -948,7 +948,8 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
             // NOTE: We also track a generation counter that increments every time you change the search config
             //       so that if you don't find lyrics with some active sources and then add more, it'll search
             //       again at least once, possibly finding something if there are new active sources.
-            if(search_avoidance_allows_search(m_now_playing))
+            const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing);
+            if(avoid_reason == SearchAvoidanceReason::Allowed)
             {
                 if(should_panel_search(this))
                 {
@@ -957,7 +958,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
             }
             else
             {
-                LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
+                LOG_INFO("Search avoided skipped this track: %s", search_avoid_reason_to_string(avoid_reason));
                 m_lyrics = {};
             }
         }

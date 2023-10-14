@@ -8,6 +8,25 @@
 
 static const GUID GUID_METADBINDEX_LYRIC_HISTORY = { 0x915bee72, 0xfd1d, 0x4cf8, { 0x90, 0xd4, 0x8e, 0x2c, 0x18, 0xfd, 0x5, 0xbf } };
 
+// Much like preferences, these constants must be preserved forever because they get
+// persisted in the search avoidance database on the user's machine.
+enum AvoidanceFlags : uint32_t
+{
+    None               = 0,
+    MarkedInstrumental = 1 << 0,
+};
+
+struct lyric_search_avoidance
+{
+    // Struct versions:
+    // v1: 20 bytes
+    // v2: 24 bytes
+    int failed_searches;
+    t_filetimestamp first_fail_time;
+    uint64_t search_config_generation;
+    uint32_t flags; // Added in v2
+};
+
 struct lyric_metadb_index_client : metadb_index_client
 {
     static lyric_metadb_index_client::ptr instance()
@@ -77,9 +96,20 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
     {
         lyric_search_avoidance result = {};
         stream_reader_formatter_simple<false> reader(data_buffer, data_bytes);
-        reader >> result.failed_searches;
-        reader >> result.first_fail_time;
-        reader >> result.search_config_generation;
+        if(data_bytes == 20) // v1
+        {
+            reader >> result.failed_searches;
+            reader >> result.first_fail_time;
+            reader >> result.search_config_generation;
+            result.flags = 0;
+        }
+        else if(data_bytes == 24) // v2
+        {
+            reader >> result.failed_searches;
+            reader >> result.first_fail_time;
+            reader >> result.search_config_generation;
+            reader >> result.flags;
+        }
         return result;
     }
     catch(const std::exception& ex)
@@ -89,18 +119,29 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
     }
 }
 
-bool search_avoidance_allows_search(metadb_handle_ptr track)
+SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track)
 {
     if(track_is_remote(track))
     {
-        return true;
+        return SearchAvoidanceReason::Allowed;
     }
 
     lyric_search_avoidance avoidance = load_search_avoidance(track);
+    if((avoidance.flags & AvoidanceFlags::MarkedInstrumental) != 0)
+    {
+        return SearchAvoidanceReason::MarkedInstrumental;
+    }
+
     const bool expected_to_fail = (avoidance.failed_searches > 3);
     const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
     const bool same_generation = (avoidance.search_config_generation == preferences::searching::source_config_generation());
-    return !same_generation || !expected_to_fail || !trial_period_expired;
+    const bool has_repeated_failures = (!same_generation || !expected_to_fail || !trial_period_expired);
+    if(has_repeated_failures)
+    {
+        return SearchAvoidanceReason::RepeatedFailures;
+    }
+
+    return SearchAvoidanceReason::Allowed;
 }
 
 static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance)
@@ -117,6 +158,7 @@ static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidanc
     writer << avoidance.failed_searches;
     writer << avoidance.first_fail_time;
     writer << avoidance.search_config_generation;
+    writer << avoidance.flags;
 
     meta_index->set_user_data(GUID_METADBINDEX_LYRIC_HISTORY,
                               our_index_hash,
@@ -144,7 +186,7 @@ void search_avoidance_log_search_failure(metadb_handle_ptr track)
     save_search_avoidance(track, avoidance);
 }
 
-void search_avoidance_force_avoidance(metadb_handle_ptr track)
+void search_avoidance_force_by_mark_instrumental(metadb_handle_ptr track)
 {
     if(track_is_remote(track))
     {
@@ -152,14 +194,12 @@ void search_avoidance_force_avoidance(metadb_handle_ptr track)
     }
 
     lyric_search_avoidance avoidance = load_search_avoidance(track);
-    avoidance.search_config_generation = preferences::searching::source_config_generation();
-    avoidance.first_fail_time = 0;
-    avoidance.failed_searches = INT_MAX;
+    avoidance.flags |= AvoidanceFlags::MarkedInstrumental;
     save_search_avoidance(track, avoidance);
 
 #ifndef NDEBUG
     // Sanity check this in debug builds to ensure we have successfully prevented searches
-    assert(!search_avoidance_allows_search(track));
+    assert(search_avoidance_allows_search(track) == SearchAvoidanceReason::MarkedInstrumental);
 #endif
 }
 
@@ -171,3 +211,14 @@ void clear_search_avoidance(metadb_handle_ptr track)
     meta_index->set_user_data(GUID_METADBINDEX_LYRIC_HISTORY, our_index_hash, nullptr, 0);
 }
 
+const char* search_avoid_reason_to_string(SearchAvoidanceReason reason)
+{
+    switch(reason)
+    {
+        case SearchAvoidanceReason::Allowed: return "Allowed";
+        case SearchAvoidanceReason::RepeatedFailures: return "Repeated failures";
+        case SearchAvoidanceReason::MarkedInstrumental: return "Marked instrumental";
+        case SearchAvoidanceReason::MatchesSkipFilter: return "Matches skip filter";
+        default: return "<Unrecognised reason>";
+    }
+}

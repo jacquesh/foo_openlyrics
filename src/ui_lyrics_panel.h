@@ -4,6 +4,7 @@
 
 #include "img_processing.h"
 #include "lyric_io.h"
+#include "metadb_index_search_avoidance.h"
 
 class LyricPanel : public CWindowImpl<LyricPanel>, private play_callback
 {
@@ -116,7 +117,7 @@ protected: // TODO: Only protected to support the external window
     LyricData m_lyrics;
     bool m_search_pending = false;
 private:
-    bool m_auto_search_avoided = false;
+    SearchAvoidanceReason m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
     uint64_t m_auto_search_avoided_timestamp = 0;
 
     HDC m_back_buffer;

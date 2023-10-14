@@ -264,7 +264,7 @@ void LyricPanel::on_playback_stop(play_control::t_stop_reason /*reason*/)
     m_now_playing = nullptr;
     m_now_playing_info = {};
     m_lyrics = {};
-    m_auto_search_avoided = false;
+    m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
     StopTimer();
 
     m_albumart_original = {};
@@ -674,7 +674,7 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
         origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
     }
 
-    if(m_auto_search_avoided)
+    if(m_auto_search_avoided_reason != SearchAvoidanceReason::Allowed)
     {
         const double search_avoided_msg_seconds = 15.0;
         uint64_t search_avoided_msg_ticks = static_cast<uint64_t>(search_avoided_msg_seconds * 10'000'000); // A "tick" here means "100-nanoseconds"
@@ -682,8 +682,30 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
         if(ticks_since_search_avoided < search_avoided_msg_ticks)
         {
             origin.y += DrawWrappedLyricLine(dc, client_rect, _T(""), origin);
-            origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped because it failed too many times."), origin);
-            origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Manually request a lyrics search to try again."), origin);
+            switch(m_auto_search_avoided_reason)
+            {
+                case SearchAvoidanceReason::RepeatedFailures:
+                {
+                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped: search failed too many times."), origin);
+                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Manually request a lyrics search to try again."), origin);
+                } break;
+
+                case SearchAvoidanceReason::MarkedInstrumental:
+                {
+                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped: track was explicitly marked 'instrumental'"), origin);
+                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Manually request a lyrics search to try again."), origin);
+                } break;
+
+                case SearchAvoidanceReason::MatchesSkipFilter:
+                {
+                    origin.y += DrawWrappedLyricLine(dc, client_rect, _T("Auto-search skipped: track matched the skip filter."), origin);
+                } break;
+
+                case SearchAvoidanceReason::Allowed: // fallthrough
+                default:
+                    LOG_WARN("Unrecognised search avoidance reason when rendering no-lyrics");
+                    break;
+            }
         }
     }
 }
@@ -853,7 +875,8 @@ void LyricPanel::OnPaint(CDCHandle)
             // NOTE: We also track a generation counter that increments every time you change the search config
             //       so that if you don't find lyrics with some active sources and then add more, it'll search
             //       again at least once, possibly finding something if there are new active sources.
-            if(search_avoidance_allows_search(m_now_playing))
+            const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing);
+            if(avoid_reason == SearchAvoidanceReason::Allowed)
             {
                 if(should_panel_search(this))
                 {
@@ -862,9 +885,9 @@ void LyricPanel::OnPaint(CDCHandle)
             }
             else
             {
-                LOG_INFO("Skipped search because it's expected to fail anyway and was not specifically requested");
+                LOG_INFO("Search avoided skipped this track: %s", search_avoid_reason_to_string(avoid_reason));
                 m_lyrics = {};
-                m_auto_search_avoided = true;
+                m_auto_search_avoided_reason = avoid_reason;
                 m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
             }
         }
@@ -1201,7 +1224,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                     io::delete_saved_lyrics(m_now_playing, m_lyrics);
                     m_lyrics = {};
                 }
-                search_avoidance_force_avoidance(m_now_playing);
+                search_avoidance_force_by_mark_instrumental(m_now_playing);
             } break;
 
             case ID_AUTO_REMOVE_EXTRA_SPACES:
@@ -1299,7 +1322,6 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(update);
             assert(maybe_lyrics.has_value()); // Round-trip through the processing to avoid copies
             m_lyrics = std::move(maybe_lyrics.value());
-            m_auto_search_avoided = false;
         }
     }
     catch(std::exception const & e)
@@ -1378,7 +1400,7 @@ void LyricPanel::StopTimer()
 void LyricPanel::InitiateLyricSearch()
 {
     m_lyrics = {};
-    m_auto_search_avoided = false;
+    m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
 
     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
     io::search_for_lyrics(*update, false);
@@ -1438,7 +1460,7 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
                 {
                     assert(panel != nullptr);
                     panel->m_lyrics = maybe_lyrics.value();
-                    panel->m_auto_search_avoided = false;
+                    panel->m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
                     ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
                 }
             }

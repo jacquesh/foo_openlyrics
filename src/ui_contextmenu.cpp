@@ -256,7 +256,7 @@ public:
                                 }
                             }
                         }
-                        search_avoidance_force_avoidance(track);
+                        search_avoidance_force_by_mark_instrumental(track);
                     }
                     LOG_INFO("Finished marking %d tracks as instrumental with %d failures", int(failure_count));
 
