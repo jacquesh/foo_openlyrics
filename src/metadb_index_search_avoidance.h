@@ -10,7 +10,7 @@ enum class SearchAvoidanceReason
     MatchesSkipFilter,
 };
 
-SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track);
+SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info);
 void search_avoidance_log_search_failure(metadb_handle_ptr track);
 void clear_search_avoidance(metadb_handle_ptr track);
 

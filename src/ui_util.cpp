@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "lyric_data.h"
 #include "tag_util.h"
 
@@ -30,3 +31,37 @@ std::string get_track_friendly_string(const metadb_v2_rec_t& track_info)
 {
     return get_friendly_string(track_metadata(track_info, "artist"), track_metadata(track_info, "title"));
 }
+
+metadb_handle_ptr get_format_preview_track()
+{
+    metadb_handle_ptr preview_track = nullptr;
+    service_ptr_t<playback_control> playback = playback_control::get();
+    if(playback->get_now_playing(preview_track))
+    {
+        LOG_INFO("Playback is currently active, using the now-playing track for format preview");
+    }
+    else
+    {
+        pfc::list_t<metadb_handle_ptr> selection;
+
+        service_ptr_t<playlist_manager> playlist = playlist_manager::get();
+        playlist->activeplaylist_get_selected_items(selection);
+
+        if(selection.get_count() > 0)
+        {
+            LOG_INFO("Using the first selected item for format preview");
+            preview_track = selection[0];
+        }
+        else if(playlist->activeplaylist_get_item_handle(preview_track, 0))
+        {
+            LOG_INFO("No selection available, using the first playlist item for format preview");
+        }
+        else
+        {
+            LOG_INFO("No selection available & no active playlist. There will be no format preview");
+        }
+    }
+
+    return preview_track;
+}
+

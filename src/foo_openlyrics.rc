@@ -65,6 +65,15 @@ BEGIN
     LTEXT           "Available sources:",IDC_STATIC,198,12,58,8
     CONTROL         "Exclude text in brackets at the end of artist/album names and track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,146,313,10
+    LTEXT           "Filter format:",IDC_STATIC,7,201,79,8
+    EDITTEXT        IDC_SEARCH_SKIP_FILTER_STR,55,198,268,14,ES_AUTOHSCROLL
+    CONTROL         "<a>Syntax help</a>",IDC_SEARCH_SYNTAX_HELP,"SysLink",WS_TABSTOP,0,261,39,9
+    GROUPBOX        "Skip filter",IDC_STATIC,0,172,331,86
+    LTEXT           "If this titleformat produces non-empty output for a track, no auto-search will take place for that track",IDC_STATIC,7,185,312,8
+    LTEXT           "Static",IDC_SEARCH_SKIP_FILTER_RESULT,55,241,268,8,SS_PATHELLIPSIS
+    EDITTEXT        IDC_SEARCH_SKIP_FILTER_OUTPUT,55,218,268,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    LTEXT           "Filter output:",IDC_STATIC,7,221,40,8
+    LTEXT           "Filter result:",IDC_STATIC,7,241,36,8
 END
 
 IDD_PREFERENCES_SAVING DIALOGEX 0, 0, 332, 288

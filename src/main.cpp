@@ -34,6 +34,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add configuration for horizontal and vertical text alignment\n"
     "- Add (experimental) support for showing the panel in an external window\n"
     "- Add a source for metal-archives.com\n"
+    "- Add a 'skip filter', a titleformat-based way to skip auto-search\n"
     "- Show the active sort order in column headers of the manual search window\n"
     "- Stop asking users to submit metrics after a pre-defined date\n"
     "- Automatically display search result in all lyric panels, not of just one\n"

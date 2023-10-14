@@ -124,11 +124,38 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
     }
 }
 
-SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track)
+bool track_matches_skip_filter(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
+{
+    const pfc::string8& skip_filter_str = preferences::searching::skip_filter();
+    if(skip_filter_str.isEmpty())
+    {
+        return false;
+    }
+
+    titleformat_object::ptr skip_filter;
+    const bool filter_compile_success = titleformat_compiler::get()->compile(skip_filter, skip_filter_str.c_str());
+    if(!filter_compile_success)
+    {
+        LOG_WARN("Failed to compile skip filter format: %s", skip_filter_str.c_str());
+        return false;
+    }
+
+    pfc::string8 filter_result;
+    track->formatTitle_v2_(track_info, nullptr, filter_result, skip_filter, nullptr);
+
+    return !filter_result.isEmpty();
+}
+
+SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
     if(track_is_remote(track))
     {
         return SearchAvoidanceReason::Allowed;
+    }
+
+    if(track_matches_skip_filter(track, track_info))
+    {
+        return SearchAvoidanceReason::MatchesSkipFilter;
     }
 
     lyric_search_avoidance avoidance = load_search_avoidance(track);
@@ -204,7 +231,7 @@ void search_avoidance_force_by_mark_instrumental(metadb_handle_ptr track)
 
 #ifndef NDEBUG
     // Sanity check this in debug builds to ensure we have successfully prevented searches
-    assert(search_avoidance_allows_search(track) == SearchAvoidanceReason::MarkedInstrumental);
+    assert(search_avoidance_allows_search(track, track->query_v2_()) == SearchAvoidanceReason::MarkedInstrumental);
 #endif
 }
 

@@ -11,6 +11,7 @@
 #include "logging.h"
 #include "preferences.h"
 #include "tag_util.h"
+#include "ui_util.h"
 
 static const GUID GUID_PREFERENCES_PAGE_SRC_LOCALFILES = { 0x9f2e83b6, 0xccc3, 0x4033, { 0xb5, 0x84, 0xf3, 0x84, 0x2d, 0xad, 0xfb, 0x40 } };
 
@@ -339,35 +340,7 @@ void PreferencesSrcLocalfiles::UpdateFormatPreview(int edit_id, int preview_id)
         bool compile_success = titleformat_compiler::get()->compile(format_script, format_text.c_str());
         if(compile_success)
         {
-            metadb_handle_ptr preview_track = nullptr;
-
-            service_ptr_t<playback_control> playback = playback_control::get();
-            if(playback->get_now_playing(preview_track))
-            {
-                LOG_INFO("Playback is currently active, using the now-playing track for format preview");
-            }
-            else
-            {
-                pfc::list_t<metadb_handle_ptr> selection;
-
-                service_ptr_t<playlist_manager> playlist = playlist_manager::get();
-	            playlist->activeplaylist_get_selected_items(selection);
-
-                if(selection.get_count() > 0)
-                {
-                    LOG_INFO("Using the first selected item for format preview");
-                    preview_track = selection[0];
-                }
-                else if(playlist->activeplaylist_get_item_handle(preview_track, 0))
-                {
-                    LOG_INFO("No selection available, using the first playlist item for format preview");
-                }
-                else
-                {
-                    LOG_INFO("No selection available & no active playlist. There will be no format preview");
-                }
-            }
-
+            metadb_handle_ptr preview_track = get_format_preview_track();
             if(preview_track != nullptr)
             {
                 pfc::string8 formatted;

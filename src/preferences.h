@@ -89,9 +89,10 @@ namespace preferences
     {
         uint64_t source_config_generation();
         std::vector<GUID> active_sources();
-        std::vector<std::string> tags();
         bool exclude_trailing_brackets();
+        const pfc::string8& skip_filter();
 
+        std::vector<std::string> tags();
         std::string_view musixmatch_api_key();
 
         namespace raw
