@@ -48,6 +48,7 @@ struct D2DTextRenderContext
     int font_descent_px;
 };
 
+// Refer to https://kubyshkin.name/posts/win32-window-custom-title-bar-caption/ for details on rendering borderless windows
 class ExternalLyricWindow : public LyricPanel
 {
 public:
