@@ -31,6 +31,12 @@ static http_request::ptr make_post_request()
     request->add_header("Cookie", "appver=2.0.2");
     request->add_header("charset", "utf-8");
     request->add_header("Content-Type", "application/x-www-form-urlencoded");
+
+    // For some reason, passing this header (which gives an IP in China's IP range,
+    // seemingly to suggest that the requester is in China) causes NetEase to return
+    // significantly more sensible results in some cases.
+    request->add_header("X-Real-IP", "202.96.0.0");
+
     return request;
 }
 
