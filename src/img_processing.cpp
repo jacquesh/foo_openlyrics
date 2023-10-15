@@ -2,7 +2,7 @@
 
 #pragma warning(push, 0)
 #include "stb_image.h"
-#include "stb_image_resize.h"
+#include "stb_image_resize2.h"
 #pragma warning(pop)
 
 #include "img_processing.h"
@@ -286,11 +286,10 @@ Image resize_image(const Image& input, int out_width, int out_height)
         return {};
     }
 
-    uint8_t* resized_pixels = (uint8_t*)malloc(out_width * out_height * 4);
-    int success = stbir_resize_uint8(input.pixels, input.width, input.height, 0,
-                                     resized_pixels, out_width, out_height, 0,
-                                     4);
-    assert(success == 1);
+    uint8_t* resized_pixels = stbir_resize_uint8_linear(
+            input.pixels, input.width, input.height,  0/*stride*/,
+            nullptr/*output_pixels*/, out_width, out_height, 0/*stride*/,
+            STBIR_4CHANNEL);
 
     Image result = {};
     result.pixels = std::move(resized_pixels);
