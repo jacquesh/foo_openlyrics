@@ -1351,6 +1351,12 @@ LRESULT LyricPanel::OnMouseWheel(UINT /*virtualKeys*/, short rotation, CPoint /*
     m_manual_scroll_distance += int(scroll_ticks * one_line_height);
 
     Invalidate();
+
+    // We only actually support scrolling on unsynced lyrics
+    if(!m_lyrics.IsTimestamped())
+    {
+        metrics::log_used_manual_scroll();
+    }
     return 0;
 }
 
@@ -1362,6 +1368,12 @@ void LyricPanel::OnMouseMove(UINT /*virtualKeys*/, CPoint point)
         m_manual_scroll_distance += scroll_delta;
         m_manual_scroll_start = point;
         Invalidate();
+
+        // We only actually support scrolling on unsynced lyrics
+        if(!m_lyrics.IsTimestamped())
+        {
+            metrics::log_used_manual_scroll();
+        }
     }
 }
 

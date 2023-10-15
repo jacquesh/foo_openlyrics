@@ -57,6 +57,7 @@ static const GUID ft_autoedit = { 0xb1df2480, 0xde3a, 0x49ec, { 0xbf, 0xd, 0x7d,
 static const GUID ft_instrumental = { 0x12253c20, 0x9324, 0x4095, { 0x89, 0xb8, 0x3e, 0xc8, 0x3f, 0x13, 0xf8, 0x23 } };
 static const GUID ft_showlyrics = { 0xa6665198, 0xd2d1, 0x44ac, { 0xa8, 0xde, 0x1c, 0x6c, 0xb5, 0xbe, 0x0d, 0x81 } };
 static const GUID ft_externalwindow = { 0xf426ac64, 0x4aa7, 0x403a, { 0x97, 0x64, 0xff, 0x62, 0x51, 0xcb, 0xe6, 0x73 } };
+static const GUID ft_manualscroll = { 0x3b751894, 0x9163, 0x4902, { 0x8d, 0x65, 0x3, 0x10, 0x35, 0x21, 0xb5, 0x4d } };
 static FeatureTracker featuretrack_bulksearch(ft_bulksearch);
 static FeatureTracker featuretrack_manualsearch(ft_manualsearch);
 static FeatureTracker featuretrack_lyriceditor(ft_editor);
@@ -64,6 +65,7 @@ static FeatureTracker featuretrack_autoedit(ft_autoedit);
 static FeatureTracker featuretrack_instrumental(ft_instrumental);
 static FeatureTracker featuretrack_showlyrics(ft_showlyrics);
 static FeatureTracker featuretrack_externalwindow(ft_externalwindow);
+static FeatureTracker featuretrack_manualscroll(ft_manualscroll);
 
 void metrics::log_used_bulk_search()
 {
@@ -98,6 +100,11 @@ void metrics::log_used_show_lyrics()
 void metrics::log_used_external_window()
 {
     featuretrack_externalwindow.log_usage();
+}
+
+void metrics::log_used_manual_scroll()
+{
+    featuretrack_manualscroll.log_usage();
 }
 
 static const char* get_windows_version_string()
@@ -240,6 +247,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
     cJSON_AddNumberToObject(json, "ol.usage.markinstrumental", double(featuretrack_instrumental.last_used()));
     cJSON_AddNumberToObject(json, "ol.usage.showlyrics", double(featuretrack_showlyrics.last_used()));
     cJSON_AddNumberToObject(json, "ol.usage.externalwindow", double(featuretrack_externalwindow.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.manualscroll", double(featuretrack_manualscroll.last_used()));
 
     const auto get_source_name = [](GUID guid) -> std::string
     {
