@@ -48,6 +48,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "  - This does not apply retroactively: Tracks that were previously marked\n"
     "    instrumental will still show as having failed too many searches.\n"
     "    Marking those tracks instrumental one more time will fix this.\n"
+    "- Skip auto-searching remote sources when the track has no metadata tags\n"
     "- Fix retrieval failing from some sources when no 'album' tag is present\n"
     "- Fix crash when deleting lyrics from tags via the playlist context menu\n"
     "- Fix crash when playing tracks that have no tag metadata at all\n"

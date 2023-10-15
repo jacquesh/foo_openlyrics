@@ -197,6 +197,15 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     std::string tag_title = track_metadata(handle.get_track_info(), "title");
     LOG_INFO("Searching for lyrics for artist='%s', album='%s', title='%s'...", tag_artist.c_str(), tag_album.c_str(), tag_title.c_str());
 
+    // If there are no identifying tags and it's not already a local-only search, then
+    // make it one because we have no way of finding the right track on any remote sources
+    // anyway. The only reason we continue searching at all is that we might find lyrics
+    // in the lyrics tags (which we obviously don't need an artist/album/title to check).
+    if(!local_only && tag_artist.empty() && tag_album.empty() && tag_title.empty())
+    {
+        LOG_INFO("No identifying metadata tags are available for this track, reverting to a local-only search");
+    }
+
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::searching::active_sources())
     {
