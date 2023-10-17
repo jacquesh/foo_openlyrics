@@ -1060,7 +1060,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
         AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_edit.m_hMenu, _T("Auto-edit lyrics"));
-        AppendMenu(menu, MF_STRING, ID_OPEN_EXTERNAL_WINDOW, _T("Open external window"));
+        AppendMenu(menu, MF_STRING, ID_OPEN_EXTERNAL_WINDOW, _T("Open external window (experimental)"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_OPEN_FILE_DIR, _T("Open file location"));
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu, MF_STRING, ID_PREFERENCES, _T("Preferences"));
