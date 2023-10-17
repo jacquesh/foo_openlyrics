@@ -299,22 +299,31 @@ Image resize_image(const Image& input, int out_width, int out_height)
     return result;
 }
 
-Image transpose_image(const Image& img)
+void transpose_image_noalloc(int width, int height, const uint8_t* in_pixels, uint8_t* out_pixels)
 {
-    uint8_t* pixels = (uint8_t*)malloc(img.width * img.height * 4);
-    for(int y=0; y<img.height; y++)
+    // Instead of doing the entire image at once, we transpose in "blocks" for better cache efficiency
+    const int block_size = 256;
+    for(int block_y=0; block_y<height; block_y+=block_size)
     {
-        for(int x=0; x<img.width; x++)
+        for(int x=0; x < width; x++)
         {
-            uint8_t* in_px = img.pixels + 4*(y*img.width + x);
-            uint8_t* out_px = pixels + 4*(x*img.height + y);
-
-            for(int c=0; c<4; c++)
+            const uint8_t* in_block_column = in_pixels + 4*(block_y*width + x);
+            uint8_t* out_foo = out_pixels + 4*(x*height + block_y);
+            for(int y=0; (y<block_size) && (block_y+y<height); y++)
             {
-                out_px[c] = in_px[c];
+                const uint8_t* in_px = in_block_column + 4*y*width;
+                uint8_t* out_px = out_foo + 4*y;
+                memcpy(out_px, in_px, 4);
             }
         }
     }
+}
+Image transpose_image(const Image& img)
+{
+    TIME_FUNCTION();
+
+    uint8_t* pixels = (uint8_t*)malloc(img.width * img.height * 4);
+    transpose_image_noalloc(img.width, img.height, img.pixels, pixels);
 
     Image result = {};
     result.width = img.height;
