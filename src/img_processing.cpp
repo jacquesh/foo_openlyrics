@@ -490,6 +490,20 @@ Image blur_image(const Image& img, int radius)
     if(radius > img.width/3) radius = img.width/3;
     if(radius > img.height/3) radius = img.height/3;
 
+    if(radius <= 0)
+    {
+        // Don't do anything at all if the requested blur is a no-op
+        const size_t pixel_bytes = img.width * img.height * 4;
+        uint8_t* pixels = (uint8_t*)malloc(pixel_bytes);
+        memcpy(pixels, img.pixels, pixel_bytes);
+
+        Image result = {};
+        result.width = img.width;
+        result.height = img.height;
+        result.pixels = pixels;
+        return result;
+    }
+
     // This is a repeated box blur that approximates a gaussian blur.
     // Technically for correctness we should be doing several blurs with different
     // radii to better approximate a gaussian curve, but for our use-case we don't
