@@ -56,7 +56,7 @@ static cfg_auto_colour                         cfg_background_gradient_TR(GUID_C
 static cfg_auto_colour                         cfg_background_gradient_BL(GUID_CFG_BACKGROUND_GRADIENT_BL, IDC_BACKGROUND_GRADIENT_BL, cfg_background_gradient_bl_default);
 static cfg_auto_colour                         cfg_background_gradient_BR(GUID_CFG_BACKGROUND_GRADIENT_BR, IDC_BACKGROUND_GRADIENT_BR, cfg_background_gradient_br_default);
 static cfg_auto_ranged_int                     cfg_background_image_opacity(GUID_CFG_BACKGROUND_IMAGE_OPACITY, IDC_BACKGROUND_IMG_OPACITY, 0, 100, 1, 16);
-static cfg_auto_int                            cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS, IDC_BACKGROUND_BLUR_EDIT, 6);
+static cfg_auto_ranged_int                     cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS, IDC_BACKGROUND_BLUR_SLIDER, 0, 32, 1, 6); // This cannot allow a value greater than 127 or we will overflow the 16-bit integer accumulators used in blurring
 static cfg_auto_bool                           cfg_background_maintain_img_aspect_ratio(GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, true);
 static cfg_auto_string                         cfg_background_custom_img_path(GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH, IDC_BACKGROUND_CUSTOM_IMG_PATH, "");
 static cfg_auto_bool                           cfg_background_externalwin_opaque(GUID_CFG_BACKGROUND_EXTERNALWIN_OPACITY , IDC_BACKGROUND_EXTWIN_OPAQUE, false);
@@ -170,7 +170,7 @@ public:
         COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BR, BN_CLICKED, OnColourChangeRequest)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_IMAGE_TYPE, CBN_SELCHANGE, OnImageTypeChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_FILL_TYPE, CBN_SELCHANGE, OnFillTypeChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_BLUR_EDIT, EN_CHANGE, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_BACKGROUND_BLUR_SLIDER, WM_HSCROLL, OnUIChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_IMG_OPACITY, WM_HSCROLL, OnUIChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_BROWSE, BN_CLICKED, OnCustomImageBrowse)
@@ -225,10 +225,6 @@ bool PreferencesDisplayBg::has_changed()
 BOOL PreferencesDisplayBg::OnInitDialog(CWindow, LPARAM)
 {
     m_dark.AddDialogWithControls(m_hWnd);
-
-    HWND blur_edit = GetDlgItem(IDC_BACKGROUND_BLUR_EDIT);
-    SendDlgItemMessage(IDC_BACKGROUND_BLUR_SPINNER, UDM_SETBUDDY, (WPARAM)blur_edit, 0);
-    SendDlgItemMessage(IDC_BACKGROUND_BLUR_SPINNER, UDM_SETRANGE, 0, MAKELPARAM(1024, 0));
 
     init_auto_preferences();
 
@@ -462,8 +458,7 @@ void PreferencesDisplayBg::SetImageFieldsEnabled()
     const bool is_img_custom = (img_type == BackgroundImageType::CustomImage);
 
     GetDlgItem(IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO).EnableWindow(has_img);
-    GetDlgItem(IDC_BACKGROUND_BLUR_EDIT).EnableWindow(has_img);
-    GetDlgItem(IDC_BACKGROUND_BLUR_SPINNER).EnableWindow(has_img);
+    GetDlgItem(IDC_BACKGROUND_BLUR_SLIDER).EnableWindow(has_img);
     GetDlgItem(IDC_BACKGROUND_IMG_OPACITY).EnableWindow(has_img);
     GetDlgItem(IDC_BACKGROUND_CUSTOM_IMG_PATH).EnableWindow(is_img_custom);
     GetDlgItem(IDC_BACKGROUND_CUSTOM_IMG_BROWSE).EnableWindow(is_img_custom);

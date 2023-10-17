@@ -320,8 +320,6 @@ void transpose_image_noalloc(int width, int height, const uint8_t* in_pixels, ui
 }
 Image transpose_image(const Image& img)
 {
-    TIME_FUNCTION();
-
     uint8_t* pixels = (uint8_t*)malloc(img.width * img.height * 4);
     transpose_image_noalloc(img.width, img.height, img.pixels, pixels);
 
