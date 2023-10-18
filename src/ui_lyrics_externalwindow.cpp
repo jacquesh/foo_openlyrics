@@ -29,8 +29,8 @@ static const GUID GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_Y = { 0x808ad0e1, 0xb60c, 0
 static cfg_int_t<uint64_t> cfg_external_window_was_open(GUID_EXTERNAL_WINDOW_WAS_OPEN, 0);
 static cfg_int_t<int> cfg_external_window_previous_x(GUID_EXTERNAL_WINDOW_PREVIOUS_X, 0);
 static cfg_int_t<int> cfg_external_window_previous_y(GUID_EXTERNAL_WINDOW_PREVIOUS_Y, 0);
-static cfg_int_t<int> cfg_external_window_previous_size_x(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_X, 0);
-static cfg_int_t<int> cfg_external_window_previous_size_y(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_Y, 0);
+static cfg_int_t<int> cfg_external_window_previous_size_x(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_X, 640);
+static cfg_int_t<int> cfg_external_window_previous_size_y(GUID_EXTERNAL_WINDOW_PREVIOUS_SIZE_Y, 640);
 
 const float CLOSE_BTN_RADIUS = 32.0f;
 
