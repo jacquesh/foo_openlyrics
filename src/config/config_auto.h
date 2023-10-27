@@ -72,6 +72,16 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         return changed;
     }
 
+    std::string_view get_stringview()
+    {
+        return std::string_view(get_ptr(), get_length());
+    }
+
+    std::string_view get_default()
+    {
+        return m_default_value;
+    }
+
 private:
     int m_control_id;
     std::string m_default_value;

@@ -34,7 +34,7 @@ static const GUID cfg_search_active_sources_default[] = {localfiles_src_guid, me
 static cfg_int_t<uint64_t> cfg_search_active_sources_generation(GUID_CFG_SEARCH_ACTIVE_SOURCES_GENERATION, 0);
 static cfg_objList<GUID>   cfg_search_active_sources(GUID_CFG_SEARCH_ACTIVE_SOURCES, cfg_search_active_sources_default);
 static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
-static cfg_auto_string     cfg_search_skip_filter(GUID_CFG_SEARCH_SKIP_FILTER, IDC_SEARCH_SKIP_FILTER_STR, "$stricmp(%genre%,instrumental))$stricmp(%genre%,classical)");
+static cfg_auto_string     cfg_search_skip_filter(GUID_CFG_SEARCH_SKIP_FILTER, IDC_SEARCH_SKIP_FILTER_STR, "$if($strstr($lower(%genre%),instrumental),1,)$if($strstr($lower(%genre%),classical),1,)");
 
 static cfg_auto_property* g_searching_auto_properties[] =
 {
@@ -669,3 +669,36 @@ public:
     GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
 };
 static preferences_page_factory_t<PreferencesSearchImpl> g_preferences_page_search_factory;
+
+
+class SkipFilterDefaultCorrection : public initquit
+{
+    void on_init() final
+    {
+        // When the customisable skip filter was introduced in v1.7, it had the default given below.
+        // This default is broken and will always produce an empty string (note the extra closing
+        // parenthesis after `instrumental`). This seems like a bug in fb2k because I would have
+        // expected the extra closing parenthesis to show up in the output, but apparently not.
+        // Since defaults are persisted on first launch, now every user that launched fb2k with
+        // openlyrics v1.7 will have this broken default.
+        // Unless they fix it or remove the bad string entirely, the skip filter will never work
+        // for them.
+        // To work around this we check for it on startup and quietly migrate to the new default.
+        // This could technically be a bad experience if a user in future specifically sets their
+        // filter to the exact broken string we used to have as default and is then surprised when
+        // it changes, but that seems terribly unlikely. And their filter wouldn't have worked anyway.
+        //
+        // If it helps, we can probably remove this conversion sometime in the future after a few
+        // releases once there's been time for most users' default filters to have been fixed.
+        //
+        const std::string_view old_broken_default_filter = "$stricmp(%genre%,instrumental))$stricmp(%genre%,classical)";
+        const std::string_view new_fixed_default_filter = cfg_search_skip_filter.get_default();
+        const std::string_view current_filter = cfg_search_skip_filter.get_stringview();
+
+        if(current_filter == old_broken_default_filter)
+        {
+            cfg_search_skip_filter.set_string_nc(new_fixed_default_filter.data(), new_fixed_default_filter.length());
+        }
+    }
+};
+static initquit_factory_t<SkipFilterDefaultCorrection> g_skipfilter_correction_factory;

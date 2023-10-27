@@ -28,6 +28,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Change the default search filter to consider multi-value genre tags\n"
+    "- Fixed the default search skip filter never skipping anything\n"
     "\n";
     out += "Version 1.7 (2023-10-18):\n"
     "- Add support for album art or a custom image file as the panel background\n"
