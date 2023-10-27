@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#define OPENLYRICS_VERSION "1.7"
+#define OPENLYRICS_VERSION "1.8-dev"
 
 // Declaration of your component's version information
 // Since foobar2000 v1.0 having at least one of these in your DLL is mandatory to let the troubleshooter tell different versions of your component apart.
@@ -27,6 +27,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Source available at https://github.com/jacquesh/foo_openlyrics\n";
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
+    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "\n";
     out += "Version 1.7 (2023-10-18):\n"
     "- Add support for album art or a custom image file as the panel background\n"
     "- Add support for gradients to the background colour preferences\n"
