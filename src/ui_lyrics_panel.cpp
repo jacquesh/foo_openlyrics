@@ -673,9 +673,14 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
         std::tstring progress_text = to_tstring(progress_msg.value());
         origin.y += DrawWrappedLyricLine(dc, client_rect, progress_text, origin);
     }
-
-    if(m_auto_search_avoided_reason != SearchAvoidanceReason::Allowed)
+    else if(m_auto_search_avoided_reason != SearchAvoidanceReason::Allowed)
     {
+        // We specifically only consider the avoidance reason if we *don't* have a progress
+        // message. So the `else` is important in the `else if` above.
+        // This is because "avoiding" a search just means we don't search *remote* sources.
+        // We always search local sources. There's no point in skipping an attempt to load
+        // a file from disk (or load data from a metadata tag).
+
         const double search_avoided_msg_seconds = 15.0;
         uint64_t search_avoided_msg_ticks = static_cast<uint64_t>(search_avoided_msg_seconds * 10'000'000); // A "tick" here means "100-nanoseconds"
         uint64_t ticks_since_search_avoided = filetimestamp_from_system_timer() - m_auto_search_avoided_timestamp;
@@ -872,23 +877,10 @@ void LyricPanel::OnPaint(CDCHandle)
         // In that case we'd previously try to use m_now_playing to power the search & search-avoidance and would crash.
         if(m_now_playing != nullptr)
         {
-            // NOTE: We also track a generation counter that increments every time you change the search config
-            //       so that if you don't find lyrics with some active sources and then add more, it'll search
-            //       again at least once, possibly finding something if there are new active sources.
-            const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing, m_now_playing_info);
-            if(avoid_reason == SearchAvoidanceReason::Allowed)
+            if(should_panel_search(this))
             {
-                if(should_panel_search(this))
-                {
-                    InitiateLyricSearch();
-                }
-            }
-            else
-            {
-                LOG_INFO("Search avoided skipped this track: %s", search_avoid_reason_to_string(avoid_reason));
-                m_lyrics = {};
-                m_auto_search_avoided_reason = avoid_reason;
-                m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
+                const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing, m_now_playing_info);
+                InitiateLyricSearch(avoid_reason);
             }
         }
     }
@@ -1094,7 +1086,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             {
                 if(m_now_playing == nullptr) break;
 
-                InitiateLyricSearch();
+                InitiateLyricSearch(SearchAvoidanceReason::Allowed);
             } break;
 
             case ID_SEARCH_LYRICS_MANUAL:
@@ -1409,13 +1401,23 @@ void LyricPanel::StopTimer()
     WIN32_OP(KillTimer(m_panel_update_timer))
 }
 
-void LyricPanel::InitiateLyricSearch()
+void LyricPanel::InitiateLyricSearch(SearchAvoidanceReason avoid_reason)
 {
     m_lyrics = {};
-    m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
+    m_auto_search_avoided_reason = avoid_reason;
+
+    const bool search_local_only = (avoid_reason != SearchAvoidanceReason::Allowed);
+    // NOTE: We also track a generation counter that increments every time you change the search config
+    //       so that if you don't find lyrics with some active sources and then add more, it'll search
+    //       again at least once, possibly finding something if there are new active sources.
+    if(search_local_only)
+    {
+        LOG_INFO("Search avoidance skipped remote sources for this track: %s", search_avoid_reason_to_string(avoid_reason));
+        m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
+    }
 
     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
-    io::search_for_lyrics(*update, false);
+    io::search_for_lyrics(*update, search_local_only);
     LyricUpdateQueue::add_handle(std::move(update));
 }
 

@@ -28,6 +28,12 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Searches that are 'skipped' now still search local sources\n"
+    "  - This means that you'll still see lyrics for tracks matching the\n"
+    "    skip filter if they were already available from a local source.\n"
+    "  - For example if you already have (or explicitly search for) lyrics\n"
+    "    saved to file for a track whose genre is 'Instrumental' (which\n"
+    "    matches the default skip filter) then those will still show up.\n"
     "- Change the default search filter to consider multi-value genre tags\n"
     "- Fixed the default search skip filter never skipping anything\n"
     "\n";

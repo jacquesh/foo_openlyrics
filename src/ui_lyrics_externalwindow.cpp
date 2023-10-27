@@ -946,21 +946,10 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         // In that case we'd previously try to use m_now_playing to power the search & search-avoidance and would crash.
         if(m_now_playing != nullptr)
         {
-            // NOTE: We also track a generation counter that increments every time you change the search config
-            //       so that if you don't find lyrics with some active sources and then add more, it'll search
-            //       again at least once, possibly finding something if there are new active sources.
-            const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing, m_now_playing_info);
-            if(avoid_reason == SearchAvoidanceReason::Allowed)
+            if(should_panel_search(this))
             {
-                if(should_panel_search(this))
-                {
-                    InitiateLyricSearch();
-                }
-            }
-            else
-            {
-                LOG_INFO("Search avoided skipped this track: %s", search_avoid_reason_to_string(avoid_reason));
-                m_lyrics = {};
+                const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing, m_now_playing_info);
+                InitiateLyricSearch(avoid_reason);
             }
         }
     }

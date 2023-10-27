@@ -93,7 +93,7 @@ private:
     void DrawTimestampedLyrics(HDC dc, CRect client_area);
 
 protected: // TODO: Only protected to support the external window
-    void InitiateLyricSearch();
+    void InitiateLyricSearch(SearchAvoidanceReason avoid_reason);
 
     struct PlaybackTimeInfo
     {
