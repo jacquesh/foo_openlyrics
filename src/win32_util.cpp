@@ -100,8 +100,13 @@ std::string from_tstring(const std::tstring& string)
 
 std::tstring normalise_utf8(std::tstring_view input)
 {
+    if(input.empty())
+    {
+        return std::tstring();
+    }
+
     // NOTE: fb2k docs specify that tags are UTF-8 encoded
-    if((input.length() == 0) || (input.length() > INT_MAX))
+    if(input.length() > INT_MAX)
     {
         LOG_WARN("Input string for UTF-8 normalisation is too long, skipping...");
         return std::tstring(input.data(), input.length());
