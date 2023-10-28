@@ -3,6 +3,7 @@
 #include "stdafx.h"
 
 std::string_view trim_surrounding_whitespace(std::string_view str);
+std::string_view trim_surrounding_line_endings(std::string_view str);
 std::string_view trim_trailing_text_in_brackets(std::string_view str);
 
 metadb_v2_rec_t get_full_metadata(metadb_handle_ptr track);

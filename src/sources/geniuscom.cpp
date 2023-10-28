@@ -63,7 +63,16 @@ void GeniusComSource::add_all_text_to_string(std::string& output, pugi::xml_node
         if(child.type() == pugi::node_pcdata)
         {
             // We assume the text is already UTF-8
-            std::string_view node_text = trim_surrounding_whitespace(child.value());
+
+            // Trim surrounding line-endings to get rid of the newlines in the HTML that don't affect rendering
+            std::string node_text(trim_surrounding_line_endings(child.value()));
+
+            // Sometimes tidyHtml inserts newlines in the middle of a line where there should just be a space.
+            // Get rid of any carriage returns (in case they were added) and then replace
+            // newlines in the middle of the text with spaces.
+            node_text.erase(std::remove(node_text.begin(), node_text.end(), '\r'));
+            std::replace(node_text.begin(), node_text.end(), '\n', ' ');
+
             output += node_text;
         }
         else if(child.type() == pugi::node_element)
@@ -134,6 +143,12 @@ std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::
                 for(const pugi::xpath_node& node : lyricdivs)
                 {
                     add_all_text_to_string(lyric_text, node.node());
+
+                    // A div is a block element, which means that by definition
+                    // it effectively includes a trailing line-break.
+                    // We won't get that line-break by parsing the HTML text content,
+                    // so add it here manually.
+                    lyric_text += "\r\n";
                 }
                 break;
             }

@@ -5,17 +5,27 @@
 #include "preferences.h"
 #include "tag_util.h"
 
-std::string_view trim_surrounding_whitespace(std::string_view str)
+static std::string_view trim_surrounding(std::string_view str, std::string_view trimset)
 {
-    size_t first_non_whitespace = str.find_first_not_of("\r\n ");
-    size_t last_non_whitespace = str.find_last_not_of("\r\n ");
+    size_t first_non_trimset = str.find_first_not_of(trimset);
+    size_t last_non_trimset = str.find_last_not_of(trimset);
 
-    if(first_non_whitespace == std::string_view::npos)
+    if(first_non_trimset == std::string_view::npos)
     {
         return "";
     }
-    size_t len = (last_non_whitespace+1) - first_non_whitespace;
-    return str.substr(first_non_whitespace, len);
+    size_t len = (last_non_trimset+1) - first_non_trimset;
+    return str.substr(first_non_trimset, len);
+}
+
+std::string_view trim_surrounding_whitespace(std::string_view str)
+{
+    return trim_surrounding(str, "\r\n ");
+}
+
+std::string_view trim_surrounding_line_endings(std::string_view str)
+{
+    return trim_surrounding(str, "\r\n");
 }
 
 std::string_view trim_trailing_text_in_brackets(std::string_view str)

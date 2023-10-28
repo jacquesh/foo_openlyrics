@@ -36,6 +36,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "    matches the default skip filter) then those will still show up.\n"
     "- Change the default search filter to consider multi-value genre tags\n"
     "- Fixed the default search skip filter never skipping anything\n"
+    "- Fix the parsing of line breaks in lyrics from genius.com\n"
     "\n";
     out += "Version 1.7 (2023-10-18):\n"
     "- Add support for album art or a custom image file as the panel background\n"
