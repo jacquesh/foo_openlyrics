@@ -6,11 +6,12 @@
 An open-source lyrics plugin for [foobar2000](https://www.foobar2000.org/) that includes its own UI panel for displaying and sources for downloading lyrics that are not available locally. It is intended to be a replacement for LyricShowPanel3 so it is fully-featured and supports lyric searching, saving and editing directly from within foobar2000.
 
 ## Features
-* Buttery-smooth lyric scrolling (either horizontally or vertically)
+* Buttery-smooth lyric scrolling
 * Supports retrieving lyrics from local files, ID3 tags or the internet
 * Customise the font & colours to perfectly suite your layout & theme
+* Supports using album art or any other image as the panel background, with optional transparency and blur
 * Easily edit lyrics directly inside foobar2000 with built-in support for timestamps
-* Check the saved lyrics of any track in your library (whether it is currently playing or not)
+* Check the saved lyrics of any track in your library (regardless of whether it is currently playing)
 * Apply common edits (such as removing blank lines) in just 2 clicks
 * ...and more!
 
