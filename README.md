@@ -18,9 +18,6 @@ An open-source lyrics plugin for [foobar2000](https://www.foobar2000.org/) that 
 Fonts & colours are fully configurable
 ![](.github/readme/lyrics_vertical_scroll.gif)
 
-Horizontal scrolling is also supported
-![](.github/readme/lyrics_horizontal_scroll.gif)
-
 The editor window
 ![](.github/readme/editor.jpg)
 
