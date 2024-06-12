@@ -82,7 +82,18 @@ metadb_v2_rec_t get_full_metadata(metadb_handle_ptr track)
     }
 
     metadb_v2_rec_t result = {};
-    result.info = track->get_full_info_ref(fb2k::noAbort);
+    try
+    {
+        result.info = track->get_full_info_ref(fb2k::noAbort);
+    }
+    catch(pfc::exception ex)
+    {
+        LOG_INFO("Failed to retrieve metadata for track due to IO error: %s", ex.what());
+    }
+    catch(...)
+    {
+        LOG_INFO("Failed to retrieve metadata for track due to an unknown error");
+    }
     return result;
 #endif
 }

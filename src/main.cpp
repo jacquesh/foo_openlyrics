@@ -28,6 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Fix a crash when attempting to load lyrics for non-existent media files\n"
     "\n";
     out += "Version 1.8 (2023-10-28):\n"
     "- Searches that are 'skipped' now still search local sources\n"
