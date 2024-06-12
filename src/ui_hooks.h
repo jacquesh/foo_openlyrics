@@ -16,7 +16,6 @@ class LyricPanel;
 bool should_panel_search(const LyricPanel* panel);
 
 void show_external_lyric_window();
-LyricPanel* get_external_lyric_window();
 
 // Provides fb2k's default UI parameters, usually only available through UI components.
 // These should be queried just-in-time as the values they return may change if the user

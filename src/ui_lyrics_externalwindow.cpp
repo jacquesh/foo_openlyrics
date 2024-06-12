@@ -1263,17 +1263,6 @@ void show_external_lyric_window()
     }
 }
 
-LyricPanel* get_external_lyric_window()
-{
-    if((g_external_window != nullptr)
-        && g_external_window->IsWindow())
-    {
-        return g_external_window;
-    }
-
-    return nullptr;
-}
-
 class ExternalWindowLifetimeWarden : public initquit
 {
     void on_init() final

@@ -28,8 +28,8 @@ public:
     CRect compute_background_image_rect();
     void load_custom_background_image();
     virtual void compute_background_image(); // TODO: Only virtual to support the external window
+    void on_album_art_retrieved(album_art_data::ptr art_data);
 
-protected:
     BEGIN_MSG_MAP_EX(LyricPanel)
         MSG_WM_CREATE(OnWindowCreate)
         MSG_WM_DESTROY(OnWindowDestroy)
@@ -53,9 +53,9 @@ protected:
         MSG_WM_LBUTTONUP(OnLMBUp)
     END_MSG_MAP()
 
+protected:
     virtual bool is_panel_ui_in_edit_mode() = 0;
 
-    void on_album_art_retrieved(album_art_data::ptr art_data);
 
 private:
 protected: // TODO: These 3 are only protected & virtual to support the external window

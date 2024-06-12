@@ -1398,7 +1398,7 @@ void LyricPanel::StopTimer()
     if (!m_timerRunning) return;
     m_timerRunning = false;
 
-    WIN32_OP(KillTimer(m_panel_update_timer))
+    KillTimer(m_panel_update_timer);
 }
 
 void LyricPanel::InitiateLyricSearch(SearchAvoidanceReason avoid_reason)
@@ -1603,15 +1603,23 @@ bool should_panel_search(const LyricPanel* panel)
         return false;
     }
 
-    const LyricPanel* external_window = get_external_lyric_window();
-    const bool is_primary = (panel == g_active_panels[0]);
-    const bool is_external = (panel == external_window);
-    if(external_window != nullptr)
+    if(g_active_panels.size() == 1)
     {
-        return is_external;
+        // If there is only 1 panel then obviously that one should search
+        return true;
     }
-    else
+
+    const auto is_visible = [](LyricPanel* test_panel)
     {
-        return is_primary;
+        return IsWindowVisible(test_panel->m_hWnd);
+    };
+    auto first_visible_iter = std::find_if(g_active_panels.begin(), g_active_panels.end(), is_visible);
+    if((first_visible_iter != g_active_panels.end()) && (first_visible_iter != g_active_panels.begin()))
+    {
+        // If we found a visible panel but it isn't the first/primary one, then swap it to the first one
+        // so that next time it *is* the first one and we can do fewer checks
+        std::swap(*g_active_panels.begin(), *first_visible_iter);
     }
+
+    return (panel == g_active_panels[0]);
 }
