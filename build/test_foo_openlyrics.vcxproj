@@ -175,12 +175,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\test\io_should_auto_edits_be_applied.cpp" />
-    <ClCompile Include="..\test\io_should_lyric_update_be_saved.cpp" />
+    <ClCompile Include="..\test\test_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\test\bvtf.h" />
-    <ClInclude Include="..\test\common_test_data.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

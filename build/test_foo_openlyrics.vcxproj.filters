@@ -11,18 +11,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\test\io_should_auto_edits_be_applied.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\test\io_should_lyric_update_be_saved.cpp">
+    <ClCompile Include="..\test\test_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\test\bvtf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\test\common_test_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

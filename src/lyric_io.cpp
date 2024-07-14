@@ -9,6 +9,7 @@
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 #include "win32_util.h"
+#include "../../test/bvtf.h"
 
 bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {
@@ -473,7 +474,7 @@ void io::search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, st
     });
 }
 
-bool io::should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdateHandle::Type update_type, bool is_timestamped)
+static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdateHandle::Type update_type, bool is_timestamped)
 {
     const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always) ||
                                            ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped) ||
@@ -494,13 +495,13 @@ bool io::should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrate
     return should_save;
 }
 
-bool io::save_overwrite_allowed(LyricUpdateHandle::Type update_type)
+static bool save_overwrite_allowed(LyricUpdateHandle::Type update_type)
 {
     const bool allow_overwrite = (update_type == LyricUpdateHandle::Type::Edit) || (update_type == LyricUpdateHandle::Type::ManualSearch);
     return allow_overwrite;
 }
 
-bool io::should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdateHandle::Type update_type)
+static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdateHandle::Type update_type)
 {
     const bool was_search = (update_type == LyricUpdateHandle::Type::AutoSearch) || (update_type == LyricUpdateHandle::Type::ManualSearch);
     const bool should_auto_edit = was_search && !loaded_from_local_src;
@@ -792,3 +793,152 @@ void LyricUpdateHandle::set_complete()
     LeaveCriticalSection(&m_mutex);
 }
 
+// ============
+// Tests
+// ============
+#ifdef BVTF_TESTS_ENABLED
+static const AutoSaveStrategy g_all_save_strategies[] =
+{
+    AutoSaveStrategy::Never,
+    AutoSaveStrategy::Always,
+    AutoSaveStrategy::OnlySynced,
+    AutoSaveStrategy::OnlyUnsynced
+};
+static const LyricUpdateHandle::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
+{
+    LyricUpdateHandle::Type::AutoSearch,
+    LyricUpdateHandle::Type::ManualSearch
+};
+
+BVTF_TEST(autoedits_dont_apply_to_edit_results)
+{
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
+    const bool all_bools[] = { true, false };
+    for(bool loaded_from_local_src : all_bools)
+    {
+        const bool applied = should_auto_edits_be_applied(loaded_from_local_src, update_type);
+        ASSERT(!applied);
+    }
+}
+
+BVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
+{
+    // NOTE: Most tests assume that all update types are either a search type or "Edit"
+    for(LyricUpdateHandle::Type update_type : g_search_update_types)
+    {
+        const bool applied_remote = should_auto_edits_be_applied(false, update_type);
+        const bool applied_local =  should_auto_edits_be_applied(true, update_type);
+        ASSERT(applied_remote);
+        ASSERT(!applied_local);
+    }
+}
+
+BVTF_TEST(saving_always_save_edit_updates)
+{
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
+    const bool all_bools[] = { true, false };
+    for(bool loaded_from_local_src : all_bools)
+    {
+        for(AutoSaveStrategy autosave : g_all_save_strategies)
+        {
+            for(bool is_timestamped : all_bools)
+            {
+                bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+                ASSERT(should_save);
+            }
+        }
+    }
+}
+
+// This test, combined with the edit one (always_save_edit_updates)
+// covers all possibilities when loaded_from_local_src is true. Other tests need only check when its false
+BVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
+{
+    // NOTE: Most tests assume that all update types are either a search type or "Edit"
+    const bool all_bools[] = { true, false };
+    const bool loaded_from_local_src = true;
+
+    for(LyricUpdateHandle::Type update_type : g_search_update_types)
+    {
+        for(AutoSaveStrategy autosave : g_all_save_strategies)
+        {
+            for(bool is_timestamped : all_bools)
+            {
+                bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+                ASSERT(!should_save);
+            }
+        }
+    }
+}
+
+// This test combined with the local source one (never_save_search_results_loaded_from_local_sources)
+// covers all possibilities when the update type is ManualSearch. Since edit is completely covered
+// by (always_save_edit_updates), we now only need to test AutoSearch.
+BVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
+{
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::ManualSearch;
+    const bool loaded_from_local_src = false;
+    const bool all_bools[] = { true, false };
+
+    for(AutoSaveStrategy autosave : g_all_save_strategies)
+    {
+        for(bool is_timestamped : all_bools)
+        {
+            bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+            ASSERT(should_save);
+        }
+    }
+}
+
+BVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
+{
+    const bool loaded_from_local_src = false;
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const AutoSaveStrategy autosave = AutoSaveStrategy::Always;
+    const bool all_bools[] = { true, false };
+
+    for(bool is_timestamped : all_bools)
+    {
+        bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+        ASSERT(should_save);
+    }
+}
+
+BVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
+{
+    const bool loaded_from_local_src = false;
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const AutoSaveStrategy autosave = AutoSaveStrategy::Never;
+    const bool all_bools[] = { true, false };
+
+    for(bool is_timestamped : all_bools)
+    {
+        bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+        ASSERT(!should_save);
+    }
+}
+
+BVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysynced)
+{
+    const bool loaded_from_local_src = false;
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const AutoSaveStrategy autosave = AutoSaveStrategy::OnlySynced;
+
+    bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
+    bool save_unsynced =  should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
+    ASSERT(save_synced);
+    ASSERT(!save_unsynced);
+}
+
+BVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
+{
+    const bool loaded_from_local_src = false;
+    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const AutoSaveStrategy autosave = AutoSaveStrategy::OnlyUnsynced;
+
+    bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
+    bool save_unsynced =  should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
+    ASSERT(!save_synced);
+    ASSERT(save_unsynced);
+}
+#endif

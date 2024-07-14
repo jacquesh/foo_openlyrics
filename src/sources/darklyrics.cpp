@@ -9,6 +9,9 @@
 #include "lyric_source.h"
 #include "tag_util.h"
 
+#define BVTF_IMPLEMENTATION
+#include "../../test/bvtf.h"
+
 static const GUID src_guid = { 0x5901c128, 0xc67f, 0x4eec, { 0x8f, 0x10, 0x47, 0x5d, 0x12, 0x52, 0x89, 0xe9 } };
 
 class DarkLyricsSource : public LyricSourceRemote
@@ -183,3 +186,14 @@ bool DarkLyricsSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
     assert(false);
     return false;
 }
+
+// ============
+// Tests
+// ============
+#ifdef BVTF_TESTS_ENABLED
+BVTF_TEST(darklyrics_known_bad_chars_removed_from_url)
+{
+    const std::string result = remove_chars_for_url("?!@#asd!@#qwe[]'_zxc-+><");
+    ASSERT(result == "asdqwezxc");
+}
+#endif

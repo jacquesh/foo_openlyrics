@@ -218,6 +218,9 @@
     <ClInclude Include="..\src\img_processing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\test\bvtf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\foo_openlyrics.rc">
