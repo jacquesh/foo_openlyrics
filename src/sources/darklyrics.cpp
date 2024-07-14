@@ -7,10 +7,8 @@
 
 #include "logging.h"
 #include "lyric_source.h"
+#include "mvtf/mvtf.h"
 #include "tag_util.h"
-
-#define MVTF_IMPLEMENTATION
-#include "../../test/mvtf.h"
 
 static const GUID src_guid = { 0x5901c128, 0xc67f, 0x4eec, { 0x8f, 0x10, 0x47, 0x5d, 0x12, 0x52, 0x89, 0xe9 } };
 

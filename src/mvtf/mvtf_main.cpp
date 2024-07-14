@@ -29,7 +29,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const char* main_name =  "run_bvtf_tests";
+    const char* main_name =  "run_mvtf_tests";
     bvtf_func bvtf_main = (bvtf_func)GetProcAddress(lib, main_name);
     if(bvtf_main == nullptr)
     {

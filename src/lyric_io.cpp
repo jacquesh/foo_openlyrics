@@ -5,11 +5,11 @@
 #include "lyric_data.h"
 #include "lyric_io.h"
 #include "metadb_index_search_avoidance.h"
+#include "mvtf/mvtf.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 #include "win32_util.h"
-#include "../../test/mvtf.h"
 
 bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {

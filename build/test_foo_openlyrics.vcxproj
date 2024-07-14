@@ -92,13 +92,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-Win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -109,7 +109,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -126,13 +126,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,7 +143,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../src;$(SolutionDir)/../3rdparty/foo_SDK;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/columns_ui-sdk-7.0.0-beta.2;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include;$(SolutionDir)/../3rdparty/cJSON;$(SolutionDir)/../3rdparty/pugixml-1.12.1/src;$(SolutionDir)/../3rdparty/tidy-html5-5.8.0/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -155,30 +155,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\3rdparty\foo_SDK\foobar2000\foobar2000_component_client\foobar2000_component_client.vcxproj">
-      <Project>{71ad2674-065b-48f5-b8b0-e1f9d3892081}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\3rdparty\foo_SDK\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj">
-      <Project>{ee47764e-a202-4f85-a767-abdab4aff35f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\3rdparty\foo_SDK\foobar2000\SDK\foobar2000_SDK.vcxproj">
-      <Project>{e8091321-d79d-4575-86ef-064ea1a4a20d}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\3rdparty\foo_SDK\libPPUI\libPPUI.vcxproj">
-      <Project>{7729eb82-4069-4414-964b-ad399091a03f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\3rdparty\foo_SDK\pfc\pfc.vcxproj">
-      <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
-    </ProjectReference>
     <ProjectReference Include="foo_openlyrics.vcxproj">
       <Project>{52512d36-b5d0-4883-837b-4b56ff5ad31f}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\test\test_main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\test\bvtf.h" />
+    <ClCompile Include="..\src\mvtf\mvtf_main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
