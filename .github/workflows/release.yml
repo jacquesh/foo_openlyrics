@@ -9,9 +9,13 @@ on:
       - '*'
 
 jobs:
+  run-tests:
+    uses: ./.github/workflows/run_tests.yml
+
   build-release:
     name: Build Release
-    runs-on: windows-2022
+    runs-on: windows-latest
+    needs: run-tests
 
     steps:
     - name: Print installed Windows SDK versions
@@ -20,10 +24,10 @@ jobs:
       run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
     - name: Add MSBuild to the PATH
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v2
 
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Build 32-bit binary
       run: msbuild /r /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
