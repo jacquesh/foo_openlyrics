@@ -106,7 +106,7 @@ public:
 	}
 	bool get_display(t_uint32 p_index,pfc::string_base & p_text,t_uint32 & p_flags) override {
 		// OPTIONAL method
-		bool rv = __super::get_display(p_index, p_text, p_flags);
+		bool rv = mainmenu_commands::get_display(p_index, p_text, p_flags);
 		if (rv) switch(p_index) {
 		case cmd_playback_stream_capture:
 			// Add checkmark if capture is in progress

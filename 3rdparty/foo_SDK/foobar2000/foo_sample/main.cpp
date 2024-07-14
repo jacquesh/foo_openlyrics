@@ -9,3 +9,6 @@ DECLARE_COMPONENT_VERSION("Sample Component","1.0","about message goes here");
 
 // This will prevent users from renaming your component around (important for proper troubleshooter behaviors) or loading multiple instances of it.
 VALIDATE_COMPONENT_FILENAME("foo_sample.dll");
+
+// Activate cfg_var downgrade functionality if enabled. Relevant only when cycling from newer FOOBAR2000_TARGET_VERSION to older.
+FOOBAR2000_IMPLEMENT_CFG_VAR_DOWNGRADE;

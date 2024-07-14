@@ -3,10 +3,14 @@
 #include <list>
 
 namespace DarkMode {
+	// Is dark mode supported on this system or not?
 	bool IsSupportedSystem();
+	// Is system in dark mode or not?
 	bool QueryUserOption();
 	
+	// Darken menus etc app-wide
 	void SetAppDarkMode(bool bDark);
+	// Darken window title bar
 	void UpdateTitleBar(HWND wnd, bool bDark );
 	void ApplyDarkThemeCtrl(HWND ctrl, bool bDark, const wchar_t * ThemeID = L"Explorer");
 	void AllowDarkModeForWindow(HWND wnd, bool bDark);
@@ -30,6 +34,9 @@ namespace DarkMode {
 	// Custom draw handler that paints registered darkened controls.
 	// Can be used with NOTIFY_CODE_HANDLER() directly
 	LRESULT OnCustomDraw(int, NMHDR*, BOOL & bHandled);
+
+	// Handle WM_NCPAINT drawing dark frame
+	void NCPaintDarkFrame(HWND ctrl, HRGN rgn);
 
 	bool IsHighContrast();
 

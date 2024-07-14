@@ -518,7 +518,7 @@ void CListControlImpl::MinGroupHeight2ChangedForGroup(groupID_t groupID, bool re
 void CListControlImpl::UpdateGroupOverlayByID(groupID_t groupID, int xFrom, int xTo) {
 	t_size base, count;
 	if (GetItemRangeAbs(GetVisibleRectAbs(), base, count)) {
-		bool on = false; // Have to walk whole range - there may be multiple groups with the same ID because fuck you
+		bool on = false; // Have to walk whole range - there may be multiple groups with the same ID
 		for (size_t walk = 0; walk < count; ++walk) {
 			bool test = (groupID == GetItemGroup(base + walk));
 			if (test && !on) {
@@ -574,37 +574,41 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 #if PrepLayoutCache_Debug
 	PFC_DEBUGLOG << "PrepLayoutCache entry";
 	PFC_DEBUGLOG << "PrepLayoutCache: count=" << count << " knownGroups=" << this->m_groupHeaders.size();
-	PFC_DEBUGLOG << "PrepLayoutCache: indexLo=" << indexLo << " indexHi=" << indexHi;
+	PFC_DEBUGLOG << "PrepLayoutCache: indexLo=" << pfc::format_index(indexLo) << " indexHi=" << pfc::format_index(indexHi);
 #endif
 	const int clientHeight = pfc::max_t<int>(this->GetClientRectHook().Height(), 100);
 
 	// Always walk 2*clientHeight, with area above and below
 	int yMax = -1, yBase = 0;
 	size_t baseItem = 0, endItem = SIZE_MAX;
-	if (indexLo == SIZE_MAX) {
-		yBase = pfc::max_t<int>(ptOrigin.y - clientHeight / 2, 0);
-		yMax = yBase + clientHeight * 2;
-		baseItem = pfc::min_t<size_t>(this->IndexFromPointAbs(yBase), count - 1);
-	} else {
-		auto itemHeight = GetItemHeight();
-		size_t extraItems = (size_t)(clientHeight / itemHeight);
-#if PrepLayoutCache_Debug
-		PFC_DEBUGLOG << "PrepLayoutCache: clientHeight=" << clientHeight << " itemHeight=" << itemHeight << " extraItems=" << extraItems;
-#endif
-		if (indexLo < extraItems) baseItem = 0;
-		else baseItem = indexLo - extraItems;
 
-		if (indexHi == SIZE_MAX) {
-			endItem = baseItem + extraItems;
+	if (!m_greedyGroupLayout) {
+		if (indexLo == SIZE_MAX) {
+			yBase = pfc::max_t<int>(ptOrigin.y - clientHeight / 2, 0);
+			yMax = yBase + clientHeight * 2;
+			baseItem = pfc::min_t<size_t>(this->IndexFromPointAbs(yBase), count - 1);
 		} else {
-			endItem = indexHi + extraItems;
-		}
-		if (endItem > count) endItem = count;
+			auto itemHeight = GetItemHeight();
+			size_t extraItems = (size_t)(clientHeight / itemHeight);
+#if PrepLayoutCache_Debug
+			PFC_DEBUGLOG << "PrepLayoutCache: clientHeight=" << clientHeight << " itemHeight=" << itemHeight << " extraItems=" << extraItems;
+#endif
+			if (indexLo < extraItems) baseItem = 0;
+			else baseItem = indexLo - extraItems;
+
+			if (indexHi == SIZE_MAX) {
+				endItem = baseItem + extraItems;
+			} else {
+				endItem = indexHi + extraItems;
+			}
+			if (endItem > count) endItem = count;
 
 #if PrepLayoutCache_Debug
-		PFC_DEBUGLOG << "PrepLayoutCache: baseItem=" << baseItem << " endItem=" << endItem;
+			PFC_DEBUGLOG << "PrepLayoutCache: baseItem=" << baseItem << " endItem=" << endItem;
 #endif
+		}
 	}
+
 
 
 
@@ -634,7 +638,7 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 	PFC_DEBUGLOG << "PrepLayoutCache: baseItem=" << baseItem;
 #endif
 	
-	size_t anchorIdx = this->IndexFromPointAbs(ptOrigin.y);
+	size_t anchorIdx = m_greedyGroupLayout ? SIZE_MAX : this->IndexFromPointAbs(ptOrigin.y);
 	int anchorDelta = 0;
 	bool anchorIsFirstInGroup = IsItemFirstInGroupCached(anchorIdx);
 	if (anchorIdx != SIZE_MAX) {
@@ -642,7 +646,7 @@ bool CListControlImpl::PrepLayoutCache(CPoint& ptOrigin, size_t indexLo, size_t 
 	}
 
 #if PrepLayoutCache_Debug
-	PFC_DEBUGLOG << "PrepLayoutCache: anchorIdx=" << anchorIdx << " anchorDelta=" << anchorDelta << " anchorIsFirstInGroup=" << anchorIsFirstInGroup;
+	PFC_DEBUGLOG << "PrepLayoutCache: anchorIdx=" << pfc::format_index(anchorIdx) << " anchorDelta=" << anchorDelta << " anchorIsFirstInGroup=" << anchorIsFirstInGroup;
 #endif
 
 	bool bChanged = false;

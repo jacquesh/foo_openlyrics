@@ -135,7 +135,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -159,7 +159,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -238,7 +238,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -269,7 +269,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -347,6 +347,7 @@
     <ClInclude Include="abort_callback.h" />
     <ClInclude Include="advconfig.h" />
     <ClInclude Include="advconfig_impl.h" />
+    <ClInclude Include="advconfig_impl_legacy.h" />
     <ClInclude Include="album_art.h" />
     <ClInclude Include="album_art_helpers.h" />
     <ClInclude Include="app_close_blocker.h" />
@@ -355,6 +356,7 @@
     <ClInclude Include="audio_chunk_impl.h" />
     <ClInclude Include="audio_postprocessor.h" />
     <ClInclude Include="autoplaylist.h" />
+    <ClInclude Include="callback_merit.h" />
     <ClInclude Include="cfg_var.h" />
     <ClInclude Include="cfg_var_legacy.h" />
     <ClInclude Include="chapterizer.h" />

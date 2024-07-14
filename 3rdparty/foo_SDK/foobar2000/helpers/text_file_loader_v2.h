@@ -8,7 +8,7 @@ public:
 	
 	void load(file::ptr f, abort_callback & abort);
 
-	std::vector< const char * > m_lines;
+	std::vector< char * > m_lines;
 
 	pfc::string8 m_data;
 };

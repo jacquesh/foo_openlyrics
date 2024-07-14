@@ -34,7 +34,7 @@ void t_cuesheet_index_list::to_infos(file_info & p_out) const
 	for(unsigned n=2;n<count;n++)
 	{
 		char namebuffer[16];
-		sprintf_s(namebuffer,"index %02u",n);
+		snprintf(namebuffer, std::size(namebuffer), "index %02u",n);
 		double position = m_positions[n] - base;
 		if (position > 0)
 			p_out.info_set(namebuffer,cuesheet_format_index_time(position));
@@ -63,7 +63,7 @@ bool t_cuesheet_index_list::from_infos(file_info const & p_in,double p_base)
 	for(unsigned n=2;n<count;n++)
 	{
 		char namebuffer[16];
-		sprintf_s(namebuffer,"index %02u",n);
+		snprintf(namebuffer, std::size(namebuffer),"index %02u",n);
 		double temp;
 		if (parse_value(p_in.info_get(namebuffer),temp)) {
 			m_positions[n] = temp + p_base; found = true;

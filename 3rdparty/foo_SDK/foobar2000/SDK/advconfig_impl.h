@@ -1,5 +1,7 @@
 #pragma once
 
+// advconfig_impl.h : mainline (foobar2000 v2.0) implementation of advconfig objects
+
 #include "advconfig.h"
 
 //! Standard implementation of advconfig_branch. \n
@@ -138,6 +140,7 @@ public:
 	advconfig_string_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags = 0) : service_factory_single_t<advconfig_entry_string_impl>(p_name, fb2k::advconfig_autoName(p_guid), p_guid, p_parent, p_priority, p_initialstate, p_prefFlags) {}
 
 	void get(pfc::string_base& out) { get_static_instance().get_state(out); }
+	pfc::string8 get() { pfc::string8 temp; get(temp); return temp; }
 	void set(const char* in) { get_static_instance().set_state(in); }
 };
 

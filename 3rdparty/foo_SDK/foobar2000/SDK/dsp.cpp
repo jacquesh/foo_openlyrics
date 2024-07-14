@@ -119,10 +119,17 @@ bool dsp_entry_hidden::g_instantiate( dsp::ptr & out, const dsp_preset & preset 
 	return i->instantiate(out, preset);
 }
 
-bool dsp_entry::g_instantiate(service_ptr_t<dsp> & p_out,const dsp_preset & p_preset)
+bool dsp_entry::g_instantiate(service_ptr_t<dsp> & p_out,const dsp_preset & p_preset, unsigned flags )
 {
 	service_ptr_t<dsp_entry> ptr;
 	if (!g_get_interface(ptr,p_preset.get_owner())) return false;
+    if ( flags != 0 ) {
+        dsp_entry_v4::ptr v4;
+        if (v4 &= ptr) {
+            p_out = v4->instantiate_v4(p_preset, flags);
+            return true;
+        }
+    }
 	return ptr->instantiate(p_out,p_preset);
 }
 

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="fooSampleDSPView">
+            <connections>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="440" height="129"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9YW-hh-NgU">
+                    <rect key="frame" x="18" y="63" width="404" height="28"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="400" id="WN3-4K-eWJ"/>
+                    </constraints>
+                    <sliderCell key="cell" continuous="YES" state="on" alignment="left" minValue="-20" maxValue="20" tickMarkPosition="above" sliderType="linear" id="7zd-Y6-AAF"/>
+                    <connections>
+                        <action selector="onEdit:" target="-2" id="FKr-P9-h0G"/>
+                        <binding destination="-2" name="value" keyPath="self.gain" id="ypw-jc-Qbb"/>
+                    </connections>
+                </slider>
+                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tvi-gX-Iof">
+                    <rect key="frame" x="172" y="40" width="96" height="21"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="96" id="MP8-UH-dPx"/>
+                    </constraints>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" continuous="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="eU5-n2-vgv">
+                        <customFormatter key="formatter" id="ClW-pw-Nfi" customClass="fooDecibelFormatter">
+                            <userDefinedRuntimeAttributes>
+                                <userDefinedRuntimeAttribute type="number" keyPath="minValue">
+                                    <integer key="value" value="-20"/>
+                                </userDefinedRuntimeAttribute>
+                                <userDefinedRuntimeAttribute type="number" keyPath="maxValue">
+                                    <integer key="value" value="20"/>
+                                </userDefinedRuntimeAttribute>
+                            </userDefinedRuntimeAttributes>
+                        </customFormatter>
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <action selector="onEdit:" target="-2" id="lST-IA-dBa"/>
+                        <binding destination="-2" name="value" keyPath="self.gain" id="eI9-d5-LBw"/>
+                    </connections>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="tvi-gX-Iof" firstAttribute="centerX" secondItem="Hz6-mo-xeY" secondAttribute="centerX" id="1D0-mo-Z5k"/>
+                <constraint firstItem="9YW-hh-NgU" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="40" id="1RA-2z-Owc"/>
+                <constraint firstAttribute="bottom" secondItem="tvi-gX-Iof" secondAttribute="bottom" constant="40" id="99Y-a0-cP8"/>
+                <constraint firstItem="9YW-hh-NgU" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" symbolic="YES" id="OoA-RC-4q6"/>
+                <constraint firstItem="tvi-gX-Iof" firstAttribute="top" secondItem="9YW-hh-NgU" secondAttribute="bottom" constant="8" symbolic="YES" id="cvo-AB-4g3"/>
+                <constraint firstAttribute="trailing" secondItem="9YW-hh-NgU" secondAttribute="trailing" constant="20" symbolic="YES" id="j7s-vt-r1r"/>
+            </constraints>
+            <point key="canvasLocation" x="98" y="120"/>
+        </customView>
+    </objects>
+</document>

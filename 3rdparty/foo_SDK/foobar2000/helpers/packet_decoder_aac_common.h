@@ -37,4 +37,10 @@ public:
 	static audioSpecificConfig_t parseASC(const void *, size_t);
 
 	static unsigned get_ASC_object_type(const void *, size_t);
+
+	static pfc::array_t<uint8_t> buildASC(audioSpecificConfig_t const&);
+
+	// If no sane ASC was provided by container, make something up to initialize decoder and attempt decoding.
+	static pfc::array_t<uint8_t> buildSafeASC(unsigned rate = 0);
+
 };

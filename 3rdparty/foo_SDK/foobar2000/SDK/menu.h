@@ -143,18 +143,21 @@ private:
 	GUID m_guid,m_parent; t_uint32 m_priority; pfc::string8 m_name;
 };
 
-typedef service_factory_single_t<mainmenu_group_impl> __mainmenu_group_factory;
-typedef service_factory_single_t<mainmenu_group_popup_impl> __mainmenu_group_popup_factory;
+typedef service_factory_single_t<mainmenu_group_impl> _mainmenu_group_factory;
+typedef service_factory_single_t<mainmenu_group_popup_impl> _mainmenu_group_popup_factory;
 
-class mainmenu_group_factory : public __mainmenu_group_factory {
+class mainmenu_group_factory : public _mainmenu_group_factory {
 public:
-	mainmenu_group_factory(const GUID & p_guid,const GUID & p_parent,t_uint32 p_priority) : __mainmenu_group_factory(p_guid,p_parent,p_priority) {}
+	mainmenu_group_factory(const GUID & p_guid,const GUID & p_parent,t_uint32 p_priority) : _mainmenu_group_factory(p_guid,p_parent,p_priority) {}
 };
 
-class mainmenu_group_popup_factory : public __mainmenu_group_popup_factory {
+class mainmenu_group_popup_factory : public _mainmenu_group_popup_factory {
 public:
-	mainmenu_group_popup_factory(const GUID & p_guid,const GUID & p_parent,t_uint32 p_priority,const char * p_name) : __mainmenu_group_popup_factory(p_guid,p_parent,p_priority,p_name) {}
+	mainmenu_group_popup_factory(const GUID & p_guid,const GUID & p_parent,t_uint32 p_priority,const char * p_name) : _mainmenu_group_popup_factory(p_guid,p_parent,p_priority,p_name) {}
 };
+
+#define FB2K_DECLARE_MAINMENU_GROUP( guid, parent, priority, name ) FB2K_SERVICE_FACTORY_PARAMS(mainmenu_group_impl, guid, parent, priority, name );
+#define FB2K_DECLARE_MAINMENU_GROUP_POPUP( guid, parent, priority, name ) FB2K_SERVICE_FACTORY_PARAMS(mainmenu_group_popup_impl, guid, parent, priority, name );
 
 template<typename T>
 class mainmenu_commands_factory_t : public service_factory_single_t<T> {};

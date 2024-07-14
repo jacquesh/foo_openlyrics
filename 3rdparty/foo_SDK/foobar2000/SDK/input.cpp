@@ -350,13 +350,15 @@ void input_open_file_helper(service_ptr_t<file> & p_file,const char * p_path,t_i
 }
 
 uint32_t input_entry::g_flags_for_path( const char * path, uint32_t mask ) {
-#if FOOBAR2000_TARGET_VERSION >= 80
+#if defined(FOOBAR2000_DESKTOP) && FOOBAR2000_TARGET_VERSION >= 80
 	return input_manager_v3::get()->flags_for_path(path, mask);
 #else
+#ifdef FOOBAR2000_DESKTOP
 	input_manager_v3::ptr api;
 	if ( input_manager_v3::tryGet(api) ) {
 		return api->flags_for_path(path, mask);
 	}
+#endif
 	uint32_t ret = 0;
 	service_enum_t<input_entry> e; input_entry::ptr p;
 	auto ext = pfc::string_extension(path);
@@ -368,14 +370,16 @@ uint32_t input_entry::g_flags_for_path( const char * path, uint32_t mask ) {
 #endif
 }
 uint32_t input_entry::g_flags_for_content_type( const char * ct, uint32_t mask ) {
-#if FOOBAR2000_TARGET_VERSION >= 80
+#if defined(FOOBAR2000_DESKTOP) && FOOBAR2000_TARGET_VERSION >= 80
 	return input_manager_v3::get()->flags_for_content_type(ct, mask);
 #else
+#ifdef FOOBAR2000_DESKTOP
 	input_manager_v3::ptr api;
 	if ( input_manager_v3::tryGet(api) ) {
 		return api->flags_for_content_type( ct, mask );
 	}
-	uint32_t ret = 0;
+#endif
+    uint32_t ret = 0;
 	service_enum_t<input_entry> e; input_entry::ptr p;
 	while(e.next(p)) {
 		uint32_t f = p->get_flags() & mask;
@@ -428,4 +432,28 @@ t_filestats2 input_info_reader::get_stats2_(const char* fallbackPath, uint32_t f
 		} catch (exception_io) {}
 	}
 	return ret;
+}
+
+GUID input_entry::get_guid_() {
+	auto ret = pfc::guid_null;
+	input_entry_v2::ptr v2;
+	if ( v2 &= this ) ret = v2->get_guid();
+	return ret;
+}
+
+const char* input_entry::get_name_() {
+	const char * ret = "<legacy object>";
+	input_entry_v2::ptr v2;
+	if ( v2 &= this ) ret = v2->get_name();
+	return ret;
+}
+
+input_entry::ptr input_entry::g_find_by_guid(const GUID& guid) {
+	for (auto ptr : enumerate()) {
+		input_entry_v2::ptr v2;
+		if (v2 &= ptr) {
+			if ( guid == v2->get_guid() ) return v2;
+		}
+	}
+	return nullptr;
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "container:foo_sample.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:../SDK/foobar2000_SDK.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:../helpers/foobar2000_SDK_helpers.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:../foobar2000_component_client/foobar2000_component_client.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:../shared/shared.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:../../pfc/pfc.xcodeproj">
+   </FileRef>
+</Workspace>

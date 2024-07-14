@@ -80,6 +80,7 @@ void metadb_io_v2::update_info_async_simple(const pfc::list_base_const_t<metadb_
 }
 
 void metadb_io_v2::on_file_rechaptered( const char * path, metadb_handle_list_cref newItems ) {
+	PFC_ASSERT(core_api::is_main_thread());
 	metadb_handle_list handles( newItems );
 	pfc::string8 pathLocal( path );
 	auto notify = fb2k::makeCompletionNotify( [handles, pathLocal] (unsigned) {
@@ -90,6 +91,7 @@ void metadb_io_v2::on_file_rechaptered( const char * path, metadb_handle_list_cr
 }
 
 void metadb_io_v2::on_files_rechaptered( metadb_handle_list_cref newHandles ) {
+	PFC_ASSERT(core_api::is_main_thread());
 	metadb_handle_list local ( newHandles );
 	auto notify = fb2k::makeCompletionNotify( [local] (unsigned) {
 		playlist_manager::get()->on_files_rechaptered(local);
@@ -115,23 +117,34 @@ metadb_hint_list_v3::ptr metadb_hint_list_v3::create() {
 	return ret;
 }
 
+metadb_hint_list_v4::ptr metadb_hint_list_v4::create() {
+	metadb_hint_list_v4::ptr ret;
+	ret ^= metadb_hint_list::create();
+	return ret;
+}
+
 void metadb_io_callback_dynamic::register_callback() {
+	PFC_ASSERT(core_api::is_main_thread());
 	metadb_io_v3::get()->register_callback(this);
 }
 
 void metadb_io_callback_dynamic::unregister_callback() {
+	PFC_ASSERT(core_api::is_main_thread());
 	metadb_io_v3::get()->unregister_callback(this);
 }
 
 void metadb_io_callback_v2_dynamic::register_callback() {
+	PFC_ASSERT(core_api::is_main_thread());
 	metadb_io_v5::get()->register_callback_v2(this);
 }
 
 void metadb_io_callback_v2_dynamic::unregister_callback() {
+	PFC_ASSERT(core_api::is_main_thread());
 	metadb_io_v5::get()->unregister_callback_v2(this);
 }
 
 bool metadb_io_callback_v2_dynamic::try_register_callback() {
+	PFC_ASSERT(core_api::is_main_thread());
 	auto api = metadb_io_v5::tryGet();
 	if (api.is_empty()) return false;
 	api->register_callback_v2(this);
@@ -139,6 +152,23 @@ bool metadb_io_callback_v2_dynamic::try_register_callback() {
 }
 
 void metadb_io_callback_v2_dynamic::try_unregister_callback() {
+	PFC_ASSERT(core_api::is_main_thread());
 	auto api = metadb_io_v5::tryGet();
 	if (api.is_valid()) api->unregister_callback_v2(this);
+}
+
+metadb_io_callback_dynamic_impl_base::metadb_io_callback_dynamic_impl_base() { 
+	register_callback(); 
+}
+
+metadb_io_callback_dynamic_impl_base::~metadb_io_callback_dynamic_impl_base() { 
+	unregister_callback(); 
+}
+
+metadb_io_callback_v2_dynamic_impl_base::metadb_io_callback_v2_dynamic_impl_base() { 
+	register_callback(); 
+}
+
+metadb_io_callback_v2_dynamic_impl_base::~metadb_io_callback_v2_dynamic_impl_base() { 
+	unregister_callback(); 
 }

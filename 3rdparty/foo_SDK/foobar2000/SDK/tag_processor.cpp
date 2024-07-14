@@ -135,20 +135,15 @@ void tag_processor::read_id3v2_trailing(const service_ptr_t<file> & p_file,file_
 	bool have_id3v2 = true, have_trailing = true;
 	try {
 		read_id3v2(p_file,id3v2,p_abort);
-	} catch(exception_io_data) {
+	} catch(exception_io_data const &) {
 		have_id3v2 = false;
 	}
 
-	if (have_id3v2) {
-		// Disregard empty ID3v2
-		if (id3v2.meta_get_count() == 0 && id3v2.get_replaygain().get_value_count() == 0) {
-			have_id3v2 = false;
-		}
-	}
-
-	if (!have_id3v2 || !p_file->is_remote()) try {
+    const bool have_id3v2_text = have_id3v2 && id3v2.meta_get_count() > 0;
+    
+	if (!have_id3v2_text || !p_file->is_remote()) try {
 		read_trailing(p_file,trailing,p_abort);
-	} catch(exception_io_data) {
+	} catch(exception_io_data const &) {
 		have_trailing = false;
 	}
 
@@ -157,6 +152,7 @@ void tag_processor::read_id3v2_trailing(const service_ptr_t<file> & p_file,file_
 	if (have_id3v2) {
 		p_info._set_tag(id3v2);
 		if (have_trailing) p_info._add_tag(trailing);
+        if (! have_id3v2_text ) p_info.copy_meta(trailing);
 	} else {
 		p_info._set_tag(trailing);
 	}
@@ -164,6 +160,12 @@ void tag_processor::read_id3v2_trailing(const service_ptr_t<file> & p_file,file_
 
 void tag_processor::skip_id3v2(const service_ptr_t<file> & p_file,t_filesize & p_size_skipped,abort_callback & p_abort) {
 	tag_processor_id3v2::g_skip(p_file,p_size_skipped,p_abort);
+}
+
+t_filesize tag_processor::skip_id3v2(file::ptr const & f, abort_callback & a) {
+    t_filesize ret = 0;
+    skip_id3v2(f, ret, a);
+    return ret;
 }
 
 bool tag_processor::is_id3v1_sufficient(const file_info & p_info)

@@ -134,7 +134,32 @@ namespace pfc {
     int naturalSortCompareI(const char* s1, const char* s2) throw() {
         return naturalSortCompareInternal(s1, s2, true);
     }
-
+#ifdef _WIN32
+    int winNaturalSortCompare(const char* s1, const char* s2);
+    int winNaturalSortCompareI(const char* s1, const char* s2);
+#endif
+#ifdef __APPLE__
+    int appleNaturalSortCompare(const char* s1, const char* s2);
+    int appleNaturalSortCompareI(const char* s1, const char* s2);
+#endif
+    int sysNaturalSortCompare(const char* s1, const char* s2) {
+#ifdef _WIN32
+        return winNaturalSortCompare(s1, s2);
+#elif defined(__APPLE__)
+        return appleNaturalSortCompare(s1, s2);
+#else
+        return naturalSortCompare(s1, s2);
+#endif
+    }
+    int sysNaturalSortCompareI(const char* s1, const char* s2) {
+#ifdef _WIN32
+        return winNaturalSortCompareI(s1, s2);
+#elif defined(__APPLE__)
+        return appleNaturalSortCompareI(s1, s2);
+#else
+        return naturalSortCompareI(s1, s2);
+#endif
+    }
     const char* _stringComparatorCommon::myStringToPtr(string_part_ref) {
         pfc::crash(); return nullptr;
     }

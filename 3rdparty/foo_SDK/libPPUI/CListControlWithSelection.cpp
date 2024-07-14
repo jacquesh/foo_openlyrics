@@ -1109,14 +1109,31 @@ bool CListControlWithSelectionBase::GetFocusRectAbs(CRect & p_rect) {
 	return false;
 }
 
+bool CListControlWithSelectionBase::GetContextMenuPoint2(CPoint& ptInOut) {
+	CPoint ptInvalid(-1,-1);
+	if (ptInOut == ptInvalid) {
+		ptInOut = GetContextMenuPointDefault();
+		return ptInOut != ptInvalid;
+	} else {
+		CRect rc = this->GetClientRectHook();
+		WIN32_OP_D( ClientToScreen(rc) );
+		return !!rc.PtInRect(ptInOut);
+	}
+}
+
+CPoint CListControlWithSelectionBase::GetContextMenuPointDefault() {
+	CRect rect;
+	if (!GetFocusRectAbs(rect)) return CPoint(-1,-1);
+	EnsureVisibleRectAbs(rect);
+	CPoint pt = rect.CenterPoint() - GetViewOffset();
+	ClientToScreen(&pt);
+	return pt;
+}
+
 CPoint CListControlWithSelectionBase::GetContextMenuPoint(CPoint ptGot) {
 	CPoint pt;
 	if (ptGot.x == -1 && ptGot.y == -1) {
-		CRect rect;
-		if (!GetFocusRectAbs(rect)) return 0;
-		EnsureVisibleRectAbs(rect);
-		pt = rect.CenterPoint() - GetViewOffset();
-		ClientToScreen(&pt);
+		pt = GetContextMenuPointDefault();
 	} else {
 		pt = ptGot;
 	}
@@ -1126,11 +1143,7 @@ CPoint CListControlWithSelectionBase::GetContextMenuPoint(CPoint ptGot) {
 CPoint CListControlWithSelectionBase::GetContextMenuPoint(LPARAM lp) {
 	CPoint pt;
 	if (lp == -1) {
-		CRect rect;
-		if (!GetFocusRectAbs(rect)) return 0;
-		EnsureVisibleRectAbs(rect);
-		pt = rect.CenterPoint() - GetViewOffset();
-		ClientToScreen(&pt);
+		pt = GetContextMenuPointDefault();
 	} else {
 		pt = lp;
 	}
@@ -1444,7 +1457,7 @@ void CListControlWithSelectionBase::RunDragDrop(const CPoint & p_origin, bool p_
 	}
 
 	pfc::com_ptr_t<CDropSourceImpl> source = new CDropSourceImpl();
-	source->wndOrigin = *this;
+	source->wndOrigin = m_hWnd;
 	source->allowDragOutside = true;
 	source->allowReorder = (flags & dragDrop_reorder) != 0;
 
@@ -1474,7 +1487,7 @@ bool CListControlWithSelectionBase::RunReorderDragDrop(CPoint ptOrigin, CPoint &
 	pfc::com_ptr_t<CDropSourceImpl> source = new CDropSourceImpl();
 	pfc::com_ptr_t<CDropTargetImpl> target = new CDropTargetImpl();
 	
-	source->wndOrigin = *this;
+	source->wndOrigin = m_hWnd;
 	source->allowDragOutside = false;
 	source->allowReorder = true;
 
@@ -1537,9 +1550,11 @@ int CListControlWithSelectionBase::OnCreatePassThru(LPCREATESTRUCT) {
 		};
 		target->HookLeave = [this] {
 			this->ClearDropMark();
+			this->ToggleDDScroll(false);
 		};
 
 		target->Track = [this, dda](CPoint pt) {
+			this->ToggleDDScroll(true);
 			if ( dda->showDropMark ) {
 				WIN32_OP_D(this->ScreenToClient(&pt));
 				size_t idx = this->InsertIndexFromPoint(pt);

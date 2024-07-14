@@ -97,3 +97,49 @@ public:
 	//! This method INVALIDATES passed objects. Do not try to use them afterwards.
     virtual search_filter_v4::ptr combine(pfc::list_base_const_t<search_filter::ptr> const & arg, combine_t how, completion_notify::ptr changeNotify, t_uint32 flags) = 0;
 };
+
+//! \since 2.0
+class search_index : public service_base {
+	FB2K_MAKE_SERVICE_INTERFACE(search_index, service_base)
+public:
+	enum {
+		flag_sort = 1 << 0,
+	};
+
+	//! Searches Tracks in this index for tracks matching criteria.
+	//! @returns list of metadb_handles. Safe to use arr->as_list_of<metadb_handle>() to get a pfc::list_base_const_t<metadb_handle_ptr>
+	//! @param subset Optional: pass subset of tracks in this index to search - whole index is searched if nullptr is passed.
+	//! @param flags Optional: set flag_sort to sort output
+	//! Thread safety: call from any thread.
+	virtual fb2k::arrayRef search(search_filter::ptr pattern, metadb_handle_list_cptr subset, uint32_t flags, abort_callback& abort) = 0;
+	//! Performs hit test on a group of tracks that are a subset of tracks in this index. \n
+	//! Thread safety: call from any thread.
+	virtual void test(search_filter::ptr pattern, metadb_handle_list_cref items, bool* out, abort_callback& abort) = 0;
+
+	//! Add tracks to a custom index. \n
+	//! Illegal to call on library or playlist indexes. \n
+	//! Thread safety: call from any thread.
+	virtual void add_tracks(metadb_handle_list_cref, metadb_io_callback_v2_data* dataIfAvail) = 0;
+	//! Remove tracks from a custom index. \n
+	//! Illegal to call on library or playlist indexes. \n
+	//! Thread safety: call from any thread.
+	virtual void remove_tracks(metadb_handle_list_cref) = 0;
+};
+
+//! \since 2.0
+class search_index_manager : public service_base {
+	FB2K_MAKE_SERVICE_COREAPI(search_index_manager);
+public:
+	//! Create a custom index on any data set. \n
+	//! OK to call from any thread.
+	virtual search_index::ptr create_index(metadb_handle_list_cref items, metadb_io_callback_v2_data* dataIfAvail) = 0;
+
+	//! Create a search index referencing a playlist. \n
+	//! Specify null GUID to follow active playlist (typical playlist search). \n
+	//! Call from main thread to obtain index, then can use obtained object from any thread.
+	virtual search_index::ptr create_playlist_index(const GUID& playlistID = pfc::guid_null) = 0;
+
+	//! Returns a shared object indexing user's media library. \n
+	//! Call from main thread to obtain index, then can use obtained object from any thread.
+	virtual search_index::ptr get_library_index() = 0;
+};

@@ -16,9 +16,9 @@ public:
 	virtual fb2k::hicon_t get_icon(int p_width, int p_height) = 0;
 
 	//! Performs a lookup. Creates a modeless dialog and returns immediately.
-	//! @param p_items Items to look up.
-	//! @param p_notify Callback to notify caller when the operation has completed. Call on_completion with status code 0 to signal failure/abort, or with code 1 to signal success / new infos in metadb.
-	//! @param p_parent Parent window for the lookup dialog. Caller will typically disable the window while lookup is in progress and enable it back when completion is signaled.
+	//! @param items Items to look up.
+	//! @param notify Callback to notify caller when the operation has completed. Call on_completion with status code 0 to signal failure/abort, or with code 1 to signal success / new infos in metadb.
+	//! @param parent Parent window for the lookup dialog. Caller will typically disable the window while lookup is in progress and enable it back when completion is signaled.
 	virtual void lookup(metadb_handle_list_cref items,completion_notify::ptr notify,fb2k::hwnd_t parent) = 0;
  
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(info_lookup_handler);

@@ -612,13 +612,19 @@ public:
 class NOVTABLE ui_config_manager : public service_base {
 	FB2K_MAKE_SERVICE_COREAPI(ui_config_manager);
 public:
+	//! Registers a callback to receive notifications about colors/fonts change. \n
+	//! Main thread only!
 	virtual void add_callback(ui_config_callback*) = 0;
+	//! Unregisters a callback to receive notifications about colors/fonts change. \n
+	//! Main thread only!
 	virtual void remove_callback(ui_config_callback*) = 0;
 
-	//! Queries actual color to be used for the specified ui_color_* element.
+	//! Queries actual color to be used for the specified ui_color_* element. \n
+	//! Main thread only! \n
 	//! @returns True if color is user-overridden, false if system-default color should be used.
 	virtual bool query_color(const GUID& p_what, t_ui_color& p_out) = 0;
 	//! Queries font to be used for the specified ui_font_* element. \n
+	//! Main thread only! \n
 	//! The returned font handle is valid until the next font change callback cycle *completes*, that is, during a font change callback, both old and new handle are momentarily valid.
 	virtual t_ui_font query_font(const GUID& p_what) = 0;	
 
@@ -629,13 +635,24 @@ public:
 	t_ui_color getSysColor(int sysColorIndex);
 #endif
 
-	//! Special method that's safe to call without checking if ui_config_manager exists, that is, it works on foobar2000 < 2.0.
-	//! Returns false if ui_conifg_manager doesn't exist and therefore dark mode isn't supported by this foobar2000 revision.
+	//! Special method that's safe to call without checking if ui_config_manager exists, that is, it works on foobar2000 < 2.0. \n
+	//! Returns false if ui_conifg_manager doesn't exist and therefore dark mode isn't supported by this foobar2000 revision. \n
+	//! Main thread only!
 	static bool g_is_dark_mode();
 };
 
 //! \since 2.0
-//! Does nothing (fails to register quietly) if used in fb2k prior to 2.0
+class NOVTABLE ui_config_manager_v2 : public ui_config_manager {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(ui_config_manager_v2, ui_config_manager)
+public:
+	//! Tells ui_config_manager about system theme having changed. \n
+	//! Intended for keeping track of live dark mode toggle when foo_ui_std is not the active UI. Do not use.
+	virtual void notify_system_theme_changed() = 0;
+};
+
+//! \since 2.0
+//! Does nothing (fails to register quietly) if used in fb2k prior to 2.0 \n
+//! Use in main thread only!
 class ui_config_callback_impl : public ui_config_callback {
 public:
 	ui_config_callback_impl();

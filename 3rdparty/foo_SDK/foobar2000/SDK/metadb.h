@@ -141,6 +141,18 @@ public:
 	virtual void add_hint_forced_reader(const char * p_path,service_ptr_t<input_info_reader> const & p_reader,abort_callback & p_abort) = 0;
 };
 
+//! \since 2.0
+//! Allows dispatching of metadb_io_edit_callback from your code.
+class NOVTABLE metadb_hint_list_v4 : public metadb_hint_list_v3 {
+	FB2K_MAKE_SERVICE_INTERFACE( metadb_hint_list_v4, metadb_hint_list_v3 );
+public:
+	static metadb_hint_list_v4::ptr create();
+
+	virtual void before_edit( const char * path, service_ptr_t<input_info_reader> reader, abort_callback & a ) = 0;
+	virtual void after_edit( const char * path, service_ptr_t<input_info_reader> reader, abort_callback & a ) = 0;
+
+};
+
 
 //! New in 0.9.3. Extends metadb_io functionality with nonblocking versions of tag read/write functions, and some other utility features.
 class NOVTABLE metadb_io_v2 : public metadb_io {
@@ -168,23 +180,27 @@ public:
         op_flag_detect_rechapter = 1 << 5,
 	};
 
-	//! Preloads information from the specified tracks.
+	//! Preloads information from the specified tracks. \n
+	//! Use from main thread only (starts a threaded_process to show a progress dialog).
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_load_info_state values. Can be null if caller doesn't care.
 	virtual void load_info_async(metadb_handle_list_cref p_list,t_load_info_type p_type,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
-	//! Updates tags of the specified tracks.
+	//! Updates tags of the specified tracks. \n
+	//! Use from main thread only (starts a threaded_process to show a progress dialog).
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
 	//! @param p_filter Callback handling actual file_info alterations. Typically used to replace entire meta part of file_info, or to alter something else such as ReplayGain while leaving meta intact.
 	virtual void update_info_async(metadb_handle_list_cref p_list,service_ptr_t<file_info_filter> p_filter,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
-	//! Rewrites tags of the specified tracks; similar to update_info_async() but using last known/cached file_info values rather than values passed by caller.
+	//! Rewrites tags of the specified tracks; similar to update_info_async() but using last known/cached file_info values rather than values passed by caller. \n
+	//! Use from main thread only (starts a threaded_process to show a progress dialog).
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
 	virtual void rewrite_info_async(metadb_handle_list_cref p_list,fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify) = 0;
-	//! Strips all tags / metadata fields from the specified tracks.
+	//! Strips all tags / metadata fields from the specified tracks. \n
+	//! Use from main thread only (starts a threaded_process to show a progress dialog).
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
@@ -194,7 +210,8 @@ public:
 	//! Contrary to other metadb_io methods, this can be safely called in a worker thread. You only need to call the hint list's on_done() method in main thread to finalize.
 	virtual metadb_hint_list::ptr create_hint_list() = 0;
 
-	//! Updates tags of the specified tracks. Helper; uses update_info_async internally.
+	//! Updates tags of the specified tracks. Helper; uses update_info_async internally. \n
+	//! Use from main thread only (starts a threaded_process to show a progress dialog).
 	//! @param p_list List of items to process.
 	//! @param p_op_flags Can be null, or one or more of op_flag_* enum values combined, altering behaviors of the operation.
 	//! @param p_notify Called when the task is completed. Status code is one of t_update_info values. Can be null if caller doesn't care.
@@ -202,10 +219,12 @@ public:
 	void update_info_async_simple(metadb_handle_list_cref p_list,const pfc::list_base_const_t<const file_info*> & p_new_info, fb2k::hwnd_t p_parent_window,t_uint32 p_op_flags,completion_notify_ptr p_notify);
 
 	//! Helper to be called after a file has been rechaptered. \n
-	//! Forcibly reloads info then tells playlist_manager to update all affected playlists.
+	//! Forcibly reloads info then tells playlist_manager to update all affected playlists. \n
+	//! Call from main thread only.
 	void on_file_rechaptered( const char * path, metadb_handle_list_cref newItems );
 	//! Helper to be called after a file has been rechaptered. \n
-	//! Forcibly reloads info then tells playlist_manager to update all affected playlists.
+	//! Forcibly reloads info then tells playlist_manager to update all affected playlists. \n
+	//! Call from main thread only.
 	void on_files_rechaptered( metadb_handle_list_cref newHandles );
 
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_io_v2,metadb_io);
@@ -215,7 +234,13 @@ public:
 //! \since 0.9.5
 class NOVTABLE metadb_io_v3 : public metadb_io_v2 {
 public:
+	//! Registers a callback object to receive notifications about metadb_io operations. \n
+	//! See: metadb_io_callback_dynamic \n
+	//! Call from main thread only.
 	virtual void register_callback(metadb_io_callback_dynamic * p_callback) = 0;
+	//! Unregisters a callback object to receive notifications about metadb_io operations. \n
+	//! See: metadb_io_callback_dynamic \n
+	//! Call from main thread only.
 	virtual void unregister_callback(metadb_io_callback_dynamic * p_callback) = 0;
 
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_io_v3,metadb_io_v2);
@@ -230,15 +255,18 @@ class NOVTABLE metadb_io_v4 : public metadb_io_v3 {
 public:
 	//! Creates an update-info task, that can be either fed to threaded_process API, or invoked by yourself respecting threaded_process semantics. \n
 	//! May return null pointer if the operation has been refused (by user settings or such). \n
-	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup.
+	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup. \n
+	//! Main thread only.
 	virtual service_ptr_t<threaded_process_callback> spawn_update_info( metadb_handle_list_cref items, service_ptr_t<file_info_filter> p_filter, uint32_t opFlags, completion_notify_ptr reply ) = 0;
 	//! Creates an remove-info task, that can be either fed to threaded_process API, or invoked by yourself respecting threaded_process semantics. \n
 	//! May return null pointer if the operation has been refused (by user settings or such). \n
-	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup.
+	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup. \n
+	//! Main thread only.
 	virtual service_ptr_t<threaded_process_callback> spawn_remove_info( metadb_handle_list_cref items, uint32_t opFlags, completion_notify_ptr reply) = 0;
 	//! Creates an load-info task, that can be either fed to threaded_process API, or invoked by yourself respecting threaded_process semantics. \n
 	//! May return null pointer if the operation has been refused (for an example no loading is needed for these items). \n
-	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup.
+	//! Useful for performing the operation with your own in-dialog progress display instead of the generic progress popup. \n
+	//! Main thread only.
 	virtual service_ptr_t<threaded_process_callback> spawn_load_info( metadb_handle_list_cref items, t_load_info_type opType, uint32_t opFlags, completion_notify_ptr reply) = 0;
 };
 
@@ -246,7 +274,11 @@ public:
 class NOVTABLE metadb_io_v5 : public metadb_io_v4 {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(metadb_io_v5, metadb_io_v4);
 public:
+	//! Register a metadb_io_callback_v2_dynamic object to receive notifications about metadb_io events. \n
+	//! Main thread only.
 	virtual void register_callback_v2(metadb_io_callback_v2_dynamic*) = 0;
+	//! Unregister a metadb_io_callback_v2_dynamic object. \n
+	//! Main thread only.
 	virtual void unregister_callback_v2(metadb_io_callback_v2_dynamic*) = 0;
 };
 

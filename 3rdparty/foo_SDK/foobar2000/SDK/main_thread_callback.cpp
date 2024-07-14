@@ -42,6 +42,11 @@ void fb2k::inMainThread2( std::function<void () > f ) {
 
 void fb2k::inMainThreadSynchronous(std::function<void() > f, abort_callback & abort) {
 	abort.check();
+
+	if (core_api::is_main_thread()) {
+		f(); return;
+	}
+
 	auto evt = std::make_shared<pfc::event>();
 	auto f2 = [f, evt] {
 		f();
@@ -49,4 +54,15 @@ void fb2k::inMainThreadSynchronous(std::function<void() > f, abort_callback & ab
 	};
 	inMainThread(f2);
 	abort.waitForEvent(*evt);
+}
+
+void fb2k::inMainThreadSynchronous2(std::function<void() > f) {
+	// Have new API?
+	auto api = main_thread_callback_manager_v2::tryGet();
+	if (api.is_valid()) {
+		api->run_synchronously( fb2k::service_new<mtcallback_func>(f) );
+		return;
+	}
+
+	inMainThreadSynchronous(f, fb2k::noAbort);
 }

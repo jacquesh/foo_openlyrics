@@ -1,5 +1,6 @@
 #pragma once
 #include "metadb_handle.h"
+#include <functional>
 
 //! Reserved for future use.
 typedef void * t_glyph;
@@ -340,3 +341,31 @@ class contextmenu_group_popup_factory : public service_factory_single_t<contextm
 public:
 	contextmenu_group_popup_factory(const GUID & guid, const GUID & parent, const char * name, double sortPriority = 0) : service_factory_single_t<contextmenu_group_popup_impl>(guid, parent, name, sortPriority) {}
 };
+
+
+
+class contextmenu_item_lambda : public contextmenu_item_simple {
+public:
+	typedef std::function<void(metadb_handle_list_cref)> func_t;
+	contextmenu_item_lambda(func_t f, const char* n, const GUID& g, const GUID& pg, const char* d = nullptr, double sp = 0) : m_func(f), m_name(n), m_guid(g), m_parentGuid(pg), m_desc(d), m_sortPriority(sp) {}
+
+	unsigned get_num_items() override { return 1; }
+	void get_item_name(unsigned p_index, pfc::string_base& p_out) override { p_out = m_name; }
+	void context_command(unsigned p_index, metadb_handle_list_cref p_data, const GUID& p_caller) override { m_func(p_data); }
+	GUID get_item_guid(unsigned p_index) override { return m_guid; }
+	bool get_item_description(unsigned p_index, pfc::string_base& p_out) override {
+		if (m_desc == nullptr) return false;
+		p_out = m_desc;
+		return true;
+	}
+	double get_sort_priority() override { return m_sortPriority; }
+	GUID get_parent() override { return m_parentGuid; }
+private:
+	const std::function<void(metadb_handle_list_cref)> m_func;
+	const char* const m_name;
+	const GUID m_guid, m_parentGuid;
+	const char* const m_desc;
+	const double m_sortPriority;
+};
+
+#define FB2K_DECLARE_CONTEXT_MENU_ITEM(func, name, guid, parent, desc, sort) FB2K_SERVICE_FACTORY_PARAMS(contextmenu_item_lambda, func, name, guid, parent, desc, sort)

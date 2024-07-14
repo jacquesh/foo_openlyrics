@@ -6,7 +6,8 @@
 //! Helper class for running audio data through a DSP chain.
 class dsp_manager {
 public:
-	dsp_manager() {}
+    //! @param creationFlags See dsp_entry::flag_*
+	dsp_manager(unsigned creationFlags = 0) : m_creationFlags(creationFlags) {}
 
 	//! Alters the DSP chain configuration. Should be called before the first run() to set the configuration but can be also called anytime later between run() calls.
 	void set_config( const dsp_chain_config & p_data );
@@ -24,6 +25,7 @@ public:
 	bool need_track_change_mark() const;
 
 private:
+    const unsigned m_creationFlags;
 	struct t_dsp_chain_entry {
 		service_ptr_t<dsp> m_dsp;
 		dsp_preset_impl m_preset;

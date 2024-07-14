@@ -331,16 +331,20 @@ public:
 	//! Blocks until done. Returns true if preset has been altered, false otherwise.
 	virtual bool show_config_popup(dsp_preset & p_data,fb2k::hwnd_t p_parent) = 0;
 #else
-	//! Shows configuration popup. Main thread only!
+	//! Shows configuration popup. Main thread only! \n
+    //! Mac: returns NSObjectWrapper holding NSViewController
 	virtual service_ptr show_config_popup( fb2k::hwnd_t parent, dsp_preset_edit_callback_v2::ptr callback );
 #endif
 
 	//! Obsolete method, hidden DSPs now use a different entry class.
 	bool is_user_accessible() { return true; }
 
+    static constexpr unsigned flag_playback = 1 << 0,
+        flag_conversion = 1 << 1;
+    
 	static bool g_get_interface(service_ptr_t<dsp_entry> & p_out,const GUID & p_guid);
 	static service_ptr_t<dsp_entry> g_get_interface(const GUID&);
-	static bool g_instantiate(service_ptr_t<dsp> & p_out,const dsp_preset & p_preset);
+	static bool g_instantiate(service_ptr_t<dsp> & p_out,const dsp_preset & p_preset, unsigned flags = 0);
 	static bool g_instantiate_default(service_ptr_t<dsp> & p_out,const GUID & p_guid);
 	static bool g_name_from_guid(pfc::string_base & p_out,const GUID & p_guid);
 	static bool g_dsp_exists(const GUID & p_guid);
@@ -389,6 +393,7 @@ private:
 	FB2K_MAKE_SERVICE_INTERFACE(dsp_entry_v2,dsp_entry);
 };
 
+//! \since Late 1.6.x
 class NOVTABLE dsp_entry_v3 : public dsp_entry_v2 {
 	FB2K_MAKE_SERVICE_INTERFACE(dsp_entry_v3, dsp_entry_v2);
 public:
@@ -397,12 +402,19 @@ public:
 
 #ifdef _WIN32
 	//! Shows configuration popup, asynchronous version - creates dialog then returns immediately. \n
-	//! Since not every DSP implements this, caller must be prepated to call legacy blocking show_config_popup methods instead. \n
+	//! Since not every DSP implements this, caller must be prepared to call legacy blocking show_config_popup methods instead. \n
 	//! show_config_popup_v3() may throw pfc::exception_not_implemented() to signal host that this DSP doesn't support this method yet. \n
 	//! Main thread only! \n
 	//! @returns Object to retain by host, to be released to request the dialog to be closed.
 	virtual service_ptr show_config_popup_v3(fb2k::hwnd_t parent, dsp_preset_edit_callback_v2::ptr callback) = 0;
 #endif
+};
+
+//! \since 2.1
+class NOVTABLE dsp_entry_v4 : public dsp_entry_v3 {
+    FB2K_MAKE_SERVICE_INTERFACE(dsp_entry_v4, dsp_entry_v3);
+public:
+    virtual dsp::ptr instantiate_v4( const dsp_preset & arg, unsigned flags ) = 0;
 };
 
 class NOVTABLE dsp_entry_hidden : public service_base {
@@ -497,6 +509,15 @@ public:
 		return T::g_show_config_popup_v3(parent, callback);
 	}
 #endif
+};
+
+template<class dsp_t, class entry_t = dsp_entry_v4>
+class dsp_entry_v4_impl_t : public dsp_entry_v3_impl_t< dsp_t, entry_t > {
+public:
+    dsp::ptr instantiate_v4( const dsp_preset & arg, unsigned flags ) override {
+        PFC_ASSERT( arg.get_owner() == dsp_t::g_get_guid() );
+        return new service_impl_t< dsp_t > ( arg, flags );
+    }
 };
 
 template<typename T>
@@ -645,5 +666,10 @@ public:
 private:
 	stream_writer_buffer_simple _m_stream;
 };
+
+#ifdef __APPLE__
+// NSObjectWrapper
+#include "commonObjects-Apple.h"
+#endif
 
 #endif

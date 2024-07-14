@@ -27,9 +27,8 @@ namespace {
 				if (!g_wav_writer.is_open() && ! core_api::is_shutting_down() ) {
 					wav_writer_setup setup; setup.initialize(chunk, 16, false, false);
 					
-					GUID g; CoCreateGuid(&g);
 					pfc::string_formatter fn;
-					fn << "capture-" << pfc::print_guid(g) << ".wav";
+					fn << "capture-" << pfc::print_guid(pfc::createGUID()) << ".wav";
 					pfc::string_formatter path = g_outputPath;
 					path.add_filename( fn ); // pretty method to add file path components with auto inserted delimiter
 					g_wav_writer.open(path, setup, abort);
@@ -99,7 +98,25 @@ namespace {
 	FB2K_SERVICE_FACTORY( play_callback_psc );
 }
 
+static void startCaptureDialogReply( fb2k::arrayRef location ) {
+    if ( g_active ) return; // already capturing
+    if ( location.is_empty() ) return;
+    if ( location->size() != 1 ) return;
+    auto obj = location->itemAt(0);
+    fsItemFolderPtr folder;
+    fb2k::stringRef strFolder;
+    if ( strFolder &= obj ) {
+        // OK
+    } else if ( folder &= obj ) {
+        strFolder = folder->canonicalPath();
+    }
+    if ( strFolder.is_valid() ) {
+        g_outputPath = strFolder->c_str();
+        StartCapture();
+    }
+}
 void ToggleCapture() {
+#ifdef _WIN32
 	// Block modal dialog recursions.
 	// Folder picker below is a modal dialog, don't ever call it if there's another modal dialog in progress.
 	// Also prevents this function from recursing into itself if someone manages to hit the menu item while already picking folder.
@@ -115,6 +132,16 @@ void ToggleCapture() {
 			StartCapture();
 		}
 	}
+#else
+    if ( g_active ) {
+        StopCapture();
+    } else {
+        auto dlg = fb2k::fileDialog::get()->setupOpenFolder();
+        dlg->setTitle( "Choose output folder" );
+        dlg->run( fb2k::fileDialogNotify::create( startCaptureDialogReply ) );
+    }
+    
+#endif
 }
 
 bool IsCaptureRunning() {

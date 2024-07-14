@@ -9,8 +9,6 @@
 
 //! Implementation of string matching for search purposes, such as media library search or typefind in list views. \n
 //! Inspired by Unicode asymetic search, but not strictly implementing the Unicode asymetric search specifications. \n
-//! Bootstraps its character mapping data from various Win32 API methods, requires no externally provided character mapping data. \n
-//! Windows-only code. \n
 //! \n
 //! Keeping a global instance of it is recommended, due to one time init overhead. \n
 //! Thread safety: safe to call concurrently once constructed.
@@ -19,9 +17,16 @@ class SmartStrStr {
 public:
 	SmartStrStr();
 
+	static bool isWordChar(unsigned c);
+	static bool isWordChar(const char* ptr);
+	static bool isValidWord(const char*);
+	static void findWords(const char*, std::function<void(pfc::string_part_ref)>);
+
 	//! Returns ptr to the end of the string if positive (for continuing search), nullptr if negative.
 	const char * strStrEnd(const char * pString, const char * pSubString, size_t * outFoundAt = nullptr) const;
 	const char16_t * strStrEnd16(const char16_t * pString, const char16_t * pSubString, size_t * outFoundAt = nullptr) const;
+
+	const char* strStrEndWord(const char* pString, const char* pSubString, size_t* outFoundAt = nullptr) const;
 
 	bool testSubstring( const char * str, const char * sub ) const;
 	bool testSubstring16( const char16_t * str, const char16_t * sub ) const;
@@ -46,6 +51,7 @@ public:
 
 	pfc::string8 transformStr(const char * str) const;
 	void transformStrHere(pfc::string8& out, const char* in) const;
+	void transformStrHere(pfc::string8& out, const char* in, size_t inLen) const;
 private:
 	bool testSubString_prefix(const char* str, const char* sub, const char * prefix, size_t prefixLen) const;
 	bool testSubString_prefix(const char* str, const char* sub, uint32_t c) const;
@@ -67,11 +73,11 @@ private:
 
 
 class SmartStrFilter {
-	typedef std::map<std::string, t_size> t_stringlist;
-	t_stringlist m_items;
-
 public:
+	typedef std::map<std::string, t_size> t_stringlist;
 	SmartStrFilter() { }
+	SmartStrFilter(t_stringlist const& arg) : m_items(arg) {}
+	SmartStrFilter(t_stringlist&& arg) : m_items(std::move(arg)) {}
 	SmartStrFilter(const char* p) { init(p, strlen(p)); }
 	SmartStrFilter(const char* p, size_t l) { init(p, l); }
 
@@ -79,5 +85,13 @@ public:
 
 	void init(const char* ptr, size_t len);
 	bool test(const char* src) const;
+	bool testWords(const char* src) const;
 	bool test_disregardCounts(const char* src) const;
+
+	const t_stringlist& items() const { return m_items; }
+	operator bool() const { return !m_items.empty(); }
+	bool empty() const { return m_items.empty(); }
+private:
+	t_stringlist m_items;
+	SmartStrStr * dc = &SmartStrStr::global();
 };

@@ -171,7 +171,26 @@ void CEditWithButtons::Layout(CSize size, CFontHandle fontSetMe) {
 }
 
 unsigned CEditWithButtons::MeasureButton(Button_t const & button) {
+	if (m_fixedWidthAuto && m_fixedWidth == 0) {
+		CWindowDC dc(*this);
+		SelectObjectScope fontScope(dc, GetFont());
+		SIZE sz = {};
+		WIN32_OP_D( dc.GetTextExtent(L"#", 1, &sz) );
+		m_fixedWidth = MulDiv(sz.cx, 3, 2);
+	}
 	if (m_fixedWidth != 0) return m_fixedWidth;
 
 	return button.wnd.Measure();
+}
+
+void CEditWithButtons::OnSetFont(CFontHandle font, BOOL bRedraw) {
+	(void)bRedraw;
+
+	if ( m_fixedWidthAuto ) m_fixedWidth = 0; // require re-calculation
+
+	DefWindowProc();
+	CRect rc;
+	if (GetClientRect(&rc)) {
+		Layout(rc.Size(), font);
+	}
 }

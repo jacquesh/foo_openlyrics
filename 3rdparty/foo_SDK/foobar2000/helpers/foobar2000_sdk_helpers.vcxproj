@@ -136,7 +136,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)\..\3rdparty\WTL10_10320_Release\Include</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2notypeopt %(AdditionalOptions)</AdditionalOptions>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -166,7 +166,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)\..\3rdparty\WTL10_10320_Release\Include</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2notypeopt %(AdditionalOptions)</AdditionalOptions>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -253,7 +253,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)\..\3rdparty\WTL10_10320_Release\Include</AdditionalIncludeDirectories>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
@@ -277,7 +277,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../..;..;$(SolutionDir)\..\3rdparty\WTL10_10320_Release\Include</AdditionalIncludeDirectories>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
@@ -507,6 +507,8 @@
     <ClInclude Include="audio_render_float.h" />
     <ClInclude Include="AutoComplete.h" />
     <ClInclude Include="BumpableElem.h" />
+    <ClInclude Include="callback_merit.h" />
+    <ClInclude Include="callInMainThreadHelper.h" />
     <ClInclude Include="CDialogResizeHelper.h" />
     <ClInclude Include="cfg_dsp_chain_config.h" />
     <ClInclude Include="cfg_obj.h" />
@@ -520,10 +522,11 @@
     <ClInclude Include="DarkMode.h" />
     <ClInclude Include="dsp_dialog.h" />
     <ClInclude Include="duration_counter.h" />
+    <ClInclude Include="fb2kWorkerTool.h" />
     <ClInclude Include="fb2k_threads.h" />
     <ClInclude Include="fb2k_wfx.h" />
     <ClInclude Include="fileReadAhead.h" />
-    <ClInclude Include="file_readonly.h" />
+    <ClInclude Include="file_streamstub.h" />
     <ClInclude Include="foobar2000+atl.h" />
     <ClInclude Include="foobar2000-lite+atl.h" />
     <ClInclude Include="fullFileBuffer.h" />
@@ -567,7 +570,9 @@
     <ClInclude Include="ProcessUtils.h" />
     <ClInclude Include="ProfileCache.h" />
     <ClInclude Include="readers.h" />
+    <ClInclude Include="readers_lite.h" />
     <ClInclude Include="reader_pretend_nonseekable.h" />
+    <ClInclude Include="readWriteLock.h" />
     <ClInclude Include="rethrow.h" />
     <ClInclude Include="seekabilizer.h" />
     <ClInclude Include="StdAfx.h" />
@@ -590,6 +595,5 @@
     <ClInclude Include="writer_wav.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

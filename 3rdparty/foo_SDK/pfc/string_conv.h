@@ -72,14 +72,14 @@ namespace pfc {
 		template<> inline const char * null_string_t<char>() {return "";}
 		template<> inline const wchar_t * null_string_t<wchar_t>() {return L"";}
         
-		template<typename t_char> t_size strlen_t(const t_char * p_string,t_size p_string_size = ~0) {
+		template<typename t_char> t_size strlen_t(const t_char * p_string,t_size p_string_size = SIZE_MAX) {
 			for(t_size n=0;n<p_string_size;n++) {
 				if (p_string[n] == 0) return n;
 			}
 			return p_string_size;
 		}
         
-		template<typename t_char> bool string_is_empty_t(const t_char * p_string,t_size p_string_size = ~0) {
+		template<typename t_char> bool string_is_empty_t(const t_char * p_string,t_size p_string_size = SIZE_MAX) {
 			if (p_string_size == 0) return true;
 			return p_string[0] == 0;
 		}
@@ -101,9 +101,9 @@ namespace pfc {
 		class string_utf8_from_wide_t {
 		public:
 			string_utf8_from_wide_t() {}
-			string_utf8_from_wide_t(const wchar_t * p_source,t_size p_source_size = ~0) {convert(p_source,p_source_size);}
+			string_utf8_from_wide_t(const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {convert(p_source,p_source_size);}
             
-			void convert(const wchar_t * p_source,t_size p_source_size = ~0) {
+			void convert(const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_wide_to_utf8(p_source,p_source_size);
 				m_buffer.set_size(size);
 				convert_wide_to_utf8( m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -173,9 +173,9 @@ namespace pfc {
 		class string_wide_from_win1252_t {
 		public:
 			string_wide_from_win1252_t() {}
-			string_wide_from_win1252_t(const char * p_source,t_size p_source_size = ~0) {convert(p_source,p_source_size);}
+			string_wide_from_win1252_t(const char * p_source,t_size p_source_size = SIZE_MAX) {convert(p_source,p_source_size);}
             
-			void convert(const char * p_source,t_size p_source_size = ~0) {
+			void convert(const char * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_win1252_to_wide(p_source,p_source_size);
 				m_buffer.set_size(size);
                 convert_win1252_to_wide(m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -196,9 +196,9 @@ namespace pfc {
 		class string_win1252_from_wide_t {
 		public:
 			string_win1252_from_wide_t() {}
-			string_win1252_from_wide_t(const wchar_t * p_source,t_size p_source_size = ~0) {convert(p_source,p_source_size);}
+			string_win1252_from_wide_t(const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {convert(p_source,p_source_size);}
             
-			void convert(const wchar_t * p_source,t_size p_source_size = ~0) {
+			void convert(const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_wide_to_win1252(p_source,p_source_size);
 				m_buffer.set_size(size);
                 convert_wide_to_win1252(m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -219,9 +219,9 @@ namespace pfc {
 		class string_utf8_from_win1252_t {
 		public:
 			string_utf8_from_win1252_t() {}
-			string_utf8_from_win1252_t(const char * p_source,t_size p_source_size = ~0) {convert(p_source,p_source_size);}
+			string_utf8_from_win1252_t(const char * p_source,t_size p_source_size = SIZE_MAX) {convert(p_source,p_source_size);}
             
-			void convert(const char * p_source,t_size p_source_size = ~0) {
+			void convert(const char * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_win1252_to_utf8(p_source,p_source_size);
 				m_buffer.set_size(size);
                 convert_win1252_to_utf8(m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -242,9 +242,9 @@ namespace pfc {
 		class string_win1252_from_utf8_t {
 		public:
 			string_win1252_from_utf8_t() {}
-			string_win1252_from_utf8_t(const char * p_source,t_size p_source_size = ~0) {convert(p_source,p_source_size);}
+			string_win1252_from_utf8_t(const char * p_source,t_size p_source_size = SIZE_MAX) {convert(p_source,p_source_size);}
             
-			void convert(const char * p_source,t_size p_source_size = ~0) {
+			void convert(const char * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_utf8_to_win1252(p_source,p_source_size);
 				m_buffer.set_size(size);
                 convert_utf8_to_win1252(m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -263,9 +263,9 @@ namespace pfc {
         class string_ascii_from_utf8 {
         public:
             string_ascii_from_utf8() {}
-            string_ascii_from_utf8( const char * p_source, t_size p_source_size = ~0) { convert(p_source, p_source_size); }
+            string_ascii_from_utf8( const char * p_source, t_size p_source_size = SIZE_MAX) { convert(p_source, p_source_size); }
             
-            void convert( const char * p_source, t_size p_source_size = ~0) {
+            void convert( const char * p_source, t_size p_source_size = SIZE_MAX) {
                 t_size size = estimate_utf8_to_ascii(p_source, p_source_size);
                 m_buffer.set_size(size);
                 convert_utf8_to_ascii(m_buffer.get_ptr_var(), size, p_source, p_source_size);
@@ -283,9 +283,9 @@ namespace pfc {
 		class string_utf8_from_utf16 {
 		public:
 			string_utf8_from_utf16() {}
-			string_utf8_from_utf16( const char16_t * p_source, size_t p_source_size = ~0) {convert(p_source, p_source_size);}
+			string_utf8_from_utf16( const char16_t * p_source, size_t p_source_size = SIZE_MAX) {convert(p_source, p_source_size);}
 
-			void convert( const char16_t * p_source, size_t p_source_size = ~0) {
+			void convert( const char16_t * p_source, size_t p_source_size = SIZE_MAX) {
 				size_t size = estimate_utf16_to_utf8(p_source, p_source_size);
 				m_buffer.set_size(size);
 				convert_utf16_to_utf8(m_buffer.get_ptr_var(), size, p_source, p_source_size );
@@ -387,9 +387,9 @@ namespace pfc {
 		public:
 			string_wide_from_codepage_t() {}
 			string_wide_from_codepage_t(const string_wide_from_codepage_t<t_alloc> & p_source) : m_buffer(p_source.m_buffer) {}
-			string_wide_from_codepage_t(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {convert(p_codepage,p_source,p_source_size);}
+			string_wide_from_codepage_t(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {convert(p_codepage,p_source,p_source_size);}
 
-			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {
+			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_codepage_to_wide(p_codepage,p_source,p_source_size);
 				m_buffer.set_size(size);
 				convert_codepage_to_wide(p_codepage, m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -411,9 +411,9 @@ namespace pfc {
 		public:
 			string_codepage_from_wide_t() {}
 			string_codepage_from_wide_t(const string_codepage_from_wide_t<t_alloc> & p_source) : m_buffer(p_source.m_buffer) {}
-			string_codepage_from_wide_t(unsigned p_codepage,const wchar_t * p_source,t_size p_source_size = ~0) {convert(p_codepage,p_source,p_source_size);}
+			string_codepage_from_wide_t(unsigned p_codepage,const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {convert(p_codepage,p_source,p_source_size);}
 
-			void convert(unsigned p_codepage,const wchar_t * p_source,t_size p_source_size = ~0) {
+			void convert(unsigned p_codepage,const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {
 				t_size size = estimate_wide_to_codepage(p_codepage,p_source,p_source_size);
 				m_buffer.set_size(size);
 				convert_wide_to_codepage(p_codepage, m_buffer.get_ptr_var(),size,p_source,p_source_size);
@@ -433,7 +433,7 @@ namespace pfc {
 		public:
 			string_codepage_from_utf8() {}
 			string_codepage_from_utf8(const string_codepage_from_utf8 & p_source) : m_buffer(p_source.m_buffer) {}
-			string_codepage_from_utf8(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {convert(p_codepage,p_source,p_source_size);}
+			string_codepage_from_utf8(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {convert(p_codepage,p_source,p_source_size);}
 			
 			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {
 				string_wide_from_utf8 temp;
@@ -456,9 +456,9 @@ namespace pfc {
 		public:
 			string_utf8_from_codepage() {}
 			string_utf8_from_codepage(const string_utf8_from_codepage & p_source) : m_buffer(p_source.m_buffer) {}
-			string_utf8_from_codepage(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {convert(p_codepage,p_source,p_source_size);}
+			string_utf8_from_codepage(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {convert(p_codepage,p_source,p_source_size);}
 			
-			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = ~0) {
+			void convert(unsigned p_codepage,const char * p_source,t_size p_source_size = SIZE_MAX) {
 				string_wide_from_codepage temp;
 				temp.convert(p_codepage,p_source,p_source_size);
 				t_size size = estimate_wide_to_utf8(temp,SIZE_MAX);
@@ -480,13 +480,13 @@ namespace pfc {
 		public:
 			string_utf8_from_ansi() {}
 			string_utf8_from_ansi(const string_utf8_from_ansi & p_source) : m_buffer(p_source.m_buffer) {}
-			string_utf8_from_ansi(const char * p_source,t_size p_source_size = ~0) : m_buffer(codepage_system,p_source,p_source_size) {}
+			string_utf8_from_ansi(const char * p_source,t_size p_source_size = SIZE_MAX) : m_buffer(codepage_system,p_source,p_source_size) {}
 			operator const char * () const {return get_ptr();}
 			const char * get_ptr() const {return m_buffer.get_ptr();}
 			const char * toString() const {return get_ptr();}
 			bool is_empty() const {return string_is_empty_t(get_ptr());}
 			t_size length() const {return strlen_t(get_ptr());}
-			void convert(const char * p_source,t_size p_source_size = ~0) {m_buffer.convert(codepage_system,p_source,p_source_size);}
+			void convert(const char * p_source,t_size p_source_size = SIZE_MAX) {m_buffer.convert(codepage_system,p_source,p_source_size);}
 
 		private:
 			string_utf8_from_codepage m_buffer;
@@ -496,13 +496,13 @@ namespace pfc {
 		public:
 			string_ansi_from_utf8() {}
 			string_ansi_from_utf8(const string_ansi_from_utf8 & p_source) : m_buffer(p_source.m_buffer) {}
-			string_ansi_from_utf8(const char * p_source,t_size p_source_size = ~0) : m_buffer(codepage_system,p_source,p_source_size) {}
+			string_ansi_from_utf8(const char * p_source,t_size p_source_size = SIZE_MAX) : m_buffer(codepage_system,p_source,p_source_size) {}
 			operator const char * () const {return get_ptr();}
 			const char * get_ptr() const {return m_buffer.get_ptr();}
 			bool is_empty() const {return string_is_empty_t(get_ptr());}
 			t_size length() const {return strlen_t(get_ptr());}
 
-			void convert(const char * p_source,t_size p_source_size = ~0) {m_buffer.convert(codepage_system,p_source,p_source_size);}
+			void convert(const char * p_source,t_size p_source_size = SIZE_MAX) {m_buffer.convert(codepage_system,p_source,p_source_size);}
 
 		private:
 			string_codepage_from_utf8 m_buffer;
@@ -512,13 +512,13 @@ namespace pfc {
 		public:
 			string_wide_from_ansi() {}
 			string_wide_from_ansi(const string_wide_from_ansi & p_source) : m_buffer(p_source.m_buffer) {}
-			string_wide_from_ansi(const char * p_source,t_size p_source_size = ~0) : m_buffer(codepage_system,p_source,p_source_size) {}
+			string_wide_from_ansi(const char * p_source,t_size p_source_size = SIZE_MAX) : m_buffer(codepage_system,p_source,p_source_size) {}
 			operator const wchar_t * () const {return get_ptr();}
 			const wchar_t * get_ptr() const {return m_buffer.get_ptr();}
 			bool is_empty() const {return string_is_empty_t(get_ptr());}
 			t_size length() const {return strlen_t(get_ptr());}
 
-			void convert(const char * p_source,t_size p_source_size = ~0) {m_buffer.convert(codepage_system,p_source,p_source_size);}
+			void convert(const char * p_source,t_size p_source_size = SIZE_MAX) {m_buffer.convert(codepage_system,p_source,p_source_size);}
 
 		private:
 			string_wide_from_codepage m_buffer;
@@ -528,13 +528,13 @@ namespace pfc {
 		public:
 			string_ansi_from_wide() {}
 			string_ansi_from_wide(const string_ansi_from_wide & p_source) : m_buffer(p_source.m_buffer) {}
-			string_ansi_from_wide(const wchar_t * p_source,t_size p_source_size = ~0) : m_buffer(codepage_system,p_source,p_source_size) {}
+			string_ansi_from_wide(const wchar_t * p_source,t_size p_source_size = SIZE_MAX) : m_buffer(codepage_system,p_source,p_source_size) {}
 			operator const char * () const {return get_ptr();}
 			const char * get_ptr() const {return m_buffer.get_ptr();}
 			bool is_empty() const {return string_is_empty_t(get_ptr());}
 			t_size length() const {return strlen_t(get_ptr());}
 
-			void convert(const wchar_t * p_source,t_size p_source_size = ~0) {m_buffer.convert(codepage_system,p_source,p_source_size);}
+			void convert(const wchar_t * p_source,t_size p_source_size = SIZE_MAX) {m_buffer.convert(codepage_system,p_source,p_source_size);}
 
 		private:
 			string_codepage_from_wide m_buffer;
@@ -552,14 +552,14 @@ namespace pfc {
 
 		class string_utf8_from_os_ex {
 		public:
-			template<typename t_source> string_utf8_from_os_ex(const t_source * source, t_size sourceLen = ~0) {
+			template<typename t_source> string_utf8_from_os_ex(const t_source * source, t_size sourceLen = SIZE_MAX) {
 				convert(source,sourceLen);
 			}
 
-			void convert(const char * source, t_size sourceLen = ~0) {
+			void convert(const char * source, t_size sourceLen = SIZE_MAX) {
 				m_buffer = string_utf8_from_ansi(source,sourceLen);
 			}
-			void convert(const wchar_t * source, t_size sourceLen = ~0) {
+			void convert(const wchar_t * source, t_size sourceLen = SIZE_MAX) {
 				m_buffer = string_utf8_from_wide(source,sourceLen);
 			}
 

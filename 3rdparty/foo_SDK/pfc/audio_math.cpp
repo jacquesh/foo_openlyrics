@@ -28,9 +28,19 @@ static const bool haveAVX = pfc::query_cpu_feature_set(pfc::CPU_HAVE_AVX);
 
 #endif
 
-#if defined( __aarch64__ ) || defined( __ARM_NEON__ ) || defined( _M_ARM64) || defined( _M_ARM64EC )
+#if defined( __aarch64__ ) || defined( _M_ARM64) || defined( _M_ARM64EC )
+#define AUDIO_MATH_ARM64
+#endif
+
+#if defined( AUDIO_MATH_ARM64 ) || defined( __ARM_NEON__ )
 #define AUDIO_MATH_NEON
 #include <arm_neon.h>
+#endif
+
+
+#if defined( AUDIO_MATH_ARM64 ) && !defined( __ANDROID__ )
+// Don't do Neon float64 on Android, crashes clang from NDK 25
+#define AUDIO_MATH_NEON_FLOAT64
 #endif
 
 template<typename float_t> inline static float_t noopt_calculate_peak(const float_t *p_src, t_size p_num)
@@ -95,9 +105,9 @@ inline static void noopt_convert(const in_t* in, out_t* out, size_t count) {
     for (size_t walk = 0; walk < count; ++walk) out[walk] = (out_t)in[walk];
 }
 
-#if defined(AUDIO_MATH_NEON)
+#ifdef AUDIO_MATH_NEON
 
-#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
+#ifdef AUDIO_MATH_ARM64
 #define _vmaxvq_f32_wrap vmaxvq_f32
 #else
 inline float _vmaxvq_f32_wrap( float32x4_t arg ) {
@@ -229,7 +239,7 @@ inline static void neon_convert_from_int16(const t_int16 * __restrict p_source,t
     
     noopt_convert_from_int16( p_source, rem, p_output, p_scale );
 }
-
+#ifdef AUDIO_MATH_NEON_FLOAT64
 inline static void neon_convert_to_int16(const double* __restrict p_source, t_size p_count, int16_t* __restrict p_output, double p_scale)
 {
     size_t num = p_count / 4;
@@ -255,8 +265,8 @@ inline static void neon_convert_to_int16(const double* __restrict p_source, t_si
     }
 
     noopt_convert_to_16bit(p_source, rem, p_output, p_scale);
-
 }
+
 inline static void neon_convert_from_int16(const t_int16* __restrict p_source, t_size p_count, double* __restrict p_output, double p_scale)
 {
     size_t num = p_count / 4;
@@ -280,7 +290,9 @@ inline static void neon_convert_from_int16(const t_int16* __restrict p_source, t
 
     noopt_convert_from_int16(p_source, rem, p_output, p_scale);
 }
-#endif
+#endif // AUDIO_MATH_NEON_FLOAT64
+
+#endif // AUDIO_MATH_NEON
 
 #if defined(AUDIO_MATH_SSE)
 
@@ -776,7 +788,7 @@ namespace pfc {
         {
             convert_to_16bit_sse2(p_source, p_count, p_output, scale);
         }
-#elif defined( AUDIO_MATH_NEON )
+#elif defined( AUDIO_MATH_NEON_FLOAT64 )
         neon_convert_to_int16(p_source, p_count, p_output, scale);
 #else
         noopt_convert_to_16bit(p_source, p_count, p_output, scale);
@@ -807,7 +819,7 @@ namespace pfc {
         {
             convert_from_int16_sse2(p_source, p_count, p_output, scale);
         }
-#elif defined( AUDIO_MATH_NEON )
+#elif defined( AUDIO_MATH_NEON_FLOAT64 )
         neon_convert_from_int16(p_source, p_count, p_output, scale);
 #else
         noopt_convert_from_int16(p_source, p_count, p_output, scale);

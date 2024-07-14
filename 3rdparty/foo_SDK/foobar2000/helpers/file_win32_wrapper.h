@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libPPUI/win32_op.h>
+#include <pfc/string-conv-lite.h>
 
 #ifdef _WIN32
 namespace file_win32_helpers {
@@ -15,14 +16,18 @@ namespace file_win32_helpers {
 	size_t readStreamOverlapped(HANDLE handle, HANDLE myEvent, void * out, size_t outBytes, abort_callback & abort);
 	HANDLE createFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile, abort_callback & abort);
 	size_t lowLevelIO(HANDLE hFile, const GUID & guid, size_t arg1, void * arg2, size_t arg2size, bool canWrite, abort_callback & abort);
+	bool querySeekPenalty(const char * fb2k_path, bool & out);
+	bool querySeekPenalty(const wchar_t * nativePath, bool & out);
 
-
-	static t_uint64 make_uint64(t_uint32 p_low, t_uint32 p_high) {
+	static uint64_t make_uint64(t_uint32 p_low, t_uint32 p_high) {
 		return ((t_uint64)p_low) + ((t_uint64)p_high << 32);
 	}
-
-	static t_uint64 make_uint64(FILETIME const& ft) {
-		return make_uint64(ft.dwLowDateTime, ft.dwHighDateTime);
+	static uint64_t make_uint64(LARGE_INTEGER const& i) {
+		return reinterpret_cast<uint64_t const&>(i);
+	}
+	static uint64_t make_uint64(FILETIME const& ft) {
+		return reinterpret_cast<uint64_t const&>(ft);
+//		return make_uint64(ft.dwLowDateTime, ft.dwHighDateTime);
 	}
 
 	template<typename t_info>
@@ -33,44 +38,47 @@ namespace file_win32_helpers {
 		return ret;
 	}
 
+	void attribs_from_win32(t_filestats2& out, DWORD in);
 	template<typename t_info>
 	static t_filestats2 translate_stats2(const t_info& p_info) {
 		t_filestats2 ret;
 		ret.m_size = make_uint64(p_info.nFileSizeLow, p_info.nFileSizeHigh);
 		ret.m_timestamp = make_uint64(p_info.ftLastWriteTime);
 		ret.m_timestampCreate = make_uint64(p_info.ftCreationTime);
-		ret.set_readonly((p_info.dwFileAttributes & FILE_ATTRIBUTE_READONLY) != 0);
-		ret.set_folder((p_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0);
-		ret.set_hidden((p_info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) != 0);
-		ret.set_system((p_info.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) != 0);
-		ret.set_remote(false);
+		attribs_from_win32(ret, p_info.dwFileAttributes);
 		return ret;
 	}
+
+	t_filestats2 stats2_from_handle(HANDLE, const wchar_t * fallbackPath, uint32_t flags, abort_callback &a);
 };
 
 
 template<bool p_seekable,bool p_writeable>
 class file_win32_wrapper_t : public service_multi_inherit<file_v2, file_lowLevelIO> {
+	typedef file_win32_wrapper_t<p_seekable, p_writeable> self_t;
 public:
-	file_win32_wrapper_t(HANDLE p_handle) : m_handle(p_handle), m_position(0)
-	{
-	}
+	file_win32_wrapper_t(HANDLE handle, pfc::wstringLite && path) : m_handle(handle), m_path(std::move(path)) {}
 
 	static file::ptr g_CreateFile(const char * p_path,DWORD p_access,DWORD p_sharemode,LPSECURITY_ATTRIBUTES p_security_attributes,DWORD p_createmode,DWORD p_flags,HANDLE p_template) {
+		auto pathW = pfc::wideFromUTF8(p_path);
 		SetLastError(NO_ERROR);
-		HANDLE handle = uCreateFile(p_path,p_access,p_sharemode,p_security_attributes,p_createmode,p_flags,p_template);
+		HANDLE handle = CreateFile(pathW,p_access,p_sharemode,p_security_attributes,p_createmode,p_flags,p_template);
 		if (handle == INVALID_HANDLE_VALUE) {
 			const DWORD code = GetLastError();
 			if (p_access & GENERIC_WRITE) win32_file_write_failure(code, p_path);
 			else exception_io_from_win32(code);
 		}
 		try {
-			return g_create_from_handle(handle);
+			return g_create_from_handle(handle, std::move(pathW));
 		} catch(...) {CloseHandle(handle); throw;}
 	}
 
-	static service_ptr_t<file> g_create_from_handle(HANDLE p_handle) {
-		return new service_impl_t<file_win32_wrapper_t<p_seekable,p_writeable> >(p_handle);
+	static service_ptr_t<file> g_create_from_handle(HANDLE handle, pfc::wstringLite && path) {
+		return new service_impl_t<self_t>(handle, std::move(path));
+	}
+	static service_ptr_t<file> g_create_from_handle(HANDLE handle) {
+		pfc::wstringLite blank;
+		g_create_from_handle(handle, std::move(blank));
 	}
 
 
@@ -175,18 +183,15 @@ public:
 	t_filestats2 get_stats2(uint32_t f, abort_callback& a) {
 		a.check();
 		if (p_writeable) FlushFileBuffers(m_handle);
-		SetLastError(0);
-		BY_HANDLE_FILE_INFORMATION info = {};
-		if (!GetFileInformationByHandle(m_handle, &info)) exception_io_from_win32(GetLastError());
-		return file_win32_helpers::translate_stats2(info);
+		return file_win32_helpers::stats2_from_handle(m_handle, m_path, f, a);
 	}
 	t_filetimestamp get_timestamp(abort_callback & p_abort) {
 		p_abort.check_e();
 		if (p_writeable) FlushFileBuffers(m_handle);
 		SetLastError(ERROR_SUCCESS);
-		t_filetimestamp temp;
-		if (!GetFileTime(m_handle,0,0,(FILETIME*)&temp)) exception_io_from_win32(GetLastError());
-		return temp;
+		FILETIME temp;
+		if (!GetFileTime(m_handle,0,0,&temp)) exception_io_from_win32(GetLastError());
+		return file_win32_helpers::make_uint64(temp);
 	}
 
 	bool is_remote() {return false;}
@@ -197,13 +202,15 @@ public:
 	}
 protected:
 	HANDLE m_handle;
-	t_filesize m_position;
+	t_filesize m_position = 0;
+	pfc::wstringLite m_path;
 };
 
 template<bool p_writeable>
 class file_win32_wrapper_overlapped_t : public service_multi_inherit< file_v2, file_lowLevelIO > {
+	typedef file_win32_wrapper_overlapped_t<p_writeable> self_t;
 public:
-	file_win32_wrapper_overlapped_t(HANDLE file) : m_handle(file), m_position() {
+	file_win32_wrapper_overlapped_t(HANDLE file, pfc::wstringLite && path) : m_handle(file), m_path(std::move(path))  {
 		WIN32_OP( (m_event = CreateEvent(NULL, TRUE, FALSE, NULL)) != NULL );
 	}
 	~file_win32_wrapper_overlapped_t() {CloseHandle(m_event); CloseHandle(m_handle);}
@@ -257,40 +264,42 @@ public:
 	t_filestats2 get_stats2(uint32_t f, abort_callback& a) {
 		a.check();
 		if (p_writeable) FlushFileBuffers(m_handle);
-		SetLastError(0);
-		BY_HANDLE_FILE_INFORMATION info = {};
-		if (!GetFileInformationByHandle(m_handle, &info)) exception_io_from_win32(GetLastError());
-		return file_win32_helpers::translate_stats2(info);
+		return file_win32_helpers::stats2_from_handle(m_handle, m_path, f, a);
 	}
 
 	t_filetimestamp get_timestamp(abort_callback & p_abort) {
 		p_abort.check_e();
 		if (p_writeable) FlushFileBuffers(m_handle);
 		SetLastError(ERROR_SUCCESS);
-		t_filetimestamp temp;
-		if (!GetFileTime(m_handle,0,0,(FILETIME*)&temp)) exception_io_from_win32(GetLastError());
-		return temp;
+		FILETIME temp;
+		if (!GetFileTime(m_handle,0,0,&temp)) exception_io_from_win32(GetLastError());
+		return file_win32_helpers::make_uint64(temp);
 	}
 
 	bool is_remote() {return false;}
 	
 
 	static file::ptr g_CreateFile(const char * p_path,DWORD p_access,DWORD p_sharemode,LPSECURITY_ATTRIBUTES p_security_attributes,DWORD p_createmode,DWORD p_flags,HANDLE p_template) {
+		auto pathW = pfc::wideFromUTF8(p_path);
 		p_flags |= FILE_FLAG_OVERLAPPED;
 		SetLastError(NO_ERROR);
-		HANDLE handle = uCreateFile(p_path,p_access,p_sharemode,p_security_attributes,p_createmode,p_flags,p_template);
+		HANDLE handle = CreateFile(pathW,p_access,p_sharemode,p_security_attributes,p_createmode,p_flags,p_template);
 		if (handle == INVALID_HANDLE_VALUE) {
 			const DWORD code = GetLastError();
 			if (p_access & GENERIC_WRITE) win32_file_write_failure(code, p_path);
 			else exception_io_from_win32(code);
 		}
 		try {
-			return g_create_from_handle(handle);
+			return g_create_from_handle(handle, std::move(pathW));
 		} catch(...) {CloseHandle(handle); throw;}
 	}
 
+	static file::ptr g_create_from_handle(HANDLE p_handle, pfc::wstringLite && path) {
+		return new service_impl_t<self_t>(p_handle, std::move(path));
+	}
 	static file::ptr g_create_from_handle(HANDLE p_handle) {
-		return new service_impl_t<file_win32_wrapper_overlapped_t<p_writeable> >(p_handle);
+		pfc::wstringLite blank;
+		return g_create_from_handle(p_handle, std::move(blank));
 	}
 
 	size_t lowLevelIO(const GUID & guid, size_t arg1, void * arg2, size_t arg2size, abort_callback & abort) override {
@@ -299,7 +308,8 @@ public:
 
 protected:
 	HANDLE m_event, m_handle;
-	t_filesize m_position;
+	t_filesize m_position = 0;
+	pfc::wstringLite m_path;
 };
 
 #endif // _WIN32

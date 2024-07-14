@@ -282,7 +282,7 @@ public:
 	COLORREF GridColor();
 
 	void SetDarkMode(bool bDark);
-	void RefreshDarkMode();
+	virtual void RefreshDarkMode();
 	bool GetDarkMode() const { return m_darkMode; }
 private:
 	void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
@@ -325,12 +325,17 @@ private:
 	bool PrepLayoutCache(CPoint & ptOrigin, size_t indexLo = SIZE_MAX, size_t indexHi = SIZE_MAX);
 	std::map<size_t, int> m_varItemHeights;
 	std::set<size_t> m_groupHeaders;
-
+	
 	size_t FindGroupBaseCached(size_t itemFor) const;
 	size_t FindGroupBase(size_t itemFor) const;
 	size_t FindGroupBase(size_t itemFor, groupID_t group) const;
 
 protected:
+	// Grouped layout mode toggle
+	// Default mode is greedy, probes whole list layout in advance (no glitches when scrolling)
+	// In special conditions when probing is expensive, greedy mode should be turned off
+	bool m_greedyGroupLayout = true;
+
 	pfc::map_t<pfc::string8, CTheme, pfc::comparator_strcmp> m_themeCache;
 	CTheme & themeFor( const char * what );
 	CTheme & theme() { return themeFor("LISTVIEW");}

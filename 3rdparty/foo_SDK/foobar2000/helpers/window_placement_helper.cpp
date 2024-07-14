@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 
 #ifdef FOOBAR2000_DESKTOP_WINDOWS
 
@@ -41,7 +41,7 @@ static bool test_rect(const RECT * rc) {
 }
 
 
-bool cfg_window_placement_common::read_from_window(HWND window)
+bool cfg_window_placement::read_from_window(HWND window)
 {
 	WINDOWPLACEMENT wp = {};
 	if (g_is_enabled()) {
@@ -63,34 +63,40 @@ bool cfg_window_placement_common::read_from_window(HWND window)
 		}*/
 	}
 
-	set(wp);
+	try { set(wp); } catch(...) {} // this tends to be called often / we really couldn't care less about this failing
 
 	return wp.length == sizeof(wp);
 }
 
-bool cfg_window_placement_common::apply_to_window(HWND window, bool allowHidden) {
+bool applyWindowPlacement(HWND window, WINDOWPLACEMENT const& data, bool allowHidden) {
+	bool ret = false;
+	if (data.length == sizeof(data) && test_rect(&data.rcNormalPosition))
+	{
+		if (allowHidden || data.showCmd != SW_HIDE) {
+			if (data.showCmd == SW_HIDE && (data.flags & WPF_RESTORETOMAXIMIZED)) {
+				// Special case of hidden-from-maximized
+				auto fix = data;
+				fix.showCmd = SW_SHOWMINIMIZED;
+				if (SetWindowPlacement(window, &fix)) {
+					ShowWindow(window, SW_HIDE);
+					ret = true;
+				}
+			} else {
+				if (SetWindowPlacement(window, &data)) {
+					ret = true;
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+bool cfg_window_placement::apply_to_window(HWND window, bool allowHidden) {
 	bool ret = false;
 	if (g_is_enabled())
 	{
 		auto data = get();
-		if (data.length == sizeof(data) && test_rect(&data.rcNormalPosition))
-		{
-			if (allowHidden || data.showCmd != SW_HIDE) {
-				if (data.showCmd == SW_HIDE && (data.flags & WPF_RESTORETOMAXIMIZED)) {
-					// Special case of hidden-from-maximized
-					auto fix = data;
-					fix.showCmd = SW_SHOWMINIMIZED;
-					if (SetWindowPlacement(window, &fix)) {
-						ShowWindow(window, SW_HIDE);
-						ret = true;
-					}
-				} else {
-					if (SetWindowPlacement(window, &data)) {
-						ret = true;
-					}
-				}
-			}
-		}
+		ret = applyWindowPlacement(window, data, allowHidden);
 	}
 
 	return ret;
@@ -117,8 +123,7 @@ static BOOL SetWindowSize(HWND p_wnd,unsigned p_x,unsigned p_y)
 		return FALSE;
 }
 
-bool cfg_window_size::on_window_creation(HWND p_wnd)
-{
+bool cfg_window_size::apply_to_window(HWND p_wnd) {
 	bool ret = false;
 
 	if (g_is_enabled())
@@ -127,10 +132,13 @@ bool cfg_window_size::on_window_creation(HWND p_wnd)
 		if (v.cx > 0 && v.cy > 0) {
 			if (SetWindowSize(p_wnd, v.cx, v.cy)) ret = true;
 		}
-		
-	}
 
+	}
 	return ret;
+}
+bool cfg_window_size::on_window_creation(HWND p_wnd)
+{
+	return apply_to_window(p_wnd);
 }
 
 void cfg_window_size::on_window_destruction(HWND p_wnd)

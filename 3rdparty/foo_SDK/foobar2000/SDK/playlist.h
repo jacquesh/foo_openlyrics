@@ -3,6 +3,7 @@
 #include "titleformat.h"
 #include "playback_control.h"
 #include <functional>
+#include "callback_merit.h"
 
 //! This interface allows filtering of playlist modification operations.\n
 //! Implemented by components "locking" playlists; use playlist_manager::playlist_lock_install() etc to takeover specific playlist with your instance of playlist_lock.
@@ -538,7 +539,6 @@ public:
 };
 
 //! \since 2.0
-//! Internal, do not use
 class NOVTABLE playlist_manager_v5 : public playlist_manager_v4 {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(playlist_manager_v5, playlist_manager_v4)
 public:
@@ -546,6 +546,14 @@ public:
 	virtual size_t find_playlist_by_guid(const GUID&) = 0;
 };
 
+//! \since 2.0 beta 8
+class NOVTABLE playlist_manager_v6 : public playlist_manager_v5 {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(playlist_manager_v6, playlist_manager_v5);
+public:
+	virtual void set_callback_merit(class playlist_callback*, fb2k::callback_merit_t) = 0;
+	virtual void set_callback_merit(class playlist_callback_single*, fb2k::callback_merit_t) = 0;
+	
+};
 class NOVTABLE playlist_callback
 {
 public:
@@ -812,11 +820,13 @@ public:
 //! For use with playlist_incoming_item_filter_v2::process_locations_async().
 //! \since 0.9.3
 class NOVTABLE process_locations_notify : public service_base {
+	FB2K_MAKE_SERVICE_INTERFACE(process_locations_notify, service_base);
 public:
-	virtual void on_completion(const pfc::list_base_const_t<metadb_handle_ptr> & p_items) = 0;
+	virtual void on_completion(metadb_handle_list_cref p_items) = 0;
 	virtual void on_aborted() = 0;
 
-	FB2K_MAKE_SERVICE_INTERFACE(process_locations_notify,service_base);
+	typedef std::function<void(metadb_handle_list_cref)> func_t;
+	static process_locations_notify::ptr create(func_t);
 };
 
 typedef service_ptr_t<process_locations_notify> process_locations_notify_ptr;

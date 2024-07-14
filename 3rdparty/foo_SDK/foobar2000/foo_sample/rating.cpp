@@ -78,11 +78,10 @@ namespace {
 	// Static cached ptr to metadb_index_manager
 	// Cached because we'll be calling it a lot on per-track basis, let's not pass it everywhere to low level functions
 	// Obtaining the pointer from core is reasonably efficient - log(n) to the number of known service classes, but not good enough for something potentially called hundreds of times
-	static metadb_index_manager::ptr g_cachedAPI;
 	static metadb_index_manager::ptr theAPI() {
-		auto ret = g_cachedAPI;
-		if ( ret.is_empty() ) ret = metadb_index_manager::get(); // since fb2k SDK v1.4, core API interfaces have a static get() method
-		return ret;
+		// Raw ptr instead service_ptr, don't release on DLL unload, would cause issues
+		static metadb_index_manager * cached = metadb_index_manager::get().detach();
+		return cached;
 	}
 
 	// An init_stage_callback to hook ourselves into the metadb
@@ -91,8 +90,7 @@ namespace {
 	public:
 		void on_init_stage(t_uint32 stage) {
 			if (stage == init_stages::before_config_read) {
-				auto api = metadb_index_manager::get();
-				g_cachedAPI = api;
+				auto api = theAPI();
 				// Important, handle the exceptions here!
 				// This will fail if the files holding our data are somehow corrupted.
 				try {
@@ -108,16 +106,8 @@ namespace {
 			}
 		}
 	};
-	class initquit_impl : public initquit {
-	public:
-		void on_quit() {
-			// Cleanly kill g_cachedAPI before reaching static object destructors or else
-			g_cachedAPI.release();
-		}
-	};
 
 	static service_factory_single_t<init_stage_callback_impl> g_init_stage_callback_impl;
-	static service_factory_single_t<initquit_impl> g_initquit_impl;
 
 	typedef uint32_t rating_t;
 	static const rating_t rating_invalid = 0;

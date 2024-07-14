@@ -89,8 +89,10 @@ BOOL SHARED_EXPORT uGetClipboardString(pfc::string_base & out);
 BOOL SHARED_EXPORT uSetClipboardRawData(UINT format,const void * ptr,t_size size);//does not empty the clipboard
 BOOL SHARED_EXPORT uGetClassName(HWND wnd,pfc::string_base & out);
 t_size SHARED_EXPORT uCharLength(const char * src);
+#ifdef DragQueryFile // don't declare if relevant Windows #include has been omitted, breaks on HDROP
 BOOL SHARED_EXPORT uDragQueryFile(HDROP hDrop,UINT idx,pfc::string_base & out);
 UINT SHARED_EXPORT uDragQueryFileCount(HDROP hDrop);
+#endif
 BOOL SHARED_EXPORT uGetTextExtentPoint32(HDC dc,const char * text,UINT cb,LPSIZE size);//note, cb is number of bytes, not actual unicode characters in the string (read: plain strlen() will do)
 BOOL SHARED_EXPORT uExtTextOut(HDC dc,int x,int y,UINT flags,const RECT * rect,const char * text,UINT cb,const int * lpdx);
 BOOL SHARED_EXPORT uTextOutColors(HDC dc,const char * src,UINT len,int x,int y,const RECT * clip,BOOL is_selected,DWORD default_color);
@@ -278,6 +280,7 @@ UINT SHARED_EXPORT uGetMenuItemType(HMENU menu,UINT position);
 HMODULE SHARED_EXPORT LoadSystemLibrary(const TCHAR * name);
 
 void SHARED_EXPORT uPrintCrashInfo_OnEvent(const char * message, t_size length);
+void SHARED_EXPORT uPrintCrashInfo_StartLogging(const char * path);
 
 }//extern "C"
 
@@ -565,7 +568,7 @@ typedef HICON hicon_t;
 typedef HMENU hmenu_t;
 typedef HFONT hfont_t;
 #else
-typedef void* hwnd_t;
+typedef void* hwnd_t; // Mac: bridged NSObject, context specific (NSWindow, NSView, NSViewController)
 typedef void* hicon_t;
 typedef void* hmenu_t;
 typedef void* hfont_t;

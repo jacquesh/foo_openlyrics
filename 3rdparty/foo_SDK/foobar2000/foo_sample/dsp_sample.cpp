@@ -1,13 +1,22 @@
 #include "stdafx.h"
+#include "dsp_sample.h"
+
+#ifdef _WIN32
+#include <helpers/DarkMode.h>
 #include "resource.h"
 
 static void RunDSPConfigPopup(const dsp_preset & p_data,HWND p_parent,dsp_preset_edit_callback & p_callback);
+#endif
+
+#ifdef __APPLE__
+// fooSampleDSPView.mm
+service_ptr ConfigureSampleDSP( fb2k::hwnd_t parent, dsp_preset_edit_callback_v2::ptr callback );
+#endif
 
 class dsp_sample : public dsp_impl_base
 {
 public:
-	dsp_sample(dsp_preset const & in) : m_gain(0) {
-		parse_preset(m_gain, in);
+	dsp_sample(dsp_preset const & in) : m_gain(parse_preset(in)) {
 	}
 
 	static GUID g_get_guid() {
@@ -62,18 +71,17 @@ public:
 		make_preset(0, p_out);
 		return true;
 	}
+#ifdef _WIN32
 	static void g_show_config_popup(const dsp_preset & p_data,HWND p_parent,dsp_preset_edit_callback & p_callback) {
 		::RunDSPConfigPopup(p_data, p_parent, p_callback);
 	}
+#endif // _WIN32
+#ifdef __APPLE__
+    static service_ptr g_show_config_popup( fb2k::hwnd_t parent, dsp_preset_edit_callback_v2::ptr callback ) {
+        return ConfigureSampleDSP( parent, callback );
+    }
+#endif // __APPLE__
 	static bool g_have_config_popup() {return true;}
-	static void make_preset(float gain, dsp_preset & out) {
-		dsp_preset_builder builder; builder << gain; builder.finish(g_get_guid(), out);
-	}
-	static void parse_preset(float & gain, const dsp_preset & in) {
-		try {
-			dsp_preset_parser parser(in); parser >> gain;
-		} catch(exception_io_data) {gain = 0;}
-	}
 private:
 	float m_gain;
 };
@@ -81,6 +89,7 @@ private:
 // Use dsp_factory_nopreset_t<> instead of dsp_factory_t<> if your DSP does not provide preset/configuration functionality.
 static dsp_factory_t<dsp_sample> g_dsp_sample_factory;
 
+#ifdef _WIN32
 
 class CMyDSPPopup : public CDialogImpl<CMyDSPPopup> {
 public:
@@ -105,12 +114,12 @@ public:
 private:
 
 	BOOL OnInitDialog(CWindow, LPARAM) {
+		m_dark.AddDialogWithControls(m_hWnd);
 		m_slider = GetDlgItem(IDC_SLIDER);
 		m_slider.SetRange(0, RangeTotal);
 
 		{
-			float val;
-			dsp_sample::parse_preset(val, m_initData);
+			float val = parse_preset(m_initData);
 			m_slider.SetPos( pfc::clip_t<t_int32>( pfc::rint32(val), RangeMin, RangeMax ) - RangeMin );
 			RefreshLabel(val);
 		}
@@ -127,7 +136,7 @@ private:
 
 		{
 			dsp_preset_impl preset;
-			dsp_sample::make_preset(val, preset);
+			make_preset(val, preset);
 			m_callback.on_preset_changed(preset);
 		}
 		RefreshLabel(val);
@@ -142,6 +151,7 @@ private:
 	dsp_preset_edit_callback & m_callback;
 
 	CTrackBarCtrl m_slider;
+	fb2k::CDarkModeHooks m_dark;
 };
 
 static void RunDSPConfigPopup(const dsp_preset & p_data,HWND p_parent,dsp_preset_edit_callback & p_callback) {
@@ -152,3 +162,4 @@ static void RunDSPConfigPopup(const dsp_preset & p_data,HWND p_parent,dsp_preset
 		p_callback.on_preset_changed(p_data);
 	}
 }
+#endif

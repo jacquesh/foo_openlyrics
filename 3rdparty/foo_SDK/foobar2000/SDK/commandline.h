@@ -1,4 +1,6 @@
 #pragma once
+
+//! Service for handling commandline arguments passed to foobar2000.exe
 class NOVTABLE commandline_handler : public service_base
 {
 public:
@@ -16,16 +18,18 @@ public:
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(commandline_handler);
 };
 
-class commandline_handler_metadb_handle : public commandline_handler//helper 
-{
+//! Helper automatically turning passed file locations into metadb_handle objects (audio track references)
+class commandline_handler_metadb_handle : public commandline_handler {
 protected:
-	virtual void on_file(const char * url);
-	virtual bool want_directories() {return true;}
+	void on_file(const char * url) override final;
+	bool want_directories() override {return true;}
 public:
-	virtual result on_token(const char * token)=0;	
-	virtual void on_files_done() {};
-	
-	virtual void on_file(const metadb_handle_ptr & ptr)=0;
+	//! Override me
+	virtual result on_token(const char * token) override = 0;
+	//! Override me
+	virtual void on_files_done() override {};
+	//! Override me
+	virtual void on_file(const metadb_handle_ptr & ptr) = 0;
 };
 
 /*

@@ -352,9 +352,6 @@
     <ClInclude Include="text_file_loader_v2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="file_readonly.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="winmm-types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -401,6 +398,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dsp_dialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="readWriteLock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="callback_merit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fb2kWorkerTool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="callInMainThreadHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="readers_lite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file_streamstub.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

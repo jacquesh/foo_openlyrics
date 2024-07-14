@@ -26,18 +26,28 @@ public:
 //! In 1.0 and newer you should always derive from preferences_page_v3 rather than from preferences_page directly.
 class NOVTABLE preferences_page : public service_base {
 public:
+#ifdef _WIN32
 	//! Obsolete.
     virtual fb2k::hwnd_t create(fb2k::hwnd_t p_parent) { uBugCheck(); }
+#endif
+    
+#ifdef __APPLE__
+    //! Returns fb2k::NSObjectWrapper holding your NSViewController
+    virtual service_ptr instantiate( ) = 0;
+#endif
+    
 	//! Retrieves name of the preferences page to be displayed in preferences tree (static string).
 	virtual const char * get_name() = 0;
 	//! Retrieves GUID of the page.
 	virtual GUID get_guid() = 0;
 	//! Retrieves GUID of parent page/branch of this page. See preferences_page::guid_* constants for list of standard parent GUIDs. Can also be a GUID of another page or a branch (see: preferences_branch).
 	virtual GUID get_parent_guid() = 0;
+#ifdef _WIN32
 	//! Obsolete.
     virtual bool reset_query() { return false; }
 	//! Obsolete.
     virtual void reset() {}
+#endif
 	//! Retrieves help URL. Without overriding it, it will redirect to foobar2000 wiki.
 	virtual bool get_help_url(pfc::string_base & p_out);
 
@@ -108,6 +118,7 @@ public:
 };
 
 
+#ifdef _WIN32
 class preferences_page_callback : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE(preferences_page_callback, service_base)
 public:
@@ -132,13 +143,16 @@ public:
 	//! Resets this page's content to the default values. Does not apply any changes - lets user preview the changes before hitting "apply".
 	virtual void reset() = 0;
 };
+#endif
 
 //! \since 1.0
 //! Implements a preferences page.
 class preferences_page_v3 : public preferences_page_v2 {
 	FB2K_MAKE_SERVICE_INTERFACE(preferences_page_v3, preferences_page_v2)
 public:
+#ifdef _WIN32
 	virtual preferences_page_instance::ptr instantiate(fb2k::hwnd_t parent, preferences_page_callback::ptr callback) = 0;
+#endif
 };
 
 //! \since 1.5

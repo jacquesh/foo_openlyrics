@@ -2,6 +2,14 @@
 #include "cfg_var.h"
 #include "configStore.h"
 
+namespace fb2k {
+	pfc::string8 formatCfgVarName(const GUID& guid) {
+		return pfc::format("cfg_var.", pfc::print_guid(guid));
+	}
+	pfc::string8 advconfig_autoName(const GUID& id) {
+		return pfc::format("advconfig.unnamed.", pfc::print_guid(id));
+	}
+}
 namespace cfg_var_modern {
 
 #ifdef FOOBAR2000_HAVE_CFG_VAR_LEGACY
@@ -88,7 +96,7 @@ namespace cfg_var_modern {
 
 
 	pfc::string8 cfg_var_common::formatVarName(const GUID& guid) {
-		return pfc::format("cfg_var.", pfc::print_guid(guid));
+		return fb2k::formatCfgVarName( guid );
 	}
 
 	pfc::string8 cfg_var_common::formatName() const {

@@ -124,7 +124,8 @@ namespace pfc {
 		char firstChar() const;
 		char lastChar() const;
 
-		bool isEmpty() const { return length() == 0; }
+		bool isEmpty() const { return empty(); }
+		bool empty() const { return length() == 0;}
 		
 		stringLite replace(stringp strOld, stringp strNew) const;
 		stringLite trim(char c) const;

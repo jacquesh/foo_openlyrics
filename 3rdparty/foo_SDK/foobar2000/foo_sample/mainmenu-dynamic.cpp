@@ -44,7 +44,7 @@ public:
 		// fb2k hasher_md5 API even provides a convenient method to return MD5 hashes cast to GUIDs for this.
 		return api->get_result_guid( state );
 	}
-	bool get_description(pfc::string_base & out) {
+	bool get_description(pfc::string_base & out) override {
 		out = PFC_string_formatter() << "This is a test menu item #" << m_index << ".";
 		return true;
 	}
@@ -84,6 +84,7 @@ private:
 };
 
 class mainmenu_sample_dynamic : public mainmenu_commands_v2 {
+    typedef mainmenu_commands_v2 super_t;
 public:
 	// mainmenu_commands_v2 methods
 	t_uint32 get_command_count() override { return 1; }
@@ -111,7 +112,7 @@ public:
 		// please implement it here.
 
 		// ... or just skip implementing this method entirely.
-		return __super::dynamic_execute( index, subID, callback );
+		return super_t::dynamic_execute( index, subID, callback );
 	}
 };
 

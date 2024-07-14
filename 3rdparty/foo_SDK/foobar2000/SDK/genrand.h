@@ -3,6 +3,7 @@
 class NOVTABLE genrand_service : public service_base
 {
 public:
+    void seedAuto() {seed( 0 ) ;}
 	//! Seeds the PRNG with specified value. \n
 	//! Default value of zero seeds automatically using available system functions.
 	virtual void seed(unsigned val = 0) = 0;

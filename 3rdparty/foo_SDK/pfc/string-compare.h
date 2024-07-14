@@ -6,8 +6,15 @@ namespace pfc {
 	int wstricmp_ascii(const wchar_t* s1, const wchar_t* s2) throw();
 	int stricmp_ascii(const char* s1, const char* s2) throw();
 	int stricmp_ascii_ex(const char* s1, t_size len1, const char* s2, t_size len2) throw();
+	
+	// Platform-independant lowlevel natural sort implementation
 	int naturalSortCompare(const char* s1, const char* s2) throw();
 	int naturalSortCompareI(const char* s1, const char* s2) throw();
+
+	// System-specialized natural sort compare, better ordering of Unicode text, specialized for Apple and MS platforms
+	// Falls back to naturalSortCompare/naturalSortCompareI where not available
+	int sysNaturalSortCompare(const char* s1, const char* s2);
+	int sysNaturalSortCompareI(const char* s1, const char* s2);
 
 	int strcmp_ex(const char* p1, t_size n1, const char* p2, t_size n2) throw();
 	int strcmp_nc(const char* p1, size_t n1, const char* p2, size_t n2) throw();

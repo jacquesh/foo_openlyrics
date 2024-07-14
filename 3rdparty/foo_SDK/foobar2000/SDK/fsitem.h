@@ -3,8 +3,14 @@
 // fsItem API
 // Alternate, object-based way of accessing the local filesystem.
 // It is recommended to use fsItem methods to operate on user-specified media folders.
-// In some cases, most notably Android and UWP, accessing user's documents/media over paths requires expensive resolving of objects representing them.
+// In some cases, notably Android and WinPhone/UWP, accessing user's documents/media over paths requires expensive resolving of objects representing them.
 // fsItem can cache platform specific resources necessary to manipulate the files, allowing efficient opening of files returned by directory enumeration.
+//
+// Note that as of 2023, fsItem is just a convenience API.
+// WinPhone/UWP has been dropped; slow and buggy Android DocumentFile (*) wrapper is being abandoned. On neither of these platforms foobar2000 supports loading components.
+// Nothing in current-generation foobar2000 gains performance from using fsItem methods over plain filesystem with paths.
+//
+// (*) Android DocumentFile is slow and buggy, not the wrapper. Google sucks.
 
 #include "file.h"
 #include "commonObjects.h"
@@ -84,6 +90,8 @@ namespace foobar2000_io {
 		virtual service_ptr_t<filesystem> getFS() = 0;
 
 		static fsItemBase::ptr fromPath(const char* path, abort_callback& aborter);
+
+		t_filestats getStats(abort_callback& a);
 	};
 
 	class fsItemFile : public fsItemBase {

@@ -3,18 +3,21 @@
 #include <functional>
 
 namespace fb2k {
-    
+
+    typedef std::function<void (arrayRef) > fileDialogReply_t;
+    typedef std::function<void (stringRef) > fileDialogGetPath_t;
+
 	class NOVTABLE fileDialogNotify : public service_base {
 		FB2K_MAKE_SERVICE_INTERFACE( fileDialogNotify, service_base );
 	public:
         //! Called when user has cancelled the dialog.
 		virtual void dialogCancelled() = 0;
         //! Called when the user has dismissed the dialog having selected some content.
-        //! @param fsItems Array of fsItemBase objects or strings, depending on the platform. Should accept either form. Typically, file dialogs will handle fsItems but Add Location will handle path strings. Special case: playlist format chooser sends chosen format name as a string (one array item).
+        //! @param items Array of fsItemBase objects or strings, depending on the platform. Should accept either form. Typically, file dialogs will handle fsItems but Add Location will handle path strings. Special case: playlist format chooser sends chosen format name as a string (one array item).
 		virtual void dialogOK2( arrayRef items ) = 0;
 
-		static fileDialogNotify::ptr create( std::function<void (arrayRef) > recv );
-	};	
+		static fileDialogNotify::ptr create( fileDialogReply_t recv );
+	};
 
 	class NOVTABLE fileDialogSetup : public service_base {
 		FB2K_MAKE_SERVICE_INTERFACE( fileDialogSetup, service_base );
@@ -52,6 +55,10 @@ namespace fb2k {
 		//! For an example, on Windows most filedialogs work synchronously while on OSX all of them work asynchronously.
 		//! @param notify Notify object invoked upon dialog completion.
 		virtual void run(fileDialogNotify::ptr notify) = 0;
+        
+        //! Helper, creates fileDialogNotify for you.
+        void run (fileDialogReply_t reply);
+        void runSimple (fileDialogGetPath_t reply);
 	};
 
 	class NOVTABLE fileDialog : public service_base {

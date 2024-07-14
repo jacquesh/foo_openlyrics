@@ -750,8 +750,8 @@ t_uint32 CListControlHeaderImpl::GetOptimalSubItemWidth(t_size item, t_size subI
 }
 
 t_uint32 CListControlHeaderImpl::GetOptimalWidth_Cache::GetStringTempWidth() {
-	if (m_stringTemp.replace_string_ex(m_stringTempUnfuckAmpersands, "&", "&&") > 0) {
-		m_convertTemp.convert(m_stringTempUnfuckAmpersands);
+	if (m_stringTemp.replace_string_ex(m_stringTempFixAmpersands, "&", "&&") > 0) {
+		m_convertTemp.convert(m_stringTempFixAmpersands);
 	} else {
 		m_convertTemp.convert(m_stringTemp);
 	}

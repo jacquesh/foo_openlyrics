@@ -21,9 +21,6 @@
     <ClCompile Include="decode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dsp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="initquit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -75,6 +72,9 @@
     <ClCompile Include="playback_stream_capture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dsp_sample.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -84,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="playback_stream_capture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dsp_sample.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

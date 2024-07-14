@@ -25,3 +25,15 @@ namespace pfc {
 namespace pfc {
 	const char* cpuArch();
 }
+
+#ifdef _M_ARM64EC
+#define PFC_CPU_ARCH "ARM64EC"
+#elif defined(_M_X64) || defined(__x86_64__)
+#define PFC_CPU_ARCH "x64"
+#elif defined(_M_IX86) || defined(__i386__)
+#define PFC_CPU_ARCH "x86"
+#elif defined(_M_ARM64) || defined(__aarch64__)
+#define PFC_CPU_ARCH "ARM64"
+#elif defined(_M_ARM) || defined(__arm__)
+#define PFC_CPU_ARCH "ARM"
+#endif

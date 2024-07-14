@@ -136,3 +136,5 @@ namespace fb2k {
 		return new service_impl_t< obj_t > ( std::forward<arg_t> (arg) ... );
 	}
 }
+
+#define FB2K_SERVICE_SINGLETON(class_t) PFC_SINGLETON( service_impl_single_t< class_t> )

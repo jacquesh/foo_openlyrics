@@ -77,7 +77,7 @@ namespace pfc {
 
     class nix_event {
     public:
-        nix_event();
+        nix_event(bool state = false);
         ~nix_event();
         
         void set_state( bool state );

@@ -775,6 +775,17 @@ public:
 
 
 template<typename T>
+class service_factory_singleton_t : public service_factory_base_t<typename T::t_interface_entrypoint> {
+public:
+	void instance_create(service_ptr_t<service_base> & p_out) override {
+		this->pass_instance(p_out, &FB2K_SERVICE_SINGLETON(T) );
+	}
+
+	inline T& get_static_instance() { return &FB2K_SERVICE_SINGLETON(T); }
+	inline const T& get_static_instance() const { return &FB2K_SERVICE_SINGLETON(T); }
+};
+
+template<typename T>
 class service_factory_single_t : public service_factory_base_t<typename T::t_interface_entrypoint> {
 	service_impl_single_t<T> g_instance;
 public:
@@ -843,7 +854,7 @@ public:
 
 #define _FB2K_UNIQUE_NAME(base) _FB2K_CONCAT(base, __COUNTER__)
 
-#define FB2K_SERVICE_FACTORY( TYPE ) static ::service_factory_single_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) FB2K_SERVICE_FACTORY_ATTR;
+#define FB2K_SERVICE_FACTORY( TYPE ) static ::service_factory_singleton_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) FB2K_SERVICE_FACTORY_ATTR;
 #define FB2K_SERVICE_FACTORY_LATEINIT( TYPE ) static ::service_factory_single_v2_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) FB2K_SERVICE_FACTORY_ATTR;
 #define FB2K_SERVICE_FACTORY_PARAMS( TYPE, ... ) static ::service_factory_single_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) ( __VA_ARGS__ );
 #define FB2K_SERVICE_FACTORY_DYNAMIC( TYPE ) static ::service_factory_t< TYPE > _FB2K_UNIQUE_NAME(g_factory_) FB2K_SERVICE_FACTORY_ATTR;

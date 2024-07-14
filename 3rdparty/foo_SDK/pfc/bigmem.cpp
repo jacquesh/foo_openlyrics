@@ -23,7 +23,7 @@ namespace pfc {
 		m_data.set_size(0);
 		m_size = 0;
 	}
-	void bigmem::read(void* ptrOut, size_t bytes, size_t offset) {
+	void bigmem::read(void* ptrOut, size_t bytes, size_t offset) const {
 		PFC_ASSERT(offset + bytes <= size());
 		uint8_t* outWalk = (uint8_t*)ptrOut;
 		while (bytes > 0) {

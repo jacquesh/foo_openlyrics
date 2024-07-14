@@ -138,7 +138,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <AdditionalIncludeDirectories>../..;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -161,7 +161,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
-      <AdditionalIncludeDirectories>../..;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -234,7 +234,7 @@
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <OmitFramePointers>true</OmitFramePointers>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../..;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -261,7 +261,7 @@
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <OmitFramePointers>true</OmitFramePointers>
       <PreprocessorDefinitions>NDEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../..;$(SolutionDir)/../3rdparty/foo_SDK/foobar2000;$(SolutionDir)/../3rdparty/WTL10_10320_Release/Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../..</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>

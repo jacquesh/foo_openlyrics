@@ -7,6 +7,50 @@
 #include "SmartStrStr-table.h"
 #include "SmartStrStr-twoCharMappings.h"
 
+bool SmartStrStr::isWordChar(unsigned c) {
+	// FIX ME map Unicode ranges somehow
+	return c >= 128 || pfc::char_is_ascii_alphanumeric((char)c);
+}
+
+bool SmartStrStr::isWordChar(const char* ptr) {
+	unsigned c;
+	size_t d = pfc::utf8_decode_char(ptr, c);
+	if (d == 0) return false; // bad UTF-8
+	return isWordChar(c);
+}
+
+bool SmartStrStr::isValidWord(const char* ptr) {
+	if (*ptr == 0) return false;
+	do {
+		unsigned c;
+		size_t d = pfc::utf8_decode_char(ptr, c);
+		if (d == 0) return false; // bad UTF-8
+		if (!isWordChar(c)) return false;
+		ptr += d;
+	} while (*ptr != 0);
+	return true;
+}
+
+void SmartStrStr::findWords(const char* str, std::function<void(pfc::string_part_ref)> cb) {
+	size_t base = 0, walk = 0;
+	for (;; ) {
+		unsigned c = 0;
+		size_t d = pfc::utf8_decode_char(str + walk, c);
+		if (d == 0) break;
+		
+		if (!SmartStrStr::isWordChar(c)) {
+			if (walk > base) {
+				cb(pfc::string_part(str + base, walk - base));
+			}
+			base = walk + d;
+		}
+		walk += d;
+	}
+	if (walk > base) {
+		cb(pfc::string_part(str + base, walk - base));
+	}
+}
+
 SmartStrStr::SmartStrStr() {
 	std::map<uint32_t, std::set<uint32_t> > substitutions, substitutionsReverse;
 	std::map<uint32_t, uint32_t > downconvert;
@@ -179,6 +223,32 @@ const char16_t * SmartStrStr::strStrEnd16(const char16_t * pString, const char16
 	}
 }
 
+static bool wordBeginsHere(const char* base, size_t offset) {
+	if (offset == 0) return true;
+	for (size_t len = 1; len <= offset && len <= 6; --len) {
+		unsigned c;
+		if (pfc::utf8_decode_char(base + offset - len, c) == len) {
+			return !SmartStrStr::isWordChar(c);
+		}
+	}
+	return false;
+}
+
+const char* SmartStrStr::strStrEndWord(const char* pString, const char* pSubString, size_t* outFoundAt) const {
+	size_t walk = 0;
+	for (;;) {
+		size_t foundAt = 0;
+		auto end = strStrEnd(pString + walk, pSubString, &foundAt);
+		if (end == nullptr) return nullptr;
+		foundAt += walk;
+		if (!isWordChar(end) && wordBeginsHere(pString, foundAt)) {
+			if (outFoundAt) *outFoundAt = foundAt;
+			return end;
+		}
+		walk = end - pString;
+	}
+}
+
 bool SmartStrStr::matchOneChar(uint32_t cInput, uint32_t cData) const {
 	if (cInput == cData) return true;
 	auto v = m_substitutions.query_ptr(cData);
@@ -191,13 +261,17 @@ pfc::string8 SmartStrStr::transformStr(const char* str) const {
 }
 
 void SmartStrStr::transformStrHere(pfc::string8& out, const char* in) const {
-	out.prealloc(strlen(in));
+	transformStrHere(out, in, strlen(in));
+}
+
+void SmartStrStr::transformStrHere(pfc::string8& out, const char* in, size_t inLen) const {
+	out.prealloc(inLen);
 	out.clear();
-	for (;; ) {
+	for (size_t walk = 0; walk < inLen; ) {
 		unsigned c;
-		size_t d = pfc::utf8_decode_char(in, c);
-		if (d == 0) break; 
-		in += d;
+		size_t d = pfc::utf8_decode_char(in + walk, c);
+		if (d == 0 || walk+d>inLen) break;
+		walk += d;
 		const char* alt = m_twoCharMappings.query(c);
 		if (alt != nullptr) {
 			out << alt; continue;
@@ -357,10 +431,24 @@ void SmartStrFilter::init(const char* ptr, size_t len) {
 bool SmartStrFilter::test_disregardCounts(const char* src) const {
 	if (m_items.size() == 0) return false;
 
-	auto& dc = SmartStrStr::global();
+	for (auto& walk : m_items) {
+		if (!dc->strStrEnd(src, walk.first.c_str())) return false;
+	}
+	return true;
+}
+
+bool SmartStrFilter::testWords(const char* src) const {
+	if (m_items.size() == 0) return false;
 
 	for (auto& walk : m_items) {
-		if (!dc.strStrEnd(src, walk.first.c_str())) return false;
+		const t_size count = walk.second;
+		const std::string& str = walk.first;
+		const char* strWalk = src;
+		for (t_size walk = 0; walk < count; ++walk) {
+			const char* next = dc->strStrEndWord(strWalk, str.c_str());
+			if (next == nullptr) return false;
+			strWalk = next;
+		}
 	}
 	return true;
 }
@@ -369,14 +457,18 @@ bool SmartStrFilter::test(const char* src) const {
 
 	if (m_items.size() == 0) return false;
 
-	auto& dc = SmartStrStr::global();
-
+	// Use the faster routine first, it can't be used to count occurances but nobody really knows about this feature
+	for (auto& walk : m_items) {
+		if (!dc->testSubstring(src, walk.first.c_str())) return false;
+	}
+	// Have any items where specific number of occurances is wanted?
 	for (auto & walk : m_items) {
 		const t_size count = walk.second;
+		if (count == 1) continue;
 		const std::string& str = walk.first;
 		const char* strWalk = src;
 		for (t_size walk = 0; walk < count; ++walk) {
-			const char* next = dc.strStrEnd(strWalk, str.c_str());
+			const char* next = dc->strStrEnd(strWalk, str.c_str());
 			if (next == nullptr) return false;
 			strWalk = next;
 		}

@@ -1,4 +1,5 @@
 #pragma once
+#include "callback_merit.h"
 
 class library_callback_dynamic; class library_callback_v2_dynamic;
 
@@ -106,7 +107,7 @@ public:
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(library_manager_v4, library_manager_v3);
 };
 
-//! \since 2.0 beta 13
+//! \since 2.0
 class NOVTABLE library_manager_v5 : public library_manager_v4 {
 	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(library_manager_v5, library_manager_v4);
 public:
@@ -115,6 +116,15 @@ public:
 
 	//! Extensible status query method. Returns 0 for unrecognized commands.
 	virtual size_t library_status(const GUID& arg, size_t arg1, void* arg2, size_t arg2bytes) = 0;
+
+	bool is_current_callback_from_hook() { return library_status(status_current_callback_from_hook, 0, nullptr, 0) != 0; }
+};
+
+//! \since 2.0
+class NOVTABLE library_manager_v6 : public library_manager_v5 {
+	FB2K_MAKE_SERVICE_COREAPI_EXTENSION(library_manager_v6, library_manager_v5);
+public:
+	virtual void set_callback_merit(library_callback_v2_dynamic*, fb2k::callback_merit_t) = 0;
 };
 
 //! Implement this service to appear on "library viewers" list in Media Library preferences page.\n

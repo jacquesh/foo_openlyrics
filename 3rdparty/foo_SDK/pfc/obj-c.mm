@@ -31,21 +31,21 @@ namespace pfc {
     
     bool isShiftKeyPressed() {
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
-        return ( [NSEvent modifierFlags] & NSShiftKeyMask ) != 0;
+        return ( [NSEvent modifierFlags] & NSEventModifierFlagShift ) != 0;
 #else
         return false;
 #endif
     }
     bool isCtrlKeyPressed() {
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
-        return ( [NSEvent modifierFlags] & NSControlKeyMask ) != 0;
+        return ( [NSEvent modifierFlags] & NSEventModifierFlagControl ) != 0;
 #else
         return false;
 #endif
     }
     bool isAltKeyPressed() {
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
-        return ( [NSEvent modifierFlags] & NSAlternateKeyMask ) != 0;
+        return ( [NSEvent modifierFlags] & NSEventModifierFlagOption ) != 0;
 #else
         return false;
 #endif
@@ -104,5 +104,21 @@ namespace pfc {
             return ret;
         }
     }
+
+    int appleNaturalSortCompare(const char* s1, const char* s2) {
+        @autoreleasepool {
+            NSString * str1 = [NSString stringWithUTF8String: s1];
+            NSString * str2 = [NSString stringWithUTF8String: s2];
+            return (int) [str1 localizedCompare: str2];
+        }
+    }
+    int appleNaturalSortCompareI(const char* s1, const char* s2) {
+        @autoreleasepool {
+            NSString * str1 = [NSString stringWithUTF8String: s1];
+            NSString * str2 = [NSString stringWithUTF8String: s2];
+            return (int) [str1 localizedCaseInsensitiveCompare: str2];
+        }
+    }
+
 }
 #endif

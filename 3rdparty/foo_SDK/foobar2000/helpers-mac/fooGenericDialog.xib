@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21507" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21507"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="fooGenericDialog">
+            <connections>
+                <outlet property="m_stack" destination="Qoe-vs-CS4" id="65t-t7-d0Y"/>
+                <outlet property="window" destination="F0z-JX-Cv5" id="gIp-Ho-8D9"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window allowsToolTipsWhenApplicationIsInactive="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" tabbingMode="disallowed" id="F0z-JX-Cv5" customClass="fooWindowWithCancel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="196" y="240" width="263" height="205"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1504" height="821"/>
+            <view key="contentView" misplaced="YES" id="se5-gp-TjO">
+                <rect key="frame" x="0.0" y="0.0" width="263" height="205"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="7g1-HG-hxJ">
+                        <rect key="frame" x="-7" y="13" width="110" height="32"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="96" id="G9o-f2-jmM"/>
+                        </constraints>
+                        <buttonCell key="cell" type="push" title="Done" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MCJ-7L-ck1">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="onDone:" target="-2" id="62j-tJ-vnI"/>
+                        </connections>
+                    </button>
+                    <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="0.0" horizontalStackHuggingPriority="750" verticalStackHuggingPriority="750" horizontalHuggingPriority="750" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" verticalCompressionResistancePriority="1000" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Qoe-vs-CS4">
+                        <rect key="frame" x="0.0" y="40" width="96" height="0.0"/>
+                    </stackView>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="7g1-HG-hxJ" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="se5-gp-TjO" secondAttribute="leading" id="1Wq-Bh-chW"/>
+                    <constraint firstAttribute="bottom" secondItem="7g1-HG-hxJ" secondAttribute="bottom" constant="20" symbolic="YES" id="7n8-os-IPN"/>
+                    <constraint firstAttribute="trailing" secondItem="Qoe-vs-CS4" secondAttribute="trailing" id="JB5-Fj-seb"/>
+                    <constraint firstItem="Qoe-vs-CS4" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="QKl-jp-ATQ"/>
+                    <constraint firstItem="7g1-HG-hxJ" firstAttribute="centerX" secondItem="se5-gp-TjO" secondAttribute="centerX" id="bZ9-H6-Ved"/>
+                    <constraint firstItem="7g1-HG-hxJ" firstAttribute="top" secondItem="Qoe-vs-CS4" secondAttribute="bottom" id="h4b-Yv-dJB"/>
+                    <constraint firstItem="Qoe-vs-CS4" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" id="od4-aV-0oe"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="7g1-HG-hxJ" secondAttribute="trailing" id="zIH-mf-S6l"/>
+                </constraints>
+            </view>
+            <connections>
+                <outlet property="delegate" destination="-2" id="0bl-1N-AYu"/>
+            </connections>
+            <point key="canvasLocation" x="222.5" y="271.5"/>
+        </window>
+    </objects>
+</document>

@@ -24,7 +24,7 @@ public:
 
 class system_time_callback_impl : public system_time_callback {
 public:
-	system_time_callback_impl() : m_registered() {}
+	system_time_callback_impl() {}
 	~system_time_callback_impl() {stop_timer();}
 
 	void stop_timer() {
@@ -40,10 +40,11 @@ public:
 		m_registered = true;
 	}
 
-	void on_time_changed(t_filetimestamp newVal) {}
+	//! Override me
+	void on_time_changed(t_filetimestamp newVal) override {}
 
 	PFC_CLASS_NOT_COPYABLE_EX(system_time_callback_impl)
 private:
-	bool m_registered;
+	bool m_registered = false;
 };
 

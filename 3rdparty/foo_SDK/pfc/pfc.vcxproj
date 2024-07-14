@@ -666,6 +666,7 @@
     <ClInclude Include="debug.h" />
     <ClInclude Include="event.h" />
     <ClInclude Include="filehandle.h" />
+    <ClInclude Include="filetimetools.h" />
     <ClInclude Include="fixed_map.h" />
     <ClInclude Include="fpu.h" />
     <ClInclude Include="guid.h" />
@@ -701,6 +702,7 @@
     <ClInclude Include="SmartStrStr-twoCharMappings.h" />
     <ClInclude Include="SmartStrStr.h" />
     <ClInclude Include="sort.h" />
+    <ClInclude Include="sort2.h" />
     <ClInclude Include="splitString.h" />
     <ClInclude Include="splitString2.h" />
     <ClInclude Include="stdsort.h" />
@@ -772,6 +774,7 @@
     <ClCompile Include="cpuid.cpp" />
     <ClCompile Include="crashWithMessage.cpp" />
     <ClCompile Include="filehandle.cpp" />
+    <ClCompile Include="filetimetools.cpp" />
     <ClCompile Include="guid.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Disabled</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Disabled</Optimization>

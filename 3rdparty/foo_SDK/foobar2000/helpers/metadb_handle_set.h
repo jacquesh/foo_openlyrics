@@ -21,10 +21,8 @@ public:
 		if (rv) p->service_release();
 		return rv;
 	}
-
-	size_t get_count() const {
-		return m_content.size();
-	}
+	size_t size() const {return m_content.size();}
+	size_t get_count() const {return m_content.size(); }
 	template<typename ptr_t>
 	bool contains(ptr_t const & item) const {
 		return m_content.count(&*item) != 0;
@@ -44,28 +42,40 @@ public:
 		bool added = m_content.insert(p).second;
 		if (!added) p->service_release();
 	}
-	void remove_all() {
-		for (auto iter = m_content.begin(); iter != m_content.end(); ++iter) {
-			metadb_handle * p = (*iter);
-			p->service_release();
-		}
+	void clear() {
+		for (auto p : m_content) p->service_release();
 		m_content.clear();
 	}
+	void remove_all() {	clear();}
 	template<typename callback_t>
 	void enumerate(callback_t & cb) const {
-		for (auto iter = m_content.begin(); iter != m_content.end(); ++iter) {
-			cb(*iter);
-		}
+		for (auto iter : m_content) cb(iter);
 	}
 	typedef std::set<metadb_handle*> impl_t;
 	typedef impl_t::const_iterator const_iterator;
 	const_iterator begin() const { return m_content.begin(); }
 	const_iterator end() const { return m_content.end(); }
-private:
 
-	std::set<metadb_handle*> m_content;
+	metadb_handle_list to_list() const {
+		metadb_handle_list ret; ret.prealloc(m_content.size());
+		for (auto h : m_content) {
+			ret.add_item(h);
+		}
+		return ret;
+	}
+	metadb_handle_set(const metadb_handle_set& src) { _copy(src); }
+	void operator=(const metadb_handle_set& src) { _copy(src); }
 
+	metadb_handle_set(metadb_handle_set&& src) noexcept { _move(src); }
+	void operator=(metadb_handle_set&& src) noexcept { _move(src); }
 private:
-	metadb_handle_set(const metadb_handle_set &) = delete;
-	void operator=(const metadb_handle_set&) = delete;
+	void _copy(const metadb_handle_set& src) {
+		m_content = src.m_content;
+		for (auto h : m_content) h->service_add_ref();
+	}
+	void _move(metadb_handle_set& src) {
+		m_content = std::move(src.m_content); src.m_content.clear();
+	}
+
+	impl_t m_content;
 };

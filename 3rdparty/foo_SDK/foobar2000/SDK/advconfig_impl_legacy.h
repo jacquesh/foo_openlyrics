@@ -1,7 +1,21 @@
 #pragma once
 
+// advconfig_impl_legacy.h : legacy (foobar2000 v1.x compatible) implementation of advconfig objects
+
 #include "cfg_var_legacy.h"
 using namespace cfg_var_legacy;
+
+namespace fb2k {
+	pfc::string8 advconfig_autoName(const GUID&);
+}
+
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+#define ADVCONFIG_DOWNGRADE { this->get_static_instance().downgrade_set_name(configStoreName); }
+#define ADVCONFIG_DOWNGRADE_AUTO { this->get_static_instance().downgrade_set_name( fb2k::advconfig_autoName(p_guid) ); }
+#else
+#define ADVCONFIG_DOWNGRADE {(void)configStoreName;}
+#define ADVCONFIG_DOWNGRADE_AUTO
+#endif
 
 //! Standard implementation of advconfig_entry_checkbox. \n
 class advconfig_entry_checkbox_impl : public advconfig_entry_checkbox_v2 {
@@ -22,6 +36,9 @@ public:
 
 	bool get_state_() const { return m_state; }
 	bool get_default_state_() const { return m_initialstate; }
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+	void downgrade_set_name(const char * arg) { m_state.downgrade_set_name(arg); }
+#endif
 private:
 	const pfc::string8 m_name;
 	const bool m_initialstate;
@@ -53,14 +70,26 @@ public:
 class advconfig_checkbox_factory : public advconfig_checkbox_factory_common {
 public:
 	advconfig_checkbox_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate, uint32_t flags = 0)
-		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, false /* not radio */, flags) {}
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, false /* not radio */, flags) {
+		ADVCONFIG_DOWNGRADE_AUTO;
+	}
+	advconfig_checkbox_factory(const char* p_name, const char * configStoreName, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate, uint32_t flags = 0)
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, false /* not radio */, flags) {
+		ADVCONFIG_DOWNGRADE;
+	}
 
 };
 
 class advconfig_radio_factory : public advconfig_checkbox_factory_common {
 public:
 	advconfig_radio_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate, uint32_t flags = 0)
-		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, true /* radio */, flags) {}
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, true /* radio */, flags) {
+		ADVCONFIG_DOWNGRADE_AUTO;
+	}
+	advconfig_radio_factory(const char* p_name, const char * configStoreName, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate, uint32_t flags = 0)
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, true /* radio */, flags) {
+		ADVCONFIG_DOWNGRADE;
+	}
 };
 
 // OBSOLETE, use advconfig_checkbox_factory / advconfig_radio_factory
@@ -68,44 +97,14 @@ template<bool p_is_radio, uint32_t prefFlags = 0>
 class advconfig_checkbox_factory_t : public advconfig_checkbox_factory_common {
 public:
 	advconfig_checkbox_factory_t(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate)
-		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, p_is_radio, prefFlags) {}
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, p_is_radio, prefFlags) {
+		ADVCONFIG_DOWNGRADE_AUTO;
+	}
+	advconfig_checkbox_factory_t(const char* p_name, const char * configStoreName, const GUID& p_guid, const GUID& p_parent, double p_priority, bool p_initialstate)
+		: advconfig_checkbox_factory_common(p_name, p_guid, p_parent, p_priority, p_initialstate, p_is_radio, prefFlags) {
+		ADVCONFIG_DOWNGRADE;
+	}
 };
-
-
-//! Standard advconfig_entry_string implementation. Use advconfig_string_factory to register your own string entries in Advanced Preferences instead of using this class directly.
-class advconfig_entry_string_impl : public advconfig_entry_string_v2 {
-public:
-	advconfig_entry_string_impl(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags)
-		: m_name(p_name), m_parent(p_parent), m_priority(p_priority), m_initialstate(p_initialstate), m_state(p_guid, p_initialstate), m_prefFlags(p_prefFlags) {}
-	void get_name(pfc::string_base& p_out) { p_out = m_name; }
-	GUID get_guid() { return m_state.get_guid(); }
-	GUID get_parent() { return m_parent; }
-	void reset() { core_api::ensure_main_thread(); m_state = m_initialstate; }
-	double get_sort_priority() { return m_priority; }
-	void get_state(pfc::string_base& p_out) { core_api::ensure_main_thread(); p_out = m_state; }
-	void set_state(const char* p_string, t_size p_length = ~0) { core_api::ensure_main_thread(); m_state.set_string(p_string, p_length); }
-	t_uint32 get_flags() { return 0; }
-	void get_default_state(pfc::string_base& out) { out = m_initialstate; }
-	t_uint32 get_preferences_flags() { return m_prefFlags; }
-private:
-	const pfc::string8 m_initialstate, m_name;
-	cfg_string m_state;
-	const double m_priority;
-	const GUID m_parent;
-	const t_uint32 m_prefFlags;
-};
-
-//! Service factory helper around standard advconfig_entry_string implementation. Use this class to register your own string entries in Advanced Preferences. \n
-//! Usage: static advconfig_string_factory mystring(name, itemID, branchID, priority, initialValue);
-class advconfig_string_factory : public service_factory_single_t<advconfig_entry_string_impl> {
-public:
-	advconfig_string_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags = 0)
-		: service_factory_single_t<advconfig_entry_string_impl>(p_name, p_guid, p_parent, p_priority, p_initialstate, p_prefFlags) {}
-
-	void get(pfc::string_base& out) { get_static_instance().get_state(out); }
-	void set(const char* in) { get_static_instance().set_state(in); }
-};
-
 
 //! Special advconfig_entry_string implementation - implements integer entries. Use advconfig_integer_factory to register your own integer entries in Advanced Preferences instead of using this class directly.
 template<typename int_t_>
@@ -132,9 +131,12 @@ public:
 		format(out, m_initval);
 	}
 	void validate(pfc::string_base& val) {
-		format(val, pfc::clip_t<int_t>(myATOI(val, ~0), m_min, m_max));
+		format(val, pfc::clip_t<int_t>(myATOI(val, SIZE_MAX), m_min, m_max));
 	}
 	t_uint32 get_preferences_flags() { return m_prefFlags; }
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+	void downgrade_set_name(const char * arg) { m_state.downgrade_set_name(arg); }
+#endif
 private:
 	static void format(pfc::string_base& out, int_t v) {
 		if (is_signed()) out = pfc::format_int(v).get_ptr();
@@ -164,7 +166,14 @@ class advconfig_integer_factory_ : public service_factory_single_t<advconfig_ent
 public:
 	typedef int_t_ int_t;
 	advconfig_integer_factory_(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, t_uint64 p_initialstate, t_uint64 p_min, t_uint64 p_max, t_uint32 p_prefFlags = 0)
-		: service_factory_single_t<advconfig_entry_integer_impl_<int_t_> >(p_name, p_guid, p_parent, p_priority, p_initialstate, p_min, p_max, p_prefFlags) {}
+		: service_factory_single_t<advconfig_entry_integer_impl_<int_t_> >(p_name, p_guid, p_parent, p_priority, p_initialstate, p_min, p_max, p_prefFlags) {
+		ADVCONFIG_DOWNGRADE_AUTO;
+	}
+
+	advconfig_integer_factory_(const char* p_name, const char * configStoreName, const GUID& p_guid, const GUID& p_parent, double p_priority, t_uint64 p_initialstate, t_uint64 p_min, t_uint64 p_max, t_uint32 p_prefFlags = 0)
+		: service_factory_single_t<advconfig_entry_integer_impl_<int_t_> >(p_name, p_guid, p_parent, p_priority, p_initialstate, p_min, p_max, p_prefFlags) {
+		ADVCONFIG_DOWNGRADE;
+	}
 
 	int_t get() const { return this->get_static_instance().get_state_int(); }
 	void set(int_t val) { this->get_static_instance().set_state_int(val); }
@@ -177,10 +186,10 @@ typedef advconfig_integer_factory_<uint64_t> advconfig_integer_factory;
 typedef advconfig_integer_factory_<int64_t> advconfig_signed_integer_factory;
 
 
-//! Special version if advconfig_entry_string_impl that allows the value to be retrieved from worker threads.
-class advconfig_entry_string_impl_MT : public advconfig_entry_string_v2 {
+//! Standard advconfig_entry_string implementation
+class advconfig_entry_string_impl : public advconfig_entry_string_v2 {
 public:
-	advconfig_entry_string_impl_MT(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags)
+	advconfig_entry_string_impl(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags)
 		: m_name(p_name), m_parent(p_parent), m_priority(p_priority), m_initialstate(p_initialstate), m_state(p_guid, p_initialstate), m_prefFlags(p_prefFlags) {}
 	void get_name(pfc::string_base& p_out) { p_out = m_name; }
 	GUID get_guid() { return m_state.get_guid(); }
@@ -194,13 +203,16 @@ public:
 		inReadSync(m_sync);
 		p_out = m_state;
 	}
-	void set_state(const char* p_string, t_size p_length = ~0) {
+	void set_state(const char* p_string, t_size p_length = SIZE_MAX) {
 		inWriteSync(m_sync);
 		m_state.set_string(p_string, p_length);
 	}
 	t_uint32 get_flags() { return 0; }
 	void get_default_state(pfc::string_base& out) { out = m_initialstate; }
 	t_uint32 get_preferences_flags() { return m_prefFlags; }
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+	void downgrade_set_name(const char * arg) { m_state.downgrade_set_name(arg); }
+#endif
 private:
 	const pfc::string8 m_initialstate, m_name;
 	cfg_string m_state;
@@ -210,17 +222,26 @@ private:
 	const t_uint32 m_prefFlags;
 };
 
-//! Special version if advconfig_string_factory that allows the value to be retrieved from worker threads.
-class advconfig_string_factory_MT : public service_factory_single_t<advconfig_entry_string_impl_MT> {
+//! Service factory helper around standard advconfig_entry_string implementation. Use this class to register your own string entries in Advanced Preferences. \n
+//! Usage: static advconfig_string_factory mystring(name, itemID, branchID, priority, initialValue);
+class advconfig_string_factory : public service_factory_single_t<advconfig_entry_string_impl> {
 public:
-	advconfig_string_factory_MT(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags = 0)
-		: service_factory_single_t<advconfig_entry_string_impl_MT>(p_name, p_guid, p_parent, p_priority, p_initialstate, p_prefFlags) {}
+	advconfig_string_factory(const char* p_name, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags = 0)
+		: service_factory_single_t<advconfig_entry_string_impl>(p_name, p_guid, p_parent, p_priority, p_initialstate, p_prefFlags) {
+		ADVCONFIG_DOWNGRADE_AUTO;
+	}
+	advconfig_string_factory(const char* p_name, const char * configStoreName, const GUID& p_guid, const GUID& p_parent, double p_priority, const char* p_initialstate, t_uint32 p_prefFlags = 0)
+		: service_factory_single_t<advconfig_entry_string_impl>(p_name, p_guid, p_parent, p_priority, p_initialstate, p_prefFlags) {
+		ADVCONFIG_DOWNGRADE;
+	}
 
 	void get(pfc::string_base& out) { get_static_instance().get_state(out); }
 	void set(const char* in) { get_static_instance().set_state(in); }
 };
 
-
+// No more separate _MT versions, readWriteLock overhead is irrelevant
+typedef advconfig_entry_string_impl advconfig_entry_string_impl_MT;
+typedef advconfig_string_factory advconfig_string_factory_MT;
 
 
 /*
@@ -235,3 +256,7 @@ public:
 	static advconfig_integer_factory myint("name goes here",myguid,parentguid,0,initialValue,minimumValue,maximumValue);
 	to retrieve state: myint.get();
 */
+
+
+#undef ADVCONFIG_DOWNGRADE
+#undef ADVCONFIG_DOWNGRADE_AUTO

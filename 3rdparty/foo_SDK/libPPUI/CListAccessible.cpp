@@ -146,8 +146,8 @@ void CListAccessible::AccCleanup() {
 }
 
 LRESULT CListAccessible::AccGetObject(WPARAM wp,LPARAM lp) {
-	const WPARAM dwFlags = wp;
-	const LPARAM dwObjId = lp;
+	const auto dwFlags = (DWORD) wp;
+	const auto dwObjId = (DWORD) lp;
 
 	if (dwObjId == OBJID_CLIENT)
 	{

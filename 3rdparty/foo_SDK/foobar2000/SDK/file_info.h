@@ -1,16 +1,18 @@
 #pragma once
 #include "audio_chunk.h"
+#include <functional>
 
 //! Structure containing ReplayGain scan results from some playable object, also providing various helper methods to manipulate those results.
 struct replaygain_info
 {
-	float m_album_gain,m_track_gain;
-	float m_album_peak,m_track_peak;
+	static constexpr float peak_invalid = -1, gain_invalid = -1000;
+
+	float m_album_gain = gain_invalid, m_track_gain = gain_invalid;
+	float m_album_peak = peak_invalid, m_track_peak = peak_invalid;
 
 	enum {text_buffer_size = 16 };
 	typedef char t_text_buffer[text_buffer_size];
 
-	static const float peak_invalid, gain_invalid;
 
 	static bool g_format_gain(float p_value,char p_buffer[text_buffer_size]);
 	static bool g_format_peak(float p_value,char p_buffer[text_buffer_size]);
@@ -156,6 +158,8 @@ public:
 	bool			meta_format(const char * p_name,pfc::string_base & p_out, const char * separator = ", ") const;
 	void			meta_format_entry(t_size index, pfc::string_base & p_out, const char * separator = ", ") const;//same as meta_format but takes index instead of meta name.
 	
+	typedef std::function<void(const char*, const char*)> meta_enumerate_t;
+	void			meta_enumerate(meta_enumerate_t) const;
 	
 	bool			info_exists_ex(const char * p_name,t_size p_name_length) const;
 	void			info_remove_index(t_size p_index);
@@ -163,15 +167,15 @@ public:
 	bool			info_remove_ex(const char * p_name,t_size p_name_length);
 	const char *	info_get_ex(const char * p_name,t_size p_name_length) const;
 
-	inline t_size		meta_find(const char * p_name) const	{return meta_find_ex(p_name,SIZE_MAX);}
-	inline bool			meta_exists(const char * p_name) const		{return meta_exists_ex(p_name,SIZE_MAX);}
-	inline void			meta_remove_field(const char * p_name)		{meta_remove_field_ex(p_name,SIZE_MAX);}
-	inline t_size		meta_set(const char * p_name,const char * p_value)		{return meta_set_ex(p_name,SIZE_MAX,p_value,SIZE_MAX);}
+	inline t_size		meta_find(const char* p_name) const { PFC_ASSERT(p_name != nullptr); return meta_find_ex(p_name, SIZE_MAX); }
+	inline bool			meta_exists(const char* p_name) const { PFC_ASSERT(p_name != nullptr); return meta_exists_ex(p_name, SIZE_MAX); }
+	inline void			meta_remove_field(const char* p_name) { PFC_ASSERT(p_name != nullptr); meta_remove_field_ex(p_name, SIZE_MAX); }
+	inline t_size		meta_set(const char* p_name, const char* p_value) { PFC_ASSERT(p_name != nullptr && p_value != nullptr); return meta_set_ex(p_name, SIZE_MAX, p_value, SIZE_MAX); }
 	inline void			meta_insert_value(t_size p_index,t_size p_value_index,const char * p_value) {meta_insert_value_ex(p_index,p_value_index,p_value,SIZE_MAX);}
 	inline void			meta_add_value(t_size p_index,const char * p_value)	{meta_add_value_ex(p_index,p_value,SIZE_MAX);}
-	inline const char*	meta_get(const char * p_name,t_size p_index) const	{return meta_get_ex(p_name,SIZE_MAX,p_index);}
-	inline t_size		meta_get_count_by_name(const char * p_name) const		{return meta_get_count_by_name_ex(p_name,SIZE_MAX);}
-	inline t_size		meta_add(const char * p_name,const char * p_value)		{return meta_add_ex(p_name,SIZE_MAX,p_value,SIZE_MAX);}
+	inline const char* meta_get(const char* p_name, t_size p_index) const { PFC_ASSERT(p_name != nullptr); return meta_get_ex(p_name, SIZE_MAX, p_index); }
+	inline t_size		meta_get_count_by_name(const char* p_name) const { PFC_ASSERT(p_name != nullptr); return meta_get_count_by_name_ex(p_name, SIZE_MAX); }
+	inline t_size		meta_add(const char* p_name, const char* p_value) { PFC_ASSERT(p_name != nullptr && p_value != nullptr); return meta_add_ex(p_name, SIZE_MAX, p_value, SIZE_MAX); }
 	inline void			meta_modify_value(t_size p_index,t_size p_value_index,const char * p_value) {meta_modify_value_ex(p_index,p_value_index,p_value,SIZE_MAX);}
 
 	
@@ -201,6 +205,7 @@ public:
 	inline void	copy_meta_single_rename(const file_info & p_source,t_size p_index,const char * p_new_name) {copy_meta_single_rename_ex(p_source,p_index,p_new_name,SIZE_MAX);}
 	void		overwrite_info(const file_info & p_source);
 	void		overwrite_meta(const file_info & p_source);
+	bool		overwrite_meta_if_changed( const file_info & source );
 
 	t_int64 info_get_int(const char * name) const;
 	t_int64 info_get_length_samples() const;
@@ -213,9 +218,9 @@ public:
 	void info_set_replaygain_album_peak(float value);
 
 	inline t_int64 info_get_bitrate_vbr() const {return info_get_int("bitrate_dynamic");}
-	inline void info_set_bitrate_vbr(t_int64 val) {info_set_int("bitrate_dynamic",val);}
+	inline void info_set_bitrate_vbr(t_int64 val_kbps) {info_set_int("bitrate_dynamic",val_kbps);}
 	inline t_int64 info_get_bitrate() const {return info_get_int("bitrate");}
-	inline void info_set_bitrate(t_int64 val) { PFC_ASSERT(val > 0); info_set_int("bitrate", val); }
+	inline void info_set_bitrate(t_int64 val_kbps) { PFC_ASSERT(val_kbps > 0); info_set_int("bitrate", val_kbps); }
 
 	
 	//! Set number of channels
@@ -231,15 +236,24 @@ public:
 	//! Returns channel mask value. 0 if not set, use default for the channel count then.
 	uint32_t info_get_wfx_chanMask() const;
 
+	//! Is a lossy codec?
 	bool is_encoding_lossy() const;
+	//! Is lossless/PCM that can't be sanely represented in this fb2k build due to audio_sample limitations? \n
+	//! Always returns false in 64-bit fb2k.
 	bool is_encoding_overkill() const;
+	//! Floating-point PCM used?
 	bool is_encoding_float() const;
+	//! Helper; sets bit depth of lossless/PCM format.
+	void info_set_bitspersample(uint32_t val, bool isFloat = false);
 
 	//! Sets bitrate value using file size in bytes and duration.
 	void info_calculate_bitrate(uint64_t p_filesize,double p_length);
 
 	//! Returns decoder-output bit depth - what sample format is being converted to foobar2000 audio_sample. 0 if unknown.
 	unsigned info_get_decoded_bps() const;
+
+	//! Foramts long codec name ( codec + profile )
+	bool info_get_codec_long( pfc::string_base & out, const char * delim = " / ") const;
 
 private:
 	void merge(const pfc::list_base_const_t<const file_info*> & p_sources);
@@ -296,6 +310,13 @@ public:
 	//! Normalize values to Unicode form C
 	//! @returns true if changed, false otherwise
 	bool unicode_normalize_C();
+    
+    
+#ifdef FOOBAR2000_MOBILE
+    void info_set_pictures( const GUID * guids, size_t size );
+    pfc::array_t<GUID> info_get_pictures( ) const;
+    uint64_t makeMetaHash() const;
+#endif
 protected:
 	file_info() {}
 	~file_info() {}

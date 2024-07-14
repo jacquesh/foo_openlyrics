@@ -96,9 +96,9 @@ double dsp_manager::run(dsp_chunk_list * p_list,const metadb_handle_ptr & p_cur_
 				}
 			}
 
-			for(t_dsp_chain::iterator iter = newchain.first(); iter.is_valid(); ++iter) {
-				if (iter->m_dsp.is_empty()) {
-					if (!dsp_entry::g_instantiate(iter->m_dsp,iter->m_preset) && !dsp_entry_hidden::g_instantiate(iter->m_dsp, iter->m_preset)) uBugCheck();
+            for( auto & iter : newchain ) {
+				if (iter.m_dsp.is_empty()) {
+					if (!dsp_entry::g_instantiate(iter.m_dsp,iter.m_preset, m_creationFlags) && !dsp_entry_hidden::g_instantiate(iter.m_dsp, iter.m_preset)) uBugCheck();
 				}
 			}
 

@@ -102,21 +102,31 @@ public:
 };
 
 struct cfgDialogPositionData {
-	enum {
-		posInvalid = 0x80000000,
+	static constexpr int32_t
+		posInvalid = 0x80000000;
+	static constexpr uint32_t 
 		sizeInvalid = 0xFFFFFFFF,
-		dpiInvalid = 0,
-	};
+		dpiInvalid = 0;
 
-	uint32_t m_width = (uint32_t)sizeInvalid, m_height = (uint32_t)sizeInvalid;
-	int32_t m_posX = (int32_t)posInvalid, m_posY = (int32_t)posInvalid;
-	uint32_t m_dpiX = (uint32_t)dpiInvalid, m_dpiY = (uint32_t)dpiInvalid;
+	uint32_t m_width = sizeInvalid, m_height = sizeInvalid;
+	int32_t m_posX = posInvalid, m_posY = posInvalid;
+	uint32_t m_dpiX = dpiInvalid, m_dpiY = dpiInvalid;
 
 	cfgDialogPositionData reDPI(CSize) const;
 	bool grabFrom(CWindow wnd);
 	bool applyTo(CWindow wnd) const;
 
 	bool overrideDefaultSize(t_uint32 width, t_uint32 height);
+
+	pfc::string8 debug() const;
+};
+
+struct cfgWindowPositionData {
+	WINDOWPLACEMENT m_wp = {};
+	SIZE m_dpi = {};
+
+	bool grabFrom(CWindow wnd);
+	bool applyTo(CWindow wnd, bool allowHidden = false) const;
 };
 
 FB2K_STREAM_READER_OVERLOAD(cfgDialogPositionData) {
@@ -133,172 +143,29 @@ FB2K_STREAM_WRITER_OVERLOAD(cfgDialogPositionData) {
 	return stream << value.m_width << value.m_height << value.m_posX << value.m_posY << value.m_dpiX << value.m_dpiY;
 }
 
-#if 0
-class cfgDialogPositionData {
-public:
-	cfgDialogPositionData_ v;
-	cfgDialogPositionData() {}
-	
-	void OverrideDefaultSize(t_uint32 width, t_uint32 height) {
-		if (v.m_width == v.sizeInvalid && v.m_height == v.sizeInvalid) {
-			v.m_width = width; v.m_height = height; v.m_posX = v.m_posY = v.posInvalid;
-			v.m_dpiX = v.m_dpiY = 96;
-		}
-	}
-
-	void AddWindow(CWindow wnd) {
-		TryFetchConfig();
-		m_windows += wnd;
-		ApplyConfig(wnd);
-	}
-	void RemoveWindow(CWindow wnd) {
-		if (m_windows.contains(wnd)) {
-			StoreConfig(wnd); m_windows -= wnd;
-		}
-	}
-	void FetchConfig() {TryFetchConfig();}
-
-private:
-	BOOL ApplyConfig(CWindow wnd) {
-		ApplyDPI();
-		CWindow wndParent = wnd.GetParent();
-		UINT flags = SWP_NOACTIVATE | SWP_NOZORDER;
-		CRect rc;
-		if (!GetClientRectAsSC(wnd,rc)) return FALSE;
-		if (v.m_width != v.sizeInvalid && v.m_height != v.sizeInvalid && (wnd.GetWindowLong(GWL_STYLE) & WS_SIZEBOX) != 0) {
-			rc.right = rc.left + v.m_width;
-			rc.bottom = rc.top + v.m_height;
-		} else {
-			flags |= SWP_NOSIZE;
-		}
-		if (wndParent != NULL) {
-			CRect rcParent;
-			if (GetParentWndRect(wndParent, rcParent)) {
-				if (v.m_posX != v.posInvalid && v.m_posY != v.posInvalid) {
-					rc.MoveToXY( rcParent.TopLeft() + CPoint(v.m_posX, v.m_posY) );
-				} else {
-					CPoint center = rcParent.CenterPoint();
-					rc.MoveToXY( center.x - rc.Width() / 2, center.y - rc.Height() / 2);
-				}
-			}
-		}
-		if (!AdjustWindowRectHelper(wnd, rc)) return FALSE;
-
-		DeOverlap(wnd, rc);
-
-		{
-			CRect rcAdjust(0,0,1,1);
-			if (wndParent != NULL) {
-				CRect temp;
-				if (wndParent.GetWindowRect(temp)) rcAdjust = temp;
-			}
-			AdjustRectToScreenArea(rc, rcAdjust);
-		}
-		
-		
-		return wnd.SetWindowPos(NULL, rc, flags);
-	}
-	struct DeOverlapState {
-		CWindow m_thisWnd;
-		CPoint m_topLeft;
-		bool m_match;
-	};
-	static BOOL CALLBACK MyEnumChildProc(HWND wnd, LPARAM param) {
-		DeOverlapState * state = reinterpret_cast<DeOverlapState*>(param);
-		if (wnd != state->m_thisWnd && IsWindowVisible(wnd) ) {
-			CRect rc;
-			if (GetWindowRect(wnd, rc)) {
-				if (rc.TopLeft() == state->m_topLeft) {
-					state->m_match = true; return FALSE;
-				}
-			}
-		}
-		return TRUE;
-	}
-	static bool DeOverlapTest(CWindow wnd, CPoint topLeft) {
-		DeOverlapState state = {};
-		state.m_thisWnd = wnd; state.m_topLeft = topLeft; state.m_match = false;
-		EnumThreadWindows(GetCurrentThreadId(), MyEnumChildProc, reinterpret_cast<LPARAM>(&state));
-		return state.m_match;
-	}
-	static int DeOverlapDelta() {
-		return pfc::max_t<int>(GetSystemMetrics(SM_CYCAPTION),1);
-	}
-	static void DeOverlap(CWindow wnd, CRect & rc) {
-		const int delta = DeOverlapDelta();
-		for(;;) {
-			if (!DeOverlapTest(wnd, rc.TopLeft())) break;
-			rc.OffsetRect(delta,delta);
-		}
-	}
-	BOOL StoreConfig(CWindow wnd) {
-		CRect rc;
-		if (!GetClientRectAsSC(wnd, rc)) return FALSE;
-		const CSize DPI = QueryScreenDPIEx();
-		v.m_dpiX = DPI.cx; v.m_dpiY = DPI.cy;
-		v.m_width = rc.Width(); v.m_height = rc.Height();
-		v.m_posX = v.m_posY = v.posInvalid;
-		CWindow parent = wnd.GetParent();
-		if (parent != NULL) {
-			CRect rcParent;
-			if (GetParentWndRect(parent, rcParent)) {
-				v.m_posX = rc.left - rcParent.left;
-				v.m_posY = rc.top - rcParent.top;
-			}
-		}
-		return TRUE;
-	}
-	void TryFetchConfig() {
-		for(auto walk = m_windows.cfirst(); walk.is_valid(); ++walk) {
-			if (StoreConfig(*walk)) break;
-		}
-	}
-
-	void ApplyDPI() {
-		const CSize screenDPI = QueryScreenDPIEx();
-		if (screenDPI.cx == 0 || screenDPI.cy == 0) {
-			PFC_ASSERT(!"Should not get here - something seriously wrong with the OS");
-			return;
-		}
-		if (v.m_dpiX != v.dpiInvalid && v.m_dpiX != screenDPI.cx) {
-			if (v.m_width != v.sizeInvalid) v.m_width = MulDiv(v.m_width, screenDPI.cx, v.m_dpiX);
-			if (v.m_posX != v.posInvalid) v.m_posX = MulDiv(v.m_posX, screenDPI.cx, v.m_dpiX);
-		}
-		if (v.m_dpiY != v.dpiInvalid && v.m_dpiY != screenDPI.cy) {
-			if (v.m_height != v.sizeInvalid) v.m_height = MulDiv(v.m_height, screenDPI.cy, v.m_dpiY);
-			if (v.m_posY != v.posInvalid) v.m_posY = MulDiv(v.m_posY, screenDPI.cy, v.m_dpiY);
-		}
-		v.m_dpiX = screenDPI.cx;
-		v.m_dpiY = screenDPI.cy;
-	}
-	CSize GrabDPI() const {
-		CSize DPI(96,96);
-		if (v.m_dpiX != v.dpiInvalid) DPI.cx = v.m_dpiX;
-		if (v.m_dpiY != v.dpiInvalid) DPI.cy = v.m_dpiY;
-		return DPI;
-	}
-
-	static BOOL GetParentWndRect(CWindow wndParent, CRect & rc) {
-		if (!wndParent.IsIconic()) {
-			return wndParent.GetWindowRect(rc);
-		}
-		WINDOWPLACEMENT pl = {sizeof(pl)};
-		if (!wndParent.GetWindowPlacement(&pl)) return FALSE;
-		rc = pl.rcNormalPosition;
-		return TRUE;
-	}
-
-	pfc::avltree_t<CWindow> m_windows;
-public:
-};
-#endif
-
 class cfgDialogPosition : public cfg_struct_t<cfgDialogPositionData> {
 public:
 	cfgDialogPosition(const GUID& id) : cfg_struct_t(id) {}
 
-	void AddWindow(CWindow wnd);
-	void RemoveWindow(CWindow wnd);
+	//! Read and save size data from HWND.
+	void read_from_window(HWND);
+	//! Apply saved size data to HWND.
+	bool apply_to_window(HWND);
+
+	void AddWindow(HWND wnd) { apply_to_window(wnd); }
+	void RemoveWindow(HWND wnd) { read_from_window(wnd); }
+};
+
+class cfgWindowPosition : public cfg_struct_t<cfgWindowPositionData> {
+public:
+	cfgWindowPosition(const GUID & id) : cfg_struct_t(id) {}
+
+	//! Read and save size data from HWND.
+	void read_from_window(HWND);
+	//! Apply saved size data to HWND.
+	bool apply_to_window(HWND, bool allowHidden = false);
+	//! New window created, show it with saved metrics.
+	void windowCreated(HWND, bool allowHidden = false);
 };
 
 class cfgDialogPositionTracker {

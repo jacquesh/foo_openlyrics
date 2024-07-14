@@ -1,20 +1,25 @@
 #pragma once
 
-#ifdef _WIN32
 
 //! Entrypoint service for user interface modules. Implement when registering an UI module. Do not call existing implementations; only core enumerates / dispatches calls. To control UI behaviors from other components, use ui_control API. \n
 //! Use user_interface_factory_t<> to register, e.g static user_interface_factory_t<myclass> g_myclass_factory;
 class NOVTABLE user_interface : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(user_interface);
 public:
+#ifdef _WIN32
 	//!HookProc usage: \n
 	//! in your windowproc, call HookProc first, and if it returns true, return LRESULT value it passed to you
 	typedef BOOL (WINAPI * HookProc_t)(HWND wnd,UINT msg,WPARAM wp,LPARAM lp,LRESULT * ret);
-
+#endif
 	//! Retrieves name (UTF-8 null-terminated string) of the UI module.
 	virtual const char * get_name()=0;
-	//! Initializes the UI module - creates the main app window, etc. Failure should be signaled by appropriate exception (std::exception or a derivative).
-	virtual HWND init(HookProc_t hook)=0;
+    //! Initializes the UI module - creates the main app window, etc. Failure should be signaled by appropriate exception (std::exception or a derivative). \n
+    //! Mac OS: return NSWindow cast to hwnd_t
+#ifdef _WIN32
+    virtual HWND init(HookProc_t hook)=0;
+#else
+    virtual fb2k::hwnd_t init() = 0;
+#endif
 	//! Deinitializes the UI module - destroys the main app window, etc.
 	virtual void shutdown()=0;
 	//! Activates main app window.
@@ -31,7 +36,7 @@ public:
 	//! Disables statusbar text override.
 	virtual void revert_statusbar_text() = 0;
 
-	//! Shows now-playing item somehow (e.g. system notification area popup).
+    //! Shows now-playing item somehow (e.g. system notification area popup).
 	virtual void show_now_playing() = 0;
 
 	static bool g_find(service_ptr_t<user_interface> & p_out,const GUID & p_guid);
@@ -48,6 +53,7 @@ public:
 	//! Allows the core to ask the UI module about a specific feature.
 	virtual bool query_capability( const GUID & cap ) = 0;
 
+#ifdef _WIN32
 	//! Suppress core's shellhook window for intercepting systemwide WM_APPCOMMAND? \n
 	//! Recommended: false - return true only if your UI does this on its own.
 	static const GUID cap_suppress_core_shellhook;
@@ -56,8 +62,10 @@ public:
 	//! Note that cap_suppress_core_shellhook is queried first, as core can't use UVC if this UI does global WM_APPCOMMAND handling on its own. \n
 	//! Returning true from cap_suppress_core_shellhook implies the same from cap_suppress_core_uvc.
 	static const GUID cap_suppress_core_uvc;
+#endif
 };
 
+#ifdef _WIN32
 class ui_config_manager;
 //! \since 2.0
 class NOVTABLE user_interface_v3 : public user_interface_v2 {
@@ -65,7 +73,7 @@ class NOVTABLE user_interface_v3 : public user_interface_v2 {
 public:
 	virtual service_ptr_t< ui_config_manager > get_config_manager() = 0;
 };
-#endif // _WIN32
+#endif
 
 //! Interface class allowing you to override UI statusbar text. There may be multiple callers trying to override statusbar text; backend decides which one succeeds so you will not always get what you want. Statusbar text override is automatically cancelled when the object is released.\n
 //! Use ui_control::override_status_text_create() to instantiate.

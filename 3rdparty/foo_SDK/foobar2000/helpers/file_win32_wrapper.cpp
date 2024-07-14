@@ -6,16 +6,9 @@
 
 namespace file_win32_helpers {
 	t_filesize get_size(HANDLE p_handle) {
-		union {
-			t_uint64 val64;
-			t_uint32 val32[2];
-		} u;
-
-		u.val64 = 0;
-		SetLastError(NO_ERROR);
-		u.val32[0] = GetFileSize(p_handle,reinterpret_cast<DWORD*>(&u.val32[1]));
-		if (GetLastError()!=NO_ERROR) exception_io_from_win32(GetLastError());
-		return u.val64;
+		LARGE_INTEGER v = {};
+		WIN32_IO_OP(GetFileSizeEx(p_handle, &v));
+		return make_uint64(v);
 	}
 	void seek(HANDLE p_handle,t_sfilesize p_position,file::t_seek_mode p_mode) {
 		union  {
@@ -225,6 +218,94 @@ namespace file_win32_helpers {
 		return 0;
 	}
 
+	t_filestats2 stats2_from_handle(HANDLE h, const wchar_t * fallbackPath, uint32_t flags, abort_callback& a) {
+		a.check();
+		// Sadly GetFileInformationByHandle() is UNRELIABLE with certain net shares
+		BY_HANDLE_FILE_INFORMATION info = {};
+		if (GetFileInformationByHandle(h, &info)) {
+			return file_win32_helpers::translate_stats2(info);
+		}
+
+		a.check();
+		t_filestats2 ret;
+		
+		// ALWAYS get size, fail if bad handle
+		ret.m_size = get_size(h);
+
+		if (flags & (stats2_timestamp | stats2_timestampCreate)) {
+			static_assert(sizeof(t_filetimestamp) == sizeof(FILETIME), "struct sanity");
+			FILETIME ftCreate = {}, ftWrite = {};
+			if (GetFileTime(h, &ftCreate, nullptr, &ftWrite)) {
+				ret.m_timestamp = make_uint64(ftWrite); ret.m_timestampCreate = make_uint64(ftCreate);
+			}
+		}
+		if (flags & stats2_flags) {
+			// No other way to get this from handle?
+			if (fallbackPath != nullptr && *fallbackPath != 0) {
+				DWORD attr = GetFileAttributes(fallbackPath);
+				if (attr != INVALID_FILE_ATTRIBUTES) {
+					attribs_from_win32(ret, attr);
+				}
+			}
+		}
+		return ret;
+	}
+	void attribs_from_win32(t_filestats2& out, DWORD in) {
+		out.set_readonly((in & FILE_ATTRIBUTE_READONLY) != 0);
+		out.set_folder((in & FILE_ATTRIBUTE_DIRECTORY) != 0);
+		out.set_hidden((in & FILE_ATTRIBUTE_HIDDEN) != 0);
+		out.set_system((in & FILE_ATTRIBUTE_SYSTEM) != 0);
+		out.set_remote(false);
+	}
+
+
+	// Seek penalty query, effectively: is this an SSD?
+	// Credit:
+	// https://devblogs.microsoft.com/oldnewthing/20201023-00/?p=104395
+	static bool queryVolumeSeekPenalty(HANDLE hVolume, bool& out) {
+		STORAGE_PROPERTY_QUERY query = {};
+		query.PropertyId = StorageDeviceSeekPenaltyProperty;
+		query.QueryType = PropertyStandardQuery;
+		DWORD count = 1;
+		DEVICE_SEEK_PENALTY_DESCRIPTOR result = {};
+		if (!DeviceIoControl(hVolume, IOCTL_STORAGE_QUERY_PROPERTY, &query, sizeof(query), &result, sizeof(result), &count, nullptr)) {
+			return false;
+		}
+		out = result.IncursSeekPenalty;
+		return true;
+	}
+
+	static HANDLE GetVolumeHandleForFile(PCWSTR filePath) {
+		wchar_t volumePath[MAX_PATH] = {};
+		WIN32_OP_D(GetVolumePathName(filePath, volumePath, ARRAYSIZE(volumePath)));
+
+		wchar_t volumeName[MAX_PATH] = {};
+		WIN32_OP_D(GetVolumeNameForVolumeMountPoint(volumePath, volumeName, ARRAYSIZE(volumeName)));
+
+		auto length = wcslen(volumeName);
+		if ( length == 0 ) {
+			PFC_ASSERT(!"???");
+			return NULL;
+		}
+		if (length && volumeName[length - 1] == L'\\') {
+			volumeName[length - 1] = L'\0';
+		}
+
+		HANDLE ret;
+		WIN32_OP_D( ret = CreateFile(volumeName, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr) );
+		return ret;
+	}
+	bool querySeekPenalty(const wchar_t* nativePath, bool& out) {
+		CHandle h;
+		h.Attach( GetVolumeHandleForFile( nativePath ) );
+		if (!h) return false;
+		return queryVolumeSeekPenalty(h, out);
+	}
+	bool querySeekPenalty(const char* fb2k_path, bool& out) {
+		const char * path = fb2k_path;
+		if ( matchProtocol(path, "file")) path = afterProtocol(path);
+		return querySeekPenalty(pfc::wideFromUTF8(path), out);
+	}
 }
 
 #endif // _WIN32

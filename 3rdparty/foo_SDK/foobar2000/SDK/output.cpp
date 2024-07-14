@@ -69,14 +69,19 @@ pfc::eventHandle_t output::get_trigger_event_() {
     return pfc::eventInvalid;
 }
 
-void output_impl::flush() {
+void output_impl::on_flush_internal() {
+	m_eos = false; m_sent_force_play = false;
 	m_incoming_ptr = 0;
 	m_incoming.set_size(0);
+}
+
+void output_impl::flush() {
+	on_flush_internal();
 	on_flush();
 }
+
 void output_impl::flush_changing_track() {
-	m_incoming_ptr = 0;
-	m_incoming.set_size(0);
+	on_flush_internal();
 	on_flush_changing_track();
 }
 
@@ -87,10 +92,11 @@ size_t output_impl::update_v2() {
 	on_update();
 	if (m_incoming_spec != m_active_spec && m_incoming_ptr < m_incoming.get_size()) {
 		if (get_latency_samples() == 0) {
+			m_sent_force_play = false;
 			open(m_incoming_spec);
 			m_active_spec = m_incoming_spec;
 		} else {
-			force_play();
+			this->send_force_play();
 		}
 	}
     size_t retCanWriteSamples = 0;
@@ -98,8 +104,12 @@ size_t output_impl::update_v2() {
 		t_size cw = can_write_samples() * m_incoming_spec.chanCount;
 		t_size delta = pfc::min_t(m_incoming.get_size() - m_incoming_ptr,cw);
 		if (delta > 0) {
+			PFC_ASSERT(!m_sent_force_play);
 			write(audio_chunk_temp_impl(m_incoming.get_ptr()+m_incoming_ptr,delta / m_incoming_spec.chanCount,m_incoming_spec.sampleRate,m_incoming_spec.chanCount,m_incoming_spec.chanMask));
 			m_incoming_ptr += delta;
+			if ( m_eos && this->queue_empty() ) {
+				this->send_force_play();
+			}
 		}
         retCanWriteSamples = (cw - delta) / m_incoming_spec.chanCount;
     } else if ( m_incoming_ptr == m_incoming.get_size() ) {
@@ -118,8 +128,21 @@ double output_impl::get_latency() {
 	}
 	return ret;
 }
+
+void output_impl::force_play() {
+	if ( m_eos ) return;
+	m_eos = true;
+	if (queue_empty()) send_force_play();
+}
+void output_impl::send_force_play() {
+	if (m_sent_force_play) return;
+	m_sent_force_play = true;
+	this->on_force_play();
+}
+
 void output_impl::process_samples(const audio_chunk & p_chunk) {
-	pfc::dynamic_assert(m_incoming_ptr == m_incoming.get_size());
+	PFC_ASSERT(queue_empty());
+	PFC_ASSERT( !m_eos );
 	auto spec = p_chunk.get_spec();
 	if (!spec.is_valid()) pfc::throw_exception_with_message< exception_io_data >("Invalid audio stream specifications");
 	m_incoming_spec = spec;

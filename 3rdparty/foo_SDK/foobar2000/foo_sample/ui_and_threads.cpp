@@ -4,6 +4,8 @@
 // Modern multi threading with C++
 // Or: how I learned to stop worrying and love the lambdas
 
+#ifdef _WIN32
+
 #include <memory> // shared_ptr
 #include <libPPUI/CDialogResizeHelper.h>
 #include <helpers/filetimetools.h>
@@ -284,3 +286,11 @@ void RunUIAndThreads(metadb_handle_list_cref data) {
 	// Equivalent to new CDemoDialog(data), with modeless registration and auto lifetime
 	fb2k::newDialog<CDemoDialog>( data );
 }
+
+#else
+
+void RunUIAndThreads(metadb_handle_list_cref data) {
+    popup_message::g_showToast("Not implemented for Mac OS yet");
+}
+
+#endif

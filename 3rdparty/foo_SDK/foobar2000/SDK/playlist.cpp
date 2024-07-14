@@ -978,3 +978,21 @@ void playlist_manager::on_file_rechaptered(const char* path, metadb_handle_list_
 	// obsolete method
 	on_files_rechaptered(newItems);
 }
+
+namespace {
+	class process_locations_notify_lambda : public process_locations_notify {
+	public:
+		process_locations_notify::func_t f;
+		void on_completion(metadb_handle_list_cref p_items) override {
+			PFC_ASSERT(f != nullptr);
+			f(p_items);
+		}
+		void on_aborted() override {}
+	};
+}
+process_locations_notify::ptr process_locations_notify::create(func_t arg) {
+	PFC_ASSERT(arg != nullptr);
+	auto ret = fb2k::service_new< process_locations_notify_lambda >();
+	ret->f = arg;
+	return ret;
+}

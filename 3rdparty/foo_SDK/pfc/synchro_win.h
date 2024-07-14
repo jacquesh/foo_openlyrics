@@ -43,8 +43,7 @@ namespace pfc {
 // Warning, non-recursion proof
 class readWriteLock {
 public:
-	readWriteLock() : theLock() {
-	}
+	readWriteLock() {}
 	
 	void enterRead() {
 		AcquireSRWLockShared( & theLock );
@@ -63,7 +62,7 @@ private:
 	readWriteLock(const readWriteLock&) = delete;
 	void operator=(const readWriteLock&) = delete;
 
-	SRWLOCK theLock;
+	SRWLOCK theLock = SRWLOCK_INIT;
 };
 
 typedef ::_critical_section_base mutexBase_t;

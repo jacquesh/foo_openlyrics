@@ -1,5 +1,6 @@
 #include "pfc-lite.h"
 #include "sort.h"
+#include "sort2.h"
 #include "bit_array_impl.h"
 #include "ref_counter.h"
 
@@ -265,6 +266,16 @@ void sort_stable(sort_callback & p_callback,t_size p_count)
 {
     sort_callback_stabilizer cb(p_callback,p_count);
 	sort(cb,p_count);
+}
+
+
+
+permutation_t make_identitiy(size_t count) {
+	permutation_t ret; ret.set_size_discard(count);
+	for (size_t walk = 0; walk < count; ++walk) {
+		ret[walk] = walk;
+	}
+	return ret;
 }
 
 }

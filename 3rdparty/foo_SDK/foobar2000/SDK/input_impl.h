@@ -28,7 +28,8 @@ public:
 	//! - input_open_info_read - info retrieval methods are valid; \n
 	//! - input_open_decode - info retrieval and decoding methods are valid; \n
 	//! - input_open_info_write - info retrieval and retagging methods are valid; \n
-	//! Note that info retrieval methods are valid in all cases, and they may be called at any point of decoding/retagging process. Results of info retrieval methods (other than get_subsong_count() / get_subsong()) between retag_set_info() and retag_commit() are undefined however; those should not be called during that period.
+	//! Note that info retrieval methods are valid in all cases, and they may be called at any point of decoding/retagging process. Results of info retrieval methods (other than get_subsong_count() / get_subsong()) between retag_set_info() and retag_commit() are undefined however; those should not be called during that period. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported in response to input_open_info_write and do not implement other tag writing methods (they will not be called).
 	//! @param p_abort abort_callback object signaling user aborting the operation.
 	void open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort);
 
@@ -53,13 +54,20 @@ public:
 	bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta);
 	//! See: input_decoder::get_dynamic_info_track(). Valid after decode_initialize().
 	bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta);
-	//! See: input_decoder::on_idle(). Valid after decode_initialize().
+	//! Obsolete, do not use, do not rely on.
 	void decode_on_idle(abort_callback & p_abort);
 
-	//! See: input_info_writer::set_info(). Valid after open() with input_open_info_write reason.
+	//! See: input_info_writer::set_info(). Valid after open() with input_open_info_write reason. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported from open() and retag_* methods will never be called.
 	void retag_set_info(t_uint32 p_subsong,const file_info & p_info,abort_callback & p_abort);
-	//! See: input_info_writer::commit(). Valid after open() with input_open_info_write reason.
-	void retag_commit(abort_callback & p_abort);	
+	//! See: input_info_writer::commit(). Valid after open() with input_open_info_write reason. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported from open() and retag_* methods will never be called.
+	void retag_commit(abort_callback & p_abort);
+
+	//! See: input_info_writer_v2::remove_tags(). Valid after open() with input_open_info_write reason. \n
+	//! If possible, entirely remove tags from the file (truncate ID3/APE tags away etc); otherwise set blank metadata. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported from open() and remove_tags() will never be called.
+	void remove_tags(abort_callback & p_abort);
 	
 	//! See: input_entry::is_our_content_type().
 	static bool g_is_our_content_type(const char * p_content_type);
@@ -121,7 +129,8 @@ public:
 	//! - input_open_info_read - info retrieval methods are valid; \n
 	//! - input_open_decode - info retrieval and decoding methods are valid; \n
 	//! - input_open_info_write - info retrieval and retagging methods are valid; \n
-	//! Note that info retrieval methods are valid in all cases, and they may be called at any point of decoding/retagging process. Results of info retrieval methods (other than get_subsong_count() / get_subsong()) between retag_set_info() and retag_commit() are undefined however; those should not be called during that period.
+	//! Note that info retrieval methods are valid in all cases, and they may be called at any point of decoding/retagging process. Results of info retrieval methods (other than get_subsong_count() / get_subsong()) between retag_set_info() and retag_commit() are undefined however; those should not be called during that period. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported in response to input_open_info_write and do not implement other tag writing methods (they will not be called).
 	//! @param p_abort abort_callback object signaling user aborting the operation.
 	void open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort);
 
@@ -144,12 +153,18 @@ public:
 	bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta);
 	//! See: input_decoder::get_dynamic_info_track(). Valid after decode_initialize().
 	bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta);
-	//! See: input_decoder::on_idle(). Valid after decode_initialize().
+	//! Obsolete, do not use, do not rely on.
 	void decode_on_idle(abort_callback & p_abort);
 
-	//! See: input_info_writer::set_info(). Note that input_info_writer::commit() call isn't forwarded because it's useless in case of non-multitrack-enabled inputs. Valid after open() with input_open_info_write reason.
+	//! See: input_info_writer::set_info(). Note that input_info_writer::commit() call isn't forwarded because it's useless in case of non-multitrack-enabled inputs. Valid after open() with input_open_info_write reason. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported from open() and retag() will never be called.
 	void retag(const file_info & p_info,abort_callback & p_abort);
 	
+	//! See: input_info_writer_v2::remove_tags(). Valid after open() with input_open_info_write reason. \n
+	//! If possible, entirely remove tags from the file (truncate ID3/APE tags away etc); otherwise set blank metadata. \n
+	//! If your implementation does not support writing tags, throw exception_tagging_unsupported from open() and remove_tags() will never be called.
+	void remove_tags(abort_callback & p_abort);
+
 	//! See: input_entry::is_our_content_type().
 	static bool g_is_our_content_type(const char * p_content_type);
 	//! See: input_entry::is_our_path().

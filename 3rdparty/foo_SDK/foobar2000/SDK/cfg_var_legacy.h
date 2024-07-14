@@ -4,6 +4,11 @@
 #include <vector>
 #include "filesystem.h" // stream_reader, stream_writer
 
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+#include "configStore.h"
+#include "initquit.h"
+#endif
+
 namespace cfg_var_legacy {
 #define CFG_VAR_ASSERT_SAFEINIT PFC_ASSERT(!core_api::are_services_available());/*imperfect check for nonstatic instantiation*/
 
@@ -18,6 +23,22 @@ namespace cfg_var_legacy {
 		//! @param p_stream Stream containing new state of the variable.
 		//! @param p_sizehint Number of bytes contained in the stream; reading past p_sizehint bytes will fail (EOF).
 		virtual void set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) = 0;
+
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+	private:
+		pfc::string8 m_downgrade_name;
+	public:
+		pfc::string8 downgrade_name() const;
+		void downgrade_set_name( const char * arg ) { m_downgrade_name = arg; }
+
+		//! Implementation of config downgrade for this var, see FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE for more info. \n
+		//! Most components should not use this.
+		virtual void downgrade_check(fb2k::configStore::ptr api) {}
+		//! Config downgrade main for your component, see FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE for more info. \n
+		//! Put FOOBAR2000_IMPLEMENT_CFG_VAR_DOWNGRADE somewhere in your component to call on startup, or call from your code as early as possible after config read. \n
+		//! If you call it more than once, spurious calls will be ignored.
+		static void downgrade_main();
+#endif
 
 		//! For internal use only, do not call.
 		static void config_read_file(stream_reader* p_stream, abort_callback& p_abort);
@@ -62,6 +83,16 @@ namespace cfg_var_legacy {
 		GUID get_guid() const { return cfg_var_reader::m_guid; }
 	};
 
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+	int64_t downgrade_this( fb2k::configStore::ptr api, const char*, int64_t current);
+	uint64_t downgrade_this( fb2k::configStore::ptr api, const char*, uint64_t current);
+	int32_t downgrade_this( fb2k::configStore::ptr api, const char*, int32_t current);
+	uint32_t downgrade_this( fb2k::configStore::ptr api, const char*, uint32_t current);
+	bool downgrade_this( fb2k::configStore::ptr api, const char*, bool current);
+	double downgrade_this( fb2k::configStore::ptr api, const char*, double current);
+	GUID downgrade_this( fb2k::configStore::ptr api, const char*, GUID current);
+#endif
+
 	//! Generic integer config variable class. Template parameter can be used to specify integer type to use.\n
 	//! Note that cfg_var class and its derivatives may be only instantiated statically (as static objects or members of other static objects), NEVER dynamically (operator new, local variables, members of objects instantiated as such).
 	template<typename t_inttype>
@@ -69,13 +100,17 @@ namespace cfg_var_legacy {
 	private:
 		t_inttype m_val;
 	protected:
-		void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) { p_stream->write_lendian_t(m_val, p_abort); }
-		void set_data_raw(stream_reader* p_stream, t_size, abort_callback& p_abort) {
+		void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) override { p_stream->write_lendian_t(m_val, p_abort); }
+		void set_data_raw(stream_reader* p_stream, t_size, abort_callback& p_abort) override {
 			t_inttype temp;
 			p_stream->read_lendian_t(temp, p_abort);//alter member data only on success, this will throw an exception when something isn't right
 			m_val = temp;
 		}
-
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+		void downgrade_check(fb2k::configStore::ptr api) override {
+			m_val = downgrade_this(api, this->downgrade_name(), m_val);
+		}
+#endif
 	public:
 		//! @param p_guid GUID of the variable, used to identify variable implementations owning specific configuration file entries when reading the configuration file back. You must generate a new GUID every time you declare a new cfg_var.
 		//! @param p_default Default value of the variable.
@@ -91,54 +126,59 @@ namespace cfg_var_legacy {
 
 	typedef cfg_int_t<t_int32> cfg_int;
 	typedef cfg_int_t<t_uint32> cfg_uint;
-	//! Since relevant byteswapping functions also understand GUIDs, this can be used to declare a cfg_guid.
-	typedef cfg_int_t<GUID> cfg_guid;
-	typedef cfg_int_t<bool> cfg_bool;
-	typedef cfg_int_t<float> cfg_float;
-	typedef cfg_int_t<double> cfg_double;
+	typedef cfg_int_t<GUID> cfg_guid; // ANNOYING OLD DESIGN. THIS DOESN'T BELONG HERE BUT CANNOT BE CHANGED WITHOUT BREAKING PEOPLE'S STUFF. BLARFGH.
+	typedef cfg_int_t<bool> cfg_bool; // See above.
+	typedef cfg_int_t<float> cfg_float; // See above %$!@#$
+	typedef cfg_int_t<double> cfg_double; // ....
 
 	//! String config variable. Stored in the stream with int32 header containing size in bytes, followed by non-null-terminated UTF-8 data.\n
 	//! Note that cfg_var class and its derivatives may be only instantiated statically (as static objects or members of other static objects), NEVER dynamically (operator new, local variables, members of objects instantiated as such).
 	class cfg_string : public cfg_var, public pfc::string8 {
 	protected:
-		void get_data_raw(stream_writer* p_stream, abort_callback& p_abort);
-		void set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort);
+		void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) override;
+		void set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort) override;
 
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+		void downgrade_check(fb2k::configStore::ptr) override;
+#endif
 	public:
 		//! @param p_guid GUID of the variable, used to identify variable implementations owning specific configuration file entries when reading the configuration file back. You must generate a new GUID every time you declare a new cfg_var.
 		//! @param p_defaultval Default/initial value of the variable.
 		explicit inline cfg_string(const GUID& p_guid, const char* p_defaultval) : cfg_var(p_guid), pfc::string8(p_defaultval) {}
 
-		inline const cfg_string& operator=(const cfg_string& p_val) { set_string(p_val); return *this; }
-		inline const cfg_string& operator=(const char* p_val) { set_string(p_val); return *this; }
+		const cfg_string& operator=(const cfg_string& p_val) { set_string(p_val); return *this; }
+		const cfg_string& operator=(const char* p_val) { set_string(p_val); return *this; }
+		const cfg_string& operator=(pfc::string8 && p_val) { set(std::move(p_val)); return *this; }
+
 
 		inline operator const char* () const { return get_ptr(); }
 		const pfc::string8& get() const { return *this; }
+		void set( const char * arg ) { this->set_string(arg); }
+		void set(pfc::string8&& arg) { pfc::string8 * pThis = this; *pThis = std::move(arg); }
 	};
 
 
 	class cfg_string_mt : public cfg_var {
 	protected:
-		void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) {
+		void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) override {
 			pfc::string8 temp;
 			get(temp);
 			p_stream->write_object(temp.get_ptr(), temp.length(), p_abort);
 		}
-		void set_data_raw(stream_reader* p_stream, t_size, abort_callback& p_abort) {
+		void set_data_raw(stream_reader* p_stream, t_size, abort_callback& p_abort) override {
 			pfc::string8_fastalloc temp;
 			p_stream->read_string_raw(temp, p_abort);
 			set(temp);
 		}
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+		void downgrade_check(fb2k::configStore::ptr) override;
+#endif
 	public:
 		cfg_string_mt(const GUID& id, const char* defVal) : cfg_var(id), m_val(defVal) {}
-		void get(pfc::string_base& out) const {
-			inReadSync(m_sync);
-			out = m_val;
-		}
-		void set(const char* val, t_size valLen = ~0) {
-			inWriteSync(m_sync);
-			m_val.set_string(val, valLen);
-		}
+		void get(pfc::string_base& out) const { inReadSync(m_sync); out = m_val; }
+		pfc::string8 get() const { inReadSync(m_sync); return m_val; }
+		void set(const char* val, t_size valLen = SIZE_MAX) { inWriteSync(m_sync); m_val.set_string(val, valLen); }
+		void set( pfc::string8 && val ) { inWriteSync(m_sync); m_val = std::move(val); }
 	private:
 		mutable pfc::readWriteLock m_sync;
 		pfc::string8 m_val;
@@ -315,7 +355,10 @@ namespace cfg_var_legacy {
 			}
 		}
 	};
-}
+#if FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+#define FOOBAR2000_IMPLEMENT_CFG_VAR_DOWNGRADE FB2K_RUN_ON_INIT(cfg_var_reader::downgrade_main)
+#endif // FOOBAR2000_SUPPORT_CFG_VAR_DOWNGRADE
+} // cfg_var_legacy
 #else
 namespace cfg_var_legacy {
 	// Dummy class
@@ -325,4 +368,8 @@ namespace cfg_var_legacy {
 		const GUID m_guid;
 	};
 }
+#endif
+
+#ifndef FOOBAR2000_IMPLEMENT_CFG_VAR_DOWNGRADE
+#define FOOBAR2000_IMPLEMENT_CFG_VAR_DOWNGRADE
 #endif

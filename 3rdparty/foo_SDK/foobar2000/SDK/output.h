@@ -222,7 +222,7 @@ class output_factory_t : public service_factory_single_t<output_entry_impl_t<T> 
 
 class output_impl : public output_v5 {
 protected:
-	output_impl() : m_incoming_ptr(0) {}
+	output_impl() {}
 	virtual void on_update() = 0;
 	//! Will never get more input than as returned by can_write_samples().
 	virtual void write(const audio_chunk & p_data) = 0;
@@ -232,22 +232,33 @@ protected:
 	virtual void on_flush_changing_track() {on_flush();}
 	virtual void open(audio_chunk::spec_t const & p_spec) = 0;
 	
-	virtual void pause(bool p_state) = 0;
-	virtual void force_play() = 0;
-	virtual void volume_set(double p_val) = 0;
+    // base class virtual methods
+	// virtual void pause(bool p_state) = 0;
+	// virtual void volume_set(double p_val) = 0;
+
+	//! Override this, not force_play(). \n
+	//! output_impl will defer call to on_force_play() until out of data in its buffer.
+	virtual void on_force_play() = 0;
 protected:
 	void on_need_reopen() {m_active_spec.clear(); }
 private:
-	void flush();
-	void flush_changing_track();
-	void update(bool & p_ready);
-    size_t update_v2();
-	double get_latency();
-	void process_samples(const audio_chunk & p_chunk);
+	void flush() override final;
+	void flush_changing_track() override final;
+	void update(bool & p_ready) override final;
+    size_t update_v2() override final;
+	double get_latency() override final;
+	void process_samples(const audio_chunk & p_chunk) override final;
+	void force_play() override final;
+	void on_flush_internal();
+	void send_force_play();
+
+	bool queue_empty() const { return m_incoming_ptr == m_incoming.get_size(); }
 
 	pfc::array_t<audio_sample,pfc::alloc_fast_aggressive> m_incoming;
-	t_size m_incoming_ptr;
+	t_size m_incoming_ptr = 0;
 	audio_chunk::spec_t m_incoming_spec,m_active_spec;
+	bool m_eos = false; // EOS issued by caller / no more data expected until a flush
+	bool m_sent_force_play = false; // set if sent on_force_play()
 };
 
 

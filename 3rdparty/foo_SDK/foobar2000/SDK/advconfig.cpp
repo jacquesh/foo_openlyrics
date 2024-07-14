@@ -76,10 +76,6 @@ void advconfig_entry_checkbox_impl::set_data_raw(stream_reader* p_stream, t_size
 }
 #endif
 
-pfc::string8 fb2k::advconfig_autoName(const GUID& id) {
-	return pfc::format("advconfig.unnamed.", pfc::print_guid(id));
-}
-
 void advconfig_entry_string_impl::reset() {
 	fb2k::configStore::get()->deleteConfigString(m_varName);
 }

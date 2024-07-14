@@ -1,0 +1,447 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0F1FDDBA2AA0ADDF00DE8967 /* initquit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F1FDDB62AA0ADDF00DE8967 /* initquit.cpp */; };
+		0F1FDDBB2AA0ADDF00DE8967 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F1FDDB72AA0ADDF00DE8967 /* main.cpp */; };
+		0F1FDDC02AA0AE1E00DE8967 /* libfoobar2000_SDK.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1FDDBD2AA0AE1E00DE8967 /* libfoobar2000_SDK.a */; };
+		0F1FDDC12AA0AE1E00DE8967 /* libfoobar2000_SDK_helpers.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1FDDBE2AA0AE1E00DE8967 /* libfoobar2000_SDK_helpers.a */; };
+		0F1FDDC22AA0AE1E00DE8967 /* libpfc-Mac.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1FDDBF2AA0AE1E00DE8967 /* libpfc-Mac.a */; };
+		0F1FDDC82AA0B1F800DE8967 /* libshared.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1FDDC72AA0B1F800DE8967 /* libshared.a */; };
+		0F1FDDCA2AA0B1FE00DE8967 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1FDDC92AA0B1FE00DE8967 /* Cocoa.framework */; };
+		0F1FDDDE2AA0B34200DE8967 /* libfoobar2000_component_client.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F1FDDDD2AA0B34200DE8967 /* libfoobar2000_component_client.a */; };
+		0F62440A2AA1E59E004FEC96 /* preferences.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F6244072AA1E4F4004FEC96 /* preferences.cpp */; };
+		0F6D10F12AA3C35C00774EED /* fooDecibelFormatter.m in Sources */ = {isa = PBXBuildFile; fileRef = 0F6D10EF2AA3C35C00774EED /* fooDecibelFormatter.m */; };
+		0FBE14512AA1E85F00B1F71E /* NSView+embed.m in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE14452AA1E85F00B1F71E /* NSView+embed.m */; };
+		0FBE14552AA1E8C800B1F71E /* fooSampleMacPreferences.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE14532AA1E8C800B1F71E /* fooSampleMacPreferences.mm */; };
+		0FBE14562AA1E8C800B1F71E /* fooSampleMacPreferences.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0FBE14542AA1E8C800B1F71E /* fooSampleMacPreferences.xib */; };
+		0FBE14622AA1F74200B1F71E /* rating.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE14582AA1F74200B1F71E /* rating.cpp */; };
+		0FBE14632AA1F74200B1F71E /* contextmenu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE14592AA1F74200B1F71E /* contextmenu.cpp */; };
+		0FBE14642AA1F74200B1F71E /* input_raw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE145A2AA1F74200B1F71E /* input_raw.cpp */; };
+		0FBE14652AA1F74200B1F71E /* decode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE145B2AA1F74200B1F71E /* decode.cpp */; };
+		0FBE14662AA1F74200B1F71E /* dsp_sample.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE145C2AA1F74200B1F71E /* dsp_sample.cpp */; };
+		0FBE14672AA1F74200B1F71E /* mainmenu-dynamic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE145D2AA1F74200B1F71E /* mainmenu-dynamic.cpp */; };
+		0FBE14692AA1F74200B1F71E /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE145F2AA1F74200B1F71E /* IO.cpp */; };
+		0FBE146A2AA1F74200B1F71E /* playback_stream_capture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE14602AA1F74200B1F71E /* playback_stream_capture.cpp */; };
+		0FBE146C2AA1FF1500B1F71E /* ui_and_threads.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBE146B2AA1FF1500B1F71E /* ui_and_threads.cpp */; };
+		0FCA71142AA21F69001CB0F2 /* fooSampleDSPView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0FCA71122AA21F69001CB0F2 /* fooSampleDSPView.mm */; };
+		0FCA71152AA21F69001CB0F2 /* fooSampleDSPView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0FCA71132AA21F69001CB0F2 /* fooSampleDSPView.xib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0F1FDDAD2AA0AD9B00DE8967 /* foo_sample.component */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = foo_sample.component; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F1FDDB42AA0ADDF00DE8967 /* mainmenu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mainmenu.cpp; sourceTree = "<group>"; };
+		0F1FDDB52AA0ADDF00DE8967 /* playback_state.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = playback_state.cpp; sourceTree = "<group>"; };
+		0F1FDDB62AA0ADDF00DE8967 /* initquit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = initquit.cpp; sourceTree = "<group>"; };
+		0F1FDDB72AA0ADDF00DE8967 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		0F1FDDBD2AA0AE1E00DE8967 /* libfoobar2000_SDK.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libfoobar2000_SDK.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F1FDDBE2AA0AE1E00DE8967 /* libfoobar2000_SDK_helpers.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libfoobar2000_SDK_helpers.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F1FDDBF2AA0AE1E00DE8967 /* libpfc-Mac.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = "libpfc-Mac.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F1FDDC62AA0AF8400DE8967 /* stdafx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stdafx.h; sourceTree = "<group>"; };
+		0F1FDDC72AA0B1F800DE8967 /* libshared.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libshared.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F1FDDC92AA0B1FE00DE8967 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		0F1FDDDD2AA0B34200DE8967 /* libfoobar2000_component_client.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libfoobar2000_component_client.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F6244072AA1E4F4004FEC96 /* preferences.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = preferences.cpp; sourceTree = "<group>"; };
+		0F6D10EF2AA3C35C00774EED /* fooDecibelFormatter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = fooDecibelFormatter.m; sourceTree = "<group>"; };
+		0F6D10F02AA3C35C00774EED /* fooDecibelFormatter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fooDecibelFormatter.h; sourceTree = "<group>"; };
+		0FBE14402AA1E85F00B1F71E /* NSView+embed.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSView+embed.h"; sourceTree = "<group>"; };
+		0FBE14452AA1E85F00B1F71E /* NSView+embed.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSView+embed.m"; sourceTree = "<group>"; };
+		0FBE14522AA1E8C800B1F71E /* fooSampleMacPreferences.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fooSampleMacPreferences.h; sourceTree = "<group>"; };
+		0FBE14532AA1E8C800B1F71E /* fooSampleMacPreferences.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = fooSampleMacPreferences.mm; sourceTree = "<group>"; };
+		0FBE14542AA1E8C800B1F71E /* fooSampleMacPreferences.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = fooSampleMacPreferences.xib; sourceTree = "<group>"; };
+		0FBE14582AA1F74200B1F71E /* rating.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = rating.cpp; sourceTree = "<group>"; };
+		0FBE14592AA1F74200B1F71E /* contextmenu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = contextmenu.cpp; sourceTree = "<group>"; };
+		0FBE145A2AA1F74200B1F71E /* input_raw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = input_raw.cpp; sourceTree = "<group>"; };
+		0FBE145B2AA1F74200B1F71E /* decode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = decode.cpp; sourceTree = "<group>"; };
+		0FBE145C2AA1F74200B1F71E /* dsp_sample.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dsp_sample.cpp; sourceTree = "<group>"; };
+		0FBE145D2AA1F74200B1F71E /* mainmenu-dynamic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "mainmenu-dynamic.cpp"; sourceTree = "<group>"; };
+		0FBE145E2AA1F74200B1F71E /* readme.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = readme.txt; sourceTree = "<group>"; };
+		0FBE145F2AA1F74200B1F71E /* IO.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IO.cpp; sourceTree = "<group>"; };
+		0FBE14602AA1F74200B1F71E /* playback_stream_capture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = playback_stream_capture.cpp; sourceTree = "<group>"; };
+		0FBE14612AA1F74200B1F71E /* playback_stream_capture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = playback_stream_capture.h; sourceTree = "<group>"; };
+		0FBE146B2AA1FF1500B1F71E /* ui_and_threads.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ui_and_threads.cpp; sourceTree = "<group>"; };
+		0FCA71112AA21F69001CB0F2 /* fooSampleDSPView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fooSampleDSPView.h; sourceTree = "<group>"; };
+		0FCA71122AA21F69001CB0F2 /* fooSampleDSPView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = fooSampleDSPView.mm; sourceTree = "<group>"; };
+		0FCA71132AA21F69001CB0F2 /* fooSampleDSPView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = fooSampleDSPView.xib; sourceTree = "<group>"; };
+		0FD323BF2AA3C45C00C0C2F7 /* dsp_sample.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dsp_sample.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0F1FDDAA2AA0AD9B00DE8967 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F1FDDDE2AA0B34200DE8967 /* libfoobar2000_component_client.a in Frameworks */,
+				0F1FDDCA2AA0B1FE00DE8967 /* Cocoa.framework in Frameworks */,
+				0F1FDDC82AA0B1F800DE8967 /* libshared.a in Frameworks */,
+				0F1FDDC02AA0AE1E00DE8967 /* libfoobar2000_SDK.a in Frameworks */,
+				0F1FDDC12AA0AE1E00DE8967 /* libfoobar2000_SDK_helpers.a in Frameworks */,
+				0F1FDDC22AA0AE1E00DE8967 /* libpfc-Mac.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0F1FDDA42AA0AD9B00DE8967 = {
+			isa = PBXGroup;
+			children = (
+				0FBE146B2AA1FF1500B1F71E /* ui_and_threads.cpp */,
+				0FBE14592AA1F74200B1F71E /* contextmenu.cpp */,
+				0FBE145B2AA1F74200B1F71E /* decode.cpp */,
+				0FBE145C2AA1F74200B1F71E /* dsp_sample.cpp */,
+				0FD323BF2AA3C45C00C0C2F7 /* dsp_sample.h */,
+				0FBE145A2AA1F74200B1F71E /* input_raw.cpp */,
+				0FBE145F2AA1F74200B1F71E /* IO.cpp */,
+				0FBE145D2AA1F74200B1F71E /* mainmenu-dynamic.cpp */,
+				0FBE14602AA1F74200B1F71E /* playback_stream_capture.cpp */,
+				0FBE14612AA1F74200B1F71E /* playback_stream_capture.h */,
+				0FBE14582AA1F74200B1F71E /* rating.cpp */,
+				0FBE145E2AA1F74200B1F71E /* readme.txt */,
+				0FBE14572AA1F41A00B1F71E /* Mac */,
+				0F6244072AA1E4F4004FEC96 /* preferences.cpp */,
+				0F1FDDC62AA0AF8400DE8967 /* stdafx.h */,
+				0F1FDDB62AA0ADDF00DE8967 /* initquit.cpp */,
+				0F1FDDB72AA0ADDF00DE8967 /* main.cpp */,
+				0F1FDDB42AA0ADDF00DE8967 /* mainmenu.cpp */,
+				0F1FDDB52AA0ADDF00DE8967 /* playback_state.cpp */,
+				0FBE14362AA1E85F00B1F71E /* helpers-mac */,
+				0F1FDDAE2AA0AD9B00DE8967 /* Products */,
+				0F1FDDBC2AA0AE1E00DE8967 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		0F1FDDAE2AA0AD9B00DE8967 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0F1FDDAD2AA0AD9B00DE8967 /* foo_sample.component */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0F1FDDBC2AA0AE1E00DE8967 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0F1FDDDD2AA0B34200DE8967 /* libfoobar2000_component_client.a */,
+				0F1FDDC92AA0B1FE00DE8967 /* Cocoa.framework */,
+				0F1FDDC72AA0B1F800DE8967 /* libshared.a */,
+				0F1FDDBD2AA0AE1E00DE8967 /* libfoobar2000_SDK.a */,
+				0F1FDDBE2AA0AE1E00DE8967 /* libfoobar2000_SDK_helpers.a */,
+				0F1FDDBF2AA0AE1E00DE8967 /* libpfc-Mac.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		0FBE14362AA1E85F00B1F71E /* helpers-mac */ = {
+			isa = PBXGroup;
+			children = (
+				0F6D10F02AA3C35C00774EED /* fooDecibelFormatter.h */,
+				0F6D10EF2AA3C35C00774EED /* fooDecibelFormatter.m */,
+				0FBE14402AA1E85F00B1F71E /* NSView+embed.h */,
+				0FBE14452AA1E85F00B1F71E /* NSView+embed.m */,
+			);
+			name = "helpers-mac";
+			path = "../helpers-mac";
+			sourceTree = "<group>";
+		};
+		0FBE14572AA1F41A00B1F71E /* Mac */ = {
+			isa = PBXGroup;
+			children = (
+				0FBE14522AA1E8C800B1F71E /* fooSampleMacPreferences.h */,
+				0FBE14532AA1E8C800B1F71E /* fooSampleMacPreferences.mm */,
+				0FBE14542AA1E8C800B1F71E /* fooSampleMacPreferences.xib */,
+				0FCA71112AA21F69001CB0F2 /* fooSampleDSPView.h */,
+				0FCA71122AA21F69001CB0F2 /* fooSampleDSPView.mm */,
+				0FCA71132AA21F69001CB0F2 /* fooSampleDSPView.xib */,
+			);
+			path = Mac;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0F1FDDAC2AA0AD9B00DE8967 /* foo_sample */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0F1FDDB12AA0AD9B00DE8967 /* Build configuration list for PBXNativeTarget "foo_sample" */;
+			buildPhases = (
+				0F1FDDA92AA0AD9B00DE8967 /* Sources */,
+				0F1FDDAA2AA0AD9B00DE8967 /* Frameworks */,
+				0F1FDDAB2AA0AD9B00DE8967 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = foo_sample;
+			productName = foo_sample;
+			productReference = 0F1FDDAD2AA0AD9B00DE8967 /* foo_sample.component */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0F1FDDA52AA0AD9B00DE8967 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					0F1FDDAC2AA0AD9B00DE8967 = {
+						CreatedOnToolsVersion = 14.3.1;
+					};
+				};
+			};
+			buildConfigurationList = 0F1FDDA82AA0AD9B00DE8967 /* Build configuration list for PBXProject "foo_sample" */;
+			compatibilityVersion = "Xcode 12.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 0F1FDDA42AA0AD9B00DE8967;
+			productRefGroup = 0F1FDDAE2AA0AD9B00DE8967 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0F1FDDAC2AA0AD9B00DE8967 /* foo_sample */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0F1FDDAB2AA0AD9B00DE8967 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0FBE14562AA1E8C800B1F71E /* fooSampleMacPreferences.xib in Resources */,
+				0FCA71152AA21F69001CB0F2 /* fooSampleDSPView.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0F1FDDA92AA0AD9B00DE8967 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0FBE14692AA1F74200B1F71E /* IO.cpp in Sources */,
+				0FBE14552AA1E8C800B1F71E /* fooSampleMacPreferences.mm in Sources */,
+				0FBE14672AA1F74200B1F71E /* mainmenu-dynamic.cpp in Sources */,
+				0FBE14512AA1E85F00B1F71E /* NSView+embed.m in Sources */,
+				0FBE14632AA1F74200B1F71E /* contextmenu.cpp in Sources */,
+				0FCA71142AA21F69001CB0F2 /* fooSampleDSPView.mm in Sources */,
+				0FBE14652AA1F74200B1F71E /* decode.cpp in Sources */,
+				0F6D10F12AA3C35C00774EED /* fooDecibelFormatter.m in Sources */,
+				0FBE146C2AA1FF1500B1F71E /* ui_and_threads.cpp in Sources */,
+				0FBE14662AA1F74200B1F71E /* dsp_sample.cpp in Sources */,
+				0F1FDDBB2AA0ADDF00DE8967 /* main.cpp in Sources */,
+				0FBE14642AA1F74200B1F71E /* input_raw.cpp in Sources */,
+				0F62440A2AA1E59E004FEC96 /* preferences.cpp in Sources */,
+				0F1FDDBA2AA0ADDF00DE8967 /* initquit.cpp in Sources */,
+				0FBE14622AA1F74200B1F71E /* rating.cpp in Sources */,
+				0FBE146A2AA1F74200B1F71E /* playback_stream_capture.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0F1FDDAF2AA0AD9B00DE8967 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = stdafx.h;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					..,
+					../..,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		0F1FDDB02AA0AD9B00DE8967 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = stdafx.h;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					..,
+					../..,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		0F1FDDB22AA0AD9B00DE8967 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.foobar2000.foo-sample";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = component;
+			};
+			name = Debug;
+		};
+		0F1FDDB32AA0AD9B00DE8967 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.foobar2000.foo-sample";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = component;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0F1FDDA82AA0AD9B00DE8967 /* Build configuration list for PBXProject "foo_sample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F1FDDAF2AA0AD9B00DE8967 /* Debug */,
+				0F1FDDB02AA0AD9B00DE8967 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0F1FDDB12AA0AD9B00DE8967 /* Build configuration list for PBXNativeTarget "foo_sample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F1FDDB22AA0AD9B00DE8967 /* Debug */,
+				0F1FDDB32AA0AD9B00DE8967 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0F1FDDA52AA0AD9B00DE8967 /* Project object */;
+}

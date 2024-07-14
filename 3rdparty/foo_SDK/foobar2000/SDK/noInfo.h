@@ -3,6 +3,7 @@
 #include "file_info.h"
 
 namespace fb2k {
+	//! Helper: shared blank file_info object. See: file_info.
 	class noInfo_t : public file_info {
 		[[noreturn]] static void verboten() { FB2K_BugCheck(); }
 	public:

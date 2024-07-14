@@ -169,8 +169,13 @@ namespace foobar2000_io
 		//! Bool retval version of make_directory().
 		bool make_directory_check( const char * path, abort_callback & abort );
 
+		//! Returns whether a directory exists at path, false if doesn't exist or not a directory.
 		bool directory_exists(const char * path, abort_callback & abort);
+		//! Returns whether a file exists at path, false if doesn't exist or not a file.
 		bool file_exists( const char * path, abort_callback & abort );
+		//! Returns whether either a file or a directory exists at path. Effectively directory_exists() || file_exists(), but somewhat more efficient.
+		bool exists(const char* path, abort_callback& a);
+
 		char pathSeparator();
 		//! Extracts the filename.ext portion of the path. \n
 		//! The filename is ready to be presented to the user - URL decoding and such (similar to get_display_path()) is applied.
@@ -220,10 +225,27 @@ namespace foobar2000_io
 
 		fsItemFolder::ptr makeItemFolderStd(const char* pathCanonical, t_filestats2 const& stats = filestats2_invalid );
 		fsItemFile::ptr makeItemFileStd(const char* pathCanonical, t_filestats2 const& stats = filestats2_invalid );
+		fsItemBase::ptr findItem_(const char* path, abort_callback& p_abort);
+		fsItemFile::ptr findItemFile_(const char* path, abort_callback& p_abort);
+		fsItemFolder::ptr findItemFolder_(const char* path, abort_callback& p_abort);
 
 
 		typedef std::function<void(const char*, t_filestats2 const&) > list_callback_t;
 		void list_directory_(const char* path, list_callback_t cb, unsigned listMode,abort_callback& a);
+
+		//! Compares two paths determining if one is a subpath of another,
+		//! Returns false if the paths are unrelated.
+		//! Returns true if the paths are related, and then: result is set 0 if they are equal, 1 if p2 is a subpath of p1, -1 if p1 is a subpath of p2
+		static bool g_compare_paths(const char* p1, const char* p2, int& result);
+
+		//! Batch file stats read. Some filesystems provide an optimized implementation of this.
+		static void g_readStatsMulti(fb2k::arrayRef items, uint32_t s2flags, t_filestats2* outStats, abort_callback& abort);
+        
+        //! See filesystem_v3::fileNameSanity(). Throws pfc::exception_not_implemented() if not available.
+        fb2k::stringRef fileNameSanity_(const char* fn);
+        
+        //! See filesystem_v3::getDriveSpace(). Throws pfc::exception_not_implemented() if not available.
+        drivespace_t getDriveSpace_(const char* pathAt, abort_callback& abort);
 
 	protected:
 		static bool get_parent_helper(const char * path, char separator, pfc::string_base & out);
@@ -418,6 +440,7 @@ namespace foobar2000_io
 	bool extract_native_path_ex(const char * p_fspath, pfc::string_base & p_native);//prepends \\?\ where needed
 
 	bool extract_native_path_archive_aware( const char * fspatch, pfc::string_base & out );
+	bool extract_native_path_archive_aware_ex( const char * fspatch, pfc::string_base & out, abort_callback & a );
 
 	template<typename T>
 	pfc::string getPathDisplay(const T& source) {

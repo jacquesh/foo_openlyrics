@@ -1,6 +1,7 @@
 #pragma once
 
 namespace fb2k {
+    //! \since 2.0
     class powerManager : public service_base {
     public:
         enum {
@@ -10,11 +11,13 @@ namespace fb2k {
             flagDisplay = flagStrong
         };
 
-        //! Blocks device sleep for the duration of returned object's lifetime.
-        //! By default we ask politely but can be still put to sleep by the OS. Specify flagStrong to force the device into awake state (possibly at cost of keeping the screen up).
+        //! Blocks device sleep for the duration of returned object's lifetime. \n
+        //! By default we ask politely but can be still put to sleep by the OS. Specify flagStrong to force the device into awake state (possibly at cost of keeping the screen up). \n
+        //! Thread safety: OK to call from any thread.
         virtual objRef makeTask(const char* name, unsigned flags) = 0;
 
-        //! Returns whether we're running on AC power (not on battery).
+        //! Returns whether we're running on AC power (not on battery). \n
+        //! Thread safety: OK to call from any thread.
         virtual bool haveACPower() = 0;
 
         objRef makeTaskWeak(const char* name) { return makeTask(name, 0); }

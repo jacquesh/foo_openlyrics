@@ -98,6 +98,7 @@ namespace tag_processor {
 	void read_id3v2_trailing(const service_ptr_t<file> & p_file,file_info & p_info,abort_callback & p_abort);
 
 	void skip_id3v2(const service_ptr_t<file> & p_file,t_filesize & p_size_skipped,abort_callback & p_abort);
+    t_filesize skip_id3v2(file::ptr const & f, abort_callback & a);
 
 	bool is_id3v1_sufficient(const file_info & p_info);
 	void truncate_to_id3v1(file_info & p_info);

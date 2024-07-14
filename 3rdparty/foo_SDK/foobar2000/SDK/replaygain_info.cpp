@@ -51,10 +51,7 @@ bool replaygain_info::g_format_peak(float p_value,char p_buffer[text_buffer_size
 
 void replaygain_info::reset()
 {
-	m_album_gain = gain_invalid;
-	m_track_gain = gain_invalid;
-	m_album_peak = peak_invalid;
-	m_track_peak = peak_invalid;
+	*this = replaygain_info();
 }
 
 #define meta_album_gain "replaygain_album_gain"

@@ -29,7 +29,8 @@ public:
 		lineCount = 1; return listGetSubItemText( ctx, item, subItem);
 	}
 	virtual void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char * val) {}
-	virtual uint32_t listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) {return 0;}
+	// Returns InPlaceEdit::KFlag*
+	virtual uint32_t listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) {return 0;} 
 	typedef InPlaceEdit::CTableEditHelperV2::autoComplete_t autoComplete_t;
 	typedef InPlaceEdit::CTableEditHelperV2::combo_t combo_t;
 	virtual autoComplete_t listGetAutoComplete(ctx_t, size_t item, size_t subItem) {return autoComplete_t();}

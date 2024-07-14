@@ -401,6 +401,12 @@
     <ClInclude Include="threadsLite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="callback_merit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="advconfig_impl_legacy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="abort_callback.cpp">

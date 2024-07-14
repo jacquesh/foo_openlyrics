@@ -97,6 +97,9 @@
     <ClCompile Include="unicode-normalize.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="filetimetools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="alloc.h">
@@ -346,6 +349,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unicode-normalize.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="filetimetools.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sort2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

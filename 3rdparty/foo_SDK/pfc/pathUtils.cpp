@@ -80,23 +80,23 @@ const char * charReplaceDefault(char c) {
 const char * charReplaceModern(char c) {
 	switch (c) {
 	case '*':
-		return u8"∗";
+		return reinterpret_cast<const char*>( u8"∗" );
 	case '\"':
-		return u8"''";
+		return reinterpret_cast<const char*>( u8"''" );
 	case ':':
-		return u8"∶";
+		return reinterpret_cast<const char*>( u8"∶" );
 	case '/':
-		return u8"\u2215";
+		return reinterpret_cast<const char*>( u8"\u2215" );
 	case '\\':
-		return u8"⧵";
+		return reinterpret_cast<const char*>( u8"⧵" );
 	case '?':
-		return u8"？";
+		return reinterpret_cast<const char*>( u8"？" );
 	case '<':
-		return u8"˂";
+		return reinterpret_cast<const char*>( u8"˂" );
 	case '>':
-		return u8"˃";
+		return reinterpret_cast<const char*>( u8"˃" );
 	case '|':
-		return u8"∣";
+		return reinterpret_cast<const char*>( u8"∣" );
 	default:
 		return "_";
 	}

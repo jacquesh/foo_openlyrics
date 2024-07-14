@@ -1,8 +1,8 @@
 #pragma once
 
-#ifdef _WIN32
-
 #include "win32_misc.h"
+
+#ifdef _WIN32
 #include <SDK/ui_element.h>
 #include <SDK/ui.h>
 #include <SDK/contextmenu_manager.h>

@@ -723,20 +723,22 @@ namespace pfc {
 	t_int32 rint32(double p_val);
 	t_int64 rint64(double p_val);
 
-
-
+	//! Returns amount of items left.
 	template<typename array_t, typename pred_t>
 	inline size_t remove_if_t( array_t & arr, pred_t pred ) {
 		const size_t inCount = arr.size();
 		size_t walk = 0;
 
-
-		for( walk = 0; walk < inCount; ++ walk ) {
+		for (;; ) {
+			if ( walk == inCount ) return inCount;
 			if ( pred(arr[walk]) ) break;
+			++ walk;
 		}
 
 		size_t total = walk;
 
+		++ walk; // already know that at walk is pred() positive
+		
 		for( ; walk < inCount; ++ walk ) {
 			if ( !pred(arr[walk] ) ) {
 				move_t(arr[total++], arr[walk]);
@@ -747,8 +749,9 @@ namespace pfc {
 		return total;
 	}
 
+	//! Returns amount of items left.
 	template<typename t_array>
-	inline t_size remove_mask_t(t_array & p_array,const bit_array & p_mask)//returns amount of items left
+	inline t_size remove_mask_t(t_array & p_array,const bit_array & p_mask)
 	{
 		t_size n,count = p_array.size(), total = 0;
 
@@ -882,7 +885,7 @@ namespace pfc {
 	template<typename obj_t>
 	incrementScope<obj_t> autoIncrement(obj_t& v) { return incrementScope<obj_t>(v); }
 
-	inline unsigned countBits32(uint32_t i) {
+	constexpr inline unsigned countBits32(uint32_t i) {
 		const uint32_t mask = 0x11111111;
 		uint32_t acc = i & mask;
 		acc += (i >> 1) & mask;

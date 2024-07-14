@@ -19,10 +19,10 @@ namespace ThreadUtils {
 	// Do not use, broken version of MultiWaitAbortable_MsgLoop2 retained for compatibility (returns 1 based index)
 	t_size MultiWaitAbortable_MsgLoop(const HANDLE* ev, t_size evCount, abort_callback& abort);
 
-	void SleepAbortable_MsgLoop(abort_callback & abort, DWORD timeout /*must not be INFINITE*/);
-	bool WaitAbortable_MsgLoop(HANDLE ev, abort_callback & abort, DWORD timeout /*must not be INFINITE*/);
+	void SleepAbortable_MsgLoop(abort_callback & abort, DWORD timeoutMS);
+	bool WaitAbortable_MsgLoop(HANDLE ev, abort_callback & abort, DWORD timeoutMS);
 
-	DWORD MultiWait_MsgLoop(const HANDLE* ev, DWORD evCount, DWORD timeout);
+	DWORD MultiWait_MsgLoop(const HANDLE* ev, DWORD evCount, DWORD timeoutMS);
 	DWORD MultiWait_MsgLoop(const HANDLE* ev, DWORD evCount);
 
 	// Drop-in replacement for pfc::event::g_wait_for()

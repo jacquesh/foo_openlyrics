@@ -135,6 +135,7 @@ int popup_message_v3::messageBoxReply(uint32_t status) {
 	return -1;
 }
 void popup_message_v3::messageBoxAsync(fb2k::hwnd_t parent, const char* msg, const char* title, unsigned flags, std::function<void (int)> reply) {
+	PFC_ASSERT( core_api::is_main_thread() );
 	auto q = setupMessageBox(parent, msg, title, flags);
 	if (reply) {
 		q.reply = fb2k::makeCompletionNotify([reply](unsigned code) {
@@ -144,6 +145,7 @@ void popup_message_v3::messageBoxAsync(fb2k::hwnd_t parent, const char* msg, con
 	this->show_query(q);
 }
 int popup_message_v3::messageBox(fb2k::hwnd_t parent, const char* msg, const char* title, unsigned flags) {
+	PFC_ASSERT( core_api::is_main_thread() );
 	auto q = setupMessageBox(parent, msg, title, flags);
 	uint32_t status = this->show_query_modal(q);
 	return messageBoxReply(status);

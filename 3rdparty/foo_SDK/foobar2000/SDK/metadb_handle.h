@@ -185,6 +185,9 @@ public:
 	virtual void formatTitle_v2(const rec_t& rec, titleformat_hook* p_hook, pfc::string_base& p_out, const service_ptr_t<titleformat_object>& p_script, titleformat_text_filter* p_filter) = 0;
 };
 
+typedef pfc::list_base_t<metadb_handle_ptr>* metadb_handle_list_ptr;
+typedef pfc::list_base_const_t<metadb_handle_ptr> const * metadb_handle_list_cptr;
+
 typedef pfc::list_base_t<metadb_handle_ptr> & metadb_handle_list_ref;
 typedef pfc::list_base_const_t<metadb_handle_ptr> const & metadb_handle_list_cref;
 
@@ -221,6 +224,16 @@ namespace metadb_handle_list_helper {
 	void sort_by_format_get_order_v2( metadb_handle_list_cref p_list, size_t * order, const service_ptr_t<titleformat_object> & script, titleformat_hook * hook,  int direction, abort_callback & aborter );
 	void sort_by_format_v2(metadb_handle_list_ref p_list, const service_ptr_t<titleformat_object> & script, titleformat_hook * hook, int direction, abort_callback & aborter);
 
+	struct sorter_t {
+		service_ptr_t < titleformat_object > obj;
+		int direction = 1;
+		titleformat_hook* hook = nullptr;
+	};
+
+	//! Late-2023 addition (new fb2k not required) \n
+	//! Multilayer stablesort using single info query pass, with multiple sort objects that can have different directions. 
+	//! @param inOutOrder input & output order, please set to a valid permutration (such as identity) on input.
+	void sort_by_format_get_order_v3(metadb_handle_list_cref p_list, size_t* inOutOrder, sorter_t const * sorters, size_t nSorters, abort_callback& aborter);
 };
 
 template<template<typename> class t_alloc = pfc::alloc_fast >

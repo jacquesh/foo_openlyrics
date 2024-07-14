@@ -116,4 +116,7 @@
 #include "ui_edit_context.h"
 #include "toolbarDropDown.h"
 
+#include "commonObjects-Apple.h"
+
 #endif //_FOOBAR2000_H_
+

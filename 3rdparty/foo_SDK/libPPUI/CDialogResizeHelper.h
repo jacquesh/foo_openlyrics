@@ -3,6 +3,17 @@
 #include "CDialogResizeHelperCompat.h"
 #include <vector>
 
+// ==========================================================
+// CDialogResizeHelper
+// ==========================================================
+// Usage:
+// Put CDialogResizeHelper member in your dialog class
+// Initialize with controls sizing info table, array of CDialogResizeHelper::Param
+// Put CHAIN_MSG_MAP_MEMBER(m_resizer) before your dialog message handlers
+// CDialogResizeHelper will do its own message handling without marking messages as handled, that is, your handlers of the same messages will be allowed to run.
+// CRect minMaxRange specifies allowed size min (left&top) and max (right&bottom) values, in DLU not pixels.
+// ==========================================================
+
 class CDialogResizeHelper : public CMessageMap {
 public:
 

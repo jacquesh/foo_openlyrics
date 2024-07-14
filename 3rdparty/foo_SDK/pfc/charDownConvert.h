@@ -1,10 +1,8 @@
 #pragma once
 #include "string_base.h"
-#include <map>
+#include "fixed_map.h"
 
-// This converts to ASCII *and* lowercases for matching
-// Legacy feature, do not use in new code
-
+// This converts to ASCII *and* lowercases for simplified search matching
 namespace pfc {
     class CharStorage {
     public:
@@ -35,7 +33,8 @@ namespace pfc {
         CharDownConvert();
 
         void TransformCharCachedAppend(t_uint32 c, pfc::string_base& out);
-        void TransformStringAppend(pfc::string_base& out, const char* src);
+        void TransformStringAppend(pfc::string_base& out, const char* src, size_t len = SIZE_MAX);
+        void TransformStringHere(pfc::string_base& out, const char* src, size_t len = SIZE_MAX);
         string8 TransformString(const char* src) { pfc::string8 ret; TransformStringAppend(ret, src); return ret; }
         void TransformString(pfc::string_base& out, const char* src) {
             out.reset(); TransformStringAppend(out, src);
@@ -50,10 +49,6 @@ namespace pfc {
         static size_t numMappings();
 
     private:
-
-        void g_charConvertMapInit_AddBullshitExceptions();
-    private:
-        std::map<uint32_t, CharStorage> m_charConvertMap;
+        fixed_map<uint32_t, CharStorage> m_charConvertMap;
     };
 }
-

@@ -2,17 +2,25 @@
 #include "mem_block_container.h"
 #include "audio_chunk.h"
 
-void audio_chunk::set_data(const audio_sample * src,t_size samples,unsigned nch,unsigned srate,unsigned channel_config)
-{
-	t_size size = samples * nch;
+void audio_chunk::set_data(const audio_sample* src, size_t samples, spec_t const & spec) {
+	t_size size = samples * spec.chanCount;
 	set_data_size(size);
 	if (src)
-		pfc::memcpy_t(get_data(),src,size);
+		pfc::memcpy_t(get_data(), src, size);
 	else
-		pfc::memset_t(get_data(),(audio_sample)0,size);
+		pfc::memset_t(get_data(), (audio_sample)0, size);
 	set_sample_count(samples);
-	set_channels(nch,channel_config);
-	set_srate(srate);
+	set_spec(spec);
+}
+
+void audio_chunk::set_data(const audio_sample* src, size_t samples, unsigned nch, unsigned srate, unsigned channel_config)
+{
+	set_data(src, samples, makeSpec(srate, nch, channel_config));
+}
+
+void audio_chunk::set_data(const audio_sample* src, size_t samples, unsigned nch, unsigned srate) {
+
+	set_data(src, samples, makeSpec(srate, nch));
 }
 
 inline bool check_exclusive(unsigned val, unsigned mask)
@@ -280,25 +288,27 @@ static void process_float_multi_swap(audio_sample * p_out,const t_float * p_in,c
 	}
 }
 
-void audio_chunk::set_data_32(const float* src, t_size samples, unsigned nch, unsigned srate) { 
+void audio_chunk::set_data_32(const float* src, size_t samples, spec_t const& spec) {
 #if audio_sample_size == 32
-	set_data(src, samples, nch, srate);
+	set_data(src, samples, spec);
 #else
-	t_size size = samples * nch;
+	t_size size = samples * spec.chanCount;
 	set_data_size(size);
 	if (src)
 		audio_math::convert(src, get_data(), size);
 	else
 		pfc::memset_t(get_data(), (audio_sample)0, size);
 	set_sample_count(samples);
-	set_channels(nch);
-	set_srate(srate);
+	set_spec(spec);
 #endif
+}
+void audio_chunk::set_data_32(const float* src, size_t samples, unsigned nch, unsigned srate) { 
+	set_data_32(src, samples, makeSpec(srate, nch) );
 }
 
 void audio_chunk::set_data_floatingpoint_ex(const void * ptr,t_size size,unsigned srate,unsigned nch,unsigned bps,unsigned flags,unsigned p_channel_config)
 {
-	PFC_ASSERT(bps==32 || bps==64 || bps == 16 || bps == 24);
+	PFC_ASSERT(is_supported_floatingpoint(bps));
 	PFC_ASSERT( check_exclusive(flags,FLAG_LITTLE_ENDIAN|FLAG_BIG_ENDIAN) );
 	PFC_ASSERT( ! (flags & (FLAG_SIGNED|FLAG_UNSIGNED) ) );
 
@@ -604,6 +614,7 @@ audio_chunk::spec_t audio_chunk::makeSpec(uint32_t rate, uint32_t channels) {
 }
 
 audio_chunk::spec_t audio_chunk::makeSpec(uint32_t rate, uint32_t channels, uint32_t mask) {
+	PFC_ASSERT(mask == 0 || pfc::countBits32(mask) == channels);
 	spec_t spec = {};
 	spec.sampleRate = rate; spec.chanCount = channels; spec.chanMask = mask;
 	return spec;

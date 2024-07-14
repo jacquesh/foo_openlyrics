@@ -97,8 +97,7 @@ public:
 	//! @returns false to keep old info, or true to indicate that changes have been made to p_info and those should be displayed.
 	virtual bool get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta) = 0;
 
-	//! Called from playback thread before sleeping.
-	//! @param p_abort abort_callback object signaling user aborting the operation.
+	//! Obsolete, do not use, do not rely on.
 	virtual void on_idle(abort_callback & p_abort) = 0;
 
 
@@ -154,17 +153,7 @@ public:
 	//! Return 1 if position was written to arg2, 0 if n/a.
 	static const GUID query_position;
 
-    struct continue_stream_t {
-        file::ptr reader;
-        const char * path;
-    };
-    //! Tells the decoder to continue decoding from another URL, without flushing etc. Mainly used by HLS streams.
-    //! arg2: continue_stream_t
-    //! Return 1 to acknowledge, 0 if unsupported.
-    //! A call to decode_initialize() will follow if you return 1; perform actual file open from there.
-    static const GUID continue_stream;
-
-	//! Asks whether it is OK to externally rewrite tags on this file without closing and reopening the decoder. \n
+    //! Asks whether it is OK to externally rewrite tags on this file without closing and reopening the decoder. \n
 	//! Return 1 if the decoder reads all relevant content in open() without leaving the file open afterwards, 0 otherwise (the default).
 	static const GUID is_tag_write_safe;
 };
@@ -277,6 +266,10 @@ public:
 	
 	static uint32_t g_flags_for_path( const char * pathFor, uint32_t mask = UINT32_MAX );
 	static uint32_t g_flags_for_content_type( const char * ct, uint32_t mask = UINT32_MAX );
+
+	GUID get_guid_();
+	const char * get_name_();
+	static input_entry::ptr g_find_by_guid( const GUID & );
 };
 
 //! \since 1.4

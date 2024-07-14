@@ -11,6 +11,11 @@
 // Keeps track of dark mode preference changes at runtime
 // Does nothing if used in foobar2000 older than 2.0
 
+// IMPORTANT
+// See also: SDK/coreDarkMode.h
+// Using CCoreDarkMode lets you invoke foobar2000's instance of this code instead of static linking it, resulting in much smaller component binary.
+// Using CDarkModeHooks directly is good mainly for debugging or troubleshooting.
+
 namespace fb2k {
 	bool isDarkMode();
 

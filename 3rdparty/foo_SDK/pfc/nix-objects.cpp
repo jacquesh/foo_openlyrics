@@ -187,10 +187,11 @@ namespace pfc {
         return sel.Select( timeOutSeconds ) > 0;
     }
     
-    nix_event::nix_event() {
+    nix_event::nix_event(bool state) {
         createPipe( m_fd );
         setNonBlocking( m_fd[0] );
         setNonBlocking( m_fd[1] );
+        if ( state ) set_state(true);
     }
     nix_event::~nix_event() {
         close( m_fd[0] );

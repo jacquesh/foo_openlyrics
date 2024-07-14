@@ -64,16 +64,8 @@ namespace pfc {
 
 namespace pfc {
 	const char* cpuArch() {
-#ifdef _M_ARM64EC
-		return "ARM64EC";
-#elif defined(_M_X64) || defined(__x86_64__)
-        return "x64";
-#elif defined(_M_IX86) || defined(__i386__)
-		return "x86";
-#elif defined(_M_ARM64) || defined(__aarch64__)
-		return "ARM64";
-#elif defined(_M_ARM) || defined(__arm__)
-        return "ARM";
+#ifdef PFC_CPU_ARCH
+		return PFC_CPU_ARCH;
 #else
 		return "Unknown";
 #endif

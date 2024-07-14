@@ -91,12 +91,12 @@ void file_info_impl::info_remove_mask(const bit_array & p_mask)
 }
 
 
-file_info_impl::file_info_impl(const file_info & p_source) : m_length(0)
+file_info_impl::file_info_impl(const file_info & p_source)
 {
 	copy(p_source);
 }
 
-file_info_impl::file_info_impl(const file_info_impl & p_source) : m_length(0)
+file_info_impl::file_info_impl(const file_info_impl & p_source)
 {
 	copy(p_source);
 }
@@ -107,10 +107,7 @@ const file_info_impl & file_info_impl::operator=(const file_info_impl & p_source
 	return *this;
 }
 
-file_info_impl::file_info_impl() : m_length(0)
-{
-	m_replaygain.reset();
-}
+file_info_impl::file_info_impl() {}
 
 double file_info_impl::get_length() const
 {
@@ -156,11 +153,19 @@ void file_info_impl_utils::info_storage::remove_mask(const bit_array & p_mask) {
 }
 
 
+size_t file_info_impl_utils::meta_storage::add_blank(const char* name) {
+	meta_entry e;
+	e.m_name = name;
+	const auto ret = m_data.size();
+	m_data.add_item(std::move(e));
+	return ret;
+}
 
 t_size file_info_impl_utils::meta_storage::add_entry(const char * p_name,t_size p_name_length,const char * p_value,t_size p_value_length)
 {
-	meta_entry temp(p_name,p_name_length,p_value,p_value_length);
-	return pfc::append_swap_t(m_data,temp);
+	const auto ret = m_data.size();
+	m_data.add_item(meta_entry(p_name, p_name_length, p_value, p_value_length));
+	return ret;
 }
 
 void file_info_impl_utils::meta_storage::insert_value(t_size p_index,t_size p_value_index,const char * p_value,t_size p_value_length)

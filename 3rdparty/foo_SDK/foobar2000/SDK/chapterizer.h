@@ -17,7 +17,7 @@ public:
 	//! Sets number of chapters.
 	virtual void set_chapter_count(t_size p_count) = 0;
 	//! Modifies description of specified chapter.
-	//! @param p_chapter_index Index of chapter to modify, greater or equal zero and less than get_chapter_count() value. If p_chapter value is out of valid range, results are undefined (e.g. crash).
+	//! @param p_chapter Index of chapter to modify, greater or equal zero and less than get_chapter_count() value. If p_chapter value is out of valid range, results are undefined (e.g. crash).
 	//! @param p_info New chapter description. Note that length part of file_info is used to calculate chapter marks.
 	virtual void set_info(t_size p_chapter,const file_info & p_info) = 0;
 
@@ -67,7 +67,6 @@ class NOVTABLE chapterizer : public service_base {
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(chapterizer);
 public:
 	//! Tests whether specified path is supported by this implementation.
-	//! @param p_ext Extension of the file being processed.
 	virtual bool is_our_path(const char * p_path) = 0;
 	
 	//! Writes new chapter list to specified file.

@@ -2,6 +2,7 @@
 #include <vsstyle.h>
 #include "Controls.h"
 #include "PaintUtils.h"
+#include "HyperLinkCtrl.h"
 
 void CStaticSeparator::OnPaint(CDCHandle) {
 	PaintUtils::PaintSeparatorControl(*this);
@@ -11,6 +12,7 @@ void CSeparator::OnPaint(CDCHandle dc) {
 	PaintUtils::PaintSeparatorControl(*this);
 }
 
+#if 0 // BROKEN WITH DARK MODE, DO NOT USE
 CStaticMainInstruction::CStaticMainInstruction() { 
 	SetThemePart(TEXT_MAININSTRUCTION); 
 }
@@ -47,4 +49,34 @@ void CStaticThemed::OnPaint(CDCHandle) {
 		HRESULT retval = DrawThemeText(m_theme, dc, m_id, 0, buffer, txLen, flags, 0, rcText);
 		PFC_ASSERT(SUCCEEDED(retval));
 	}
+}
+#endif
+
+
+#include "DarkMode-CHyperLink.h"
+#include "windowLifetime.h"
+
+void PP::createHyperLink(HWND wndReplaceMe) {
+	auto obj = PP::subclassThisWindow<DarkMode::CHyperLink>(wndReplaceMe);
+	obj->SetHyperLinkExtendedStyle(HLINK_NOTIFYBUTTON);
+}
+
+namespace {
+	class CHyperLinkLambda : public DarkMode::CHyperLinkImpl<CHyperLinkLambda> {
+	public:
+		std::function<void ()> f;
+		bool Navigate() {
+			f();
+			return true;
+		}
+	};
+}
+void PP::createHyperLink(HWND wndReplaceMe, std::function<void ()> handler) {
+	auto obj = PP::subclassThisWindow<CHyperLinkLambda>(wndReplaceMe);
+	obj->f = handler;
+}
+
+void PP::createHyperLink(HWND wndReplaceMe, const wchar_t* openURL) {
+	auto obj = PP::subclassThisWindow<DarkMode::CHyperLink>(wndReplaceMe);
+	obj->SetHyperLink(openURL);
 }

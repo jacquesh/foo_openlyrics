@@ -1,3 +1,5 @@
+#pragma once
+
 //! Entrypoint interface for declaring component's version information. Instead of implementing this directly, use DECLARE_COMPONENT_VERSION().
 class NOVTABLE componentversion : public service_base {
 public:
@@ -66,7 +68,6 @@ public:
 	static componentversion_impl_copy_factory g_componentversion_service(NAME,VERSION,ABOUT);
 
 
-#ifdef _WIN32
 //! \since 1.0
 //! Allows components to cleanly abort app startup in case the installation appears to have become corrupted.
 class component_installation_validator : public service_base {
@@ -79,6 +80,7 @@ public:
 	FB2K_MAKE_SERVICE_INTERFACE_ENTRYPOINT(component_installation_validator)
 };
 
+#ifdef _WIN32
 //! Simple implementation of component_installation_validator that makes sure that our component DLL has not been renamed around by idiot users.
 class component_installation_validator_filename : public component_installation_validator {
 public:

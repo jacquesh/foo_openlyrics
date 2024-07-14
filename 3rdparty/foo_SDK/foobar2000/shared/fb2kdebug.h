@@ -37,7 +37,7 @@ extern "C"
 #endif
 
 #ifdef _WIN32
-    static inline void uAddDebugEvent(const char * msg) {uPrintCrashInfo_OnEvent(msg, strlen(msg));}
+    static inline void uAddDebugEvent(const char * msg) {uPrintCrashInfo_OnEvent(msg, SIZE_MAX);}
 #else
     static inline void uAddDebugEvent( const char * msg ) { uOutputDebugString(pfc::format(msg, "\n")); }
 #endif

@@ -96,14 +96,16 @@ public:
 	};
 
 	//! Runs a synchronous threaded_process operation - the function does not return until the operation has completed, though the app UI is not frozen and the operation is abortable. \n
-	//! This API is obsolete and should not be used. Please use run_modeless() instead if possible.
+	//! This API is obsolete and should not be used. Please use run_modeless() instead if possible. \n
+	//! Call from main thread only.
 	//! @param p_callback Interface to your threaded_process client.
 	//! @param p_flags Flags describing requested dialog functionality. See threaded_process::flag_* constants.
 	//! @param p_parent Parent window for the progress dialog - typically core_api::get_main_window().
 	//! @param p_title Initial title of the dialog.
 	//! @returns True if the operation has completed normally, false if the user has aborted the operation. In case of a catastrophic failure such as dialog creation failure, exceptions will be thrown.
 	virtual bool run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len = SIZE_MAX) = 0;
-	//! Runs an asynchronous threaded_process operation.
+	//! Runs an asynchronous threaded_process operation. \n
+	//! Call from main thread only.
 	//! @param p_callback Interface to your threaded_process client.
 	//! @param p_flags Flags describing requested dialog functionality. See threaded_process::flag_* constants.
 	//! @param p_parent Parent window for the progress dialog - typically core_api::get_main_window().

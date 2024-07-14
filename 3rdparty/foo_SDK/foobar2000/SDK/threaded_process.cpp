@@ -29,11 +29,13 @@ void threaded_process_status::set_progress_secondary_float(double p_state)
 
 bool threaded_process::g_run_modal(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len)
 {
+	PFC_ASSERT( core_api::is_main_thread() );
 	return threaded_process::get()->run_modal(p_callback,p_flags,p_parent,p_title,p_title_len);
 }
 
 bool threaded_process::g_run_modeless(service_ptr_t<threaded_process_callback> p_callback,unsigned p_flags,fb2k::hwnd_t p_parent,const char * p_title,t_size p_title_len)
 {
+	PFC_ASSERT( core_api::is_main_thread() );
 	return threaded_process::get()->run_modeless(p_callback,p_flags,p_parent,p_title,p_title_len);
 }
 

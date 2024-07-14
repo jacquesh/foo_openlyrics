@@ -191,6 +191,7 @@ namespace PaintUtils {
 				eh << graphics.DrawLine(&penSH, points[3], points[0]);
 			} catch (std::exception const& e) {
 				(void)e;
+				PFC_ASSERT(!"???");
 				// console::print(e.what());
 			}
 		}
@@ -218,6 +219,7 @@ namespace PaintUtils {
 				eh << graphics.DrawLine(&penSH, points[2], points[0] + Gdiplus::Point(0, -1));
 			} catch (std::exception const& e) {
 				(void)e;
+				PFC_ASSERT(!"???");
 				// console::print(e.what());
 			}
 		}
@@ -241,6 +243,7 @@ namespace PaintUtils {
 			eh << graphics.DrawLine(&pen, points[0], points[1]);
 		} catch(std::exception const & e) {
 			(void) e;
+			PFC_ASSERT(!"???");
 			// console::print(e.what());
 		}
 	}

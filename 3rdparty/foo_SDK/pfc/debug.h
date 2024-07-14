@@ -42,3 +42,9 @@ namespace pfc {
 
 #define PFC_SET_THREAD_DESCRIPTION(X) { ::pfc::setCurrentThreadDescription(X); }
 #define PFC_SET_THREAD_DESCRIPTION_SUPPORTED
+
+#if PFC_DEBUG
+#define PFC_DEBUG_PRINT(...) ::pfc::outputDebugLine(pfc::format(__VA_ARGS__))
+#else
+#define PFC_DEBUG_PRINT(...)
+#endif

@@ -81,44 +81,49 @@ namespace pfc {
     size_t CharDownConvert::numMappings() { return std::size(g_mappings); }
 
     CharDownConvert::CharDownConvert() {
+        std::map<uint32_t, CharStorage> charConvertMap;
+
         for (auto& l : g_mappings) {
-            m_charConvertMap[(uint32_t)l.from] = (uint32_t)l.to;
+            charConvertMap[(uint32_t)l.from] = (uint32_t)l.to;
         }
-        g_charConvertMapInit_AddBullshitExceptions();
+        for (auto& line : twoCharMappings) {
+            charConvertMap[line.from] = line.to;
+        }
+
+        m_charConvertMap.initialize(std::move(charConvertMap));
     }
 
     void CharDownConvert::TransformCharCachedAppend(t_uint32 c, pfc::string_base& out) {
-        auto subst = m_charConvertMap.find(c);
-        if (subst != m_charConvertMap.end()) {
-            out << subst->second.ptr();
+        auto subst = m_charConvertMap.query_ptr(c);
+        if (subst != nullptr) {
+            out << subst->ptr();
         } else {
             out.add_char(c);
         }
     }
+    void CharDownConvert::TransformStringHere(pfc::string_base& out, const char* src, size_t len) {
+        out.reset(); this->TransformStringAppend(out, src, len);
+    }
 
-    void CharDownConvert::TransformStringAppend(pfc::string_base& out, const char* src) {
-        for (;;) {
-            char c = *src;
+    void CharDownConvert::TransformStringAppend(pfc::string_base& out, const char* src, size_t len) {
+        size_t walk = 0;
+        while(walk < len) {
+            char c = src[walk];
             if (c > 0) {
                 out.add_byte(pfc::ascii_tolower_lookup(c));
-                ++src;
+                ++walk;
             } else if (c == 0) {
                 break;
             } else {
                 unsigned c; t_size d;
-                d = pfc::utf8_decode_char(src, c);
+                d = pfc::utf8_decode_char(src + walk, c, len - walk);
                 if (d == 0) break;
                 TransformCharCachedAppend(c, out);
-                src += d;
+                walk += d;
             }
         }
     }
 
-    void CharDownConvert::g_charConvertMapInit_AddBullshitExceptions() {
-        for (auto& line : twoCharMappings) {
-            m_charConvertMap[line.from] = line.to;
-        }
-    }
     CharDownConvert& CharDownConvert::instance() {
         static CharDownConvert obj; return obj;
     }

@@ -5,15 +5,19 @@
 #include "file_list_helper.h"
 #include "fileReadAhead.h"
 #include <SDK/file_info_impl.h>
+#include "readers_lite.h"
 
-
-input_helper::ioFilter_t input_helper::ioFilter_full_buffer(t_filesize val ) {
+input_helper::ioFilter_t input_helper::ioFilter_full_buffer(t_filesize val) {
 	if (val == 0) return nullptr;
     return [val] ( file_ptr & f, const char * path, abort_callback & aborter) {
         if (!filesystem::g_is_remote_or_unrecognized(path)) {
-            fullFileBuffer a;
-            f = a.open(path, aborter, f, val);
-            return true;
+			if (f.is_empty()) filesystem::g_open_read(f, path, aborter);
+			if (!f->is_in_memory() && !f->is_remote() && f->can_seek() && f->get_size(aborter) <= val) {
+				try {
+					f = createFileMemMirrorAsync(f, nullptr, aborter);
+					return true;
+				} catch (std::bad_alloc) {} // keep orig file object
+			}
         }
         return false;
     };
@@ -81,8 +85,7 @@ bool input_helper::test_if_lockless(abort_callback& a) {
 	return false;
 }
 void input_helper::fileOpenTools(service_ptr_t<file> & p_file,const char * p_path,input_helper::ioFilters_t const & filters, abort_callback & p_abort) {
-    for( auto walk = filters.begin(); walk != filters.end(); ++ walk ) {
-		auto f = *walk;
+	for( auto & f : filters ) {
 		if (f) {
 			if (f(p_file, p_path, p_abort)) break;
 		}

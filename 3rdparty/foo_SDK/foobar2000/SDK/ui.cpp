@@ -19,6 +19,7 @@ bool ui_drop_item_callback::g_is_accepted_type(interface IDataObject * pDataObje
 	}
 	return false;
 }
+#endif // _WIN32
 
 bool user_interface::g_find(service_ptr_t<user_interface> & p_out,const GUID & p_guid)
 {
@@ -30,7 +31,6 @@ bool user_interface::g_find(service_ptr_t<user_interface> & p_out,const GUID & p
 	}
 	return false;
 }
-#endif // _WIN32
 
 // ui_edit_context.h code
 

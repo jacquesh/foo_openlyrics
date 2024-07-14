@@ -5,26 +5,11 @@
 #include "file_info_impl.h"
 #include "input.h"
 #include "advconfig.h"
+#include <string>
+#include <unordered_set>
+#include <list>
 
-#if FOOBAR2000_TARGET_VERSION >= 76
 static void process_path_internal(const char * p_path,const service_ptr_t<file> & p_reader,playlist_loader_callback::ptr callback, abort_callback & abort,playlist_loader_callback::t_entry_type type,const t_filestats & p_stats);
-
-namespace {
-	class archive_callback_impl : public archive_callback {
-	public:
-		archive_callback_impl(playlist_loader_callback::ptr p_callback, abort_callback & p_abort) : m_callback(p_callback), m_abort(p_abort) {}
-		bool on_entry(archive * owner,const char * p_path,const t_filestats & p_stats,const service_ptr_t<file> & p_reader)
-		{
-			process_path_internal(p_path,p_reader,m_callback,m_abort,playlist_loader_callback::entry_directory_enumerated,p_stats);
-			return !m_abort.is_aborting();
-		}
-		bool is_aborting() const {return m_abort.is_aborting();}
-		abort_callback_event get_abort_event() const {return m_abort.get_abort_event();}
-	private:
-		const playlist_loader_callback::ptr m_callback;
-		abort_callback & m_abort;
-	};
-}
 
 bool playlist_loader::g_try_load_playlist(file::ptr fileHint,const char * p_path,playlist_loader_callback::ptr p_callback, abort_callback & p_abort) {
 	// Determine if this file is a playlist or not (which usually means that it's a media file)
@@ -40,7 +25,9 @@ bool playlist_loader::g_try_load_playlist(file::ptr fileHint,const char * p_path
 		filesystem::ptr fs;
 		if (filesystem::g_get_interface(fs,filepath)) {
 			if (fs->supports_content_types()) {
-				fs->open(l_file,filepath,filesystem::open_mode_read,p_abort);
+				try {
+					fs->open(l_file,filepath,filesystem::open_mode_read,p_abort);
+				} catch(exception_io) { return false; } // fall thru
 			}
 		}
 	}
@@ -216,61 +203,71 @@ namespace {
 		return false;
 	}
 
-	// SPECIAL HACK
-	// filesystem service does not present file hidden attrib but we want to weed files/folders out
-	// so check separately on all native paths (inefficient but meh)
 	class directory_callback_myimpl : public directory_callback
 	{
 	public:
-		directory_callback_myimpl() : m_addHidden(queryAddHidden()) {}
+		void main(const char* folder, abort_callback& abort) {
+			visit(folder);
+            
+            abort.check();
+            const uint32_t flags = listMode::filesAndFolders | (queryAddHidden() ? listMode::hidden : 0);
+            
+            auto workHere = [&] (folder_t const & f) {
+                filesystem_v2::ptr v2;
+                if (v2 &= f.m_fs) {
+                    v2->list_directory_ex(f.m_folder.c_str(), *this, flags, abort);
+                } else {
+                    f.m_fs->list_directory(f.m_folder.c_str(), *this, abort);
+                }
+            };
+
+            workHere( folder_t { folder, filesystem::get(folder) } );
+            
+			for (;; ) {
+				abort.check();
+				auto iter = m_foldersPending.begin();
+				if ( iter == m_foldersPending.end() ) break;
+				auto f = std::move(*iter); m_foldersPending.erase(iter);
+
+				try {
+                    workHere( f );
+				} catch (exception_io const & e) {
+					FB2K_console_formatter() << "Error walking directory (" << e << "): " << f.m_folder.c_str();
+				}
+			}
+		}
 
 		bool on_entry(filesystem * owner,abort_callback & p_abort,const char * url,bool is_subdirectory,const t_filestats & p_stats) {
 			p_abort.check();
+			if (!visit(url)) return true;
 
 			filesystem_v2::ptr v2;
 			v2 &= owner;
 
 			if ( is_subdirectory ) {
-				try {
-					if (v2.is_valid()) {
-						v2->list_directory_ex(url, *this, flags(), p_abort);
-					} else {
-						owner->list_directory(url, *this, p_abort);
-					}
-				} catch (exception_io const & e) {
-					FB2K_console_formatter() << "Error walking directory (" << e << "): " << url;
-				}
+				m_foldersPending.emplace_back( folder_t { url, owner } );
 			} else {
-				// In fb2k 1.4 the default filesystem is v2 and performs hidden file checks
-#if FOOBAR2000_TARGET_VERSION < 79
-				if ( ! m_addHidden && v2.is_empty() ) {
-					const char * n = url;
-					if (_extract_native_path_ptr(n)) {
-						DWORD att = uGetFileAttributes(n);
-						if (att == ~0 || (att & FILE_ATTRIBUTE_HIDDEN) != 0) return true;
-					}
-				}
-#endif
-				auto i = m_entries.insert_last();
-				i->m_path = url;
-				i->m_stats = p_stats;
+				m_entries.emplace_back( entry_t { url, p_stats } );
 			}
 			return true;
 		}
 
-		uint32_t flags() const {
-			uint32_t flags = listMode::filesAndFolders;
-			if (m_addHidden) flags |= listMode::hidden;
-			return flags;
-		}
-
-		const bool m_addHidden;
 		struct entry_t {
-			pfc::string8 m_path;
+			std::string m_path;
 			t_filestats m_stats;
 		};
-		pfc::chain_list_v2_t<entry_t> m_entries;
+		std::list<entry_t> m_entries;
 
+		bool visit(const char* path) {
+			return m_visited.insert( path ).second;
+		}
+		std::unordered_set<std::string> m_visited;
+		
+		struct folder_t {
+			std::string m_folder;
+			filesystem::ptr m_fs;
+		};
+		std::list<folder_t> m_foldersPending;
 	};
 }
 
@@ -288,19 +285,16 @@ static void process_path_internal(const char * p_path,const service_ptr_t<file> 
 		if (p_reader.is_empty() && type != playlist_loader_callback::entry_directory_enumerated) {
 			try {
 				directory_callback_myimpl results;
-				auto fs = filesystem::get(p_path);
-				filesystem_v2::ptr v2;
-				if ( v2 &= fs ) v2->list_directory_ex(p_path, results, results.flags(), abort );
-				else fs->list_directory(p_path, results, abort);
-				for( auto i = results.m_entries.first(); i.is_valid(); ++i ) {
+				results.main( p_path, abort );
+				for( auto & i : results.m_entries ) {
 					try {
-						process_path_internal(i->m_path, 0, callback, abort, playlist_loader_callback::entry_directory_enumerated, i->m_stats);
+						process_path_internal(i.m_path.c_str(), 0, callback, abort, playlist_loader_callback::entry_directory_enumerated, i.m_stats);
 					} catch (exception_aborted) {
 						throw;
 					} catch (std::exception const& e) {
-						FB2K_console_formatter() << "Error walking path (" << e << "): " << file_path_display(i->m_path);
+						FB2K_console_formatter() << "Error walking path (" << e << "): " << file_path_display(i.m_path.c_str());
 					} catch (...) {
-						FB2K_console_formatter() << "Error walking path (bad exception): " << file_path_display(i->m_path);
+						FB2K_console_formatter() << "Error walking path (bad exception): " << file_path_display(i.m_path.c_str());
 					}
 				}
 				return; // successfully enumerated directory - go no further
@@ -318,7 +312,6 @@ static void process_path_internal(const char * p_path,const service_ptr_t<file> 
 		}
 
 		{
-			archive_callback_impl archive_results(callback, abort);
 			for (auto f : filesystem::enumerate()) {
 				abort.check();
 				service_ptr_t<archive> arch;
@@ -326,7 +319,10 @@ static void process_path_internal(const char * p_path,const service_ptr_t<file> 
 					if (p_reader.is_valid()) p_reader->reopen(abort);
 
 					try {
-						TRACK_CODE("archive::archive_list",arch->archive_list(p_path,p_reader,archive_results,true));
+						archive::list_func_t archive_results = [callback, &abort](const char* p_path, const t_filestats& p_stats, file::ptr p_reader) {
+							process_path_internal(p_path,p_reader,callback,abort,playlist_loader_callback::entry_directory_enumerated,p_stats);
+						};
+						TRACK_CODE("archive::archive_list",arch->archive_list(p_path,p_reader,archive_results,/*want readers*/true, abort));
 						return;
 					} catch(exception_aborted) {throw;} 
 					catch(...) {
@@ -458,5 +454,3 @@ bool playlist_loader::g_process_path_ex(const char * filename,playlist_loader_ca
 	g_process_path(filename,callback,abort,type);
 	return false;
 }
-
-#endif

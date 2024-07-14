@@ -1,12 +1,12 @@
 #include "stdafx.h"
 #include <helpers/file_list_helper.h>
 #include <helpers/filetimetools.h>
+#include <memory>
 
 void RunIOTest() {
 	try {
-		abort_callback_dummy noAbort;
 		auto request = http_client::get()->create_request("GET");
-		request->run("https://www.foobar2000.org", noAbort);
+		request->run("https://www.foobar2000.org", fb2k::noAbort);
 	} catch (std::exception const & e) {
 		popup_message::g_show( PFC_string_formatter() << "Network test failure:\n" << e, "Information");
 		return;
@@ -21,7 +21,7 @@ namespace { // anon namespace local classes for good measure
 			m_lstFiles.init_from_list( items );
 		}
 
-		void on_init(HWND p_wnd) override {
+		void on_init(ctx_t p_wnd) override {
 			// Main thread, called before run() gets started
 		}
 		void run(threaded_process_status & p_status, abort_callback & p_abort) override {
@@ -135,7 +135,7 @@ namespace { // anon namespace local classes for good measure
 
 				// .. and delete the incomplete file
 				try {
-					abort_callback_dummy noAbort; // we might be being aborted, don't let that prevent deletion
+					auto & noAbort = fb2k::noAbort; // we might be being aborted, don't let that prevent deletion
 					m_outFS->remove( outPath, noAbort );
 				} catch(...) {
 					// disregard errors - just report original copy error
@@ -146,7 +146,7 @@ namespace { // anon namespace local classes for good measure
 
 		}
 		
-		void on_done(HWND p_wnd, bool p_was_aborted) override {
+		void on_done(ctx_t p_wnd, bool p_was_aborted) override {
 			// All done, main thread again
 
 			if (! p_was_aborted && m_errorLog.length() > 0 ) {
@@ -171,8 +171,19 @@ namespace { // anon namespace local classes for good measure
 	};
 }
 
+void RunCopyFilesHere(metadb_handle_list_cref data, const char * copyTo, fb2k::hwnd_t wndParent) {
+    
+    // Create worker object, a threaded_process_callback implementation.
+    auto worker = fb2k::service_new<tpc_copyFiles>(data, copyTo);
+    const uint32_t flags = threaded_process::flag_show_abort | threaded_process::flag_show_progress | threaded_process::flag_show_item;
+    // Start the process asynchronously.
+    threaded_process::get()->run_modeless( worker, flags, wndParent, "Sample Component: Copying Files" );
+    
+    // Our worker is now running.
+}
 void RunCopyFiles(metadb_handle_list_cref data) {
 
+#ifdef _WIN32
 	// Detect modal dialog wars.
 	// If another modal dialog is active, bump it instead of allowing our modal dialog (uBrowseForFolder) to run.
 	// Suppress this if the relevant code is intended to be launched by a modal dialog.
@@ -183,18 +194,21 @@ void RunCopyFiles(metadb_handle_list_cref data) {
 	// shared.dll method
 	if (!uBrowseForFolder( wndParent, "Choose destination folder", copyTo )) return;
 	
-	// shared.dll methods are win32 API wrappers and return plain paths with no protocol prepended
-	// Prefix with file:// before passing to fb2k filesystem methods.
-	// Actually the standard fb2k filesystem implementation recognizes paths even without the prefix, but we enforce it here as a good practice.
-	pfc::string8 copyTo2 = PFC_string_formatter() << "file://" << copyTo;
+    // shared.dll methods are win32 API wrappers and return plain paths with no protocol prepended
+    // Prefix with file:// before passing to fb2k filesystem methods.
+    // Actually the standard fb2k filesystem implementation recognizes paths even without the prefix, but we enforce it here as a good practice.
+    pfc::string8 copyTo2 = PFC_string_formatter() << "file://" << copyTo;
 
-	// Create worker object, a threaded_process_callback implementation.
-	auto worker = fb2k::service_new<tpc_copyFiles>(data, copyTo2);
-	const uint32_t flags = threaded_process::flag_show_abort | threaded_process::flag_show_progress | threaded_process::flag_show_item;
-	// Start the process asynchronously.
-	threaded_process::get()->run_modeless( worker, flags, wndParent, "Sample Component: Copying Files" );
-	
-	// Our worker is now running.
+    RunCopyFilesHere(data, copyTo2, wndParent);
+#else
+    auto tracksCopy = std::make_shared<metadb_handle_list>( data );
+    auto setup = fb2k::fileDialog::get()->setupOpenFolder();
+    setup->setTitle("Choose destination folder");
+    setup->runSimple( [tracksCopy] (fb2k::stringRef path) {
+        RunCopyFilesHere(*tracksCopy, path->c_str(), core_api::get_main_window());
+    } );
+    
+#endif
 }
 
 
@@ -278,7 +292,7 @@ namespace {
 			// Touchy subject
 			// Should we let the user abort an incomplete tag write?
 			// Let's better not
-			abort_callback_dummy noAbort;
+			auto & noAbort = fb2k::noAbort;
 
 			// This can be called many times for files with multiple subsongs
 			writer->set_info( subsong, info, noAbort );
@@ -314,7 +328,7 @@ namespace {
 }
 void RunAlterTagsLL(metadb_handle_list_cref data) {
 	
-	const HWND wndParent = core_api::get_main_window();
+	const auto wndParent = core_api::get_main_window();
 
 	// Our worker object, a threaded_process_callback subclass.
 	auto worker = fb2k::service_new< processLLtags > ( data );

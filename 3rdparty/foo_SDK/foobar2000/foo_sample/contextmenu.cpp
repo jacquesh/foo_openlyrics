@@ -32,7 +32,7 @@ namespace { // anon namespace local classes for good measure
 static void RunAlterTags(metadb_handle_list_cref data) {
 	// Simple alter-file-tags functionality
 
-	const HWND wndParent = core_api::get_main_window();
+	const auto wndParent = core_api::get_main_window();
 
 	// Filter object that applies our edits to the file tags
 	auto filter = fb2k::service_new<myFilter>();
@@ -51,6 +51,7 @@ static void RunAlterTags(metadb_handle_list_cref data) {
 
 // Simple context menu item class.
 class myitem : public contextmenu_item_simple {
+    typedef contextmenu_item_simple super_t;
 public:
 	enum {
 		cmd_test1 = 0,
@@ -102,14 +103,14 @@ public:
 	bool context_get_display(unsigned p_index,metadb_handle_list_cref p_data,pfc::string_base & p_out,unsigned & p_displayflags,const GUID & p_caller) {
 		switch(p_index) {
 			case cmd_test1:
-				if (!__super::context_get_display(p_index, p_data, p_out, p_displayflags, p_caller)) return false;
+				if (!super_t::context_get_display(p_index, p_data, p_out, p_displayflags, p_caller)) return false;
 				// Example context sensitive label: append the count of selected items to the label.
 				p_out << " : " << p_data.get_count() << " item";
 				if (p_data.get_count() != 1) p_out << "s";
 				p_out << " selected";
 				return true;
 			default:
-				return __super::context_get_display(p_index, p_data, p_out, p_displayflags, p_caller);
+				return super_t::context_get_display(p_index, p_data, p_out, p_displayflags, p_caller);
 		}
 	}
 	GUID get_item_guid(unsigned p_index) {

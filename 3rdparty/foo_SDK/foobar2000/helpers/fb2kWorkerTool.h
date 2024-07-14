@@ -12,7 +12,7 @@ namespace fb2k {
         };
 
         void operator+=(work_t && work) {
-            m_workQueue.push_back(std::move(work));
+            m_workQueue.push_back( std::make_shared< work_t> ( std::move(work) ) );
             kickWork();
         }
         void flush() {
@@ -30,7 +30,7 @@ namespace fb2k {
         }
         void kickWork() {
             PFC_ASSERT( core_api::is_main_thread() );
-            if (!m_working && m_workQueue.size() > 0) {
+            if (!m_working && !m_workQueue.empty()) {
                 m_working = true;
                 auto iter = m_workQueue.begin();
                 auto work = std::move(*iter); m_workQueue.erase(iter);
@@ -38,11 +38,13 @@ namespace fb2k {
                 auto a = m_abort;
                 fb2k::inCpuWorkerThread( [ work, pThis, a] {
                     try {
-                        if ( work.work ) work.work();
+                        // release lambdas early, synchronously from same context as they're executed
+                        { auto f = std::move(work->work); if (f) f(); }
                         a->check();
                         fb2k::inMainThread( [work, pThis, a] {
                             if ( ! a->is_set() ) {
-                                work.done();
+                                // release lambdas early, synchronously from same context as they're executed
+                                { auto f = std::move(work->done); if (f) f(); }
                                 pThis->workDone();
                             }
                         });
@@ -61,7 +63,7 @@ namespace fb2k {
         std::shared_ptr<abort_callback_impl> m_abort = std::make_shared<abort_callback_impl>();
         
         bool m_working = false;
-        std::list<work_t> m_workQueue;
+        std::list< std::shared_ptr<work_t> > m_workQueue;
     };
 
 }

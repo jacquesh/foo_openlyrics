@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CListControl.h"
 #include "PaintUtils.h"
+#include "DarkMode.h"
 
 LRESULT CListControlTruncationTooltipImpl::OnTTShow(int,LPNMHDR,BOOL&) {
 	SetTimer(KTooltipTimer,KTooltipTimerDelay);
@@ -206,4 +207,13 @@ void CListControlTruncationTooltipImpl::InitTooltip() {
 	m_toolinfo.lpszText = LPSTR_TEXTCALLBACK;
 	m_toolinfo.hinst = GetThisModuleHandle();
 	WIN32_OP_D( m_tooltip.AddTool(&m_toolinfo) );
+
+	if ( GetDarkMode() ) DarkMode::ApplyDarkThemeCtrl(m_tooltip, true );
+}
+
+void CListControlTruncationTooltipImpl::RefreshDarkMode() {
+	__super::RefreshDarkMode();
+	if (m_tooltip) {
+		DarkMode::ApplyDarkThemeCtrl(m_tooltip, GetDarkMode()  );
+	}
 }

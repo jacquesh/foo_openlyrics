@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "win32_misc.h"
 
 #ifdef FOOBAR2000_MOBILE_WINDOWS

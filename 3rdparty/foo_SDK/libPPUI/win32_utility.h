@@ -46,7 +46,7 @@ void SetDefaultMenuItem(HMENU p_menu, unsigned p_id);
 void GetOSVersionString(pfc::string_base & out);
 WORD GetOSVersionCode();
 bool IsWine();
-DWORD Win10BuildNumber();
+DWORD Win10BuildNumber(); // See https://en.wikipedia.org/wiki/Windows_10_version_history for build number reference
 
 void EnumChildWindows(HWND, std::function<void(HWND)>); // Recursive
 void EnumChildWindowsHere(HWND, std::function<void(HWND)>); // Non-recursive

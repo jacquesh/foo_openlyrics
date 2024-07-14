@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "WindowPositionUtils.h"
 
+#define FB2K_WPU_DEBUG 0
 namespace {
 	static BOOL GetParentWndRect(CWindow wndParent, CRect& rc) {
 		if (!wndParent.IsIconic()) {
@@ -49,8 +50,10 @@ namespace {
 
 bool cfgDialogPositionData::grabFrom(CWindow wnd) {
 	CRect rc;
-	if (!GetClientRectAsSC(wnd, rc)) return false;
-	const CSize DPI = QueryScreenDPIEx();
+	if (!GetClientRectAsSC(wnd, rc)) {
+		return false;
+	}
+	const CSize DPI = QueryScreenDPIEx(wnd);
 	m_dpiX = DPI.cx; m_dpiY = DPI.cy;
 	m_width = rc.Width(); m_height = rc.Height();
 	m_posX = m_posY = posInvalid;
@@ -61,8 +64,21 @@ bool cfgDialogPositionData::grabFrom(CWindow wnd) {
 			m_posX = rc.left - rcParent.left;
 			m_posY = rc.top - rcParent.top;
 		}
+	} else {
+		m_posX = rc.left; m_posY = rc.top;
 	}
 	return true;
+}
+
+pfc::string8 cfgDialogPositionData::debug() const {
+	pfc::string_formatter ret;
+	if (m_width != sizeInvalid) ret << "W: " << m_width << "\n";
+	if (m_height != sizeInvalid) ret << "H: " << m_height << "\n";
+	if (m_posX != posInvalid) ret << "X: " << m_posX << "\n";
+	if (m_posY != posInvalid) ret << "Y: " << m_posY << "\n";
+	if (m_dpiX != dpiInvalid) ret << "DPI-X: " << m_dpiX << "\n";
+	if (m_dpiY != dpiInvalid) ret << "DPI-Y: " << m_dpiY << "\n";	
+	return ret;
 }
 
 cfgDialogPositionData cfgDialogPositionData::reDPI( CSize screenDPI ) const {
@@ -96,7 +112,14 @@ bool cfgDialogPositionData::overrideDefaultSize(t_uint32 width, t_uint32 height)
 }
 
 bool cfgDialogPositionData::applyTo(CWindow wnd) const {
-	auto v = reDPI(QueryScreenDPIEx());
+#if FB2K_WPU_DEBUG
+	FB2K_console_formatter() << "cfgDialogPositionData::applyTo(0x" << pfc::format_window( wnd ) << ")";
+	FB2K_console_formatter() << "data:\n" << this->debug();
+#endif
+	const auto v = reDPI(QueryScreenDPIEx(wnd));
+#if FB2K_WPU_DEBUG
+	FB2K_console_formatter() << "after reDPI:\n" << v.debug();
+#endif
 	CWindow wndParent = wnd.GetParent();
 	UINT flags = SWP_NOACTIVATE | SWP_NOZORDER;
 	CRect rc;
@@ -117,6 +140,10 @@ bool cfgDialogPositionData::applyTo(CWindow wnd) const {
 				rc.MoveToXY(center.x - rc.Width() / 2, center.y - rc.Height() / 2);
 			}
 		}
+	} else {
+		if (v.m_posX != v.posInvalid && v.m_posY != v.posInvalid ) {
+			rc.MoveToXY( v.m_posX, v.m_posY );
+		}
 	}
 	if (!AdjustWindowRectHelper(wnd, rc)) return FALSE;
 
@@ -135,12 +162,60 @@ bool cfgDialogPositionData::applyTo(CWindow wnd) const {
 	return wnd.SetWindowPos(NULL, rc, flags);
 }
 
-void cfgDialogPosition::AddWindow(CWindow wnd) {
-	auto data = this->get();
-	data.applyTo(wnd);
-}
-
-void cfgDialogPosition::RemoveWindow(CWindow wnd) {
+void cfgDialogPosition::read_from_window(HWND wnd) {
 	cfgDialogPositionData data;
 	if (data.grabFrom(wnd)) this->set(data);
+}
+
+bool cfgDialogPosition::apply_to_window(HWND wnd) {
+	auto data = this->get();
+	return data.applyTo(wnd);
+}
+
+bool cfgWindowPositionData::grabFrom(CWindow wnd) {
+	WINDOWPLACEMENT wp = {sizeof(wp)};
+	bool rv = !! wnd.GetWindowPlacement(&wp);
+	if (rv) {
+		if ( !wnd.IsWindowVisible() ) wp.showCmd = SW_HIDE;
+		this->m_wp = wp;
+		m_dpi = QueryScreenDPIEx(wnd);
+		PFC_ASSERT( m_dpi.cx > 0 && m_dpi.cy > 0 );
+	}
+	return rv;
+}
+
+static void reDPI(WINDOWPLACEMENT& wp, SIZE from, SIZE to) {
+	wp.rcNormalPosition.left = MulDiv(wp.rcNormalPosition.left, to.cx, from.cx);
+	wp.rcNormalPosition.right = MulDiv(wp.rcNormalPosition.right, to.cx, from.cx);
+	wp.rcNormalPosition.top = MulDiv(wp.rcNormalPosition.top, to.cy, from.cy);
+	wp.rcNormalPosition.bottom = MulDiv(wp.rcNormalPosition.bottom, to.cy, from.cy);
+}
+
+bool applyWindowPlacement(HWND window, WINDOWPLACEMENT const& data, bool allowHidden); // window_placement_helper.cpp
+
+bool cfgWindowPositionData::applyTo(CWindow wnd, bool allowHidden) const {
+	WINDOWPLACEMENT wp = m_wp;
+	if ( wp.length == 0 ) return false;
+	auto dpi = QueryScreenDPIEx(wnd);
+	if (dpi.cx != m_dpi.cx || dpi.cy != m_dpi.cy) {
+		reDPI( wp, m_dpi, dpi );
+	}
+	return applyWindowPlacement(wnd, wp, allowHidden);
+}
+
+void cfgWindowPosition::read_from_window(HWND wnd) {
+	// grabFrom might work partially, fail to obtain size due to window being hidden, use last values
+	cfgWindowPositionData data = get();
+	if ( data.grabFrom( wnd ) ) set(data);
+}
+
+bool cfgWindowPosition::apply_to_window(HWND wnd, bool allowHidden) {
+	auto data = get();
+	return data.applyTo( wnd, allowHidden );
+}
+
+void cfgWindowPosition::windowCreated(HWND wnd, bool allowHidden) {
+	if (!apply_to_window(wnd, allowHidden)) {
+		::ShowWindow( wnd, SW_SHOWDEFAULT );
+	}
 }

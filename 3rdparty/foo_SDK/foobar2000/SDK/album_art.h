@@ -27,6 +27,7 @@ namespace album_art_ids {
 	// returns lowercase name
 	const char * query_name( size_t );
 	const char * name_of( const GUID & );
+	const char * name_of_ex( const GUID &, const char * def = "undefined");
 	// returns Capitalized name
 	const char * query_capitalized_name( size_t );
 	const char * capitalized_name_of( const GUID & );
@@ -69,6 +70,7 @@ public:
 	void remove_all_();
 };
 
+//! Extension to album_art_editor_instance, adds remove_all().
 class NOVTABLE album_art_editor_instance_v2 : public album_art_editor_instance {
 	FB2K_MAKE_SERVICE_INTERFACE(album_art_editor_instance_v2, album_art_editor_instance);
 public:

@@ -173,6 +173,12 @@ const char * album_art_ids::query_name(size_t idx) {
 	return names[idx];
 }
 
+const char* album_art_ids::name_of_ex(const GUID& id, const char* def) {
+	auto ret = name_of(id);
+	if ( ret == nullptr ) ret = def;
+	return ret;
+}
+
 const char * album_art_ids::name_of(const GUID & id) {
 	for( size_t w = 0; w < num_types(); ++w ) {
 		if ( query_type(w) == id ) return query_name(w);

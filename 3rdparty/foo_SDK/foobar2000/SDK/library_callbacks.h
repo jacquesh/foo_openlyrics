@@ -1,6 +1,7 @@
 #pragma once
 #include "library_manager.h"
 #include "metadb_callbacks.h"
+#include "callback_merit.h"
 
 //! Callback service receiving notifications about Media Library content changes. Methods called only from main thread.\n
 //! Use library_callback_factory_t template to register.
@@ -29,7 +30,6 @@ public:
 
 	FB2K_MAKE_SERVICE_INTERFACE(library_callback_v2, library_callback);
 };
-
 
 template<typename T>
 class library_callback_factory_t : public service_factory_single_t<T> {};
@@ -88,6 +88,7 @@ public:
 	void on_items_added(metadb_handle_list_cref) override {}
 	void on_items_removed(metadb_handle_list_cref) override {}
 	void on_items_modified_v2(metadb_handle_list_cref, metadb_io_callback_v2_data&) override {}
+	void on_library_initialized() override {}
 
 	PFC_CLASS_NOT_COPYABLE_EX(library_callback_v2_dynamic_impl_base);
 };

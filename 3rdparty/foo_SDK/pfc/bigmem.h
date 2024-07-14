@@ -12,7 +12,7 @@ namespace pfc {
         void resize(size_t newSize);
         size_t size() const {return m_size;}
         void clear();
-        void read(void * ptrOut, size_t bytes, size_t offset);
+        void read(void * ptrOut, size_t bytes, size_t offset) const;
         void write(const void * ptrIn, size_t bytes, size_t offset);
         uint8_t * _slicePtr(size_t which);
         size_t _sliceCount();

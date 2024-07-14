@@ -191,7 +191,6 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <AdditionalDependencies>../shared/shared-$(Platform).lib</AdditionalDependencies>
@@ -214,7 +213,6 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <AdditionalDependencies>../shared/shared-$(Platform).lib</AdditionalDependencies>
@@ -299,7 +297,6 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <AdditionalDependencies>../shared/shared-$(Platform).lib</AdditionalDependencies>
@@ -327,7 +324,6 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <AdditionalDependencies>../shared/shared-$(Platform).lib</AdditionalDependencies>
@@ -336,7 +332,7 @@
   <ItemGroup>
     <ClCompile Include="contextmenu.cpp" />
     <ClCompile Include="decode.cpp" />
-    <ClCompile Include="dsp.cpp" />
+    <ClCompile Include="dsp_sample.cpp" />
     <ClCompile Include="initquit.cpp" />
     <ClCompile Include="input_raw.cpp" />
     <ClCompile Include="listcontrol-advanced.cpp" />
@@ -365,6 +361,7 @@
     <ClCompile Include="ui_element_dialog.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dsp_sample.h" />
     <ClInclude Include="playback_stream_capture.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -393,6 +390,5 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

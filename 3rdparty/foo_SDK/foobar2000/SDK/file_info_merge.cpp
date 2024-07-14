@@ -164,6 +164,13 @@ void file_info::_set_tag(const file_info & tag) {
 			this->info_set(n, tag.info_enum_value( iWalk ) );
 		}
 	}
+    
+#ifdef FOOBAR2000_FILE_INFO_PICTURES
+    {
+        auto p = tag.info_get("pictures");
+        if ( p != nullptr ) this->info_set("pictures", p);
+    }
+#endif
 }
 
 void file_info::_add_tag(const file_info & otherTag) {
@@ -188,4 +195,11 @@ void file_info::_add_tag(const file_info & otherTag) {
 			}
 		}
 	}
+    
+#ifdef FOOBAR2000_FILE_INFO_PICTURES
+    if (this->info_get("pictures") == nullptr) {
+        auto p = otherTag.info_get("pictures");
+        if ( p != nullptr ) info_set("pictures", p);
+    }
+#endif
 }

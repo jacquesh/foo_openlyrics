@@ -89,7 +89,7 @@ protected:
 
 	struct GetOptimalWidth_Cache {
 		//! For temporary use.
-		pfc::string8_fastalloc m_stringTemp, m_stringTempUnfuckAmpersands;
+		pfc::string8_fastalloc m_stringTemp, m_stringTempFixAmpersands;
 		//! For temporary use.
 		pfc::stringcvt::string_wide_from_utf8_t<pfc::alloc_fast_aggressive> m_convertTemp;
 		//! Our DC for measuring text. Correct font pre-selected.

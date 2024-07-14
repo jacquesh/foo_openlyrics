@@ -1,6 +1,5 @@
 #pragma once
-#include <SDK/main_thread_callback.h>
-
+#include "callInMainThreadHelper.h"
 namespace CF {
 	template<typename obj_t, typename arg_t> class _inMainThread : public main_thread_callback {
 	public:

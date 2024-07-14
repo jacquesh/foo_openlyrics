@@ -6,8 +6,8 @@
 
 //! This interface allows you to show generic nonmodal noninteractive dialog with a text message. This should be used instead of MessageBox where possible.\n
 //! Usage: use popup_message::g_show / popup_message::g_show_ex static helpers, or popup_message::get() to obtain an instance.\n
+//! Thread safety: OK to call from worker threads (will delegate UI ops to main thread automatically). \n
 //! Note that all strings are UTF-8.
-
 class NOVTABLE popup_message : public service_base {
 public:
 	enum t_icon {icon_information, icon_error, icon_query};
@@ -46,6 +46,9 @@ public:
 #define EXCEPTION_TO_POPUP_MESSAGE(CODE,LABEL) try { CODE; } catch(std::exception const & e) {popup_message::g_complain(LABEL,e);}
 
 //! \since 1.1
+//! Extendsion to popup_message API. \n
+//! Thread safety: OK to call from worker threads (will delegate UI ops to main thread automatically). \n
+//! Note that all strings are UTF-8.
 class NOVTABLE popup_message_v2 : public service_base {
 	FB2K_MAKE_SERVICE_COREAPI(popup_message_v2);
 public:
@@ -58,6 +61,8 @@ public:
 };
 
 namespace fb2k {
+	//! \since 2.0
+	//! Not really implemented for Windows yet.
 	class popup_toast : public service_base {
 		FB2K_MAKE_SERVICE_COREAPI( popup_toast );
 	public:
@@ -71,8 +76,10 @@ namespace fb2k {
 
 	class toastFormatter : public pfc::string_formatter {
 	public:
-		~toastFormatter() {
-			if ( this->length() > 0 ) showToast( c_str() );
+		~toastFormatter() noexcept {
+			try {
+				if ( this->length() > 0 ) showToast( c_str() );
+			} catch(...) {}
 		}
     };
 }
@@ -81,6 +88,8 @@ namespace fb2k {
 
 
 //! \since 1.5
+//! MessageBox-like dialog, only non-blocking and with dark mode support under foobar2000 v2.0. \n
+//! Call from main thread only (contrary to popup_message / popup_message_v2) !!!
 class NOVTABLE popup_message_v3 : public service_base {
     FB2K_MAKE_SERVICE_COREAPI(popup_message_v3);
 public:

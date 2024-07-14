@@ -9,24 +9,35 @@
 
 namespace {
 
+	struct custom_sort_data_multi {
+		static constexpr unsigned numLocal = 4;
+		void setup(size_t count) {
+			if (count > numLocal) texts2 = std::make_unique< fb2k::sortString_t[] >( count - numLocal );
+		}
+		fb2k::sortString_t& operator[] (size_t which) {
+			return which < numLocal ? texts1[which] : texts2[which - numLocal];
+		}
+		const fb2k::sortString_t& operator[] (size_t which) const {
+			return which < numLocal ? texts1[which] : texts2[which - numLocal];
+		}
+
+		fb2k::sortString_t texts1[numLocal];
+		std::unique_ptr< fb2k::sortString_t[] > texts2;
+		size_t index;
+	};
 	struct custom_sort_data {
 		fb2k::sortString_t text;
-		t_size index;
+		size_t index;
 	};
+	template<int direction>
+	static int custom_sort_compare(const custom_sort_data& elem1, const custom_sort_data& elem2) {
+		int ret = direction * fb2k::sortStringCompare(elem1.text, elem2.text);
+		if (ret == 0) ret = pfc::sgn_t((t_ssize)elem1.index - (t_ssize)elem2.index);
+		return ret;
+	}
+
 }
 
-template<int direction>
-static int custom_sort_compare(const custom_sort_data & elem1, const custom_sort_data & elem2 ) {
-	int ret = direction * fb2k::sortStringCompare(elem1.text,elem2.text);
-	if (ret == 0) ret = pfc::sgn_t((t_ssize)elem1.index - (t_ssize)elem2.index);
-	return ret;
-}
-
-
-template<int direction>
-static int _custom_sort_compare(const void * v1, const void * v2) {
-	return custom_sort_compare<direction>(*reinterpret_cast<const custom_sort_data*>(v1),*reinterpret_cast<const custom_sort_data*>(v2));
-}
 void metadb_handle_list_helper::sort_by_format(metadb_handle_list_ref p_list,const char * spec,titleformat_hook * p_hook)
 {
 	service_ptr_t<titleformat_object> script;
@@ -319,14 +330,34 @@ void metadb_handle_list_helper::sort_by_format_v2(metadb_handle_list_ref p_list,
 }
 
 void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_cref p_list, size_t * order, const service_ptr_t<titleformat_object> & p_script, titleformat_hook * p_hook, int p_direction, abort_callback & aborter) {
+	sorter_t s = { p_script, p_direction, p_hook };
+	size_t total = p_list.get_count();
+	for (size_t walk = 0; walk < total; ++walk) order[walk] = walk;
+	sort_by_format_get_order_v3(p_list, order, &s, 1, aborter);
+}
+
+void metadb_handle_list_helper::sort_by_format_get_order_v3(metadb_handle_list_cref p_list, size_t* order,sorter_t const* sorters, size_t nSorters, abort_callback& aborter) {
 	// pfc::hires_timer timer; timer.start();
+
+	typedef custom_sort_data_multi data_t;
 
 	const t_size count = p_list.get_count();
 	if (count == 0) return;
-	auto data = std::make_unique< custom_sort_data[] >(count);
+
+	PFC_ASSERT(pfc::permutation_is_valid(order, count));
+
+	auto data = std::make_unique< data_t[] >(count);
 
 #if FOOBAR2000_TARGET_VERSION >= 81
-	if ( p_script->requires_metadb_info_()) {
+	bool need_info = false;
+	for (size_t iSorter = 0; iSorter < nSorters; ++iSorter) {
+		auto& s = sorters[iSorter];
+		PFC_ASSERT(s.direction == -1 || s.direction == 1);
+		if (s.obj->requires_metadb_info_()) {
+			need_info = true; break;
+		}
+	}
+	if (need_info) {
 		// FB2K_console_formatter() << "sorting with queryMultiParallelEx_<>";
 		struct qmpc_context {
 			qmpc_context() {
@@ -337,14 +368,22 @@ void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_c
 		};
 		metadb_v2::get()->queryMultiParallelEx_< qmpc_context >(p_list, [&](size_t idx, metadb_v2::rec_t const& rec, qmpc_context& ctx) {
 			aborter.check();
-			if (p_hook) {
-				titleformat_hook_impl_splitter hookSplitter(&ctx.myHook, p_hook);
-				p_list[idx]->formatTitle_v2_(rec, &hookSplitter, ctx.temp, p_script, nullptr);
-			} else {
-				p_list[idx]->formatTitle_v2_(rec, &ctx.myHook, ctx.temp, p_script, nullptr);
+			auto& out = data[idx];
+			out.setup(nSorters);
+			out.index = order[idx];
+
+			auto h = p_list[idx];
+			
+			for (size_t iSorter = 0; iSorter < nSorters; ++iSorter) {
+				auto& s = sorters[iSorter];
+				if (s.hook) {
+					titleformat_hook_impl_splitter hookSplitter(&ctx.myHook, s.hook);
+					h->formatTitle_v2_(rec, &hookSplitter, ctx.temp, s.obj, nullptr);
+				} else {
+					h->formatTitle_v2_(rec, &ctx.myHook, ctx.temp, s.obj, nullptr);
+				}
+				out[iSorter] = fb2k::makeSortString(ctx.temp);
 			}
-			data[idx].index = idx;
-			data[idx].text = fb2k::makeSortString(ctx.temp);
 		});
 	} else {
 		// FB2K_console_formatter() << "sorting with blank metadb info";
@@ -358,18 +397,25 @@ void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_c
 				aborter.check();
 				size_t idx = walk++;
 				if (idx >= count) return;
-				
-				if (p_hook) {
-					titleformat_hook_impl_splitter hookSplitter(&myHook, p_hook);
-					p_list[idx]->formatTitle_v2_(rec, &hookSplitter, temp, p_script, nullptr);
-				} else {
-					p_list[idx]->formatTitle_v2_(rec, &myHook, temp, p_script, nullptr);
+
+				auto& out = data[idx];
+				out.setup(nSorters);
+				out.index = order[idx];
+
+				for (size_t iSorter = 0; iSorter < nSorters; ++iSorter) {
+					auto& s = sorters[iSorter];
+					if (s.hook) {
+						titleformat_hook_impl_splitter hookSplitter(&myHook, s.hook);
+						p_list[idx]->formatTitle_v2_(rec, &hookSplitter, temp, s.obj, nullptr);
+					} else {
+						p_list[idx]->formatTitle_v2_(rec, &myHook, temp, s.obj, nullptr);
+					}
+					
+					out[iSorter] = fb2k::makeSortString(temp);
 				}
-				data[idx].index = idx;
-				data[idx].text = fb2k::makeSortString(temp);
 			}
-		}, api->numRunsSanity( (count + 1999)/2000 ) );
-		
+			}, api->numRunsSanity((count + 1999) / 2000));
+
 	}
 #else
 	{
@@ -377,17 +423,27 @@ void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_c
 
 		auto work = [&] {
 			tfhook_sort myHook;
-			titleformat_hook_impl_splitter hookSplitter(&myHook, p_hook);
-			titleformat_hook * const hookPtr = p_hook ? pfc::implicit_cast<titleformat_hook*>(&hookSplitter) : &myHook;
 
 			pfc::string8_fastalloc temp; temp.prealloc(512);
-			const t_size total = p_list.get_size();
-			for ( ;; ) {
+			for (;; ) {
 				const t_size index = (counter)++;
-				if (index >= total || aborter.is_set()) break;
-				data[index].index = index;
-				p_list[index]->format_title(hookPtr, temp, p_script, 0);
-				data[index].text = fb2k::makeSortString(temp);
+				if (index >= count || aborter.is_set()) break;
+
+				auto& out = data[index];
+				out.setup(nSorters);
+				out.index = order[index];
+
+				for (size_t iSorter = 0; iSorter < nSorters; ++iSorter) {
+					auto& s = sorters[iSorter];
+					if (s.hook) {
+						titleformat_hook_impl_splitter hookSplitter(&myHook, s.hook);
+						p_list[index]->format_title(&hookSplitter, temp, s.obj, 0);
+					} else {
+						p_list[index]->format_title(&myHook, temp, s.obj, 0);
+					}
+					
+					out[iSorter] = fb2k::makeSortString(temp);
+				}
 			}
 		};
 
@@ -402,30 +458,37 @@ void metadb_handle_list_helper::sort_by_format_get_order_v2(metadb_handle_list_c
 	aborter.check();
 	//	console::formatter() << "metadb_handle sort: prepared in " << pfc::format_time_ex(timer.query(),6);
 
-	
+
 	{
+		auto compare = [&](data_t const& elem1, data_t const& elem2) -> int {
+			for (size_t iSorter = 0; iSorter < nSorters; ++iSorter) {
+				int v = fb2k::sortStringCompare(elem1[iSorter], elem2[iSorter]);
+				if (v) return v * sorters[iSorter].direction;
+			}
+			
+			return pfc::sgn_t((t_ssize)elem1.index - (t_ssize)elem2.index);
+		};
+
 		typedef decltype(data) container_t;
-		auto compare = p_direction > 0 ? custom_sort_compare<1> : custom_sort_compare<-1>;
 		typedef decltype(compare) compare_t;
 		pfc::sort_callback_impl_simple_wrap_t<container_t, compare_t> cb(data, compare);
-		
-		//pfc::sort_t(data, p_direction > 0 ? custom_sort_compare<1> : custom_sort_compare<-1>, count);
 
-		size_t concurrency = pfc::getOptimalWorkerThreadCountEx( count / 4096 );
-		fb2k::sort( cb, count, concurrency, aborter );
+		size_t concurrency = pfc::getOptimalWorkerThreadCountEx(count / 4096);
+		fb2k::sort(cb, count, concurrency, aborter);
 	}
-	
+
 	//qsort(data.get_ptr(),count,sizeof(custom_sort_data),p_direction > 0 ? _custom_sort_compare<1> : _custom_sort_compare<-1>);
 
 
 	//	console::formatter() << "metadb_handle sort: sorted in " << pfc::format_time_ex(timer.query(),6);
 
-	for (t_size n = 0; n<count; n++)
+	for (t_size n = 0; n < count; n++)
 	{
 		order[n] = data[n].index;
 	}
 
 	// FB2K_console_formatter() << "metadb_handle sort: finished in " << pfc::format_time_ex(timer.query(),6);
+
 }
 
 t_filesize metadb_handle_list_helper::calc_total_size(metadb_handle_list_cref p_list, bool skipUnknown) {

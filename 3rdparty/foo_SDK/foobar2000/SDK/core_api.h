@@ -10,7 +10,8 @@ namespace core_api {
 	const char * get_my_file_name();
     //! Retrieves full path of calling dll, e.g. c:\blah\foobar2000\foo_asdf.dll . No file:// prefix, this path can interop with win32 API calls.
     const char * get_my_full_path();
-    //! Retrieves main app window. WARNING: this is provided for parent of dialog windows and such only; using it for anything else (such as hooking windowproc to alter app behaviors) is absolutely illegal.
+    //! Retrieves main app window. WARNING: this is provided for parent of dialog windows and such only; using it for anything else (such as hooking windowproc to alter app behaviors) is absolutely illegal. \n
+	//! Becomes valid when main window has been fully initialized. Returns NULL during creation of main window's embedded elements.
     fb2k::hwnd_t get_main_window();
 	//! Tests whether services are available at this time. They are not available only during DLL startup or shutdown (e.g. inside static object constructors or destructors).
 	bool are_services_available();
@@ -39,10 +40,13 @@ namespace core_api {
 	bool is_quiet_mode_enabled();
 };
 
+#define FB2K_SUPPORT_LOW_MEM_MODE (SIZE_MAX <= UINT32_MAX)
+
 namespace fb2k {
-#ifdef _WIN32
-    inline bool isDebugModeActive() { return !! PFC_DEBUG ;}
-#else
     bool isDebugModeActive();
+#if FB2K_SUPPORT_LOW_MEM_MODE
+	bool isLowMemModeActive();
+#else
+	inline constexpr bool isLowMemModeActive() { return false; }
 #endif
 }

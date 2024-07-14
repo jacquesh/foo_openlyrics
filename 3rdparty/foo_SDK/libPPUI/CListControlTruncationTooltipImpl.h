@@ -19,6 +19,7 @@ public:
 
 	void OnViewOriginChange(CPoint p_delta) override {TParent::OnViewOriginChange(p_delta);TooltipRemove();}
 	void TooltipRemove(); 
+	virtual void RefreshDarkMode();
 protected:
 	virtual bool GetTooltipData( CPoint ptAbs, pfc::string_base & text, CRect & rc, CFontHandle & font) const;
 private:

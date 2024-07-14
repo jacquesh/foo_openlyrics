@@ -124,6 +124,11 @@ public:
 	//! Input & output in screen coordinates, per WM_CONTEXTMENU conventions.
 	CPoint GetContextMenuPoint(LPARAM lp);
 	CPoint GetContextMenuPoint(CPoint ptGot);
+	//! Import context menu point coordinates: turn (-1,-1) to something that makes sense; \n
+	//! Returns false if clicked point was outside client area so WM_CONTEXTMENU should be left unhandled.
+	bool GetContextMenuPoint2(CPoint & ptInOut);
+	//! Returns center-of-focused-item point for context menu, in screen coordinates.
+	CPoint GetContextMenuPointDefault();
 
 protected:
 	void ToggleDDScroll(bool p_state);

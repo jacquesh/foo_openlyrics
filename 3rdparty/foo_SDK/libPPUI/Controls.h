@@ -46,7 +46,9 @@ private:
 	CFontHandle m_font;
 };
 
-
+// CStaticThemed BROKEN WITH DARK MODE, DO NOT USE
+// CStaticMainInstruction = use 1.5x scaled font for non subclassed static instead
+#if 0 
 // Static control subclass with override for theme part used for rendering
 class CStaticThemed : public CWindowImpl<CStaticThemed, CStatic> {
 public:
@@ -78,7 +80,7 @@ class CStaticMainInstruction : public CStaticThemed {
 public:
 	CStaticMainInstruction();
 };
-
+#endif
 
 
 class CSeparator : public CTextControl<CSeparator> {

@@ -350,6 +350,21 @@ bool archive::is_our_archive( const char * path ) {
 	return true; // accept all files
 }
 
+void archive_impl::extract_filename_ext(const char * path, pfc::string_base & outFN) {
+	pfc::string8 dummy, subpath;
+	if (archive_impl::g_parse_unpack_path(path, dummy, subpath)) {
+		outFN = pfc::filename_ext_v2( subpath );
+	} else {
+		PFC_ASSERT(!"???");
+		filesystem_v3::extract_filename_ext(path, outFN);
+	}
+}
+
+bool archive_impl::get_display_name_short(const char* in, pfc::string_base& out) {
+	extract_filename_ext(in ,out);
+	return true;
+}
+
 bool archive_impl::get_canonical_path(const char * path,pfc::string_base & out)
 {
 	if (is_our_path(path))
@@ -494,6 +509,27 @@ void archive_impl::g_make_unpack_path(pfc::string_base & path,const char * archi
 
 void archive_impl::make_unpack_path(pfc::string_base & path,const char * archive,const char * file) {g_make_unpack_path(path,archive,file,get_archive_type());}
 
+fb2k::arrayRef archive_impl::archive_list_v4( fsItemFilePtr item, file::ptr readerOptional, abort_callback & a ) {
+    
+    const auto baseStats = item->getStatsOpportunist();
+    PFC_ASSERT( ! baseStats.is_folder() );
+    auto ret = fb2k::arrayMutable::arrayWithCapacity(256);
+    
+    auto reader = readerOptional;
+    if ( reader.is_empty() ) reader = item->openRead(a);
+    try {
+        this->archive_list( item->canonicalPath()->c_str(), reader, [&] ( const char * URL, t_filestats const & stats, file::ptr ) {
+            t_filestats2 stats2 = t_filestats2::from_legacy( stats );
+            stats2.set_file(); stats2.set_remote( baseStats.is_remote() ); stats2.set_readonly(true);
+            archive * blah = this; // multi inheritance fix, more than one path to filesystem which has makeItemFileStd()
+            ret->add(blah->makeItemFileStd(URL, stats2));
+        }, false, a);
+    } catch( exception_io_data ) {
+        if ( ret->count() == 0 ) throw;
+    }
+    return ret->makeConst();
+    
+}
 
 namespace {
 
@@ -812,17 +848,20 @@ void stream_reader::read_string(pfc::string_base & p_out,abort_callback & p_abor
 	read_string_ex(p_out,length,p_abort);
 }
 
-void stream_reader::read_string_raw(pfc::string_base & p_out,abort_callback & p_abort) {
-	enum {delta = 256};
+void stream_reader::read_string_raw(pfc::string_base & p_out,abort_callback & p_abort, size_t sanity) {
+	enum {delta = 1024};
 	char buffer[delta];
 	p_out.reset();
+	size_t didRead = 0;
 	for(;;) {
-		t_size delta_done;
-		delta_done = read(buffer,delta,p_abort);
+		auto delta_done = read(buffer,delta,p_abort);
 		p_out.add_string(buffer,delta_done);
 		if (delta_done < delta) break;
+		didRead += delta;
+		if (didRead > sanity) throw exception_io_data();
 	}
 }
+
 void stream_writer::write_string(const char * p_string,t_size p_len,abort_callback & p_abort) {
 	t_uint32 len = pfc::downcast_guarded<t_uint32>(pfc::strlen_max(p_string,p_len));
 	write_lendian_t(len,p_abort);
@@ -965,6 +1004,10 @@ PFC_NORETURN void foobar2000_io::exception_io_from_win32(DWORD p_code) {
 	case ERROR_INVALID_FUNCTION:
 		// Happens when trying to link files on FAT32 etc
 		throw exception_io_unsupported_feature();
+#if 0
+	case ERROR_BAD_LENGTH:
+		FB2K_BugCheckEx("ERROR_BAD_LENGTH");
+#endif
 	default:
 		throw exception_io_win32_ex(p_code);
 	}
@@ -994,7 +1037,8 @@ PFC_NORETURN void foobar2000_io::exception_io_from_nix(int code) {
             // Should not actually get here
             PFC_ASSERT(!"Trying to seek a nonseekable stream");
             throw exception_io_object_not_seekable();
-
+        case ENOTDIR:
+            throw exception_io_not_directory();
             
         default:
             pfc::throw_exception_with_message< exception_io>( PFC_string_formatter() << "Unknown I/O error (#" << code << ")");
@@ -1034,14 +1078,18 @@ t_filesize file::get_remaining(abort_callback & p_abort) {
 	return length - position;
 }
 
-void file::probe_remaining(t_filesize bytes, abort_callback & p_abort) {
+bool file::probe_remaining_ex(t_filesize bytes, abort_callback& p_abort) {
 	t_filesize length = get_size(p_abort);
-	if (length != ~0) {
+	if (length != filesize_invalid) {
 		t_filesize remaining = length - get_position(p_abort);
-		if (remaining < bytes) throw exception_io_data_truncation();
+		if (remaining < bytes) return false;
 	}
+	return true;
 }
 
+void file::probe_remaining(t_filesize bytes, abort_callback & p_abort) {
+	if (!probe_remaining_ex(bytes, p_abort)) throw exception_io_data_truncation();
+}
 
 t_filesize file::g_transfer(service_ptr_t<file> p_src,service_ptr_t<file> p_dst,t_filesize p_bytes,abort_callback & p_abort) {
 	return g_transfer(pfc::implicit_cast<stream_reader*>(p_src.get_ptr()),pfc::implicit_cast<stream_writer*>(p_dst.get_ptr()),p_bytes,p_abort);
@@ -1124,8 +1172,13 @@ bool foobar2000_io::_extract_native_path_ptr(const char * & p_fspath) {
 	return true;
 }
 bool foobar2000_io::extract_native_path(const char * p_fspath,pfc::string_base & p_native) {
-	if (!_extract_native_path_ptr(p_fspath)) return false;
+	if (strstr(p_fspath, "://") != nullptr) {
+		if (!_extract_native_path_ptr(p_fspath)) return false;
+	}
 	p_native = p_fspath;
+#ifndef _WIN32
+	expandHomeDir( p_native );
+#endif
 	return true;
 }
 
@@ -1138,6 +1191,30 @@ bool foobar2000_io::extract_native_path_ex(const char * p_fspath, pfc::string_ba
 		p_native = p_fspath;
 	}
 	return true;
+}
+
+static bool extract_native_path_fsv3(const char* in, pfc::string_base& out, abort_callback& a) {
+	if (foobar2000_io::extract_native_path(in, out)) return true;
+	filesystem_v3::ptr v3;
+	if (v3 &= filesystem::tryGet(in)) {
+		auto n = v3->getNativePath(in, a);
+		if ( n.is_valid() ) {
+			out = n->c_str(); return true;
+		}
+	}
+	return false;
+}
+
+bool foobar2000_io::extract_native_path_archive_aware_ex(const char* in, pfc::string_base& out, abort_callback& a) {
+	if (extract_native_path_fsv3(in, out, a)) return true;
+	
+	if (archive_impl::g_is_unpack_path(in)) {
+		pfc::string8 arc, dummy;
+		if (archive_impl::g_parse_unpack_path(in, arc, dummy)) {
+			return extract_native_path_fsv3(arc, out, a);
+		}
+	}
+	return false;
 }
 
 bool foobar2000_io::extract_native_path_archive_aware(const char * in, pfc::string_base & out) {
@@ -1424,8 +1501,36 @@ bool filesystem::directory_exists(const char * path, abort_callback & abort) {
 		directory_callback_dummy cb;
 		list_directory(path, cb, abort);
 		return true;
-	} catch (exception_io const &) { return false; }
+	} catch (exception_io) { return false; }
 }
+
+bool filesystem::exists(const char* path, abort_callback& a) {
+	// for rare cases of code test if EITHER FILE OR FOLDER exists at path
+	filesystem_v3::ptr v3;
+	if (v3 &= this) {
+		try {
+			v3->get_stats2(path, stats2_fileOrFolder, a);
+			return true;
+		} catch (exception_io_not_found) { return false; }
+	}
+	filesystem_v2::ptr v2;
+	if (v2 &= this) {
+		return v2->file_exists(path, a) || v2->directory_exists(path, a);
+	}
+
+	try {
+		t_filestats stats; bool writable;
+		get_stats(path, stats, writable, a);
+		return true;
+	} catch (exception_io) { }
+	try {
+		directory_callback_dummy cb;
+		list_directory(path, cb, a);
+		return true;
+	} catch (exception_io) { }
+	return false;
+}
+
 bool filesystem::file_exists(const char * path, abort_callback & abort) {
 	filesystem_v2::ptr v2;
 	if ( v2 &= this ) {
@@ -1540,8 +1645,12 @@ void filesystem::read_whole_file_fallback(const char * path, mem_block_container
 }
 
 bool filesystem::is_transacted() {
+#if FB2K_SUPPORT_TRANSACTED_FILESYSTEM
 	filesystem_transacted::ptr p;
 	return ( p &= this );
+#else
+	return false;
+#endif
 }
 
 void filesystem::rewrite_file(const char* path, abort_callback& abort, double opTimeout, const void* payload, size_t bytes) {
@@ -1652,7 +1761,7 @@ bool filesystem_v2::make_directory_check(const char * path, abort_callback & abo
 	return rv;
 }
 
-
+#if FB2K_SUPPORT_TRANSACTED_FILESYSTEM
 filesystem_transacted::ptr filesystem_transacted::create( const char * pathFor ) {
 	service_enum_t<filesystem_transacted_entry> e;
 	filesystem_transacted_entry::ptr p;
@@ -1664,13 +1773,16 @@ filesystem_transacted::ptr filesystem_transacted::create( const char * pathFor )
 	}
 	return nullptr;
 }
+#endif
 
 bool filesystem::commit_if_transacted(abort_callback &abort) {
 	bool rv = false;
+#if FB2K_SUPPORT_TRANSACTED_FILESYSTEM
 	filesystem_transacted::ptr t;
 	if ( t &= this ) {
 		t->commit( abort ); rv = true;
 	}
+#endif
 	return rv;
 }
 
@@ -1782,7 +1894,20 @@ void filesystem_v3::get_stats(const char* p_path, t_filestats& p_stats, bool& p_
 t_filetimestamp file_v2::get_timestamp(abort_callback& p_abort) {
 	return this->get_stats2(stats2_timestamp, p_abort).m_timestamp;
 }
+bool file_v2::is_remote() {
+	return this->get_stats2(stats2_remote, fb2k::noAbort).is_remote();
+}
 
+t_filesize file_v2::get_size(abort_callback& p_abort) {
+	return this->get_stats2(stats2_size, p_abort).m_size;
+}
+
+pfc::string8 file::get_content_type() {
+	pfc::string8 ret;
+	if (!this->get_content_type(ret)) ret.clear();
+	return ret;
+
+}
 t_filestats2 file::get_stats2_(uint32_t f, abort_callback& a) {
 	t_filestats2 ret;
 
@@ -1974,18 +2099,13 @@ fsItemBase::ptr filesystem_v3::findItem(const char* path, abort_callback& p_abor
 	try {
 #endif
 		pfc::string8 canonical;
-		get_canonical_path(path, canonical);
-
-		if (this->is_remote(canonical)) {
-			// Do not perform expensive checks for remote filesystems
-			return makeItemFileStd(canonical);
-		}
-
-		if (this->file_exists(canonical, p_abort)) {
-			return makeItemFileStd(canonical);
-		}
-		if (this->directory_exists(canonical, p_abort)) {
-			return makeItemFolderStd(canonical);
+		if (get_canonical_path(path, canonical)) {
+			auto stats = this->get_stats2(path, stats2_all, p_abort);
+			if ( stats.is_folder() ) {
+				return makeItemFolderStd(canonical, stats);
+			} else {
+				return makeItemFileStd(canonical, stats );
+			}
 		}
 		throw exception_io_not_found();
 #if PFC_DEBUG
@@ -2003,9 +2123,11 @@ fsItemFile::ptr filesystem_v3::findItemFile(const char* path, abort_callback& p_
 	try {
 #endif
 		pfc::string8 canonical;
-		get_canonical_path(path, canonical);
-		if (this->is_remote(canonical) || this->file_exists(canonical, p_abort)) {
-			return makeItemFileStd(canonical);
+		if (get_canonical_path(path, canonical)) {
+			auto stats = this->get_stats2( canonical, stats2_all, p_abort);
+			if ( stats.is_file() ) {
+				return makeItemFileStd(canonical, stats );
+			}
 		}
 		throw exception_io_not_found();
 #if PFC_DEBUG
@@ -2023,9 +2145,11 @@ fsItemFolder::ptr filesystem_v3::findItemFolder(const char* path, abort_callback
 	try {
 #endif
 		pfc::string8 canonical;
-		if (!get_canonical_path(path, canonical)) throw exception_io_not_found();
-		if (this->is_remote(canonical) || this->directory_exists(canonical, p_abort)) {
-			return makeItemFolderStd(canonical);
+		if (get_canonical_path(path, canonical)) {
+			auto stats = this->get_stats2( canonical, stats2_all, p_abort);
+			if ( stats.is_folder() ) {
+				return makeItemFolderStd(canonical, stats );
+			}
 		}
 		throw exception_io_not_found();
 #if PFC_DEBUG
@@ -2057,7 +2181,7 @@ fb2k::stringRef filesystem_v3::fileNameSanity(const char* fn) {
 	return ret;
 }
 
-void filesystem_v3::readStatsMulti(fb2k::arrayRef items, uint32_t s2flags, t_filestats2* outStats, abort_callback& abort) {
+static void readStatsMultiStd(fb2k::arrayRef items, uint32_t s2flags, t_filestats2* outStats, abort_callback& abort) {
 	const size_t count = items->size();
 	for (size_t w = 0; w < count; ++w) {
 		abort.check();
@@ -2071,6 +2195,23 @@ void filesystem_v3::readStatsMulti(fb2k::arrayRef items, uint32_t s2flags, t_fil
 			out = filestats2_invalid;
 		}
 	}
+}
+
+void filesystem_v3::readStatsMulti(fb2k::arrayRef items, uint32_t s2flags, t_filestats2* outStats, abort_callback& abort) {
+	readStatsMultiStd(items, s2flags, outStats, abort);
+}
+
+pfc::string8 t_filestats::describe() const {
+	pfc::string8 ret;
+	ret << "size: ";
+	if (m_size != filesize_invalid) ret << m_size;
+	else ret << "N/A";
+	ret << "\n";
+	ret << "last-modified: ";
+	if (m_timestamp != filetimestamp_invalid) ret << m_timestamp;
+	else ret << "N/A";
+	ret << "\n";
+	return ret;
 }
 
 pfc::string8 t_filestats2::describe() const {
@@ -2097,13 +2238,10 @@ pfc::string8 t_filestats2::describe() const {
 t_filestats foobar2000_io::nixMakeFileStats(const struct stat & st) {
     t_filestats out = filestats_invalid;
     out.m_size = st.st_size;
-#if defined(__ANDROID__)
-    out.m_timestamp = pfc::fileTimeUtoW(st.st_mtime /* + st.st_mtime_nsec / 1000000000 */ );
-#elif !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-    out.m_timestamp = pfc::fileTimeUtoW(st.st_mtimespec );
-    // out.m_timestampCreate = pfc::fileTimeUtoW( st.st_birthtimespec );
-#else
-    out.m_timestamp = pfc::fileTimeUtoW(st.st_mtime);
+#ifdef __APPLE__
+    out.m_timestamp = pfc::fileTimeUtoW(st.st_mtimespec);
+#else // Linux
+	out.m_timestamp = pfc::fileTimeUtoW(st.st_mtim);
 #endif
     return out;
 }
@@ -2118,10 +2256,15 @@ bool foobar2000_io::nixQueryDirectory( const struct stat & st ) {
 
 t_filestats2 foobar2000_io::nixMakeFileStats2(const struct stat &st) {
     t_filestats2 ret = t_filestats2::from_legacy( nixMakeFileStats( st ) );
-    ret.m_timestampCreate = pfc::fileTimeUtoW( st.st_birthtimespec );
+#ifdef __APPLE__
+	ret.m_timestampCreate = pfc::fileTimeUtoW(st.st_birthtimespec);
+#else // Linux
+	ret.m_timestampCreate = pfc::fileTimeUtoW(st.st_ctim);
+#endif
     ret.set_readonly(nixQueryReadonly(st));
     if ( nixQueryDirectory( st ) ) ret.set_folder();
     else ret.set_file();
+	ret.set_remote(false);
     return ret;
 }
 
@@ -2175,4 +2318,86 @@ bool filesystem::g_get_display_name_short( const char * path, pfc::string_base &
     }
     out = path;
     return false;
+}
+
+
+bool filesystem::g_compare_paths(const char* p1, const char* p2, int& result) {
+	if (strcmp(p1, p2) == 0) {
+		result = 0; return true;
+	}
+
+	{
+		auto s1 = strstr(p1, "://");
+		auto s2 = strstr(p2, "://");
+		if (s1 == nullptr || s2 == nullptr) {
+			PFC_ASSERT(!"Invalid arguments");
+			return false;
+		}
+		size_t prefix = s1 - p1;
+		if (prefix != s2 - p2) return false; // protocol mismatch
+		if (memcmp(p1, p2, prefix) != 0) return false; // protocol mismatch
+	}
+
+	filesystem::ptr fs;
+	if (!g_get_interface(fs, p1)) {
+		PFC_ASSERT(!"Invalid arguments");
+		return false;
+	}
+	pfc::string8 temp1(p1), temp2(p2);
+	auto delim = fs->pathSeparator();
+	temp1.end_with(delim); temp2.end_with(delim);
+	if (strcmp(temp1, temp2) == 0) { result = 0; return true; }
+
+	//result 1 if p2 is a subpath of p1, -1 if p1 is a subpath of p2
+	if (pfc::string_has_prefix(temp1, temp2)) {
+		// temp1 starts with temp2
+		// p1 a subfolder of p2
+		result = -1;
+		return true;
+	} else if (pfc::string_has_prefix(temp2, temp1)) {
+		// temp2 starts with temp1
+		// p2 a subfolder of p1
+		result = 1;
+		return true;
+	} else {
+		return false;
+	}
+}
+
+size_t file::receive(void* ptr, size_t bytes, abort_callback& a) {
+	stream_receive::ptr obj;
+	if (obj &= this) return obj->receive(ptr, bytes, a);
+	else return this->read(ptr, bytes, a);
+}
+
+void filesystem::g_readStatsMulti(fb2k::arrayRef items, uint32_t s2flags, t_filestats2* outStats, abort_callback& abort) {
+	if (items->size() == 0) return;
+	fsItemPtr aFile; aFile ^= items->itemAt(0);
+	filesystem_v3::ptr fs;
+	if (fs &= aFile->getFS()) {
+		fs->readStatsMulti(items, s2flags, outStats, abort);
+	} else {
+		readStatsMultiStd(items, s2flags, outStats, abort);
+	}
+}
+
+void file::set_stats(t_filestats2 const& stats, abort_callback& a) {
+	if (stats.haveTimestamp() || stats.haveTimestampCreate()) {
+		filetimes_t ft;
+		ft.creation = stats.m_timestampCreate;
+		ft.lastWrite = stats.m_timestamp;
+		this->setFileTimes(ft, a);
+	}
+}
+
+fb2k::stringRef filesystem::fileNameSanity_(const char* fn) {
+    filesystem_v3::ptr v3;
+    if (v3 &= this) return v3->fileNameSanity(fn);
+    throw pfc::exception_not_implemented();
+}
+
+drivespace_t filesystem::getDriveSpace_(const char* pathAt, abort_callback& abort) {
+    filesystem_v3::ptr v3;
+    if (v3 &= this) return v3->getDriveSpace(pathAt, abort);
+    throw pfc::exception_not_implemented();
 }

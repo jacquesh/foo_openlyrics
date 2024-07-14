@@ -19,6 +19,9 @@ public:
 //! Implementation: it's recommended that you derive from app_close_blocking_task_impl class instead of deriving from app_close_blocking_task directly, it manages registration/unregistration behind-the-scenes.
 class NOVTABLE app_close_blocking_task {
 public:
+	//! Retrieves user-friendly name of the task to be shown to the user, should the user try to close foobar2000 while the task is active. \n
+	//! Implementation note: this will NOT be called from register_task() or unregister_task(), only in response to user attempting to close foobar2000. \n
+	//! Common helper implementations of app_close_blocking_task register from base class constructor while intended query_task_name() override is not yet in place.
 	virtual void query_task_name(pfc::string_base & out) = 0;
 
 protected:
@@ -28,42 +31,46 @@ protected:
 	PFC_CLASS_NOT_COPYABLE_EX(app_close_blocking_task);
 };
 
-//! Entrypoint class for registering app_close_blocking_task instances. Introduced in 0.9.5.1. \n
-//! Usage: static_api_ptr_t<app_close_blocking_task_manager>(). May fail if user runs pre-0.9.5.1. It's recommended that you use app_close_blocking_task_impl class instead of calling app_close_blocking_task_manager directly.
+//! Entrypoint class for registering app_close_blocking_task instances. \n
+//! You can use app_close_blocking_task_impl to call this automatically with your object.
 class NOVTABLE app_close_blocking_task_manager : public service_base {
 	FB2K_MAKE_SERVICE_COREAPI(app_close_blocking_task_manager);
 public:
+	//! Registers a task object. \n
+	//! Main thread only.
 	virtual void register_task(app_close_blocking_task * task) = 0;
+	//! Unregisters a task object. \n
+	//! Main thread only.
 	virtual void unregister_task(app_close_blocking_task * task) = 0;
 };
 
 //! Helper; implements standard functionality required by app_close_blocking_task implementations - registers/unregisters the task on construction/destruction.
 class app_close_blocking_task_impl : public app_close_blocking_task {
 public:
-	app_close_blocking_task_impl() { app_close_blocking_task_manager::get()->register_task(this);}
-	~app_close_blocking_task_impl() { app_close_blocking_task_manager::get()->unregister_task(this);}
+	app_close_blocking_task_impl(const char * name = "<unnamed task>");
+	~app_close_blocking_task_impl();
 
-	void query_task_name(pfc::string_base & out) { out = "<unnamed task>"; }
+	//! Override me, or provide name to constructor
+	void query_task_name(pfc::string_base & out) override;
+
+	app_close_blocking_task_impl( const app_close_blocking_task_impl & ) = delete;
+	void operator=(const app_close_blocking_task_impl & ) = delete;
+private:
+	const char * const m_name;
 };
 
 class app_close_blocking_task_impl_dynamic : public app_close_blocking_task {
 public:
-	app_close_blocking_task_impl_dynamic() : m_taskActive() {}
+	app_close_blocking_task_impl_dynamic(const char * name = "<unnamed task>") : m_name(name) {}
 	~app_close_blocking_task_impl_dynamic() { toggle_blocking(false); }
 
-	void query_task_name(pfc::string_base & out) { out = "<unnamed task>"; }
+	//! Override me, or provide name to constructor
+	void query_task_name(pfc::string_base & out) override;
 	
-protected:
-	void toggle_blocking(bool state) {
-		if (state != m_taskActive) {
-			auto api = app_close_blocking_task_manager::get();
-			if (state) api->register_task(this);
-			else api->unregister_task(this);
-			m_taskActive = state;
-		}
-	}
+	void toggle_blocking(bool state);
 private:
-	bool m_taskActive;
+	bool m_taskActive = false;
+	const char * const m_name;
 };
 
 

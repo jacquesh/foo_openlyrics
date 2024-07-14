@@ -59,7 +59,10 @@ namespace pfc {
 		thread();
 		~thread() {PFC_ASSERT(!isActive()); waitTillDone();}
         void start( arg_t const & arg = argCurrentThread() );
+        //! Valid thread object (created and not joined)?
 		bool isActive() const;
+        //! Joins the thread: blocks until complete, releases resources. \n
+        //! After waitTillDone() returns, isActive() becomes false.
 		void waitTillDone() {close();}
 #ifdef _WIN32
 		void winStart(int priority, DWORD * outThreadID); 

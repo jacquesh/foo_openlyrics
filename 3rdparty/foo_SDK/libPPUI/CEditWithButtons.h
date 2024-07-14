@@ -47,9 +47,12 @@ public:
 	void AddClearButton( const wchar_t * clearVal = L"", bool bHandleEsc = false);
 	void AddButton( const wchar_t * str, handler_t handler, condition_t condition = nullptr, const wchar_t * drawAlternateText = nullptr );
 
-	static unsigned DefaultFixedWidth() {return GetSystemMetrics(SM_CXVSCROLL) * 3 / 4;}
-	void SetFixedWidth(unsigned fw = DefaultFixedWidth() ) {
-		m_fixedWidth = fw;
+	void SetFixedWidth(unsigned fw) {
+		m_fixedWidth = fw; m_fixedWidthAuto = false;
+		RefreshButtons();
+	}
+	void SetFixedWidth() {
+		m_fixedWidth = 0; m_fixedWidthAuto = true;
 		RefreshButtons();
 	}
 	CRect RectOfButton( const wchar_t * text );
@@ -168,14 +171,8 @@ private:
 		bool visible;
 		condition_t condition;
 	};
-	void OnSetFont(CFontHandle font, BOOL bRedraw) {
-		(void)bRedraw;
-		CRect rc;
-		if (GetClientRect(&rc)) {
-			Layout(rc.Size(), font);
-		}
-		SetMsgHandled(FALSE);
-	}
+	
+	void OnSetFont(CFontHandle font, BOOL bRedraw);
 
 	void RefreshButtons() {
 		if ( m_hWnd != NULL && m_buttons.size() > 0 ) {
@@ -208,6 +205,7 @@ private:
 	unsigned MeasureButton(Button_t const & button );
 
 	unsigned m_fixedWidth = 0;
+	bool m_fixedWidthAuto = false;
 	std::list< Button_t > m_buttons;
 	bool m_hasAutoComplete = false;
 };

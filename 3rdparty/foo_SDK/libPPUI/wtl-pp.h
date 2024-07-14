@@ -127,14 +127,14 @@ void InjectParentCtlColorHandler(HWND);
 	}
 
 
-
+// Obsolete, use CImageListManaged instead
 class CImageListContainer : public CImageList {
 public:
 	CImageListContainer() {}
 	~CImageListContainer() {Destroy();}
-private:
-	const CImageListContainer & operator=(const CImageListContainer&);
-	CImageListContainer(const CImageListContainer&);
+
+	void operator=(const CImageListContainer&) = delete;
+	CImageListContainer(const CImageListContainer&) = delete;
 };
 
 
@@ -174,7 +174,7 @@ public:
 
 class CEditPPHooks : public CWindowImpl<CEditPPHooks, CEdit> {
 public:
-	bool HandleCtrlA = true, NoEscSteal = false, NoEnterSteal = false;
+	bool HandleCtrlA = true, NoEscSteal = false, NoEnterSteal = false, WantAllKeys = false;
 
 	std::function<void ()> onEnterKey;
 	std::function<void ()> onEscKey;
@@ -194,35 +194,13 @@ public:
 
 	END_MSG_MAP()
 
-	static void DeleteLastWord( CEdit wnd ) {
-		if ( wnd.GetWindowLong(GWL_STYLE) & ES_READONLY ) return;
-		int len = wnd.GetWindowTextLength();
-		if ( len <= 0 ) return;
-		TCHAR * buffer = new TCHAR [ len + 1 ];
-		if ( wnd.GetWindowText( buffer, len + 1 ) <= 0 ) {
-			delete[] buffer;
-			return;
-		}
-		buffer[len] = 0;
-		int selStart = len, selEnd = len;
-		wnd.GetSel(selStart, selEnd);
-		if ( selStart < 0 || selStart > len ) selStart = len; // sanity
-		if ( selEnd < selStart ) selEnd = selStart; // sanity
-		int work = selStart;
-		if ( work == selEnd ) {
-			// Only do our stuff if there is nothing yet selected. Otherwise first delete selection.
-			while( work > 0 && isWordDelimiter(buffer[work-1]) ) --work;
-			while( work > 0 && !isWordDelimiter(buffer[work-1] ) ) --work;
-		}
-		delete[] buffer;
-		if ( selEnd > work ) {
-			wnd.SetSel(work, selEnd, TRUE );
-			wnd.ReplaceSel( TEXT(""), TRUE );
-		}
-	}
+	static void DeleteLastWord( CEdit wnd, bool bForward = false );
 private:
-	static bool isWordDelimiter( TCHAR c ) {
-		return (unsigned) c <= ' ' || c == ',' || c == '.' || c == ';' || c == ':';
+	static bool isSpecial( wchar_t c ) {
+		return (unsigned) c < ' ';
+	}
+	static bool isWordDelimiter( wchar_t c ) {
+		return c == ' ' || c == ',' || c == '.' || c == ';' || c == ':';
 	}
 	void OnChar(UINT nChar, UINT, UINT nFlags) {
 		if (m_suppressChar != 0) {
@@ -251,6 +229,12 @@ private:
 					DeleteLastWord( *this ) ; return;
 				}
 			}
+			if ( nChar == VK_DELETE ) {
+				if (GetHotkeyModifierFlags() == MOD_CONTROL) {
+					m_suppressScanCode = nFlags & 0xFF;
+					DeleteLastWord( *this, true ) ; return;
+				}
+			}
 			if ( nChar == VK_RETURN && onEnterKey ) {
 				m_suppressChar = nChar;
 				onEnterKey(); return;
@@ -263,6 +247,7 @@ private:
 		SetMsgHandled(FALSE);
 	}
 	UINT OnEditGetDlgCode(LPMSG lpMsg) {
+		if (WantAllKeys) return DLGC_WANTALLKEYS;
 		if (lpMsg == NULL) {
 			SetMsgHandled(FALSE); return 0;
 		} else {
@@ -430,23 +415,9 @@ private:
 
 class CSRWlock {
 public:
-	CSRWlock() : theLock() {
-#if _WIN32_WINNT < 0x600
-		auto dll = GetModuleHandle(_T("kernel32"));
-		Bind(AcquireSRWLockExclusive, dll, "AcquireSRWLockExclusive");
-		Bind(AcquireSRWLockShared, dll, "AcquireSRWLockShared");
-		Bind(ReleaseSRWLockExclusive, dll, "ReleaseSRWLockExclusive");
-		Bind(ReleaseSRWLockShared, dll, "ReleaseSRWLockShared");
-#endif
-	}
+	CSRWlock() { }
 	
-	bool HaveAPI() {
-#if _WIN32_WINNT < 0x600
-		return AcquireSRWLockExclusive != NULL;
-#else
-		return true;
-#endif
-	}
+	static bool HaveAPI() { return true; }
 
 	void EnterShared() {
 		AcquireSRWLockShared( & theLock );
@@ -465,51 +436,5 @@ private:
 	CSRWlock(const CSRWlock&) = delete;
 	void operator=(const CSRWlock&) = delete;
 
-	SRWLOCK theLock;
-#if _WIN32_WINNT < 0x600
-	template<typename func_t> static void Bind(func_t & func, HMODULE dll, const char * name) {
-		func = reinterpret_cast<func_t>(GetProcAddress( dll, name ) );
-	}
-
-	VOID (WINAPI * AcquireSRWLockExclusive)(PSRWLOCK SRWLock);
-	VOID (WINAPI * AcquireSRWLockShared)(PSRWLOCK SRWLock);
-	VOID (WINAPI * ReleaseSRWLockExclusive)(PSRWLOCK SRWLock);
-	VOID (WINAPI * ReleaseSRWLockShared)(PSRWLOCK SRWLock);
-#endif
+	SRWLOCK theLock = {};
 };
-
-#if _WIN32_WINNT < 0x600
-class CSRWorCS {
-public:
-	CSRWorCS() : cs() {
-		if (!srw.HaveAPI()) InitializeCriticalSection(&cs);
-	}
-	~CSRWorCS() {
-		if (!srw.HaveAPI()) DeleteCriticalSection(& cs );
-	}
-	void EnterShared() {
-		if (srw.HaveAPI()) srw.EnterShared();
-		else EnterCriticalSection(&cs);
-	}
-	void EnterExclusive() {
-		if (srw.HaveAPI()) srw.EnterExclusive();
-		else EnterCriticalSection(&cs);
-	}
-	void LeaveShared() {
-		if (srw.HaveAPI()) srw.LeaveShared();
-		else LeaveCriticalSection(&cs);
-	}
-	void LeaveExclusive() {
-		if (srw.HaveAPI()) srw.LeaveExclusive();
-		else LeaveCriticalSection(&cs);
-	}
-private:
-	CSRWorCS(const CSRWorCS&) = delete;
-	void operator=(const CSRWorCS&) = delete;
-
-	CSRWlock srw;
-	CRITICAL_SECTION cs;
-};
-#else
-typedef CSRWlock CSRWorCS;
-#endif
