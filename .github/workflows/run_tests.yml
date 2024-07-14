@@ -22,4 +22,4 @@ jobs:
         run: msbuild /r /m /p:Configuration=Debug /p:Platform=x64 build\foo_openlyrics.sln
 
       - name: Run tests
-        run: .\x64\Debug\test_foo_openlyrics.exe .\x64\Debug\foo_openlyrics.dll
+        run: build\x64\Debug\test_foo_openlyrics.exe build\x64\Debug\foo_openlyrics.dll
