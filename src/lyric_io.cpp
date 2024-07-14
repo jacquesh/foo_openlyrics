@@ -9,7 +9,7 @@
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 #include "win32_util.h"
-#include "../../test/bvtf.h"
+#include "../../test/mvtf.h"
 
 bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {
@@ -796,7 +796,7 @@ void LyricUpdateHandle::set_complete()
 // ============
 // Tests
 // ============
-#ifdef BVTF_TESTS_ENABLED
+#ifdef MVTF_TESTS_ENABLED
 static const AutoSaveStrategy g_all_save_strategies[] =
 {
     AutoSaveStrategy::Never,
@@ -810,7 +810,7 @@ static const LyricUpdateHandle::Type g_search_update_types[] =  // NOTE: Most te
     LyricUpdateHandle::Type::ManualSearch
 };
 
-BVTF_TEST(autoedits_dont_apply_to_edit_results)
+MVTF_TEST(autoedits_dont_apply_to_edit_results)
 {
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
     const bool all_bools[] = { true, false };
@@ -821,7 +821,7 @@ BVTF_TEST(autoedits_dont_apply_to_edit_results)
     }
 }
 
-BVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
+MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
 {
     // NOTE: Most tests assume that all update types are either a search type or "Edit"
     for(LyricUpdateHandle::Type update_type : g_search_update_types)
@@ -833,7 +833,7 @@ BVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
     }
 }
 
-BVTF_TEST(saving_always_save_edit_updates)
+MVTF_TEST(saving_always_save_edit_updates)
 {
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
     const bool all_bools[] = { true, false };
@@ -852,7 +852,7 @@ BVTF_TEST(saving_always_save_edit_updates)
 
 // This test, combined with the edit one (always_save_edit_updates)
 // covers all possibilities when loaded_from_local_src is true. Other tests need only check when its false
-BVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
+MVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
 {
     // NOTE: Most tests assume that all update types are either a search type or "Edit"
     const bool all_bools[] = { true, false };
@@ -874,7 +874,7 @@ BVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
 // This test combined with the local source one (never_save_search_results_loaded_from_local_sources)
 // covers all possibilities when the update type is ManualSearch. Since edit is completely covered
 // by (always_save_edit_updates), we now only need to test AutoSearch.
-BVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
+MVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
 {
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::ManualSearch;
     const bool loaded_from_local_src = false;
@@ -890,7 +890,7 @@ BVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
     }
 }
 
-BVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
+MVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
 {
     const bool loaded_from_local_src = false;
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
@@ -904,7 +904,7 @@ BVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
     }
 }
 
-BVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
+MVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
 {
     const bool loaded_from_local_src = false;
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
@@ -918,7 +918,7 @@ BVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
     }
 }
 
-BVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysynced)
+MVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysynced)
 {
     const bool loaded_from_local_src = false;
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
@@ -930,7 +930,7 @@ BVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysync
     ASSERT(!save_unsynced);
 }
 
-BVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
+MVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
 {
     const bool loaded_from_local_src = false;
     const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
