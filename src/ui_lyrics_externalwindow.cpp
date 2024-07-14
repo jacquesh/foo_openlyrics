@@ -440,7 +440,7 @@ static int _WrapSimpleLyricsLineToRect(D2DTextRenderContext& render, const D2D1_
     Microsoft::WRL::ComPtr<IDWriteTextLayout> layout = nullptr;
     success = success && HR_SUCCESS(dwrite_factory->CreateTextLayout(
             line.data(),
-            line.length(),
+            (uint32_t)line.length(),
             render.text_format,
             canvas_size.width,
             canvas_size.height,

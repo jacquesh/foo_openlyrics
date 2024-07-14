@@ -112,7 +112,7 @@ std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_
     int height = 0;
     int available_channels = 0;
     uint8_t* pixels = stbi_load_from_memory((const uint8_t*)input_buffer,
-                                            input_buffer_length,
+                                            (int)input_buffer_length,
                                             &width,
                                             &height,
                                             &available_channels,
