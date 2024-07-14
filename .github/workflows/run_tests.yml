@@ -1,0 +1,25 @@
+name: Run tests
+on:
+  push:
+    branches: master
+
+jobs:
+  build-and-test:
+    runs-on: windows-2022
+    steps:
+      - name: Print installed Windows SDK versions
+        shell: pwsh
+        continue-on-error: true
+        run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
+
+      - name: Add MSBuild to the PATH
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build debug binaries
+        run: msbuild /r /m /p:Configuration=Debug /p:Platform=x64 build\foo_openlyrics.sln
+
+      - name: Run tests
+        run: .\x64\Debug\test_foo_openlyrics.exe .\x64\Debug\foo_openlyrics.dll

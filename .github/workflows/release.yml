@@ -1,4 +1,4 @@
-name: release
+name: Build and publish a release
 on:
   # NOTE: We specifically do *not* support `workflow_dispatch` here, because if we run this from
   # workflow_dispatch, it will create a tag & release named /refs/heads/master or similar.
