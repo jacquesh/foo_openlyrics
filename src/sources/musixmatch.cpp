@@ -20,11 +20,11 @@ class MusixmatchLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Musixmatch"); }
 
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
-    std::vector<LyricDataRaw> get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const;
+    std::vector<LyricDataRaw> get_song_ids(const LyricSearchParams& params, abort_callback& abort) const;
     bool get_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const;
     bool get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
     bool get_synced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
@@ -65,13 +65,13 @@ static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
     return result;
 }
 
-std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) const
+std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearchParams& params, abort_callback& abort) const
 {
     const std::string_view apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + "track.search?" + g_common_params + "&subtitle_format=lrc";
-    url += "&q_artist=" + urlencode(artist);
-    url += "&q_album=" + urlencode(album);
-    url += "&q_track=" + urlencode(title);
+    url += "&q_artist=" + urlencode(params.artist);
+    url += "&q_album=" + urlencode(params.album);
+    url += "&q_track=" + urlencode(params.title);
     url += "&usertoken=";
     LOG_INFO("Querying for track ID from %s", url.c_str());
     url +=  apikey; // Add this after logging so we don't log sensitive info
@@ -297,7 +297,7 @@ bool MusixmatchLyricsSource::get_synced_lyrics(LyricDataRaw& data, int64_t track
     return get_lyrics(data, track_id, abort, "track.subtitle.get", "subtitle", "subtitle_body");
 }
 
-std::vector<LyricDataRaw> MusixmatchLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> MusixmatchLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     if(preferences::searching::musixmatch_api_key().empty())
     {
@@ -307,7 +307,7 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::search(std::string_view artist
         return {};
     }
 
-    return get_song_ids(artist, album, title, abort);
+    return get_song_ids(params, abort);
 }
 
 bool MusixmatchLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)

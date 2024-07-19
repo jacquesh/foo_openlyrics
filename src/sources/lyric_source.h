@@ -9,6 +9,13 @@
 // - https://www.syair.info
 // - MiniLyrics (https://crintsoft.com/) - See a wireshark trace of LyricShowPanel3 attempting to make HTTP calls
 
+struct LyricSearchParams
+{
+    std::string artist;
+    std::string album;
+    std::string title;
+};
+
 class LyricSourceBase : public initquit
 {
 public:
@@ -43,7 +50,7 @@ public:
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 
-    virtual std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) = 0;
+    virtual std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) = 0;
 };
 
 template<typename T>

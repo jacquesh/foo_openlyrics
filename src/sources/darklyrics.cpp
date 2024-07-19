@@ -18,7 +18,7 @@ class DarkLyricsSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("DarkLyrics.com"); }
 
     void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
 static const LyricSourceFactory<DarkLyricsSource> src_factory;
@@ -78,13 +78,13 @@ void DarkLyricsSource::add_all_text_to_string(std::string& output, pugi::xml_nod
     }
 }
 
-std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> DarkLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
 
-    const std::string url_artist = remove_chars_for_url(artist);
-    const std::string url_album = remove_chars_for_url(album);
-    const std::string url_title = remove_chars_for_url(title);
+    const std::string url_artist = remove_chars_for_url(params.artist);
+    const std::string url_album = remove_chars_for_url(params.album);
+    const std::string url_title = remove_chars_for_url(params.title);
     const std::string url = "http://darklyrics.com/lyrics/" + url_artist + "/" + url_album + ".html";
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
@@ -135,7 +135,7 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std:
 
                 title_text.remove_prefix(title_dot_index + 1); // +1 to include the '.' that we found
                 title_text = trim_surrounding_whitespace(title_text);
-                if(!tag_values_match(title_text, title))
+                if(!tag_values_match(title_text, params.title))
                 {
                     continue;
                 }
@@ -170,9 +170,9 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(std::string_view artist, std:
         LyricDataRaw result = {};
         result.source_id = id();
         result.source_path = url;
-        result.artist = artist;
-        result.album = album;
-        result.title = title;
+        result.artist = params.artist;
+        result.album = params.album;
+        result.title = params.title;
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }

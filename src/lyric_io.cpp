@@ -335,7 +335,7 @@ void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
     });
 }
 
-static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle, LyricSourceBase* source, std::string artist, std::string album, std::string title)
+static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle, LyricSourceBase* source, const LyricSearchParams& params)
 {
     std::string friendly_name = from_tstring(source->friendly_name());
     handle.set_started();
@@ -359,7 +359,7 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
                 return;
             }
 
-            search_results = remote_source->search(artist, album, title, handle.get_checked_abort());
+            search_results = remote_source->search(params, handle.get_checked_abort());
         }
 
         for(LyricDataRaw& result : search_results)
@@ -409,6 +409,17 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
     LOG_INFO("Searching for lyrics using custom parameters...");
     handle.set_started();
 
+    // NOTE: This is only ever used in this function as a const&,
+    //       and by definition this function only returns after all the search tasks have completed.
+    //       So it's safe for those tasks to reference this from other threads without
+    //       worrying about mutating shared state or this reference's lifetime expiring.
+    const LyricSearchParams params =
+    {
+        std::move(artist),
+        std::move(album),
+        std::move(title),
+    };
+
     // NOTE: It is crucial that this is a std::list so that inserting new items or removing old ones
     //       does not re-allocate the entire list and invalidate earlier pointers. We pass references
     //       to these handles into the search task and so they need to remain valid for the task's
@@ -429,8 +440,8 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
         source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         LyricUpdateHandle& src_handle = source_handles.back();
 
-        fb2k::splitTask([&src_handle, source, artist, album, title](){
-            internal_search_for_all_lyrics_from_source(src_handle, source, artist, album, title);
+        fb2k::splitTask([&src_handle, source, &params](){
+            internal_search_for_all_lyrics_from_source(src_handle, source, params);
         });
     }
 

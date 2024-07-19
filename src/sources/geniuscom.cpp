@@ -17,7 +17,7 @@ class GeniusComSource : public LyricSourceRemote
     std::tstring_view friendly_name() const final { return _T("Genius.com"); }
 
     void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
 static const LyricSourceFactory<GeniusComSource> src_factory;
@@ -89,15 +89,15 @@ void GeniusComSource::add_all_text_to_string(std::string& output, pugi::xml_node
     }
 }
 
-std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     abort_callback_dummy noAbort;
     auto request = http_client::get()->create_request("GET");
 
     std::string url = "https://genius.com/";
-    url += remove_chars_for_url(artist);
+    url += remove_chars_for_url(params.artist);
     url += '-';
-    url += remove_chars_for_url(title);
+    url += remove_chars_for_url(params.title);
     url += "-lyrics";
 
     pfc::string8 content;
@@ -176,9 +176,9 @@ std::vector<LyricDataRaw> GeniusComSource::search(std::string_view artist, std::
         LyricDataRaw result = {};
         result.source_id = id();
         result.source_path = url;
-        result.artist = artist;
-        result.album = album;
-        result.title = title;
+        result.artist = params.artist;
+        result.album = params.album;
+        result.title = params.title;
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }

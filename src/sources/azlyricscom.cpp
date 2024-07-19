@@ -17,7 +17,7 @@ class AZLyricsComSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("AZLyrics.com"); }
 
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
 static const LyricSourceFactory<AZLyricsComSource> src_factory;
@@ -40,7 +40,7 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
-std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> AZLyricsComSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     // NOTE: It seems that if we let the user-agent indicate a browser that is sufficiently far out of date, we get served a captcha.
     //       Firefox has a published release schedule (https://wiki.mozilla.org/Release_Management/Calendar) and there's a new
@@ -66,8 +66,8 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std
     http_request::ptr request = http_client::get()->create_request("GET");
     request->add_header("User-Agent", useragent);
 
-    std::string url_artist = remove_chars_for_url(artist);
-    std::string url_title = remove_chars_for_url(title);
+    std::string url_artist = remove_chars_for_url(params.artist);
+    std::string url_title = remove_chars_for_url(params.title);
     std::string url = "https://www.azlyrics.com/lyrics/" + url_artist + "/" + url_title + ".html";;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
@@ -175,8 +175,8 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(std::string_view artist, std
         LyricDataRaw result = {};
         result.source_id = id();
         result.source_path = url;
-        result.artist = artist;
-        result.title = title;
+        result.artist = params.artist;
+        result.title = params.title;
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }

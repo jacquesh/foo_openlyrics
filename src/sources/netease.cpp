@@ -14,7 +14,7 @@ class NetEaseLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
 
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
@@ -135,9 +135,9 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
     return output;
 }
 
-std::vector<LyricDataRaw> NetEaseLyricsSource::search(std::string_view artist, std::string_view /*album*/, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> NetEaseLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
-    std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(artist) + '+' + urlencode(title) + "&type=1&offset=0&sub=false&limit=5";
+    const std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(params.artist) + '+' + urlencode(params.title) + "&type=1&offset=0&sub=false&limit=5";
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;

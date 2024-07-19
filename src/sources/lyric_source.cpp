@@ -98,7 +98,13 @@ std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/,
         title = trim_surrounding_whitespace(trim_trailing_text_in_brackets(title));
     }
 
-    return search(artist, album, title, abort);
+    const LyricSearchParams params =
+    {
+        std::move(artist),
+        std::move(album),
+        std::move(title)
+    };
+    return search(params, abort);
 }
 
 std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& /*track_info*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, bool /*allow_ovewrite*/, abort_callback& /*abort*/)

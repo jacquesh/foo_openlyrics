@@ -17,13 +17,13 @@ class MetalArchivesSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Metal-Archives.com"); }
 
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
     std::vector<LyricDataRaw> parse_song_ids(cJSON* json) const;
 };
-static const LyricSourceFactory<MetalArchivesSource> lnrc_factory;
+static const LyricSourceFactory<MetalArchivesSource> src_factory;
 
 static void add_all_text_to_string(std::string& output, pugi::xml_node node)
 {
@@ -182,13 +182,13 @@ std::vector<LyricDataRaw> MetalArchivesSource::parse_song_ids(cJSON* json) const
     return output;
 }
 
-std::vector<LyricDataRaw> MetalArchivesSource::search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> MetalArchivesSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
 
-    const std::string url_artist = urlencode(artist);
-    const std::string url_album = urlencode(album);
-    const std::string url_title = urlencode(title);
+    const std::string url_artist = urlencode(params.artist);
+    const std::string url_album = urlencode(params.album);
+    const std::string url_title = urlencode(params.title);
     std::string url = "https://www.metal-archives.com/search/ajax-advanced/searching/songs";
     url += "?bandName=" + url_artist;
     url += "&releaseTitle=" + url_album;

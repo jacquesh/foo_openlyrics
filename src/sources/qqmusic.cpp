@@ -13,7 +13,7 @@ class QQMusicLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("QQ Music"); }
 
-    std::vector<LyricDataRaw> search(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
@@ -106,9 +106,9 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json) const
     return output;
 }
 
-std::vector<LyricDataRaw> QQMusicLyricsSource::search(std::string_view artist, std::string_view /*album*/, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> QQMusicLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
-    std::string url = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?inCharset=utf-8&outCharset=utf-8&key=" + urlencode(artist) + '+' + urlencode(title);
+    std::string url = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?inCharset=utf-8&outCharset=utf-8&key=" + urlencode(params.artist) + '+' + urlencode(params.title);
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;
