@@ -12,5 +12,6 @@ namespace metrics
     void log_used_show_lyrics();
     void log_used_external_window();
     void log_used_manual_scroll();
+    void log_searched_for_lyrics_for_a_remote_track();
 }
 

@@ -5,6 +5,7 @@
 #include "lyric_data.h"
 #include "lyric_io.h"
 #include "metadb_index_search_avoidance.h"
+#include "metrics.h"
 #include "mvtf/mvtf.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
@@ -330,6 +331,11 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
 
 void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
+    if(track_is_remote(handle.get_track()))
+    {
+        metrics::log_searched_for_lyrics_for_a_remote_track();
+    }
+
     fb2k::splitTask([&handle, local_only](){
         internal_search_for_lyrics(handle, local_only);
     });
