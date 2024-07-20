@@ -4,6 +4,7 @@
 #include "resource.h"
 #include "foobar2000/helpers/atl-misc.h"
 #include "foobar2000/SDK/coreDarkMode.h"
+#include "libPPUI/EditBoxFixes.h"
 #pragma warning(pop)
 
 #include "logging.h"
@@ -134,6 +135,12 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     update_play_button();
     metadb_handle_ptr now_playing = nullptr;
     playback->get_now_playing(now_playing);
+
+    // NOTE: This fixes some weird text-edit behaviour that I have observed myself (namely Ctrl-Backspace inserting
+    //       invalid characters instead of deleting the last word).
+    //       I'm also hoping it will fix some weird behaviour that I have *not* observed myself,
+    //       namely Ctrl-A not working on Windows 8.1, see https://github.com/jacquesh/foo_openlyrics/issues/190
+    PP::editBoxFix(GetDlgItem(IDC_LYRIC_TEXT));
 
     GotoDlgCtrl(GetDlgItem(IDC_LYRIC_TEXT));
 

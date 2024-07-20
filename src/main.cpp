@@ -29,6 +29,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Add a source for LRCLIB (https://lrclib.net)\n"
     "- Update the foobar2000 SDK to version 20230913\n"
+    "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"
     "- Fix a crash when attempting to load lyrics for non-existent media files\n"
