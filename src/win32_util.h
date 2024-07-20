@@ -27,5 +27,3 @@ std::tstring normalise_utf8(std::tstring_view input);
 
 #define HR_SUCCESS(hr) hr_success(hr, __FILE__, __LINE__)
 bool hr_success(HRESULT result, const char* filename, int line_number);
-std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string); // GetTextExtentPoint32
-BOOL DrawTextOut(HDC dc, int x, int y, std::tstring_view string); // TextOut

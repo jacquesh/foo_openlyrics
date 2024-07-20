@@ -144,24 +144,3 @@ bool hr_success(HRESULT result, const char* filename, int line_number)
     return success;
 }
 
-std::optional<SIZE> GetTextExtents(HDC dc, std::tstring_view string)
-{
-    assert(string.length() <= INT_MAX);
-    SIZE output;
-    BOOL success = GetTextExtentPoint32(dc, string.data(), int(string.length()), &output);
-    if(success)
-    {
-        return output;
-    }
-    else
-    {
-        return {};
-    }
-}
-
-BOOL DrawTextOut(HDC dc, int x, int y, std::tstring_view string)
-{
-    assert(string.length() <= INT_MAX);
-    return TextOut(dc, x, y, string.data(), int(string.length()));
-}
-
