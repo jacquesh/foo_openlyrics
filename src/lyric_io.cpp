@@ -413,12 +413,12 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
     //       and by definition this function only returns after all the search tasks have completed.
     //       So it's safe for those tasks to reference this from other threads without
     //       worrying about mutating shared state or this reference's lifetime expiring.
-    const LyricSearchParams params =
-    {
+    const LyricSearchParams params(
         std::move(artist),
         std::move(album),
         std::move(title),
-    };
+        {} // No duration
+    );
 
     // NOTE: It is crucial that this is a std::list so that inserting new items or removing old ones
     //       does not re-allocate the entire list and invalidate earlier pointers. We pass references

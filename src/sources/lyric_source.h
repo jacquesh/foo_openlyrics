@@ -14,6 +14,14 @@ struct LyricSearchParams
     std::string artist;
     std::string album;
     std::string title;
+    std::optional<int> duration_sec;
+
+    LyricSearchParams(std::string in_artist, std::string in_album, std::string in_title, std::optional<int> in_duration_sec)
+        : artist(std::move(in_artist))
+        , album(std::move(in_album))
+        , title(std::move(in_title))
+        , duration_sec(in_duration_sec)
+    {}
 };
 
 class LyricSourceBase : public initquit

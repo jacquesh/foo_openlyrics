@@ -90,6 +90,14 @@ std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/,
     std::string artist = track_metadata(track_info, "artist");
     std::string album = track_metadata(track_info, "album");
     std::string title = track_metadata(track_info, "title");
+    std::optional<int> track_length_sec = {};
+    if(track_info.info != nullptr)
+    {
+        double track_len = track_info.info->info().get_length();
+        if(track_len > 1.0) {
+            track_length_sec = int(track_len);
+        }
+    }
 
     if(preferences::searching::exclude_trailing_brackets())
     {
@@ -98,12 +106,12 @@ std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/,
         title = trim_surrounding_whitespace(trim_trailing_text_in_brackets(title));
     }
 
-    const LyricSearchParams params =
-    {
+    const LyricSearchParams params(
         std::move(artist),
         std::move(album),
-        std::move(title)
-    };
+        std::move(title),
+        track_length_sec
+    );
     return search(params, abort);
 }
 
