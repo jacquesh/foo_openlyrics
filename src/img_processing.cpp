@@ -1,13 +1,16 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
+#include <wincodec.h>
+#include <wrl.h>
+
 #include "libdivide.h"
-#include "stb_image.h"
 #include "stb_image_resize2.h"
 #pragma warning(pop)
 
 #include "img_processing.h"
 #include "logging.h"
+#include "win32_util.h"
 
 RGBAColour from_colorref(COLORREF colour)
 {
@@ -80,54 +83,61 @@ bool Image::valid() const
     return pixels != nullptr;
 }
 
-std::optional<Image> load_image(const char* file_path)
+template<typename T>
+static std::optional<Image> load_image_from(const T& stream_init_func)
 {
-    int width = 0;
-    int height = 0;
-    int available_channels = 0;
-    uint8_t* pixels = stbi_load(file_path,
-                                &width,
-                                &height,
-                                &available_channels,
-                                4);
-    if(pixels == nullptr)
+    using Microsoft::WRL::ComPtr;
+    ComPtr<IWICImagingFactory> wic_factory = nullptr;
+    ComPtr<IWICStream> stream = nullptr;
+    ComPtr<IWICBitmapDecoder> decoder = nullptr;
+    ComPtr<IWICBitmapFrameDecode> frame = nullptr;
+    ComPtr<IWICBitmapSource> source = nullptr;
+
+    bool success = HR_SUCCESS(CoCreateInstance(
+                CLSID_WICImagingFactory,
+                nullptr,
+                CLSCTX_INPROC_SERVER,
+                IID_IWICImagingFactory,
+                (void**)wic_factory.GetAddressOf())
+            );
+    success = success && HR_SUCCESS(wic_factory->CreateStream(stream.GetAddressOf()));
+    success = success && HR_SUCCESS(stream_init_func(stream.Get()));
+    success = success && HR_SUCCESS(wic_factory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnLoad, decoder.GetAddressOf()));
+    success = success && HR_SUCCESS(decoder->GetFrame(0, frame.GetAddressOf()));
+    success = success && HR_SUCCESS(WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, frame.Get(), source.GetAddressOf()));
+
+    UINT width = 0;
+    UINT height = 0;
+    success = success && HR_SUCCESS(source->GetSize(&width, &height));
+
+    if(!success)
     {
-        LOG_INFO("FAILED TO LOAD ALBUM ART DATA!");
+        LOG_INFO("Failed to decode album art image");
         return {};
     }
 
     Image result = {};
-    result.pixels = pixels;
-    result.width = width;
-    result.height = height;
+    result.width = int(width);
+    result.height = int(height);
+    result.pixels = new uint8_t[width*height*4];
+    source->CopyPixels(nullptr, 4*width, 4*width*height, result.pixels);
     return result;
+}
+
+std::optional<Image> load_image(const char* file_path)
+{
+    std::tstring tfile_storage = to_tstring(std::string_view(file_path));
+    const TCHAR* tfile = tfile_storage.c_str();
+    return load_image_from([tfile](IWICStream* stream) -> HRESULT {
+            return stream->InitializeFromFilename(tfile, GENERIC_READ);
+        });
 }
 
 std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_length)
 {
-    // TODO: For some unknown reason (I still need to check the docs),
-    //       Bad Things happen if you try to use 24-bit/3-byte RGB
-    //       (not RGBA) images with StretchDIBits.
-    int width = 0;
-    int height = 0;
-    int available_channels = 0;
-    uint8_t* pixels = stbi_load_from_memory((const uint8_t*)input_buffer,
-                                            (int)input_buffer_length,
-                                            &width,
-                                            &height,
-                                            &available_channels,
-                                            4);
-    if(pixels == nullptr)
-    {
-        LOG_INFO("FAILED TO LOAD ALBUM ART DATA!");
-        return {};
-    }
-
-    Image result = {};
-    result.pixels = pixels;
-    result.width = width;
-    result.height = height;
-    return result;
+    return load_image_from([input_buffer, input_buffer_length](IWICStream* stream) {
+            return stream->InitializeFromMemory((BYTE*)input_buffer, input_buffer_length);
+        });
 }
 
 Image generate_background_colour(int width, int height, RGBAColour colour)

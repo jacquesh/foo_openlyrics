@@ -31,6 +31,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Update the foobar2000 SDK to version 20230913\n"
     "- Change default local file name format to replace invalid characters\n"
     "  - Applies to new users only. Existing users' settings won't be changed\n"
+    "- Switch to using built-in Windows codecs for all image loading\n"
     "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"

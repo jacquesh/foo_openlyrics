@@ -1,5 +1,9 @@
 #include "stdafx.h"
 
+#pragma warning(push, 0)
+#include <comdef.h>
+#pragma warning(pop)
+
 #include "logging.h"
 #include "win32_util.h"
 
@@ -139,7 +143,9 @@ bool hr_success(HRESULT result, const char* filename, int line_number)
     const bool success = (result == S_OK);
     if(!success)
     {
-        LOG_WARN("HRESULT indicated failure @ %s:%d: 0x%x", filename, line_number, uint32_t(result));
+        _com_error err(result);
+        std::string err_msg = from_tstring(std::tstring_view(err.ErrorMessage()));
+        LOG_WARN("HRESULT indicated failure @ %s:%d: 0x%x %s", filename, line_number, uint32_t(result), err_msg.c_str());
     }
     return success;
 }
