@@ -28,11 +28,8 @@ static cfg_auto_combo_option<SaveDirectoryClass> save_dir_class_options[] =
 
 static cfg_auto_combo<SaveDirectoryClass, 3> cfg_save_dir_class(GUID_CFG_SAVE_DIR_CLASS, IDC_SAVE_DIRECTORY_CLASS, SaveDirectoryClass::ConfigDirectory, save_dir_class_options);
 
-// TODO: The change below makes the default behaviour to swap our '/' with some other character so that we don't create directories
-//       As per https://github.com/jacquesh/foo_openlyrics/issues/244
-// TODO: Check what we replace other/invalid characters with, and then do the same here for consistency
-// static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "[%artist% - ][%title%]");
-static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "$replace([%artist% - ][%title%],/,-)");
+// Default to replacing all invalid visible characters as per https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "$replace([%artist% - ][%title%],/,-,\\,-,<,-,>,-,:,-,\",-,|,-,?,-,*,-)");
 
 static cfg_auto_string                       cfg_save_path_custom(GUID_CFG_SAVE_PATH_CUSTOM, IDC_SAVE_CUSTOM_PATH, "C:\\Lyrics\\%artist%");
 
