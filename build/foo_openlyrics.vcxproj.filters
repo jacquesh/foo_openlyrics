@@ -153,6 +153,9 @@
     <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sources\lrclib.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">

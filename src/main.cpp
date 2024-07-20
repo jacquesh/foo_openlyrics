@@ -27,6 +27,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Add a source for LRCLIB (https://lrclib.net)\n"
     "- Update the foobar2000 SDK to version 20230913\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"
