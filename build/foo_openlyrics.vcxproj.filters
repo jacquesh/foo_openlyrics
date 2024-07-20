@@ -212,9 +212,6 @@
     <ClInclude Include="..\src\metadb_index_search_avoidance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\3rdparty\stb\stb_image_resize.h">
-      <Filter>3rdparty</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\img_processing.h">
       <Filter>Header Files</Filter>
     </ClInclude>

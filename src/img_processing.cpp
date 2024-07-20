@@ -5,7 +5,6 @@
 #include <wrl.h>
 
 #include "libdivide.h"
-#include "stb_image_resize2.h"
 #pragma warning(pop)
 
 #include "img_processing.h"
@@ -119,7 +118,7 @@ static std::optional<Image> load_image_from(const T& stream_init_func)
     Image result = {};
     result.width = int(width);
     result.height = int(height);
-    result.pixels = new uint8_t[width*height*4];
+    result.pixels = (uint8_t*)malloc(width * height * 4);
     source->CopyPixels(nullptr, 4*width, 4*width*height, result.pixels);
     return result;
 }
@@ -297,15 +296,45 @@ Image resize_image(const Image& input, int out_width, int out_height)
         return {};
     }
 
-    uint8_t* resized_pixels = stbir_resize_uint8_linear(
-            input.pixels, input.width, input.height,  0/*stride*/,
-            nullptr/*output_pixels*/, out_width, out_height, 0/*stride*/,
-            STBIR_4CHANNEL);
+    using Microsoft::WRL::ComPtr;
+    ComPtr<IWICImagingFactory> wic_factory = nullptr;
+    ComPtr<IWICStream> stream = nullptr;
+    ComPtr<IWICBitmap> bitmap = nullptr;
+    ComPtr<IWICBitmapScaler> scaler = nullptr;
+    ComPtr<IWICBitmapSource> source = nullptr;
+
+    bool success = HR_SUCCESS(CoCreateInstance(
+                CLSID_WICImagingFactory,
+                nullptr,
+                CLSCTX_INPROC_SERVER,
+                IID_IWICImagingFactory,
+                (void**)wic_factory.GetAddressOf())
+            );
+    success = success && HR_SUCCESS(wic_factory->CreateStream(stream.GetAddressOf()));
+    success = success && HR_SUCCESS(wic_factory->CreateBitmapFromMemory(
+                input.width,
+                input.height,
+                GUID_WICPixelFormat32bppRGBA,
+                4 * input.width,
+                4 * input.width * input.height,
+                input.pixels,
+                bitmap.GetAddressOf()
+                ));
+    success = success && HR_SUCCESS(wic_factory->CreateBitmapScaler(scaler.GetAddressOf()));
+    success = success && HR_SUCCESS(scaler->Initialize(bitmap.Get(), out_width, out_height, WICBitmapInterpolationModeFant));
+    success = success && HR_SUCCESS(WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, scaler.Get(), source.GetAddressOf()));
+
+    if(!success)
+    {
+        LOG_INFO("Failed to resize image");
+        return {};
+    }
 
     Image result = {};
-    result.pixels = std::move(resized_pixels);
     result.width = out_width;
     result.height = out_height;
+    result.pixels = new uint8_t[out_width*out_height*4];
+    source->CopyPixels(nullptr, 4*out_width, 4*out_width*out_height, result.pixels);
     return result;
 }
 

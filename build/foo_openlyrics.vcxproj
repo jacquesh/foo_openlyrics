@@ -265,7 +265,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\3rdparty\cJSON\cJSON.h" />
-    <ClInclude Include="..\3rdparty\stb\stb_image_resize.h" />
     <ClInclude Include="..\src\config\config_auto.h" />
     <ClInclude Include="..\src\config\config_font.h" />
     <ClInclude Include="..\src\img_processing.h" />
