@@ -48,6 +48,7 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, con
         lyric.artist = track_metadata(track_info, "artist");
         lyric.album = track_metadata(track_info, "album");
         lyric.title = track_metadata(track_info, "title");
+        lyric.duration_sec = track_duration_in_seconds(track_info);
 
         std::string text;
         size_t value_count = info.meta_enum_value_count(lyric_value_index);

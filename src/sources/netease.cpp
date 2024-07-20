@@ -81,6 +81,7 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
         const char* result_artist = nullptr;
         const char* result_album = nullptr;
         const char* result_title = nullptr;
+        std::optional<int> result_duration_sec = {};
 
         cJSON* artist_list_item = cJSON_GetObjectItem(song_item, "artists");
         if((artist_list_item != nullptr) && (artist_list_item->type == cJSON_Array))
@@ -123,12 +124,19 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
             continue;
         }
 
+        cJSON* duration_item = cJSON_GetObjectItem(song_item, "duration");
+        if((duration_item != nullptr) && (duration_item->type == cJSON_Number))
+        {
+            result_duration_sec = duration_item->valueint/1000; // Given duration is in milliseconds
+        }
+
         LyricDataRaw data = {};
         data.source_id = src_guid;
         if(result_artist != nullptr) data.artist = result_artist;
         if(result_album != nullptr) data.album = result_album;
         if(result_title != nullptr) data.title = result_title;
         data.lookup_id = std::to_string((int64_t)song_id_item->valuedouble);
+        data.duration_sec = result_duration_sec;
         output.push_back(std::move(data));
     }
 

@@ -90,14 +90,7 @@ std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/,
     std::string artist = track_metadata(track_info, "artist");
     std::string album = track_metadata(track_info, "album");
     std::string title = track_metadata(track_info, "title");
-    std::optional<int> track_length_sec = {};
-    if(track_info.info != nullptr)
-    {
-        double track_len = track_info.info->info().get_length();
-        if(track_len > 1.0) {
-            track_length_sec = int(track_len);
-        }
-    }
+    std::optional<int> track_length_sec = track_duration_in_seconds(track_info);
 
     if(preferences::searching::exclude_trailing_brackets())
     {

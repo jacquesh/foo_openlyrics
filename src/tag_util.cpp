@@ -225,6 +225,19 @@ std::string track_metadata(const file_info& track_info, std::string_view key)
     return track_info.meta_enum_value(value_index, 0);
 }
 
+std::optional<int> track_duration_in_seconds(const metadb_v2_rec_t& track)
+{
+    if(track.info != nullptr)
+    {
+        double track_len = track.info->info().get_length();
+        if(track_len > 1.0) {
+            return int(track_len);
+        }
+    }
+    return {};
+}
+
+
 bool track_is_remote(metadb_handle_ptr track)
 {
 #if FOOBAR2000_TARGET_VERSION >= 81

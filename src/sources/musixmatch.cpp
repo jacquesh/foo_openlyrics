@@ -185,9 +185,16 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
         }
 
         cJSON* json_trackid = cJSON_GetObjectItem(json_tracktrack, "commontrack_id");
-        if((json_tracktrack == nullptr) || (json_trackid->type != cJSON_Number))
+        if((json_trackid == nullptr) || (json_trackid->type != cJSON_Number))
         {
             LOG_WARN("Received musixmatch search result but track ID was malformed: %s", content.c_str());
+            break;
+        }
+
+        cJSON* json_duration = cJSON_GetObjectItem(json_tracktrack, "track_length");
+        if((json_duration == nullptr) || (json_duration->type != cJSON_Number))
+        {
+            LOG_WARN("Received musixmatch search result but track length was malformed: %s", content.c_str());
             break;
         }
 
@@ -202,6 +209,7 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
         data.album = json_album->valuestring;
         data.title = json_title->valuestring;
         data.lookup_id = EncodeSearchResult(search_result);
+        data.duration_sec = json_duration->valueint;
         results.push_back(std::move(data));
     }
 
