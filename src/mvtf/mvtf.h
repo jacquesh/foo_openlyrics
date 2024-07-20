@@ -22,10 +22,6 @@
 #define MVTF_TEST(TEST_NAME) static void TEST_NAME(int* mvtf_error_count)
 #endif
 
-// TODO: This requires shared.dll to be copied to the binaries directory from the fb2k install dir.
-// That kinda sucks but it's a consequence of linking to the fb2k SDK and the plugin DLL directly.
-// I wonder if we can extract the relevant logic out into a static lib that doesn't depend on fb2k.
-
 // TODO: Do a debugbreak if the debugger is attached?
 #define ASSERT(CONDITION) do{if(!(CONDITION)){ *mvtf_error_count = *mvtf_error_count + 1; return; }}while(false)
 #define CHECK(CONDITION) do{if(!(CONDITION)){ *mvtf_error_count = *mvtf_error_count + 1; }}while(false)

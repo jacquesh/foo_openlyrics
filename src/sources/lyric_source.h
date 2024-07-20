@@ -37,6 +37,9 @@ public:
     virtual bool is_local() const = 0;
 
     virtual std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) = 0;
+
+    // Lookup any outstanding data in the given lyric data, modifying it in-place.
+    // Returns true on success, otherwise false.
     virtual bool lookup(LyricDataRaw& data, abort_callback& abort) = 0;
 
     virtual std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) = 0;
