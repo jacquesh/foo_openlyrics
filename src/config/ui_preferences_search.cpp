@@ -671,34 +671,31 @@ public:
 static preferences_page_factory_t<PreferencesSearchImpl> g_preferences_page_search_factory;
 
 
-class SkipFilterDefaultCorrection : public initquit
+static void fix_skip_filter_default_on_init()
 {
-    void on_init() final
-    {
-        // When the customisable skip filter was introduced in v1.7, it had the default given below.
-        // This default is broken and will always produce an empty string (note the extra closing
-        // parenthesis after `instrumental`). This seems like a bug in fb2k because I would have
-        // expected the extra closing parenthesis to show up in the output, but apparently not.
-        // Since defaults are persisted on first launch, now every user that launched fb2k with
-        // openlyrics v1.7 will have this broken default.
-        // Unless they fix it or remove the bad string entirely, the skip filter will never work
-        // for them.
-        // To work around this we check for it on startup and quietly migrate to the new default.
-        // This could technically be a bad experience if a user in future specifically sets their
-        // filter to the exact broken string we used to have as default and is then surprised when
-        // it changes, but that seems terribly unlikely. And their filter wouldn't have worked anyway.
-        //
-        // If it helps, we can probably remove this conversion sometime in the future after a few
-        // releases once there's been time for most users' default filters to have been fixed.
-        //
-        const std::string_view old_broken_default_filter = "$stricmp(%genre%,instrumental))$stricmp(%genre%,classical)";
-        const std::string_view new_fixed_default_filter = cfg_search_skip_filter.get_default();
-        const std::string_view current_filter = cfg_search_skip_filter.get_stringview();
+    // When the customisable skip filter was introduced in v1.7, it had the default given below.
+    // This default is broken and will always produce an empty string (note the extra closing
+    // parenthesis after `instrumental`). This seems like a bug in fb2k because I would have
+    // expected the extra closing parenthesis to show up in the output, but apparently not.
+    // Since defaults are persisted on first launch, now every user that launched fb2k with
+    // openlyrics v1.7 will have this broken default.
+    // Unless they fix it or remove the bad string entirely, the skip filter will never work
+    // for them.
+    // To work around this we check for it on startup and quietly migrate to the new default.
+    // This could technically be a bad experience if a user in future specifically sets their
+    // filter to the exact broken string we used to have as default and is then surprised when
+    // it changes, but that seems terribly unlikely. And their filter wouldn't have worked anyway.
+    //
+    // If it helps, we can probably remove this conversion sometime in the future after a few
+    // releases once there's been time for most users' default filters to have been fixed.
+    //
+    const std::string_view old_broken_default_filter = "$stricmp(%genre%,instrumental))$stricmp(%genre%,classical)";
+    const std::string_view new_fixed_default_filter = cfg_search_skip_filter.get_default();
+    const std::string_view current_filter = cfg_search_skip_filter.get_stringview();
 
-        if(current_filter == old_broken_default_filter)
-        {
-            cfg_search_skip_filter.set_string_nc(new_fixed_default_filter.data(), new_fixed_default_filter.length());
-        }
+    if(current_filter == old_broken_default_filter)
+    {
+        cfg_search_skip_filter.set_string_nc(new_fixed_default_filter.data(), new_fixed_default_filter.length());
     }
-};
-static initquit_factory_t<SkipFilterDefaultCorrection> g_skipfilter_correction_factory;
+}
+FB2K_RUN_ON_INIT(fix_skip_filter_default_on_init)

@@ -1263,28 +1263,25 @@ void show_external_lyric_window()
     }
 }
 
-class ExternalWindowLifetimeWarden : public initquit
+static void open_external_window_on_init()
 {
-    void on_init() final
+    const bool was_open = (cfg_external_window_was_open.get_value() != 0);
+    if(was_open)
     {
-        const bool was_open = (cfg_external_window_was_open.get_value() != 0);
-        if(was_open)
-        {
-            show_external_lyric_window();
-        }
+        show_external_lyric_window();
     }
-    void on_quit() final
+}
+static void close_external_window_on_quit()
+{
+    if(g_external_window != nullptr)
     {
-        if(g_external_window != nullptr)
+        if(g_external_window->IsWindow())
         {
-            if(g_external_window->IsWindow())
-            {
-                g_external_window->DestroyWindow();
-            }
-            delete g_external_window;
-            g_external_window = nullptr;
+            g_external_window->DestroyWindow();
         }
+        delete g_external_window;
+        g_external_window = nullptr;
     }
-};
-static initquit_factory_t<ExternalWindowLifetimeWarden> g_warden_factory;
+}
+FB2K_RUN_ON_INIT_QUIT(open_external_window_on_init, close_external_window_on_quit)
 

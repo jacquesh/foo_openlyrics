@@ -335,11 +335,6 @@ void submit_metrics(std::string metrics)
     }
 }
 
-class foo_send_metrics_on_init : public initquit
-{
-    void on_init() override;
-};
-
 class AsyncMetricsCollectionAndSubmission : public threaded_process_callback
 {
     std::string m_metrics;
@@ -411,9 +406,7 @@ public:
     }
 };
 
-static initquit_factory_t<foo_send_metrics_on_init> metrics_factory;
-
-void foo_send_metrics_on_init::on_init()
+static void send_metrics_on_init()
 {
     const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
     const int days_since_unix_epoch = std::chrono::floor<std::chrono::days>(since_unix_epoch).count();
@@ -463,3 +456,4 @@ void foo_send_metrics_on_init::on_init()
         LOG_WARN("Failed to initiate metrics collection");
     }
 }
+FB2K_RUN_ON_INIT(send_metrics_on_init)
