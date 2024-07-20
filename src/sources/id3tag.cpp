@@ -204,7 +204,7 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
 
             // NOTE: I'm actually not 100% sure this is necessary but lets ensure we've loaded the full tag data
             //       before we save it so that we don't accidentally overwrite some esoteric tag that wasn't loaded.
-            track->get_full_info_ref(fb2k::noAbort);
+            track->get_full_info_ref(fb2k::mainAborter());
 
             service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
             service_ptr_t<MetaRemovalCompletionLogger> completion = fb2k::service_new<MetaRemovalCompletionLogger>(path);

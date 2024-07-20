@@ -181,7 +181,7 @@ bool LocalFileSource::delete_persisted(metadb_handle_ptr /*track*/, const std::s
 {
     try
     {
-        filesystem::g_remove(path.c_str(), fb2k::noAbort);
+        filesystem::g_remove(path.c_str(), fb2k::mainAborter());
         return true;
     }
     catch(const std::exception& ex)

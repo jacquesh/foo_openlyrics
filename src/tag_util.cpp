@@ -84,7 +84,7 @@ metadb_v2_rec_t get_full_metadata(metadb_handle_ptr track)
     metadb_v2_rec_t result = {};
     try
     {
-        result.info = track->get_full_info_ref(fb2k::noAbort);
+        result.info = track->get_full_info_ref(fb2k::mainAborter());
     }
     catch(pfc::exception ex)
     {

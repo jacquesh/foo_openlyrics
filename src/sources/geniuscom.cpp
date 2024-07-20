@@ -91,7 +91,6 @@ void GeniusComSource::add_all_text_to_string(std::string& output, pugi::xml_node
 
 std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
-    abort_callback_dummy noAbort;
     auto request = http_client::get()->create_request("GET");
 
     std::string url = "https://genius.com/";
