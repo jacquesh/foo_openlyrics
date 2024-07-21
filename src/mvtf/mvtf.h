@@ -52,12 +52,21 @@ int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name)
     return mvtf_test_count;
 }
 
+static int sort_by_name(const void* lhs_void, const void* rhs_void)
+{
+    return strcmp(
+            ((const mvtf_function_metadata*)lhs_void)->name,
+            ((const mvtf_function_metadata*)rhs_void)->name
+        );
+}
+
 extern "C" __declspec(dllexport) int run_mvtf_tests()
 {
     int return_code = 0;
     printf("Executing %d test functions...\n", mvtf_test_count);
     LARGE_INTEGER start_time = {};
     QueryPerformanceCounter(&start_time);
+    qsort(mvtf_test_functions, mvtf_test_count, sizeof(*mvtf_test_functions), sort_by_name);
     for(int i=0; i<mvtf_test_count; i++)
     {
         int error_count = 0;
