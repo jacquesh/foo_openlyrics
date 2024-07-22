@@ -18,52 +18,52 @@ jobs:
     needs: run-tests
 
     steps:
-    - name: Print installed Windows SDK versions
-      shell: pwsh
-      continue-on-error: true
-      run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
+      - name: Print installed Windows SDK versions
+        shell: pwsh
+        continue-on-error: true
+        run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
-    - name: Add MSBuild to the PATH
-      uses: microsoft/setup-msbuild@v2
+      - name: Add MSBuild to the PATH
+        uses: microsoft/setup-msbuild@v2
 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Build 32-bit binary
-      run: msbuild /r /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
+      - name: Build 32-bit binary
+        run: msbuild /r /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
 
-    - name: Build 64-bit binary
-      run: msbuild /r /m /p:Configuration=Release /p:Platform=x64 build\foo_openlyrics.sln
+      - name: Build 64-bit binary
+        run: msbuild /r /m /p:Configuration=Release /p:Platform=x64 build\foo_openlyrics.sln
 
-    - name: Pack binary into archive
-      shell: bash
-      run: |
-        release_version="${GITHUB_REF#refs/tags/}"
-        release_name="foo_openlyrics-${release_version}"
-        echo "Release version ${release_version}"
-        mkdir -p build_component_staging/x64
-        pushd build_component_staging
-        cp "../build/Release/foo_openlyrics.dll" "."
-        cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
-        7z a -tzip "../${release_name}.fb2k-component" "."
-        popd
-        mkdir -p build_symbols_staging/x86
-        mkdir -p build_symbols_staging/x64
-        pushd build_symbols_staging
-        cp "../build/Release/foo_openlyrics.dll" "x86/"
-        cp "../build/Release/foo_openlyrics.pdb" "x86/"
-        cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
-        cp "../build/x64/Release/foo_openlyrics.pdb" "x64/"
-        7z a "../${release_name}-with_debug_symbols.zip" "."
-        popd
-        echo "RELEASE_VERSION=${release_version}" >> $GITHUB_ENV
-        echo "RELEASE_NAME=${release_name}" >> $GITHUB_ENV
+      - name: Pack binary into archive
+        shell: bash
+        run: |
+          release_version="${GITHUB_REF#refs/tags/}"
+          release_name="foo_openlyrics-${release_version}"
+          echo "Release version ${release_version}"
+          mkdir -p build_component_staging/x64
+          pushd build_component_staging
+          cp "../build/Release/foo_openlyrics.dll" "."
+          cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
+          7z a -tzip "../${release_name}.fb2k-component" "."
+          popd
+          mkdir -p build_symbols_staging/x86
+          mkdir -p build_symbols_staging/x64
+          pushd build_symbols_staging
+          cp "../build/Release/foo_openlyrics.dll" "x86/"
+          cp "../build/Release/foo_openlyrics.pdb" "x86/"
+          cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
+          cp "../build/x64/Release/foo_openlyrics.pdb" "x64/"
+          7z a "../${release_name}-with_debug_symbols.zip" "."
+          popd
+          echo "RELEASE_VERSION=${release_version}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=${release_name}" >> $GITHUB_ENV
 
-    - name: Create GitHub release
-      id: release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          ${{ env.RELEASE_NAME }}.fb2k-component
-          ${{ env.RELEASE_NAME }}-with_debug_symbols.zip
+      - name: Create GitHub release
+        id: release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.RELEASE_NAME }}.fb2k-component
+            ${{ env.RELEASE_NAME }}-with_debug_symbols.zip
 
