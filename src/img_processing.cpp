@@ -135,7 +135,7 @@ std::optional<Image> load_image(const char* file_path)
 std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_length)
 {
     return load_image_from([input_buffer, input_buffer_length](IWICStream* stream) {
-            return stream->InitializeFromMemory((BYTE*)input_buffer, input_buffer_length);
+            return stream->InitializeFromMemory((BYTE*)input_buffer, (DWORD)input_buffer_length);
         });
 }
 
