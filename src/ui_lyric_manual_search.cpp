@@ -19,6 +19,11 @@ static const GUID GUID_CFG_ALBUM_COLUMN_WIDTH = { 0x7ac61807, 0x57a2, 0x4880, { 
 static const GUID GUID_CFG_ARTIST_COLUMN_WIDTH = { 0xdebf2d4e, 0xfb93, 0x4a3f, { 0xb6, 0x3e, 0x84, 0x3f, 0x89, 0xa9, 0x86, 0xba } };
 static const GUID GUID_CFG_SOURCE_COLUMN_WIDTH = { 0x44350ccb, 0xf62a, 0x4d47, { 0x9a, 0xeb, 0x5a, 0x7a, 0xc4, 0xce, 0x75, 0xa1 } };
 
+// Without enforcing a minimum width, we could end up with columns being 0px wide
+// (either as a result of user resizing or a bug that breaks the width persistence).
+// That always looks like a bug, so instead we just enforce some arbitrary non-zero
+// minimum column width.
+constexpr int MIN_COLUMN_WIDTH_PX = 32;
 static cfg_int_t<int> cfg_title_column_width(GUID_CFG_TITLE_COLUMN_WIDTH, 160);
 static cfg_int_t<int> cfg_album_column_width(GUID_CFG_ALBUM_COLUMN_WIDTH, 160);
 static cfg_int_t<int> cfg_artist_column_width(GUID_CFG_ARTIST_COLUMN_WIDTH, 128);
@@ -94,7 +99,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     title_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     title_column.fmt = LVCFMT_LEFT;
     title_column.pszText = _T("Title");
-    title_column.cx = cfg_title_column_width;
+    title_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_title_column_width);
     LRESULT title_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 0, (LPARAM)&title_column);
     assert(title_index >= 0);
 
@@ -102,7 +107,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     album_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     album_column.fmt = LVCFMT_LEFT;
     album_column.pszText = _T("Album");
-    album_column.cx = cfg_album_column_width;
+    album_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_album_column_width);
     LRESULT album_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 1, (LPARAM)&album_column);
     assert(album_index >= 0);
 
@@ -110,7 +115,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     artist_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     artist_column.fmt = LVCFMT_LEFT;
     artist_column.pszText = _T("Artist");
-    artist_column.cx = cfg_artist_column_width;
+    artist_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_artist_column_width);
     LRESULT artist_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 2, (LPARAM)&artist_column);
     assert(artist_index >= 0);
 
@@ -118,7 +123,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     source_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     source_column.fmt = LVCFMT_LEFT;
     source_column.pszText = _T("Source");
-    source_column.cx = cfg_source_column_width;
+    source_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_source_column_width);
     LRESULT source_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 3, (LPARAM)&source_column);
     assert(source_index >= 0);
 
