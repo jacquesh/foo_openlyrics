@@ -33,6 +33,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "  - Applies to new users only. Existing users' settings won't be changed\n"
     "- Switch to using built-in Windows codecs for all image loading\n"
     "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
+    "- Fix possibly using the wrong background colour when changing FB2K colours\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"
     "- Fix a crash when attempting to load lyrics for non-existent media files\n"

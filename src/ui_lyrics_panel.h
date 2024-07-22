@@ -6,7 +6,7 @@
 #include "lyric_io.h"
 #include "metadb_index_search_avoidance.h"
 
-class LyricPanel : public CWindowImpl<LyricPanel>, private play_callback
+class LyricPanel : public CWindowImpl<LyricPanel>, private play_callback, ui_config_callback_impl
 {
 public:
     // ATL window class declaration. Replace class name with your own when reusing code.
@@ -24,6 +24,7 @@ public:
     void on_playback_dynamic_info_track(const file_info& info) override;
     void on_playback_time(double /*time*/) override {}
     void on_volume_change(float /*new_volume*/) override {}
+    void ui_colors_changed() override;
 
     CRect compute_background_image_rect();
     void load_custom_background_image();

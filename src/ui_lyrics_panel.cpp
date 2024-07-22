@@ -289,6 +289,13 @@ void LyricPanel::on_playback_seek(double /*time*/)
     Invalidate(); // Draw again to update the scroll for the new seek time
 }
 
+void LyricPanel::ui_colors_changed() {
+    // This callback executes when the fb2k UI colour config is changed (including toggling dark mode).
+    // We depend on the UI colour config in some cases for background creation, so re-run that when
+    // the config changes for consistency.
+    compute_background_image();
+}
+
 LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
 {
     service_ptr_t<playback_control> playback = playback_control::get();
