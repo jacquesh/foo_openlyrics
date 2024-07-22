@@ -5,7 +5,7 @@ on:
   workflow_call:
 
 jobs:
-  build-and-test:
+  print-windows-sdks:
     runs-on: windows-2022
     steps:
       - name: Print installed Windows SDK versions
@@ -13,6 +13,26 @@ jobs:
         continue-on-error: true
         run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
+  build-and-test-32bit:
+    runs-on: windows-2022
+    name: Build and test - x86
+    steps:
+      - name: Add MSBuild to the PATH
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build debug binaries
+        run: msbuild /r /m /p:Configuration=Debug /p:Platform=x86 build\foo_openlyrics.sln
+
+      - name: Run tests
+        run: build\Debug\test_foo_openlyrics.exe build\Debug\foo_openlyrics.dll
+
+  build-and-test-64bit:
+    runs-on: windows-2022
+    name: Build and test - x64
+    steps:
       - name: Add MSBuild to the PATH
         uses: microsoft/setup-msbuild@v1.1
 
