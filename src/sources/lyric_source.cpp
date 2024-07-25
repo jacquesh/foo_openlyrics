@@ -35,7 +35,7 @@ void LyricSourceBase::on_init()
     g_lyric_sources.push_back(this);
 }
 
-std::string LyricSourceBase::urlencode(std::string_view input)
+std::string LyricSourceRemote::urlencode(std::string_view input)
 {
     size_t inlen = input.length();
     std::string result;

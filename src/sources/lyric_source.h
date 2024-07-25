@@ -48,7 +48,6 @@ public:
     virtual std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) = 0;
 
 protected:
-    static std::string urlencode(std::string_view input);
     static std::vector<uint8_t> string_to_raw_bytes(std::string_view str);
 };
 
@@ -62,6 +61,8 @@ public:
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 
     virtual std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) = 0;
+protected:
+    static std::string urlencode(std::string_view input);
 };
 
 template<typename T>
