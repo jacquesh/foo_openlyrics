@@ -4,6 +4,28 @@
 #include "lyric_source.h"
 #include "tag_util.h"
 
+LyricSearchParams::LyricSearchParams(const metadb_v2_rec_t& track_info)
+{
+    artist = track_metadata(track_info, "artist");
+    album = track_metadata(track_info, "album");
+    title = track_metadata(track_info, "title");
+    duration_sec = track_duration_in_seconds(track_info);
+
+    if(preferences::searching::exclude_trailing_brackets())
+    {
+        artist = trim_surrounding_whitespace(trim_trailing_text_in_brackets(artist));
+        album = trim_surrounding_whitespace(trim_trailing_text_in_brackets(album));
+        title = trim_surrounding_whitespace(trim_trailing_text_in_brackets(title));
+    }
+}
+
+LyricSearchParams::LyricSearchParams(std::string in_artist, std::string in_album, std::string in_title, std::optional<int> in_duration_sec)
+    : artist(std::move(in_artist))
+    , album(std::move(in_album))
+    , title(std::move(in_title))
+    , duration_sec(in_duration_sec)
+{}
+
 static std::vector<LyricSourceBase*> g_lyric_sources;
 
 LyricSourceBase* LyricSourceBase::get(GUID id)
@@ -87,24 +109,7 @@ bool LyricSourceRemote::is_local() const
 
 std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& track_info, abort_callback& abort)
 {
-    std::string artist = track_metadata(track_info, "artist");
-    std::string album = track_metadata(track_info, "album");
-    std::string title = track_metadata(track_info, "title");
-    std::optional<int> track_length_sec = track_duration_in_seconds(track_info);
-
-    if(preferences::searching::exclude_trailing_brackets())
-    {
-        artist = trim_surrounding_whitespace(trim_trailing_text_in_brackets(artist));
-        album = trim_surrounding_whitespace(trim_trailing_text_in_brackets(album));
-        title = trim_surrounding_whitespace(trim_trailing_text_in_brackets(title));
-    }
-
-    const LyricSearchParams params(
-        std::move(artist),
-        std::move(album),
-        std::move(title),
-        track_length_sec
-    );
+    const LyricSearchParams params(track_info);
     return search(params, abort);
 }
 
@@ -128,3 +133,15 @@ std::tstring LyricSourceRemote::get_file_path(metadb_handle_ptr /*track*/, const
     assert(false);
     return _T("");
 }
+
+bool LyricSourceRemote::supports_upload() const
+{
+    return false;
+}
+
+void LyricSourceRemote::upload(const LyricData& /*lyrics*/, abort_callback& /*abort*/)
+{
+    LOG_WARN("Cannot upload to a generic remote source (that doesn't support upload)");
+    assert(false);
+}
+

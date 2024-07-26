@@ -16,12 +16,8 @@ struct LyricSearchParams
     std::string title;
     std::optional<int> duration_sec;
 
-    LyricSearchParams(std::string in_artist, std::string in_album, std::string in_title, std::optional<int> in_duration_sec)
-        : artist(std::move(in_artist))
-        , album(std::move(in_album))
-        , title(std::move(in_title))
-        , duration_sec(in_duration_sec)
-    {}
+    explicit LyricSearchParams(const metadb_v2_rec_t& track_info);
+    LyricSearchParams(std::string in_artist, std::string in_album, std::string in_title, std::optional<int> in_duration_sec);
 };
 
 class LyricSourceBase : public initquit
@@ -61,6 +57,10 @@ public:
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 
     virtual std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) = 0;
+
+    virtual bool supports_upload() const;
+    virtual void upload(const LyricData& lyrics, abort_callback& abort);
+
 protected:
     static std::string urlencode(std::string_view input);
 };
