@@ -9,6 +9,7 @@
 
 #include "cJSON.h"
 
+#include "hash_utils.h"
 #include "logging.h"
 #include "metrics.h"
 #include "sources/lyric_source.h"
@@ -143,34 +144,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
             return status >= 0; // According to the example code at https://learn.microsoft.com/en-us/windows/win32/seccng/creating-a-hash-with-cng
         };
 
-        // BCryptGetProperty wants to output the number of bytes written to the output buffer.
-        // This parameter is meant to be optional but we get failures without it.
-        ULONG get_property_bytes_written = 0;
-
-        BCRYPT_ALG_HANDLE hash_alg = {};
-        NTSTATUS status = BCryptOpenAlgorithmProvider(&hash_alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
-        if(!is_success(status))
-        {
-            return "<hopen-error>";
-        }
-
-        DWORD hash_obj_size = 0;
-        status = BCryptGetProperty(hash_alg, BCRYPT_OBJECT_LENGTH, (UCHAR*)&hash_obj_size, sizeof(hash_obj_size), &get_property_bytes_written, 0);
-        if(!is_success(status))
-        {
-            return "<hgetsize-error>";
-        }
-
-        std::vector<UCHAR> hash_memory;
-        hash_memory.resize(hash_obj_size);
-
-        BCRYPT_HASH_HANDLE hash_handle = {};
-        status = BCryptCreateHash(hash_alg, &hash_handle, hash_memory.data(), hash_obj_size, nullptr, 0, 0);
-        if(!is_success(status))
-        {
-            return "<hcreate-error>";
-        }
-
+        Sha256Context sha;
         try
         {
             file_ptr file;
@@ -189,13 +163,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
                 {
                     break;
                 }
-
-                assert(bytes_read < ULONG_MAX);
-                status = BCryptHashData(hash_handle, tmp_buffer, ULONG(bytes_read), 0);
-                if(!is_success(status))
-                {
-                    return "<hdata-error>";
-                }
+                sha.add_data(tmp_buffer, bytes_read);
             }
         }
         catch(const std::exception&)
@@ -203,26 +171,11 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
             return "<fileio-error>";
         }
 
-        DWORD hash_out_size = 0;
-        status = BCryptGetProperty(hash_alg, BCRYPT_HASH_LENGTH, (UCHAR*)&hash_out_size, sizeof(hash_out_size), &get_property_bytes_written, 0);
-        if(!is_success(status))
-        {
-            return "<hgetlength-error>";
-        }
-
-        std::vector<UCHAR> hash_out;
-        hash_out.resize(hash_out_size);
-        status = BCryptFinishHash(hash_handle, hash_out.data(), hash_out_size, 0);
-        if(!is_success(status))
-        {
-            return "<hfinish-error>";
-        }
-
-        BCryptDestroyHash(hash_handle);
-        BCryptCloseAlgorithmProvider(hash_alg, 0);
+        uint8_t hash_out[32] = {};
+        sha.finalise(hash_out);
 
         char out[1024] = {};
-        for(size_t i=0; i<hash_out_size; i++)
+        for(size_t i=0; i<sizeof(hash_out); i++)
         {
             snprintf(&out[2*i], sizeof(out)-2*i, "%02x", hash_out[i]);
         }

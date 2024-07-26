@@ -215,6 +215,7 @@
     <ClCompile Include="..\src\config\ui_preferences_src_localfiles.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_metadatatags.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp" />
+    <ClCompile Include="..\src\hash_utils.cpp" />
     <ClCompile Include="..\src\img_processing.cpp" />
     <ClCompile Include="..\src\lyric_auto_edit.cpp" />
     <ClCompile Include="..\src\lyric_data.cpp" />
@@ -267,6 +268,7 @@
     <ClInclude Include="..\3rdparty\cJSON\cJSON.h" />
     <ClInclude Include="..\src\config\config_auto.h" />
     <ClInclude Include="..\src\config\config_font.h" />
+    <ClInclude Include="..\src\hash_utils.h" />
     <ClInclude Include="..\src\img_processing.h" />
     <ClInclude Include="..\src\logging.h" />
     <ClInclude Include="..\src\lyric_auto_edit.h" />

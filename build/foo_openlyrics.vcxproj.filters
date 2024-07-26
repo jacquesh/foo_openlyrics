@@ -156,6 +156,9 @@
     <ClCompile Include="..\src\sources\lrclib.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\hash_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">
@@ -216,6 +219,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\test\bvtf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\hash_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
