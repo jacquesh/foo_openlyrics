@@ -289,9 +289,6 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
 std::optional<LyricData> auto_edit::RemoveTimestamps(const LyricData& lyrics)
 {
     LyricData new_lyrics = lyrics;
-    for(LyricDataLine& line : new_lyrics.lines)
-    {
-        line.timestamp = DBL_MAX;
-    }
+    new_lyrics.RemoveTimestamps();
     return {new_lyrics};
 }

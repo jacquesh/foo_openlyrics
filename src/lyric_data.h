@@ -61,6 +61,8 @@ struct LyricData : public LyricDataCommon
     double LineTimestamp(int line_index) const;
     double LineTimestamp(size_t line_index) const;
 
+    void RemoveTimestamps();
+
     LyricData& operator =(const LyricData& other) = default;
     LyricData& operator =(LyricData&& other) = default;
 };

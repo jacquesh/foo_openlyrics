@@ -29,3 +29,11 @@ double LyricData::LineTimestamp(size_t line_index) const
     if(line_index >= lines.size()) return DBL_MAX;
     return lines[line_index].timestamp - timestamp_offset;
 }
+
+void LyricData::RemoveTimestamps()
+{
+    for(LyricDataLine& line : lines)
+    {
+        line.timestamp = DBL_MAX;
+    }
+}
