@@ -16,6 +16,11 @@
 #define LOG_INFO_TRACKER_CONCAT(prefix, suffix) prefix##suffix
 #define LOG_INFO_TRACKER_NAME(id) LOG_INFO_TRACKER_CONCAT(TRACKER_, id)
 
-#define LOG_ERROR(MSG, ...) uCallStackTracker LOG_INFO_TRACKER_NAME(__LINE__)(#MSG); do { console::printf("ERROR-OpenLyrics: " MSG, ##__VA_ARGS__); }while(false)
-#define LOG_WARN(MSG, ...) uCallStackTracker LOG_INFO_TRACKER_NAME(__LINE__)(#MSG); do { console::printf("WARN-OpenLyrics: " MSG, ##__VA_ARGS__); }while(false)
-#define LOG_INFO(MSG, ...) uCallStackTracker LOG_INFO_TRACKER_NAME(__LINE__)(#MSG); do { if(preferences::display::debug_logs_enabled()) { console::printf("INFO-OpenLyrics: " MSG, ##__VA_ARGS__); }}while(false)
+#define LOG_ERROR(MSG, ...) uCallStackTracker LOG_INFO_TRACKER_NAME(__LINE__)(#MSG); do { openlyrics_logging::printf("ERROR-OpenLyrics: " MSG, ##__VA_ARGS__); }while(false)
+#define LOG_WARN(MSG, ...) uCallStackTracker LOG_INFO_TRACKER_NAME(__LINE__)(#MSG); do { openlyrics_logging::printf("WARN-OpenLyrics: " MSG, ##__VA_ARGS__); }while(false)
+#define LOG_INFO(MSG, ...) uCallStackTracker LOG_INFO_TRACKER_NAME(__LINE__)(#MSG); do { if(preferences::display::debug_logs_enabled()) { openlyrics_logging::printf("INFO-OpenLyrics: " MSG, ##__VA_ARGS__); }}while(false)
+
+namespace openlyrics_logging
+{
+    void printf(const char* fmt, ...);
+}

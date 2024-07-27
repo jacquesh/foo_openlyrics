@@ -217,6 +217,7 @@
     <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp" />
     <ClCompile Include="..\src\hash_utils.cpp" />
     <ClCompile Include="..\src\img_processing.cpp" />
+    <ClCompile Include="..\src\logging.cpp" />
     <ClCompile Include="..\src\lyric_auto_edit.cpp" />
     <ClCompile Include="..\src\lyric_data.cpp" />
     <ClCompile Include="..\src\lyric_io.cpp" />
