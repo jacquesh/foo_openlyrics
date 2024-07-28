@@ -88,20 +88,6 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& pa
             break;
         }
 
-        cJSON* json_plainlyrics = cJSON_GetObjectItem(json_result, "plainLyrics");
-        if((json_plainlyrics == nullptr) || (json_plainlyrics->type != cJSON_String))
-        {
-            LOG_WARN("Received LRCLIB search result but plainLyrics was malformed: %s", content.c_str());
-            break;
-        }
-
-        cJSON* json_syncedlyrics = cJSON_GetObjectItem(json_result, "syncedLyrics");
-        if((json_syncedlyrics == nullptr) || (json_syncedlyrics->type != cJSON_String))
-        {
-            LOG_WARN("Received LRCLIB search result but syncedLyrics was malformed: %s", content.c_str());
-            break;
-        }
-
         cJSON* json_id = cJSON_GetObjectItem(json_result, "id");
         if((json_id == nullptr) || (json_id->type != cJSON_Number))
         {
@@ -110,8 +96,9 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& pa
         }
         const std::string source_path = std::string(g_api_url) + "get/" + std::to_string(json_id->valueint);
 
-        // Add synced lyrics to the output first so that those will be preferred
-        if(strlen(json_syncedlyrics->valuestring) > 0) {
+        cJSON* json_syncedlyrics = cJSON_GetObjectItem(json_result, "syncedLyrics");
+        if((json_syncedlyrics != nullptr) && (json_syncedlyrics->type == cJSON_String) && (strlen(json_syncedlyrics->valuestring) > 0))
+        {
             LOG_INFO("Successfully retrieved synced lyrics from %s", source_path.c_str());
             LyricDataRaw data = {};
             data.source_id = id();
@@ -124,7 +111,9 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& pa
             results.push_back(std::move(data));
         }
 
-        if(strlen(json_plainlyrics->valuestring) > 0) {
+        cJSON* json_plainlyrics = cJSON_GetObjectItem(json_result, "plainLyrics");
+        if((json_plainlyrics != nullptr) && (json_plainlyrics->type == cJSON_String) && (strlen(json_plainlyrics->valuestring) > 0))
+        {
             LOG_INFO("Successfully retrieved unsynced lyrics from %s", source_path.c_str());
             LyricDataRaw data = {};
             data.source_id = id();
