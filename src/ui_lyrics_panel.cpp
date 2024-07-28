@@ -213,7 +213,7 @@ void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     m_now_playing = track;
     m_now_playing_info = get_full_metadata(track);
     m_manual_scroll_distance = 0;
-    m_search_pending = !track_is_remote(track); // If this is an internet radio then don't search until we get dynamic track info
+    m_search_pending = track_changed && !track_is_remote(track); // If this is an internet radio then don't search until we get dynamic track info
     m_now_playing_time_offset = 0.0;
 
     // NOTE: If playback is paused on startup then this gets called with the paused track,
@@ -224,17 +224,10 @@ void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
         StartTimer();
     }
 
-    m_albumart_original = {};
-    if(preferences::background::image_type() == BackgroundImageType::AlbumArt)
+    if(track_changed && (preferences::background::image_type() == BackgroundImageType::AlbumArt))
     {
-        if(track_changed)
-        {
-            m_background_img = {};
-        }
-    }
-    else
-    {
-        compute_background_image();
+        m_background_img = {};
+        m_albumart_original = {};
     }
 }
 
@@ -259,8 +252,15 @@ void LyricPanel::on_playback_dynamic_info_track(const file_info& info)
     m_now_playing_time_offset = playback->playback_get_position();
 }
 
-void LyricPanel::on_playback_stop(play_control::t_stop_reason /*reason*/)
+void LyricPanel::on_playback_stop(play_control::t_stop_reason reason)
 {
+    // When starting another track, track-change calculations will all be
+    // handled when the new track starts (immediately after this callback).
+    if(reason == play_control::t_stop_reason::stop_reason_starting_another)
+    {
+        return;
+    }
+
     m_now_playing = nullptr;
     m_now_playing_info = {};
     m_lyrics = {};
