@@ -42,6 +42,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "  - If a source returns only one type you'll get that type regardless\n"
     "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
     "- Fix possibly using the wrong background colour when changing FB2K colours\n"
+    "- Fix Metal Archives possibly returning 'lyrics not available'\n"
     "- Many, many minor non-functional internal code improvements\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"

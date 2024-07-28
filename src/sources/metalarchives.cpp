@@ -245,6 +245,10 @@ bool MetalArchivesSource::lookup(LyricDataRaw& data, abort_callback& abort)
     const pugi::xml_document lyric_doc = load_html(content.c_str());
     const std::string lyric_text = collect_all_text_to_string(lyric_doc);
 
+    if(lyric_text == "(lyrics not available)") {
+        return false;
+    }
+
     data.text_bytes = string_to_raw_bytes(lyric_text);
     data.source_path = std::move(url);
     return !data.text_bytes.empty();
