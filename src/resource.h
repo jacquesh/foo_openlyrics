@@ -102,6 +102,7 @@
 #define IDC_SEARCH_SKIP_FILTER_OUTPUT   1122
 #define IDC_SEARCH_SYNTAX_HELP          1123
 #define IDC_SEARCH_SKIP_FILTER_RESULT   1124
+#define IDC_SEARCH_PREFERRED_TYPE       1126
 
 // Next default values for new objects
 // 
@@ -109,7 +110,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1126
+#define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
