@@ -33,8 +33,11 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "  - Applies to new users only. Existing users' settings won't be changed\n"
     "- Switch to using built-in Windows codecs for all image loading\n"
     "- Prevent manual search result columns from starting out 0 pixels wide\n"
+    "- Manual search can now give both synced & unsynced results from Musixmatch\n"
+    "  - Previously you'd only get one or the other, not both simultaneously\n"
     "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
     "- Fix possibly using the wrong background colour when changing FB2K colours\n"
+    "- Many, many minor non-functional internal code improvements\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"
     "- Fix a crash when attempting to load lyrics for non-existent media files\n"

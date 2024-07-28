@@ -8,11 +8,16 @@
 
 static const GUID src_guid = { 0xf94ba31a, 0x7b33, 0x49e4, { 0x81, 0x9b, 0x0, 0xc, 0x36, 0x44, 0x29, 0xcd } };
 
+enum class LyricType : int 
+{
+    Unsynced = 0,
+    Synced   = 1,
+};
+
 struct SongSearchResult
 {
     int64_t track_id;
-    bool has_synced_lyrics;
-    bool has_unsynced_lyrics;
+    LyricType type;
 };
 
 class MusixmatchLyricsSource : public LyricSourceRemote
@@ -37,15 +42,14 @@ static const char* g_common_params = "user_language=en&app_id=web-desktop-app-v1
 static std::string EncodeSearchResult(SongSearchResult search_result)
 {
     std::string output;
-    output += (search_result.has_unsynced_lyrics ? '1' : '0');
-    output += (search_result.has_synced_lyrics ? '1' : '0');
+    output += std::to_string((int)search_result.type);
     output += std::to_string(search_result.track_id);
     return output;
 }
 
 static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
 {
-    if(str.length() < 3)
+    if(str.length() < 2)
     {
         return {};
     }
@@ -53,15 +57,10 @@ static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
     {
         return {};
     }
-    if((str[1] != '0') && (str[1] != '1'))
-    {
-        return {};
-    }
 
     SongSearchResult result = {};
-    result.has_unsynced_lyrics = (str[0] == '1');
-    result.has_synced_lyrics = (str[1] == '1');
-    result.track_id = strtoll(&str[2], nullptr, 10);
+    result.type = (str[0] == '0') ? LyricType::Unsynced : LyricType::Synced;
+    result.track_id = strtoll(&str[1], nullptr, 10);
     return result;
 }
 
@@ -198,19 +197,29 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
             break;
         }
 
-        SongSearchResult search_result = {};
-        search_result.track_id = json_trackid->valueint;
-        search_result.has_unsynced_lyrics = (json_haslyrics->valueint != 0);
-        search_result.has_synced_lyrics = (json_hassubtitles->valueint != 0);
-
         LyricDataRaw data = {};
         data.source_id = id();
         data.artist = json_artist->valuestring;
         data.album = json_album->valuestring;
         data.title = json_title->valuestring;
-        data.lookup_id = EncodeSearchResult(search_result);
         data.duration_sec = json_duration->valueint;
-        results.push_back(std::move(data));
+
+        if(json_hassubtitles->valueint != 0)
+        {
+            data.lookup_id = EncodeSearchResult({
+                json_trackid->valueint,
+                LyricType::Synced
+            });
+            results.push_back(data); // Don't move so we can use it again below
+        }
+        if(json_haslyrics->valueint != 0)
+        {
+            data.lookup_id = EncodeSearchResult({
+                json_trackid->valueint,
+                LyricType::Unsynced
+            });
+            results.push_back(std::move(data));
+        }
     }
 
     cJSON_Delete(json);
@@ -334,17 +343,11 @@ bool MusixmatchLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
         return false;
     }
 
-    if(search_result.has_synced_lyrics)
+    switch(search_result.type)
     {
-        return get_synced_lyrics(data, search_result.track_id, abort);
-    }
-    else if(search_result.has_unsynced_lyrics)
-    {
-        return get_unsynced_lyrics(data, search_result.track_id, abort);
-    }
-    else
-    {
-        return false;
+        case LyricType::Synced: return get_synced_lyrics(data, search_result.track_id, abort);
+        case LyricType::Unsynced: return get_unsynced_lyrics(data, search_result.track_id, abort);
+        default: return false;
     }
 }
 
