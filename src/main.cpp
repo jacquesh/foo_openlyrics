@@ -35,6 +35,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Prevent manual search result columns from starting out 0 pixels wide\n"
     "- Manual search can now give both synced & unsynced results from Musixmatch\n"
     "  - Previously you'd only get one or the other, not both simultaneously\n"
+    "- Split the source config out from the 'Searching' preferences page\n"
+    "  - It now lives under the new 'Search sources' preferences page\n"
     "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
     "- Fix possibly using the wrong background colour when changing FB2K colours\n"
     "- Many, many minor non-functional internal code improvements\n"

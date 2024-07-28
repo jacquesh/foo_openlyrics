@@ -393,8 +393,8 @@ void PreferencesSrcLocalfiles::SetCustomPathEnabled()
 class PreferencesSrcLocalfilesImpl : public preferences_page_impl<PreferencesSrcLocalfiles>
 {
 public:
-    const char* get_name() { return "Local files"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_SRC_LOCALFILES; }
-    GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_SEARCH; }
+    const char* get_name() final { return "Local files"; }
+    GUID get_guid() final { return GUID_PREFERENCES_PAGE_SRC_LOCALFILES; }
+    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_SEARCH_SOURCES; }
 };
 static preferences_page_factory_t<PreferencesSrcLocalfilesImpl> g_preferences_page_factory;

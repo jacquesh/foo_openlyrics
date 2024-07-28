@@ -3,7 +3,7 @@
 #include "stdafx.h"
 
 extern const GUID GUID_PREFERENCES_PAGE_ROOT;
-extern const GUID GUID_PREFERENCES_PAGE_SEARCH;
+extern const GUID GUID_PREFERENCES_PAGE_SEARCH_SOURCES;
 
 // NOTE: These enums must change in a backward-compatible manner.
 //       This means that values can never be removed or re-used.

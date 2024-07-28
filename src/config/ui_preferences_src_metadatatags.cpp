@@ -141,8 +141,8 @@ void PreferencesSrcMetatags::OnTagExplain(UINT, int, CWindow)
 class PreferencesSrcMetatagsImpl : public preferences_page_impl<PreferencesSrcMetatags>
 {
 public:
-    const char* get_name() { return "Metadata Tags"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_SRC_METATAGS; }
-    GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_SEARCH; }
+    const char* get_name() final { return "Metadata tags"; }
+    GUID get_guid() final { return GUID_PREFERENCES_PAGE_SRC_METATAGS; }
+    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_SEARCH_SOURCES; }
 };
 static preferences_page_factory_t<PreferencesSrcMetatagsImpl> g_preferences_page_factory;

@@ -84,8 +84,8 @@ void PreferencesRoot::OnUIChange(UINT, int, CWindow)
 class PreferencesRootImpl : public preferences_page_impl<PreferencesRoot>
 {
 public:
-    const char* get_name() { return "OpenLyrics"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_ROOT; }
-    GUID get_parent_guid() { return guid_tools; }
+    const char* get_name() final { return "OpenLyrics"; }
+    GUID get_guid() final { return GUID_PREFERENCES_PAGE_ROOT; }
+    GUID get_parent_guid() final { return guid_tools; }
 };
 static preferences_page_factory_t<PreferencesRootImpl> g_preferences_page_root_factory;

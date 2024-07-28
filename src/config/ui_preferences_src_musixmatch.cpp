@@ -127,8 +127,8 @@ void PreferencesSrcMusixmatch::OnMusixmatchShow(UINT, int, CWindow)
 class PreferencesSrcMusixmatchImpl : public preferences_page_impl<PreferencesSrcMusixmatch>
 {
 public:
-    const char* get_name() { return "Musixmatch"; }
-    GUID get_guid() { return GUID_PREFERENCES_PAGE_SRC_MUSIXMATCH; }
-    GUID get_parent_guid() { return GUID_PREFERENCES_PAGE_SEARCH; }
+    const char* get_name() final { return "Musixmatch"; }
+    GUID get_guid() final { return GUID_PREFERENCES_PAGE_SRC_MUSIXMATCH; }
+    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_SEARCH_SOURCES; }
 };
 static preferences_page_factory_t<PreferencesSrcMusixmatchImpl> g_preferences_page_factory;

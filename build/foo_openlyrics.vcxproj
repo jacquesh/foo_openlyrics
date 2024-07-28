@@ -212,6 +212,7 @@
     <ClCompile Include="..\src\config\ui_preferences_root.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_saving.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_search.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_searchsources.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_localfiles.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_metadatatags.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp" />
