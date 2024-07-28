@@ -18,7 +18,7 @@ jobs:
     name: Build and test - x86
     steps:
       - name: Add MSBuild to the PATH
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@v2
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
     name: Build and test - x64
     steps:
       - name: Add MSBuild to the PATH
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@v2
 
       - name: Checkout code
         uses: actions/checkout@v4
