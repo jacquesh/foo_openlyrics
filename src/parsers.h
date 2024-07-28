@@ -10,7 +10,6 @@ namespace parsers
 namespace lrc
 {
     bool is_tag_line(std::string_view line);
-    std::optional<double> try_parse_offset_tag(std::string_view line);
     void set_offset_tag(LyricData& lyrics, double offset_seconds);
     void remove_offset_tag(LyricData& lyrics);
 

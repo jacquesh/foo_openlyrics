@@ -97,7 +97,7 @@ bool is_tag_line(std::string_view line)
     return true;
 }
 
-std::optional<double> try_parse_offset_tag(std::string_view line)
+static std::optional<double> try_parse_offset_tag(std::string_view line)
 {
     if(line.size() <= 0) return {};
     if(line[0] != '[') return {};
