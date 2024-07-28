@@ -22,18 +22,103 @@ class LrclibLyricsSource : public LyricSourceRemote
 
     bool supports_upload() const final { return true; }
     void upload(LyricData lyrics, abort_callback& abort) final;
+
+private:
+    bool parse_lyric_result(cJSON* json_result, std::vector<LyricDataRaw>& output); // Returns success
+    std::vector<LyricDataRaw> search_for_lyrics(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort);
+    std::vector<LyricDataRaw> get_lyrics(std::string_view artist, std::string_view album, std::string_view title, int duration_sec, abort_callback& abort);
 };
 static const LyricSourceFactory<LrclibLyricsSource> src_factory;
 
 static const char* g_api_url = "https://lrclib.net/api/";
 
-std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
+bool LrclibLyricsSource::parse_lyric_result(cJSON* json_result, std::vector<LyricDataRaw>& output) // Returns success
+{
+    if((json_result == nullptr) || (json_result->type != cJSON_Object))
+    {
+        char* json_str = cJSON_Print(json_result);
+        LOG_WARN("Received LRCLIB search result but track was malformed: %s", json_str);
+        cJSON_free(json_str);
+        return false;
+    }
+
+    cJSON* json_title = cJSON_GetObjectItem(json_result, "trackName");
+    if((json_title == nullptr) || (json_title->type != cJSON_String))
+    {
+        char* json_str = cJSON_Print(json_result);
+        LOG_WARN("Received LRCLIB search result but trackName was malformed: %s", json_str);
+        cJSON_free(json_str);
+        return false;
+    }
+
+    cJSON* json_artist = cJSON_GetObjectItem(json_result, "artistName");
+    if((json_artist == nullptr) || (json_artist->type != cJSON_String))
+    {
+        char* json_str = cJSON_Print(json_result);
+        LOG_WARN("Received LRCLIB search result but artistName was malformed: %s", json_str);
+        cJSON_free(json_str);
+        return false;
+    }
+
+    cJSON* json_album = cJSON_GetObjectItem(json_result, "albumName");
+    if((json_album == nullptr) || (json_album->type != cJSON_String))
+    {
+        char* json_str = cJSON_Print(json_result);
+        LOG_WARN("Received LRCLIB search result but albumName was malformed: %s", json_str);
+        cJSON_free(json_str);
+        return false;
+    }
+
+    cJSON* json_id = cJSON_GetObjectItem(json_result, "id");
+    if((json_id == nullptr) || (json_id->type != cJSON_Number))
+    {
+        char* json_str = cJSON_Print(json_result);
+        LOG_WARN("Received LRCLIB search result but id was malformed: %s", json_str);
+        cJSON_free(json_str);
+        return false;
+    }
+    const std::string source_path = std::string(g_api_url) + "get/" + std::to_string(json_id->valueint);
+
+    cJSON* json_syncedlyrics = cJSON_GetObjectItem(json_result, "syncedLyrics");
+    if((json_syncedlyrics != nullptr) && (json_syncedlyrics->type == cJSON_String) && (strlen(json_syncedlyrics->valuestring) > 0))
+    {
+        LOG_INFO("Successfully retrieved synced lyrics from %s", source_path.c_str());
+        LyricDataRaw data = {};
+        data.source_id = id();
+        data.source_path = source_path;
+        data.artist = json_artist->valuestring;
+        data.album = json_album->valuestring;
+        data.title = json_title->valuestring;
+        data.type = LyricType::Synced;
+        data.text_bytes = string_to_raw_bytes(json_syncedlyrics->valuestring);
+        output.push_back(std::move(data));
+    }
+
+    cJSON* json_plainlyrics = cJSON_GetObjectItem(json_result, "plainLyrics");
+    if((json_plainlyrics != nullptr) && (json_plainlyrics->type == cJSON_String) && (strlen(json_plainlyrics->valuestring) > 0))
+    {
+        LOG_INFO("Successfully retrieved unsynced lyrics from %s", source_path.c_str());
+        LyricDataRaw data = {};
+        data.source_id = id();
+        data.source_path = source_path;
+        data.artist = json_artist->valuestring;
+        data.album = json_album->valuestring;
+        data.title = json_title->valuestring;
+        data.type = LyricType::Unsynced;
+        data.text_bytes = string_to_raw_bytes(json_plainlyrics->valuestring);
+        output.push_back(std::move(data));
+    }
+
+    return true;
+}
+
+std::vector<LyricDataRaw> LrclibLyricsSource::search_for_lyrics(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
 {
     std::string url = std::string(g_api_url) + "search";
-    url += "?artist_name=" + urlencode(params.artist);
-    url += "&album_name=" + urlencode(params.album);
-    url += "&track_name=" + urlencode(params.title);
-    LOG_INFO("Querying for track ID from %s", url.c_str());
+    url += "?artist_name=" + urlencode(artist);
+    url += "&album_name=" + urlencode(album);
+    url += "&track_name=" + urlencode(title);
+    LOG_INFO("Searching for lyrics from %s", url.c_str());
 
     pfc::string8 content;
     try
@@ -61,74 +146,60 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& pa
     cJSON* json_result = nullptr;
     cJSON_ArrayForEach(json_result, json)
     {
-        if((json_result == nullptr) || (json_result->type != cJSON_Object))
-        {
-            LOG_WARN("Received LRCLIB search result but track was malformed: %s", content.c_str());
-            break;
-        }
-
-        cJSON* json_title = cJSON_GetObjectItem(json_result, "trackName");
-        if((json_title == nullptr) || (json_title->type != cJSON_String))
-        {
-            LOG_WARN("Received LRCLIB search result but trackName was malformed: %s", content.c_str());
-            break;
-        }
-
-        cJSON* json_artist = cJSON_GetObjectItem(json_result, "artistName");
-        if((json_artist == nullptr) || (json_artist->type != cJSON_String))
-        {
-            LOG_WARN("Received LRCLIB search result but artistName was malformed: %s", content.c_str());
-            break;
-        }
-
-        cJSON* json_album = cJSON_GetObjectItem(json_result, "albumName");
-        if((json_album == nullptr) || (json_album->type != cJSON_String))
-        {
-            LOG_WARN("Received LRCLIB search result but albumName was malformed: %s", content.c_str());
-            break;
-        }
-
-        cJSON* json_id = cJSON_GetObjectItem(json_result, "id");
-        if((json_id == nullptr) || (json_id->type != cJSON_Number))
-        {
-            LOG_WARN("Received LRCLIB search result but id was malformed: %s", content.c_str());
-            break;
-        }
-        const std::string source_path = std::string(g_api_url) + "get/" + std::to_string(json_id->valueint);
-
-        cJSON* json_syncedlyrics = cJSON_GetObjectItem(json_result, "syncedLyrics");
-        if((json_syncedlyrics != nullptr) && (json_syncedlyrics->type == cJSON_String) && (strlen(json_syncedlyrics->valuestring) > 0))
-        {
-            LOG_INFO("Successfully retrieved synced lyrics from %s", source_path.c_str());
-            LyricDataRaw data = {};
-            data.source_id = id();
-            data.source_path = source_path;
-            data.artist = json_artist->valuestring;
-            data.album = json_album->valuestring;
-            data.title = json_title->valuestring;
-            data.type = LyricType::Synced;
-            data.text_bytes = string_to_raw_bytes(json_syncedlyrics->valuestring);
-            results.push_back(std::move(data));
-        }
-
-        cJSON* json_plainlyrics = cJSON_GetObjectItem(json_result, "plainLyrics");
-        if((json_plainlyrics != nullptr) && (json_plainlyrics->type == cJSON_String) && (strlen(json_plainlyrics->valuestring) > 0))
-        {
-            LOG_INFO("Successfully retrieved unsynced lyrics from %s", source_path.c_str());
-            LyricDataRaw data = {};
-            data.source_id = id();
-            data.source_path = source_path;
-            data.artist = json_artist->valuestring;
-            data.album = json_album->valuestring;
-            data.title = json_title->valuestring;
-            data.type = LyricType::Unsynced;
-            data.text_bytes = string_to_raw_bytes(json_plainlyrics->valuestring);
-            results.push_back(std::move(data));
-        }
+        parse_lyric_result(json_result, results);
     }
 
     cJSON_Delete(json);
     return results;
+}
+
+std::vector<LyricDataRaw> LrclibLyricsSource::get_lyrics(std::string_view artist, std::string_view album, std::string_view title, int duration_sec, abort_callback& abort)
+{
+    std::string url = std::string(g_api_url) + "get";
+    url += "?artist_name=" + urlencode(artist);
+    url += "&album_name=" + urlencode(album);
+    url += "&track_name=" + urlencode(title);
+    url += "&duration="+std::to_string(duration_sec);
+    LOG_INFO("Retrieving lyrics from %s", url.c_str());
+
+    pfc::string8 content;
+    try
+    {
+        http_request::ptr request = http_client::get()->create_request("GET");
+        request->add_header("User-Agent", "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
+        file_ptr response_file = request->run(url.c_str(), abort);
+        response_file->read_string_raw(content, abort);
+    }
+    catch(const std::exception& e)
+    {
+        LOG_WARN("Failed to make LRCLIB search request to %s: %s", url.c_str(), e.what());
+        return {};
+    }
+
+    cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
+    if((json == nullptr) || (json->type != cJSON_Object))
+    {
+        LOG_WARN("Received LRCLIB search result but root was malformed: %s", content.c_str());
+        cJSON_Delete(json);
+        return {};
+    }
+
+    std::vector<LyricDataRaw> results;
+    parse_lyric_result(json, results);
+    cJSON_Delete(json);
+    return results;
+}
+
+std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
+{
+    if(params.duration_sec.has_value())
+    {
+        return get_lyrics(params.artist, params.album, params.title, params.duration_sec.value(), abort);
+    }
+    else
+    {
+        return search_for_lyrics(params.artist, params.album, params.title, abort);
+    }
 }
 
 bool LrclibLyricsSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
