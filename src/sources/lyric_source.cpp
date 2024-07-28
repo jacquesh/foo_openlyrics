@@ -139,7 +139,7 @@ bool LyricSourceRemote::supports_upload() const
     return false;
 }
 
-void LyricSourceRemote::upload(const LyricData& /*lyrics*/, abort_callback& /*abort*/)
+void LyricSourceRemote::upload(LyricData /*lyrics*/, abort_callback& /*abort*/)
 {
     LOG_WARN("Cannot upload to a generic remote source (that doesn't support upload)");
     assert(false);

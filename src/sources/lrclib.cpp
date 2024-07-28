@@ -21,7 +21,7 @@ class LrclibLyricsSource : public LyricSourceRemote
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
     bool supports_upload() const final { return true; }
-    void upload(const LyricData& lyrics, abort_callback& abort) final;
+    void upload(LyricData lyrics, abort_callback& abort) final;
 };
 static const LyricSourceFactory<LrclibLyricsSource> src_factory;
 
@@ -302,7 +302,7 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
     return nonce;
 }
 
-static void upload_lyrics(const LyricData& lyrics, const UploadChallenge& challenge, uint64_t nonce, abort_callback& abort)
+static void upload_lyrics(LyricData lyrics, const UploadChallenge& challenge, uint64_t nonce, abort_callback& abort)
 {
     char token_buffer[256];
     snprintf(token_buffer, sizeof(token_buffer), "%s:%llu", challenge.prefix.c_str(), nonce);
@@ -312,9 +312,9 @@ static void upload_lyrics(const LyricData& lyrics, const UploadChallenge& challe
     if(lyrics.IsTimestamped())
     {
         synced_lyrics = from_tstring(parsers::lrc::expand_text(lyrics));
-        LyricData new_lyrics = lyrics;
-        new_lyrics.RemoveTimestamps();
-        plain_lyrics = from_tstring(parsers::lrc::expand_text(new_lyrics));
+
+        lyrics.RemoveTimestamps();
+        plain_lyrics = from_tstring(parsers::lrc::expand_text(lyrics));
     }
     else
     {
@@ -400,7 +400,7 @@ static void upload_lyrics(const LyricData& lyrics, const UploadChallenge& challe
     cJSON_Delete(json);
 }
 
-void LrclibLyricsSource::upload(const LyricData& lyrics, abort_callback& abort)
+void LrclibLyricsSource::upload(LyricData lyrics, abort_callback& abort)
 {
     const std::optional<UploadChallenge> maybe_challenge = get_challenge(abort);
     if(!maybe_challenge.has_value())
@@ -409,7 +409,7 @@ void LrclibLyricsSource::upload(const LyricData& lyrics, abort_callback& abort)
     }
     const UploadChallenge& challenge = maybe_challenge.value();
     uint64_t nonce = solve_challenge(challenge, abort);
-    upload_lyrics(lyrics, challenge, nonce, abort);
+    upload_lyrics(std::move(lyrics), challenge, nonce, abort);
 }
 
 

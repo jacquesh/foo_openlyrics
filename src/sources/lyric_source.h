@@ -59,7 +59,7 @@ public:
     virtual std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) = 0;
 
     virtual bool supports_upload() const;
-    virtual void upload(const LyricData& lyrics, abort_callback& abort);
+    virtual void upload(LyricData lyrics, abort_callback& abort); // Take lyrics by value since the upload happens in a task thread
 
 protected:
     static std::string urlencode(std::string_view input);
