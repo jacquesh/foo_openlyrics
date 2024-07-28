@@ -35,11 +35,10 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, const
     }
 
     std::vector<LyricDataRaw> output;
-    const char* extensions[] = { ".lrc", ".txt" };
-    for (const char* ext : extensions)
+    for(LyricType type : {LyricType::Synced, LyricType::Unsynced})
     {
         std::string file_path = file_path_prefix;
-        file_path += ext;
+        file_path += (type == LyricType::Synced) ? ".lrc" : ".txt";
         LOG_INFO("Querying for lyrics in %s...", file_path.c_str());
 
         try
@@ -53,6 +52,7 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, const
                 result.album = track_metadata(track_info, "album");
                 result.title = track_metadata(track_info, "title");
                 result.lookup_id = file_path;
+                result.type = type;
                 output.push_back(std::move(result));
             }
         }

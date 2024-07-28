@@ -173,6 +173,7 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(const LyricSearchParams& para
         result.artist = params.artist;
         result.album = params.album;
         result.title = params.title;
+        result.type = LyricType::Unsynced;
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }

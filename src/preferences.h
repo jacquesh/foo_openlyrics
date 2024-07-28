@@ -83,6 +83,12 @@ enum class TextAlignment : int
     TopRight  = 5,
 };
 
+enum class LyricType : int 
+{
+    Unsynced = 0,
+    Synced   = 1,
+};
+
 namespace preferences
 {
     namespace searching
@@ -94,6 +100,7 @@ namespace preferences
 
         std::vector<std::string> tags();
         std::string_view musixmatch_api_key();
+        LyricType preferred_lyric_type();
 
         namespace raw
         {

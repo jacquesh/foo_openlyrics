@@ -92,6 +92,11 @@ const pfc::string8& preferences::searching::skip_filter()
     return cfg_search_skip_filter.get();
 }
 
+LyricType preferences::searching::preferred_lyric_type()
+{
+    return LyricType::Synced; // TODO
+}
+
 const LRESULT MAX_SOURCE_NAME_LENGTH = 64;
 
 class PreferencesSearching : public CDialogImpl<PreferencesSearching>, public auto_preferences_page_instance, private play_callback_impl_base

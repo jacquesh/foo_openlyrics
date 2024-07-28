@@ -191,6 +191,19 @@ static LyricDataUnstructured raw_to_unstructured(const LyricDataRaw& raw)
     return unstructured;
 }
 
+// Returns true if `lhs` is "strictly more desirable" than `rhs`
+static bool compare_search_results(const LyricDataRaw& lhs, const LyricDataRaw& rhs)
+{
+
+    const LyricType preferred_type = preferences::searching::preferred_lyric_type();
+    if((lhs.type == preferred_type) && (rhs.type != preferred_type))
+    {
+        return true;
+    }
+
+    return false;
+}
+
 static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
 {
     handle.set_started();
@@ -234,6 +247,11 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
                 handle.set_remote_source_searched();
             }
             std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
+
+            // We're going to look through these and use the first acceptable result, so
+            // so before that, we sort by most-desirable-first to ensure that the accepted
+            // result is more desirable than any acceptable, but not accepted result.
+            std::sort(search_results.begin(), search_results.end(), compare_search_results);
 
             for(LyricDataRaw& result : search_results)
             {

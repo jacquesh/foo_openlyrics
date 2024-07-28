@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "lyric_source.h"
+#include "parsers.h"
 #include "tag_util.h"
 
 static const GUID src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
@@ -49,6 +50,9 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, con
         lyric.album = track_metadata(track_info, "album");
         lyric.title = track_metadata(track_info, "title");
         lyric.duration_sec = track_duration_in_seconds(track_info);
+
+        const LyricData parsed = parsers::lrc::parse(LyricDataUnstructured(lyric));
+        lyric.type = parsed.IsTimestamped() ? LyricType::Synced : LyricType::Unsynced;
 
         std::string text;
         size_t value_count = info.meta_enum_value_count(lyric_value_index);

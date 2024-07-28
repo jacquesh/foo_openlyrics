@@ -119,6 +119,7 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& pa
             data.artist = json_artist->valuestring;
             data.album = json_album->valuestring;
             data.title = json_title->valuestring;
+            data.type = LyricType::Synced;
             data.text_bytes = string_to_raw_bytes(json_syncedlyrics->valuestring);
             results.push_back(std::move(data));
         }
@@ -131,6 +132,7 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search(const LyricSearchParams& pa
             data.artist = json_artist->valuestring;
             data.album = json_album->valuestring;
             data.title = json_title->valuestring;
+            data.type = LyricType::Unsynced;
             data.text_bytes = string_to_raw_bytes(json_plainlyrics->valuestring);
             results.push_back(std::move(data));
         }

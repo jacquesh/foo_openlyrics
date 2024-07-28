@@ -177,6 +177,7 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(const LyricSearchParams& par
         result.source_path = url;
         result.artist = params.artist;
         result.title = params.title;
+        result.type = LyricType::Unsynced;
         result.text_bytes = string_to_raw_bytes(trimmed_text);
         return {std::move(result)};
     }

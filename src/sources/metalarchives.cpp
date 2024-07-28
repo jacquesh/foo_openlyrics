@@ -176,6 +176,7 @@ std::vector<LyricDataRaw> MetalArchivesSource::parse_song_ids(cJSON* json) const
         data.album = std::move(result_album);
         if(result_title != nullptr) data.title = result_title;
         data.lookup_id = result_id;
+        data.type = LyricType::Unsynced;
         output.push_back(std::move(data));
     }
 

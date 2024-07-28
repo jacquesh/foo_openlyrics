@@ -136,6 +136,7 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
         if(result_album != nullptr) data.album = result_album;
         if(result_title != nullptr) data.title = result_title;
         data.lookup_id = std::to_string((int64_t)song_id_item->valuedouble);
+        data.type = LyricType::Synced;
         data.duration_sec = result_duration_sec;
         output.push_back(std::move(data));
     }

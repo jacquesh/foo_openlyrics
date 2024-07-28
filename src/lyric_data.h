@@ -19,6 +19,7 @@ struct LyricDataCommon
 struct LyricDataRaw : public LyricDataCommon
 {
     std::string lookup_id;           // An ID used by the source to get the lyrics text after a search. Used only temporarily during searching.
+    LyricType type;                  // The type of lyrics known to be contained in this text
     std::vector<uint8_t> text_bytes; // The raw bytes for the lyrics text, in an unspecified encoding
     std::optional<int> duration_sec; // The duration of the track to which the lyrics apply, if provided by the source
 

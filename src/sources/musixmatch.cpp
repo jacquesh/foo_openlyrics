@@ -5,14 +5,9 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_source.h"
+#include "preferences.h"
 
 static const GUID src_guid = { 0xf94ba31a, 0x7b33, 0x49e4, { 0x81, 0x9b, 0x0, 0xc, 0x36, 0x44, 0x29, 0xcd } };
-
-enum class LyricType : int 
-{
-    Unsynced = 0,
-    Synced   = 1,
-};
 
 struct SongSearchResult
 {
@@ -210,6 +205,7 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
                 json_trackid->valueint,
                 LyricType::Synced
             });
+            data.type = LyricType::Synced;
             results.push_back(data); // Don't move so we can use it again below
         }
         if(json_haslyrics->valueint != 0)
@@ -218,6 +214,7 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
                 json_trackid->valueint,
                 LyricType::Unsynced
             });
+            data.type = LyricType::Unsynced;
             results.push_back(std::move(data));
         }
     }

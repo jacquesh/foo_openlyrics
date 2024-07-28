@@ -100,6 +100,7 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json) const
         if(result_artist != nullptr) data.artist = result_artist;
         if(result_title != nullptr) data.title = result_title;
         data.lookup_id = song_id_item->valuestring;
+        data.type = LyricType::Synced;
         output.push_back(std::move(data));
     }
 
