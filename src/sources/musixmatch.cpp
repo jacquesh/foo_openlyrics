@@ -9,12 +9,6 @@
 
 static const GUID src_guid = { 0xf94ba31a, 0x7b33, 0x49e4, { 0x81, 0x9b, 0x0, 0xc, 0x36, 0x44, 0x29, 0xcd } };
 
-struct SongSearchResult
-{
-    int64_t track_id;
-    LyricType type;
-};
-
 class MusixmatchLyricsSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
@@ -33,31 +27,6 @@ static const LyricSourceFactory<MusixmatchLyricsSource> src_factory;
 
 static const char* g_api_url = "https://apic-desktop.musixmatch.com/ws/1.1/";
 static const char* g_common_params = "user_language=en&app_id=web-desktop-app-v1.0";
-
-static std::string EncodeSearchResult(SongSearchResult search_result)
-{
-    std::string output;
-    output += std::to_string((int)search_result.type);
-    output += std::to_string(search_result.track_id);
-    return output;
-}
-
-static std::optional<SongSearchResult> DecodeSearchResult(std::string_view str)
-{
-    if(str.length() < 2)
-    {
-        return {};
-    }
-    if((str[0] != '0') && (str[0] != '1'))
-    {
-        return {};
-    }
-
-    SongSearchResult result = {};
-    result.type = (str[0] == '0') ? LyricType::Unsynced : LyricType::Synced;
-    result.track_id = strtoll(&str[1], nullptr, 10);
-    return result;
-}
 
 std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearchParams& params, abort_callback& abort) const
 {
@@ -201,19 +170,13 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
 
         if(json_hassubtitles->valueint != 0)
         {
-            data.lookup_id = EncodeSearchResult({
-                json_trackid->valueint,
-                LyricType::Synced
-            });
+            data.lookup_id = std::to_string(json_trackid->valueint);
             data.type = LyricType::Synced;
             results.push_back(data); // Don't move so we can use it again below
         }
         if(json_haslyrics->valueint != 0)
         {
-            data.lookup_id = EncodeSearchResult({
-                json_trackid->valueint,
-                LyricType::Unsynced
-            });
+            data.lookup_id = std::to_string(json_trackid->valueint);
             data.type = LyricType::Unsynced;
             results.push_back(std::move(data));
         }
@@ -326,24 +289,17 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::search(const LyricSearchParams
 
 bool MusixmatchLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
 {
-    std::optional<SongSearchResult> maybe_search_result = DecodeSearchResult(data.lookup_id);
-    if(!maybe_search_result.has_value())
-    {
-        LOG_WARN("Attempt to lookup musixmatch lyrics with invalid lookup ID: %s", data.lookup_id.c_str());
-        return false;
-    }
-
-    const SongSearchResult& search_result = maybe_search_result.value();
-    if(search_result.track_id == 0)
+    const int64_t track_id = strtoll(data.lookup_id.c_str(), nullptr, 10);
+    if(track_id == 0)
     {
         LOG_WARN("Attempt to lookup musixmatch lyrics with null lookup track ID: %s", data.lookup_id.c_str());
         return false;
     }
 
-    switch(search_result.type)
+    switch(data.type)
     {
-        case LyricType::Synced: return get_synced_lyrics(data, search_result.track_id, abort);
-        case LyricType::Unsynced: return get_unsynced_lyrics(data, search_result.track_id, abort);
+        case LyricType::Synced: return get_synced_lyrics(data, track_id, abort);
+        case LyricType::Unsynced: return get_unsynced_lyrics(data, track_id, abort);
         default: return false;
     }
 }
