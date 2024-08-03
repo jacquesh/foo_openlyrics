@@ -216,6 +216,7 @@
     <ClCompile Include="..\src\config\ui_preferences_src_localfiles.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_metadatatags.cpp" />
     <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp" />
+    <ClCompile Include="..\src\config\ui_preferences_upload.cpp" />
     <ClCompile Include="..\src\hash_utils.cpp" />
     <ClCompile Include="..\src\img_processing.cpp" />
     <ClCompile Include="..\src\logging.cpp" />

@@ -89,6 +89,12 @@ enum class LyricType : int
     Synced   = 1,
 };
 
+enum class UploadStrategy : int
+{
+    Never  = 0,
+    OnEdit = 1,
+};
+
 namespace preferences
 {
     namespace searching
@@ -170,5 +176,10 @@ namespace preferences
         int blur_radius();
         std::string custom_image_path();
         bool external_window_opaque();
+    }
+
+    namespace upload
+    {
+        UploadStrategy lrclib_upload_strategy();
     }
 }

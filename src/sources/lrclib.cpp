@@ -375,6 +375,14 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
 
 static void upload_lyrics(LyricData lyrics, const UploadChallenge& challenge, uint64_t nonce, abort_callback& abort)
 {
+    if(!lyrics.duration_sec.has_value())
+    {
+        LOG_WARN("Cannot upload lyrics for %s/%s/%s because it is missing a duration",
+                lyrics.artist.c_str(), lyrics.album.c_str(), lyrics.title.c_str());
+        return;
+    }
+    const double lyric_track_duration = lyrics.duration_sec.value();
+
     char token_buffer[256];
     snprintf(token_buffer, sizeof(token_buffer), "%s:%llu", challenge.prefix.c_str(), nonce);
 
@@ -396,7 +404,7 @@ static void upload_lyrics(LyricData lyrics, const UploadChallenge& challenge, ui
     cJSON_AddStringToObject(content_root, "trackName", lyrics.title.c_str());
     cJSON_AddStringToObject(content_root, "artistName", lyrics.artist.c_str());
     cJSON_AddStringToObject(content_root, "albumName", lyrics.album.c_str());
-    cJSON_AddNumberToObject(content_root, "duration", double(lyrics.duration_sec.value_or(0)));
+    cJSON_AddNumberToObject(content_root, "duration", lyric_track_duration);
     cJSON_AddStringToObject(content_root, "plainLyrics", plain_lyrics.c_str());
     cJSON_AddStringToObject(content_root, "syncedLyrics", synced_lyrics.c_str());
     char* json_str = cJSON_Print(content_root);

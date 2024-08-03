@@ -217,6 +217,16 @@ BEGIN
     LTEXT           "Preferred lyric type:",IDC_STATIC,7,26,61,8
 END
 
+IDD_PREFERENCES_UPLOADING DIALOGEX 0, 0, 332, 288
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
+BEGIN
+    COMBOBOX        IDC_UPLOAD_STRATEGY,91,4,95,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "If enabled, lyrics will be silently uploaded in the background (after a short delay).",IDC_STATIC,7,30,307,16
+    RTEXT           "Upload lyrics to LRCLIB:",IDC_STATIC,7,6,79,11
+    LTEXT           "Note: Lyric upload is currently experimental and will only be done if are are not yet any lyrics at all on LRCLIB for the track being uploaded and if the lyrics to be uploaded are timestamped.",IDC_STATIC,7,52,307,59
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -305,6 +315,14 @@ BEGIN
         TOPMARGIN, 4
         BOTTOMMARGIN, 281
     END
+
+    IDD_PREFERENCES_UPLOADING, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 325
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 281
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -360,6 +378,11 @@ BEGIN
 END
 
 IDD_PREFERENCES_SEARCHING AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PREFERENCES_UPLOADING AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

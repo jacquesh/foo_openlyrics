@@ -12,6 +12,56 @@
 #include "ui_hooks.h"
 #include "win32_util.h"
 
+struct UploadQueueEntry
+{
+    LyricSearchParams params;
+    uint64_t upload_id;
+};
+static std::mutex g_upload_queue_mutex;
+static uint64_t g_next_upload_id = 0;
+static std::vector<UploadQueueEntry> g_upload_queue;
+
+static bool is_upload_duplicated_after_a_delay(LyricSearchParams params)
+{
+    g_upload_queue_mutex.lock();
+    const uint64_t upload_id = g_next_upload_id++;
+    UploadQueueEntry entry = { params, upload_id };
+    g_upload_queue.push_back(std::move(entry));
+    g_upload_queue_mutex.unlock();
+
+    fb2k::mainAborter().sleep(60.0);
+
+    g_upload_queue_mutex.lock();
+    bool other_uploads_exist = false;
+    std::vector<UploadQueueEntry>::iterator existing_iter = g_upload_queue.end();
+    for(auto iter = g_upload_queue.begin(); iter != g_upload_queue.end(); iter++)
+    {
+        if((iter->params.artist == params.artist) &&
+            (iter->params.album == params.album) &&
+            (iter->params.title == params.title))
+        {
+            if(iter->upload_id == upload_id)
+            {
+                existing_iter = iter;
+            }
+            else if(iter->upload_id > upload_id)
+            {
+                // NOTE: We only consider other uploads with a higher ID to ensure that we don't
+                //       accidentally take the older upload if two uploads are done in rapid succession
+                //       and the scheduler happens to let the second sleep end first.
+                //       Technically this check would behave incorrectly if the upload ID ever overflowed
+                //       and wrapped around to 0, but it's a uint64. It won't ever happen.
+                other_uploads_exist = true;
+            }
+        }
+    }
+    assert(existing_iter != g_upload_queue.end());
+    g_upload_queue.erase(existing_iter);
+    g_upload_queue_mutex.unlock();
+
+    return other_uploads_exist;
+}
+
 bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
@@ -543,6 +593,69 @@ static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdate
     return should_auto_edit;
 }
 
+static void try_publish_update(LyricData lyrics, const metadb_v2_rec_t& track_info)
+{
+    // If the source we got these lyrics from didn't provide a length, then we can just default
+    // to the length of the track we have locally.
+    if(!lyrics.duration_sec.has_value())
+    {
+        lyrics.duration_sec = track_duration_in_seconds(track_info);
+    }
+
+    for(const GUID& guid : LyricSourceBase::get_all_ids())
+    {
+        LyricSourceBase* src = LyricSourceBase::get(guid);
+        if((src == nullptr) || src->is_local())
+        {
+            // Can't "upload" to a local source
+            continue;
+        }
+        LyricSourceRemote* remote_src = dynamic_cast<LyricSourceRemote*>(src);
+        assert(remote_src != nullptr);
+        if(remote_src == nullptr)
+        {
+            std::string friendly_name = from_tstring(src->friendly_name());
+            LOG_ERROR("Bad LyricSourceRemote cast during upload for: %s", friendly_name.c_str());
+            continue;
+        }
+
+        if(!remote_src->supports_upload())
+        {
+            continue;
+        }
+
+        fb2k::splitTask([lyrics, remote_src, params = LyricSearchParams(track_info)]() {
+            try
+            {
+                const bool is_duplicate = is_upload_duplicated_after_a_delay(params);
+                if(is_duplicate)
+                {
+                    LOG_INFO("Skipping lyric upload for %s/%s/%s because there is a more recent upload pending for that track",
+                            params.artist.c_str(),
+                            params.album.c_str(),
+                            params.artist.c_str());
+                    return;
+                }
+
+                std::vector<LyricDataRaw> existing_lyrics = remote_src->search(params, fb2k::mainAborter());
+                if(!existing_lyrics.empty())
+                {
+                    // For now we only upload if the source doesn't have *any* lyrics for this track
+                    // TODO: Check if its the same sort of lyrics (IE upload lrc if we only have unsynced)
+                    return;
+                }
+
+                remote_src->upload(lyrics, fb2k::mainAborter());
+                metrics::log_used_lyric_upload();
+            }
+            catch(std::exception& ex)
+            {
+                LOG_WARN("Aborting lyric upload due to exception: %s", ex.what());
+            }
+        });
+    }
+}
+
 std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& update)
 {
     if(!update.has_result())
@@ -584,6 +697,13 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
 
             const bool allow_overwrite = save_overwrite_allowed(update.get_type());
             io::save_lyrics(update.get_track(), update.get_track_info(), lyrics, allow_overwrite, update.get_checked_abort());
+
+            if((preferences::upload::lrclib_upload_strategy() == UploadStrategy::OnEdit) &&
+                (update.get_type() == LyricUpdateHandle::Type::Edit) &&
+                lyrics.IsTimestamped())
+            {
+                try_publish_update(lyrics, update.get_track_info());
+            }
         }
         catch(const std::exception& e)
         {

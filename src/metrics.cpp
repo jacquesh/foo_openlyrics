@@ -59,6 +59,7 @@ static FeatureTracker featuretrack_instrumental({ 0x12253c20, 0x9324, 0x4095, { 
 static FeatureTracker featuretrack_showlyrics({ 0xa6665198, 0xd2d1, 0x44ac, { 0xa8, 0xde, 0x1c, 0x6c, 0xb5, 0xbe, 0x0d, 0x81 } });
 static FeatureTracker featuretrack_externalwindow({ 0xf426ac64, 0x4aa7, 0x403a, { 0x97, 0x64, 0xff, 0x62, 0x51, 0xcb, 0xe6, 0x73 } });
 static FeatureTracker featuretrack_manualscroll({ 0x3b751894, 0x9163, 0x4902, { 0x8d, 0x65, 0x3, 0x10, 0x35, 0x21, 0xb5, 0x4d } });
+static FeatureTracker featuretrack_lyricupload({ 0xf4975820, 0x23c, 0x44e6, { 0x8d, 0x30, 0xf1, 0xb8, 0x63, 0x2a, 0x8c, 0x46 } });
 static FeatureTracker featuretrack_remotetrack({ 0xa0cbfda0, 0x99c3, 0x4be7, { 0x86, 0xf0, 0x8e, 0xb2, 0xd1, 0x48, 0x89, 0x9 } });
 
 void metrics::log_used_bulk_search()
@@ -99,6 +100,11 @@ void metrics::log_used_external_window()
 void metrics::log_used_manual_scroll()
 {
     featuretrack_manualscroll.log_usage();
+}
+
+void metrics::log_used_lyric_upload()
+{
+    featuretrack_lyricupload.log_usage();
 }
 
 void metrics::log_searched_for_lyrics_for_a_remote_track()
@@ -199,6 +205,8 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
     cJSON_AddNumberToObject(json, "ol.usage.showlyrics", double(featuretrack_showlyrics.last_used()));
     cJSON_AddNumberToObject(json, "ol.usage.externalwindow", double(featuretrack_externalwindow.last_used()));
     cJSON_AddNumberToObject(json, "ol.usage.manualscroll", double(featuretrack_manualscroll.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.lyricupload", double(featuretrack_lyricupload.last_used()));
+    cJSON_AddNumberToObject(json, "ol.usage.remotetrack", double(featuretrack_remotetrack.last_used()));
 
     const auto get_source_name = [](GUID guid) -> std::string
     {

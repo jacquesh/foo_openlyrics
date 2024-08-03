@@ -15,6 +15,7 @@
 #define IDD_PREFERENCES_SRC_LOCALFILES  154
 #define IDD_PREFERENCES_SRC_MUSIXMATCH  155
 #define IDD_PREFERENCES_SEARCHING       156
+#define IDD_PREFERENCES_UPLOADING       157
 #define IDC_ACTIVE_SOURCE_LIST          1021
 #define IDC_INACTIVE_SOURCE_LIST        1025
 #define IDC_SOURCE_ACTIVATE_BTN         1026
@@ -103,6 +104,7 @@
 #define IDC_SEARCH_SYNTAX_HELP          1123
 #define IDC_SEARCH_SKIP_FILTER_RESULT   1124
 #define IDC_SEARCH_PREFERRED_TYPE       1126
+#define IDC_UPLOAD_STRATEGY             1127
 
 // Next default values for new objects
 // 
@@ -110,7 +112,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1127
+#define _APS_NEXT_CONTROL_VALUE         1128
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
