@@ -1,6 +1,8 @@
 #include "stdafx.h"
 
 #include "pugixml.hpp"
+#include "tidy.h"
+#include "tidybuffio.h"
 
 #include "logging.h"
 #include "lyric_source.h"
@@ -145,6 +147,35 @@ void LyricSourceRemote::upload(LyricData /*lyrics*/, abort_callback& /*abort*/)
 {
     LOG_WARN("Cannot upload to a generic remote source (that doesn't support upload)");
     assert(false);
+}
+
+void LyricSourceRemote::load_html_document(const char* html, pugi::xml_document& doc) const
+{
+    std::string lyric_text;
+    TidyBuffer tidy_output = {};
+    TidyBuffer tidy_error = {};
+
+    TidyDoc tidy_doc = tidyCreate();
+    tidySetErrorBuffer(tidy_doc, &tidy_error);
+    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
+    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
+    tidyParseString(tidy_doc, html);
+    tidyCleanAndRepair(tidy_doc);
+    tidyRunDiagnostics(tidy_doc);
+    tidySaveBuffer(tidy_doc, &tidy_output);
+
+    if(tidyErrorCount(tidy_doc) != 0)
+    {
+        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
+        const std::string source_name = from_tstring(friendly_name());
+        LOG_INFO("Failed to cleanly convert retrieved HTML from %s to XHTML:\n%s", source_name.c_str(), tidy_error.bp);
+    }
+
+    doc.load_buffer(tidy_output.bp, tidy_output.size);
+
+    tidyBufFree(&tidy_output);
+    tidyBufFree(&tidy_error);
+    tidyRelease(tidy_doc);
 }
 
 void LyricSourceRemote::add_all_text_to_string(std::string& output, const pugi::xml_node& node)

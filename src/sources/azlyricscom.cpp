@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include <cctype>
 
-#include "tidy.h"
-#include "tidybuffio.h"
 #include "pugixml.hpp"
 
 #include "logging.h"
@@ -85,65 +83,41 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(const LyricSearchParams& par
     }
 
     std::string lyric_text;
-    TidyBuffer tidy_output = {};
-    TidyBuffer tidy_error = {};
+    pugi::xml_document doc;
+    load_html_document(content.c_str(), doc);
 
-    TidyDoc tidy_doc = tidyCreate();
-    tidySetErrorBuffer(tidy_doc, &tidy_error);
-    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
-    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
-    tidyParseString(tidy_doc, content.c_str());
-    tidyCleanAndRepair(tidy_doc);
-    tidyRunDiagnostics(tidy_doc);
-    tidySaveBuffer(tidy_doc, &tidy_output);
-
-    if(tidyErrorCount(tidy_doc) == 0)
+    pugi::xpath_query query_lyricdivs("//div[@class='lyricsh']");
+    pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
+    if(!lyricdivs.empty())
     {
-        pugi::xml_document doc;
-        doc.load_buffer(tidy_output.bp, tidy_output.size);
-
-        pugi::xpath_query query_lyricdivs("//div[@class='lyricsh']");
-        pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
-        if(!lyricdivs.empty())
+        pugi::xml_node target_node;
+        for(const pugi::xpath_node& node : lyricdivs)
         {
-            pugi::xml_node target_node;
-            for(const pugi::xpath_node& node : lyricdivs)
+            if(node.node().type() == pugi::node_element)
             {
-                if(node.node().type() == pugi::node_element)
-                {
-                    target_node = node.node();
-                    break;
-                }
+                target_node = node.node();
+                break;
             }
-            while(target_node.type() != pugi::node_null)
+        }
+        while(target_node.type() != pugi::node_null)
+        {
+            const auto attr_is_class = [](const pugi::xml_attribute& attr) { return strcmp(attr.name(), "class") == 0; };
+            bool is_div = (strcmp(target_node.name(), "div") == 0);
+            bool has_class = std::find_if(target_node.attributes_begin(), target_node.attributes_end(), attr_is_class) != target_node.attributes_end();
+            if(is_div && !has_class)
             {
-                const auto attr_is_class = [](const pugi::xml_attribute& attr) { return strcmp(attr.name(), "class") == 0; };
-                bool is_div = (strcmp(target_node.name(), "div") == 0);
-                bool has_class = std::find_if(target_node.attributes_begin(), target_node.attributes_end(), attr_is_class) != target_node.attributes_end();
-                if(is_div && !has_class)
-                {
-                    break;
-                }
-
-                target_node = target_node.next_sibling();
+                break;
             }
 
-            add_all_text_to_string(lyric_text, target_node);
+            target_node = target_node.next_sibling();
         }
-        else
-        {
-            LOG_INFO("No appropriate lyric header divs found on page: %s", url.c_str());
-        }
+
+        add_all_text_to_string(lyric_text, target_node);
     }
     else
     {
-        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
-        LOG_INFO("Failed to convert retrieved HTML from %s to XHTML:\n%s", url.c_str(), tidy_error.bp);
+        LOG_INFO("No appropriate lyric header divs found on page: %s", url.c_str());
     }
-
-    tidyBufFree(&tidy_output);
-    tidyBufFree(&tidy_error);
-    tidyRelease(tidy_doc);
 
     if(lyric_text.empty())
     {

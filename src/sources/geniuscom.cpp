@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include <cctype>
 
-#include "tidy.h"
-#include "tidybuffio.h"
 #include "pugixml.hpp"
 
 #include "logging.h"
@@ -75,54 +73,30 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
 
     LOG_INFO("Page %s retrieved", url.c_str());
     std::string lyric_text;
-    TidyBuffer tidy_output = {};
-    TidyBuffer tidy_error = {};
+    pugi::xml_document doc;
+    load_html_document(content.c_str(), doc);
 
-    TidyDoc tidy_doc = tidyCreate();
-    tidySetErrorBuffer(tidy_doc, &tidy_error);
-    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
-    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
-    tidyParseString(tidy_doc, content.c_str());
-    tidyCleanAndRepair(tidy_doc);
-    tidyRunDiagnostics(tidy_doc);
-    tidySaveBuffer(tidy_doc, &tidy_output);
-
-    if(tidyErrorCount(tidy_doc) == 0)
+    const char* xpath_queries[] = { "//div[@class='lyrics']", "//div[contains(@class, 'Lyrics__Container')]" };
+    for(const char* query_str : xpath_queries)
     {
-        pugi::xml_document doc;
-        doc.load_buffer(tidy_output.bp, tidy_output.size);
+        pugi::xpath_query query_lyricdivs(query_str);
+        pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
 
-        const char* xpath_queries[] = { "//div[@class='lyrics']", "//div[contains(@class, 'Lyrics__Container')]" };
-        for(const char* query_str : xpath_queries)
+        if(!lyricdivs.empty())
         {
-            pugi::xpath_query query_lyricdivs(query_str);
-            pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
-
-            if(!lyricdivs.empty())
+            for(const pugi::xpath_node& node : lyricdivs)
             {
-                for(const pugi::xpath_node& node : lyricdivs)
-                {
-                    add_all_text_to_string(lyric_text, node.node());
+                add_all_text_to_string(lyric_text, node.node());
 
-                    // A div is a block element, which means that by definition
-                    // it effectively includes a trailing line-break.
-                    // We won't get that line-break by parsing the HTML text content,
-                    // so add it here manually.
-                    lyric_text += "\r\n";
-                }
-                break;
+                // A div is a block element, which means that by definition
+                // it effectively includes a trailing line-break.
+                // We won't get that line-break by parsing the HTML text content,
+                // so add it here manually.
+                lyric_text += "\r\n";
             }
+            break;
         }
     }
-    else
-    {
-        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
-        LOG_INFO("Failed to convert retrieved HTML from %s to XHTML:\n%s", url.c_str(), tidy_error.bp);
-    }
-
-    tidyBufFree(&tidy_output);
-    tidyBufFree(&tidy_error);
-    tidyRelease(tidy_doc);
 
     if(lyric_text.empty())
     {

@@ -3,8 +3,6 @@
 
 #include "cJSON.h"
 #include "pugixml.hpp"
-#include "tidy.h"
-#include "tidybuffio.h"
 
 #include "logging.h"
 #include "lyric_source.h"
@@ -21,6 +19,7 @@ class MetalArchivesSource : public LyricSourceRemote
 
 private:
     std::string collect_all_text_to_string(pugi::xml_node node) const;
+    pugi::xml_document MetalArchivesSource::load_html(const char* src) const;
     std::vector<LyricDataRaw> parse_song_ids(cJSON* json) const;
 };
 static const LyricSourceFactory<MetalArchivesSource> src_factory;
@@ -32,34 +31,10 @@ std::string MetalArchivesSource::collect_all_text_to_string(pugi::xml_node node)
     return result;
 }
 
-static pugi::xml_document load_html(const char* src)
+pugi::xml_document MetalArchivesSource::load_html(const char* src) const
 {
-    TidyBuffer tidy_output = {};
-    TidyBuffer tidy_error = {};
-
-    TidyDoc tidy_doc = tidyCreate();
-    tidySetErrorBuffer(tidy_doc, &tidy_error);
-    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
-    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
-    tidyParseString(tidy_doc, src);
-    tidyCleanAndRepair(tidy_doc);
-    tidyRunDiagnostics(tidy_doc);
-    tidySaveBuffer(tidy_doc, &tidy_output);
-
-    if(tidyErrorCount(tidy_doc) != 0)
-    {
-        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
-        LOG_INFO("Failed to convert retrieved HTML to XHTML:\n%s", tidy_error.bp);
-        return pugi::xml_document{};
-    }
-
     pugi::xml_document doc;
-    doc.load_buffer(tidy_output.bp, tidy_output.size);
-
-    tidyBufFree(&tidy_output);
-    tidyBufFree(&tidy_error);
-    tidyRelease(tidy_doc);
-
+    load_html_document(src, doc);
     return doc;
 }
 

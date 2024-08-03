@@ -11,6 +11,7 @@
 
 // Forward declarations
 namespace pugi {
+    class xml_document;
     class xml_node;
 };
 
@@ -68,6 +69,7 @@ public:
 
 protected:
     static std::string urlencode(std::string_view input);
+    void load_html_document(const char* html, pugi::xml_document& doc) const;
     static void add_all_text_to_string(std::string& output, const pugi::xml_node& node);
 };
 

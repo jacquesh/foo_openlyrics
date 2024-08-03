@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include <cctype>
 
-#include "tidy.h"
-#include "tidybuffio.h"
 #include "pugixml.hpp"
 
 #include "logging.h"
@@ -75,44 +73,20 @@ std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& para
 
     LOG_INFO("Page %s retrieved", url.c_str());
     std::string lyric_text;
-    TidyBuffer tidy_output = {};
-    TidyBuffer tidy_error = {};
+    pugi::xml_document doc;
+    load_html_document(content.c_str(), doc);
 
-    TidyDoc tidy_doc = tidyCreate();
-    tidySetErrorBuffer(tidy_doc, &tidy_error);
-    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
-    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
-    tidyParseString(tidy_doc, content.c_str());
-    tidyCleanAndRepair(tidy_doc);
-    tidyRunDiagnostics(tidy_doc);
-    tidySaveBuffer(tidy_doc, &tidy_output);
-
-    if(tidyErrorCount(tidy_doc) == 0)
+    const pugi::xpath_query query_lyricdivs("//p[@id='songLyricsDiv']");
+    const pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
+    add_all_text_to_string(lyric_text, lyricdivs.first().node());
+    if(!lyric_text.empty())
     {
-        pugi::xml_document doc;
-        doc.load_buffer(tidy_output.bp, tidy_output.size);
-
-        const pugi::xpath_query query_lyricdivs("//p[@id='songLyricsDiv']");
-        const pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
-        add_all_text_to_string(lyric_text, lyricdivs.first().node());
-        if(!lyric_text.empty())
-        {
-            // A paragraph is a block element, which means that by definition
-            // it effectively includes a trailing line-break.
-            // We won't get that line-break by parsing the HTML text content,
-            // so add it here manually.
-            lyric_text += "\r\n";
-        }
+        // A paragraph is a block element, which means that by definition
+        // it effectively includes a trailing line-break.
+        // We won't get that line-break by parsing the HTML text content,
+        // so add it here manually.
+        lyric_text += "\r\n";
     }
-    else
-    {
-        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
-        LOG_INFO("Failed to convert retrieved HTML from %s to XHTML:\n%s", url.c_str(), tidy_error.bp);
-    }
-
-    tidyBufFree(&tidy_output);
-    tidyBufFree(&tidy_error);
-    tidyRelease(tidy_doc);
 
     if(lyric_text.empty())
     {

@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include <cctype>
 
-#include "tidy.h"
-#include "tidybuffio.h"
 #include "pugixml.hpp"
 
 #include "logging.h"
@@ -102,61 +100,37 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(const LyricSearchParams& para
     }
 
     std::string lyric_text;
-    TidyBuffer tidy_output = {};
-    TidyBuffer tidy_error = {};
+    pugi::xml_document doc;
+    load_html_document(content.c_str(), doc);
 
-    TidyDoc tidy_doc = tidyCreate();
-    tidySetErrorBuffer(tidy_doc, &tidy_error);
-    tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
-    tidyOptSetBool(tidy_doc, TidyForceOutput, yes);
-    tidyParseString(tidy_doc, content.c_str());
-    tidyCleanAndRepair(tidy_doc);
-    tidyRunDiagnostics(tidy_doc);
-    tidySaveBuffer(tidy_doc, &tidy_output);
-
-    if(tidyErrorCount(tidy_doc) == 0)
+    pugi::xpath_query query_lyricdivs("//div[@class='lyrics']/h3/a[@name]");
+    pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
+    if(!lyricdivs.empty())
     {
-        pugi::xml_document doc;
-        doc.load_buffer(tidy_output.bp, tidy_output.size);
-
-        pugi::xpath_query query_lyricdivs("//div[@class='lyrics']/h3/a[@name]");
-        pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
-        if(!lyricdivs.empty())
+        for(const pugi::xpath_node& node : lyricdivs)
         {
-            for(const pugi::xpath_node& node : lyricdivs)
+            if(node.node().type() != pugi::node_element) continue;
+            if(node.node().first_child().type() != pugi::node_pcdata) continue;
+
+            std::string_view title_text = node.node().first_child().value();
+            size_t title_dot_index = title_text.find('.');
+
+            if(title_dot_index == std::string_view::npos) continue;
+
+            title_text.remove_prefix(title_dot_index + 1); // +1 to include the '.' that we found
+            title_text = trim_surrounding_whitespace(title_text);
+            if(!tag_values_match(title_text, params.title))
             {
-                if(node.node().type() != pugi::node_element) continue;
-                if(node.node().first_child().type() != pugi::node_pcdata) continue;
+                continue;
+            }
 
-                std::string_view title_text = node.node().first_child().value();
-                size_t title_dot_index = title_text.find('.');
-
-                if(title_dot_index == std::string_view::npos) continue;
-
-                title_text.remove_prefix(title_dot_index + 1); // +1 to include the '.' that we found
-                title_text = trim_surrounding_whitespace(title_text);
-                if(!tag_values_match(title_text, params.title))
-                {
-                    continue;
-                }
-
-                if(node.parent().type() != pugi::node_null)
-                {
-                    add_all_text_to_string(lyric_text, node.parent().next_sibling());
-                    break;
-                }
+            if(node.parent().type() != pugi::node_null)
+            {
+                add_all_text_to_string(lyric_text, node.parent().next_sibling());
+                break;
             }
         }
     }
-    else
-    {
-        tidyErrorSummary(tidy_doc); // Write more complete error info to the error_buffer
-        LOG_INFO("Failed to convert retrieved HTML from %s to XHTML:\n%s", url.c_str(), tidy_error.bp);
-    }
-
-    tidyBufFree(&tidy_output);
-    tidyBufFree(&tidy_error);
-    tidyRelease(tidy_doc);
 
     if(lyric_text.empty())
     {
