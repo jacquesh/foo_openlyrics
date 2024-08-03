@@ -510,13 +510,13 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
     return 0;
 }
 
-HWND SpawnManualLyricSearch(HWND parent_window, LyricUpdateHandle& update)
+HWND SpawnManualLyricSearch(LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning manual search window...");
     HWND result = nullptr;
     try
     {
-        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<ManualLyricSearch>>(parent_window, update);
+        auto new_window = fb2k::newDialog<ManualLyricSearch>(update);
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)

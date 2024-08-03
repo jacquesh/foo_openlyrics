@@ -597,14 +597,14 @@ LyricData LyricEditor::ParseEditorContents()
     return parsers::lrc::parse(data);
 }
 
-HWND SpawnLyricEditor(HWND parent_window, const LyricData& lyrics, LyricUpdateHandle& update)
+HWND SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update)
 {
     LOG_INFO("Spawning editor window...");
     HWND result = nullptr;
     try
     {
         LyricDataUnstructured unstructured = parsers::lrc::serialise(lyrics);
-        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<LyricEditor>>(parent_window, unstructured, update);
+        auto new_window = fb2k::newDialog<LyricEditor>(unstructured, update);
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)

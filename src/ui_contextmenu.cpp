@@ -132,7 +132,7 @@ public:
                 auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, get_full_metadata(track), fb2k::mainAborter());
                 if(num_lyric_panels() > 0)
                 {
-                    SpawnManualLyricSearch(core_api::get_main_window(), *update);
+                    SpawnManualLyricSearch(*update);
                 }
                 else
                 {
@@ -161,7 +161,7 @@ public:
 
                             if(num_lyric_panels() > 0)
                             {
-                                SpawnLyricEditor(core_api::get_main_window(), lyrics, *edit_update);
+                                SpawnLyricEditor(lyrics, *edit_update);
                             }
                             else
                             {

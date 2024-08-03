@@ -1101,7 +1101,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 if(m_now_playing == nullptr) break;
 
                 auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_now_playing_info, m_child_abort);
-                SpawnManualLyricSearch(m_hWnd, *update);
+                SpawnManualLyricSearch(*update);
                 LyricUpdateQueue::add_handle(std::move(update));
             } break;
 
@@ -1136,7 +1136,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 if(m_now_playing == nullptr) break;
 
                 auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
-                SpawnLyricEditor(m_hWnd, m_lyrics, *update);
+                SpawnLyricEditor(m_lyrics, *update);
                 LyricUpdateQueue::add_handle(std::move(update));
             } break;
 
@@ -1334,7 +1334,7 @@ void LyricPanel::OnDoubleClick(UINT /*virtualKeys*/, CPoint /*cursorPos*/)
     if(m_now_playing == nullptr) return;
 
     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
-    SpawnLyricEditor(m_hWnd, m_lyrics, *update);
+    SpawnLyricEditor(m_lyrics, *update);
     LyricUpdateQueue::add_handle(std::move(update));
 }
 
