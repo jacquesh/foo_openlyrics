@@ -8,7 +8,6 @@
 
 #include "logging.h"
 #include "lyric_source.h"
-#include "tag_util.h"
 
 static const GUID src_guid = { 0xa7ac869e, 0xa867, 0x49e6, { 0x97, 0x9e, 0x7b, 0x61, 0x58, 0x84, 0x21, 0x17 } };
 
@@ -21,48 +20,12 @@ class MetalArchivesSource : public LyricSourceRemote
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
+    std::string collect_all_text_to_string(pugi::xml_node node) const;
     std::vector<LyricDataRaw> parse_song_ids(cJSON* json) const;
 };
 static const LyricSourceFactory<MetalArchivesSource> src_factory;
 
-static void add_all_text_to_string(std::string& output, pugi::xml_node node)
-{
-    if(node.type() == pugi::node_null)
-    {
-        return;
-    }
-
-    pugi::xml_node current = node;
-    while(current != nullptr)
-    {
-        if(current.type() == pugi::node_pcdata)
-        {
-            // We assume the text is already UTF-8
-            std::string_view node_text = trim_surrounding_whitespace(current.value());
-            output += node_text;
-        }
-        else if((current.type() == pugi::node_element) || (current.type() == pugi::node_document))
-        {
-            const std::string_view current_name = current.name();
-            if(current_name == "br")
-            {
-                output += "\r\n";
-            }
-            else if((current_name == "h3") || (current_name == "div"))
-            {
-                break;
-            }
-            else
-            {
-                add_all_text_to_string(output, current.first_child());
-            }
-        }
-
-        current = current.next_sibling();
-    }
-}
-
-static std::string collect_all_text_to_string(pugi::xml_node node)
+std::string MetalArchivesSource::collect_all_text_to_string(pugi::xml_node node) const
 {
     std::string result;
     add_all_text_to_string(result, node);

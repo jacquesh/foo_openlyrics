@@ -128,25 +128,7 @@ std::vector<LyricDataRaw> AZLyricsComSource::search(const LyricSearchParams& par
                 target_node = target_node.next_sibling();
             }
 
-            if(target_node.type() != pugi::node_null)
-            {
-                for(const pugi::xml_node& child : target_node.children())
-                {
-                    if(child.type() == pugi::node_pcdata)
-                    {
-                        // We assume the text is already UTF-8
-                        std::string_view line_text = trim_surrounding_whitespace(child.value());
-                        lyric_text += line_text;
-                    }
-                    else if(child.type() == pugi::node_element)
-                    {
-                        if(strcmp(child.name(), "br") == 0)
-                        {
-                            lyric_text += "\r\n";
-                        }
-                    }
-                }
-            }
+            add_all_text_to_string(lyric_text, target_node);
         }
         else
         {

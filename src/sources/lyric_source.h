@@ -9,6 +9,11 @@
 // - https://www.syair.info
 // - MiniLyrics (https://crintsoft.com/) - See a wireshark trace of LyricShowPanel3 attempting to make HTTP calls
 
+// Forward declarations
+namespace pugi {
+    class xml_node;
+};
+
 struct LyricSearchParams
 {
     std::string artist;
@@ -63,6 +68,7 @@ public:
 
 protected:
     static std::string urlencode(std::string_view input);
+    static void add_all_text_to_string(std::string& output, const pugi::xml_node& node);
 };
 
 template<typename T>

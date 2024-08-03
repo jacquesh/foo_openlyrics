@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include "pugixml.hpp"
+
 #include "logging.h"
 #include "lyric_source.h"
 #include "tag_util.h"
@@ -145,3 +147,49 @@ void LyricSourceRemote::upload(LyricData /*lyrics*/, abort_callback& /*abort*/)
     assert(false);
 }
 
+void LyricSourceRemote::add_all_text_to_string(std::string& output, const pugi::xml_node& node)
+{
+    // add_all_text_to_string_internal(output, pugi::xml_node(node));
+    switch(node.type())
+    {
+        case pugi::node_null:
+        case pugi::node_comment:
+        case pugi::node_pi:
+        case pugi::node_declaration:
+        case pugi::node_doctype:
+            return;
+
+        case pugi::node_document:
+        case pugi::node_element:
+        {
+            if(std::string_view(node.name()) == "br")
+            {
+                assert(node.children().empty());
+                output += "\r\n";
+                break;
+            }
+
+            for(pugi::xml_node child : node.children())
+            {
+                add_all_text_to_string(output, child);
+            }
+        } break;
+
+        case pugi::node_pcdata:
+        case pugi::node_cdata:
+        {
+            // We assume the text is already UTF-8
+
+            // Trim surrounding line-endings to get rid of the newlines in the HTML that don't affect rendering
+            std::string node_text(trim_surrounding_line_endings(node.value()));
+
+            // Sometimes tidyHtml inserts newlines in the middle of a line where there should just be a space.
+            // Get rid of any carriage returns (in case they were added) and then replace
+            // newlines in the middle of the text with spaces.
+            node_text.erase(std::remove(node_text.begin(), node_text.end(), '\r'));
+            std::replace(node_text.begin(), node_text.end(), '\n', ' ');
+
+            output += node_text;
+        } break;
+    }
+}

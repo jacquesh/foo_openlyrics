@@ -16,7 +16,6 @@ class GeniusComSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Genius.com"); }
 
-    void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
@@ -49,44 +48,6 @@ static std::string remove_chars_for_url(const std::string_view input)
     }
 
     return output;
-}
-
-void GeniusComSource::add_all_text_to_string(std::string& output, pugi::xml_node node) const
-{
-    if((node.type() == pugi::node_null) || (node.type() != pugi::node_element))
-    {
-        return;
-    }
-
-    for(pugi::xml_node child : node.children())
-    {
-        if(child.type() == pugi::node_pcdata)
-        {
-            // We assume the text is already UTF-8
-
-            // Trim surrounding line-endings to get rid of the newlines in the HTML that don't affect rendering
-            std::string node_text(trim_surrounding_line_endings(child.value()));
-
-            // Sometimes tidyHtml inserts newlines in the middle of a line where there should just be a space.
-            // Get rid of any carriage returns (in case they were added) and then replace
-            // newlines in the middle of the text with spaces.
-            node_text.erase(std::remove(node_text.begin(), node_text.end(), '\r'));
-            std::replace(node_text.begin(), node_text.end(), '\n', ' ');
-
-            output += node_text;
-        }
-        else if(child.type() == pugi::node_element)
-        {
-            if(strcmp(child.name(), "br") == 0)
-            {
-                output += "\r\n";
-            }
-            else
-            {
-                add_all_text_to_string(output, child);
-            }
-        }
-    }
 }
 
 std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& params, abort_callback& abort)
