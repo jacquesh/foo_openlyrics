@@ -28,6 +28,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Add a source for LRCLIB (https://lrclib.net)\n"
+    "- Add a source for SongLyrics.com\n"
     "- Update the foobar2000 SDK to version 20230913\n"
     "- Change default local file name format to replace invalid characters\n"
     "  - Applies to new users only. Existing users' settings won't be changed\n"

@@ -244,6 +244,7 @@
     <ClCompile Include="..\src\sources\musixmatch.cpp" />
     <ClCompile Include="..\src\sources\netease.cpp" />
     <ClCompile Include="..\src\sources\qqmusic.cpp" />
+    <ClCompile Include="..\src\sources\songlyrics.cpp" />
     <ClCompile Include="..\src\tag_util.cpp" />
     <ClCompile Include="..\src\ui_contextmenu.cpp" />
     <ClCompile Include="..\src\ui_lyrics_uielement.cpp" />
