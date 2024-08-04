@@ -201,7 +201,7 @@ std::string print_timestamp(double timestamp)
     int time_hours = total_seconds/3600;
     int time_minutes = (total_seconds - 3600*time_hours)/60;
     int time_seconds = total_seconds - (time_hours*3600) - (time_minutes*60);
-    int time_centisec = static_cast<int>((timestamp - total_seconds_flt) * 100.0);
+    int time_centisec = static_cast<int>(std::round((timestamp - total_seconds_flt) * 100.0));
 
     char temp[32];
     if(time_hours == 0)
@@ -571,4 +571,18 @@ MVTF_TEST(lrcparse_title_case_encoding_tag_extracted_from_lyrics)
     ASSERT(lyrics.tags.size() == 1);
     ASSERT(lyrics.tags[0] == "[Encoding:iso-8859-15]");
 }
+
+MVTF_TEST(lrcparse_timestamp_parsing_and_printing_roundtrips)
+{
+    // Checks for the timestamp-modifying part of https://github.com/jacquesh/foo_openlyrics/issues/354
+    double parsed = 0.0;
+    const std::string input = "[00:18.31]";
+    const bool parse_success = parsers::lrc::try_parse_timestamp(input, parsed);
+    const std::string output = parsers::lrc::print_timestamp(parsed);
+
+    ASSERT(parse_success);
+    ASSERT(parsed == 18.31);
+    ASSERT(output == input);
+}
+
 #endif
