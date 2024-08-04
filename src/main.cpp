@@ -51,6 +51,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix possibly using the wrong background colour when changing FB2K colours\n"
     "- Fix Metal Archives possibly returning 'lyrics not available'\n"
     "- Fix album art backgrounds disappearing when playing the same track twice\n"
+    "- Fix the 'encoding' tag in LRC files being considered a lyric line\n"
     "- Many, many minor non-functional internal code improvements\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"

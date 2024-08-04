@@ -2,9 +2,18 @@
 
 #include "logging.h"
 #include "lyric_data.h"
+#include "mvtf/mvtf.h"
 #include "parsers.h"
 #include "tag_util.h"
 #include "win32_util.h"
+
+static bool equals_ignore_case(std::string_view lhs, std::string_view rhs)
+{
+    const pfc::string_part_ref pfc_lhs = pfc::string_part(lhs.data(), lhs.length());
+    const pfc::string_part_ref pfc_rhs = pfc::string_part(rhs.data(), rhs.length());
+    const int comparison = pfc::stringCompareCaseInsensitiveEx(pfc_lhs, pfc_rhs);
+    return comparison == 0;
+}
 
 namespace parsers::lrc
 {
@@ -82,14 +91,17 @@ bool is_tag_line(std::string_view line)
     if(tag_length == 0) return false;
 
     std::string_view tag = line.substr(1, colon_index-1);
-    if((tag != "ar") && // Artist
-       (tag != "al") && // Album
-       (tag != "ti") && // Title
-       (tag != "by") && // Lyric 'author' (person who made the lrc)
-       (tag != "id") && // LRC file ID
-       (tag != "offset") && // The offset to add to the given line timestamps
-       (tag != "length") && // Track length (e.g ''03:40')
-       (tag != "t_time")) // Track length (e.g '(2:57)')
+
+    if(   !equals_ignore_case(tag, "ar") // Artist
+       && !equals_ignore_case(tag, "al") // Album
+       && !equals_ignore_case(tag, "ti") // Title
+       && !equals_ignore_case(tag, "by") // Lyric 'author' (person who made the lrc)
+       && !equals_ignore_case(tag, "id") // LRC file ID
+       && !equals_ignore_case(tag, "offset") // The offset to add to the given line timestamps
+       && !equals_ignore_case(tag, "length") // Track length (e.g ''03:40')
+       && !equals_ignore_case(tag, "t_time") // Track length (e.g '(2:57)')
+       && !equals_ignore_case(tag, "encoding") // Lyrics encoding (e.g 'utf-8' or 'iso-8859-15')
+       )
     {
         return false;
     }
@@ -526,3 +538,37 @@ std::tstring expand_text(const LyricData& data)
 }
 
 } // namespace parsers::lrc
+
+
+// ============
+// Tests
+// ============
+#ifdef MVTF_TESTS_ENABLED
+MVTF_TEST(lrcparse_title_tag_extracted_from_lyrics)
+{
+    LyricDataUnstructured input{{}};
+    input.text = "[Ti:thetitle]\n[00:00.00]line1";
+
+    bool foo = equals_ignore_case("asd", "qwe");
+    (void)foo;
+
+    const LyricData lyrics = parsers::lrc::parse(input);
+    ASSERT(lyrics.lines.size() == 1);
+    ASSERT(lyrics.lines[0].text == _T("line1"));
+    ASSERT(lyrics.tags.size() == 1);
+    ASSERT(lyrics.tags[0] == "[Ti:thetitle]");
+}
+
+MVTF_TEST(lrcparse_title_case_encoding_tag_extracted_from_lyrics)
+{
+    // Checks for https://github.com/jacquesh/foo_openlyrics/issues/322
+    LyricDataUnstructured input{{}};
+    input.text = "[Encoding:iso-8859-15]\n[00:00.00]line1";
+
+    const LyricData lyrics = parsers::lrc::parse(input);
+    ASSERT(lyrics.lines.size() == 1);
+    ASSERT(lyrics.lines[0].text == _T("line1"));
+    ASSERT(lyrics.tags.size() == 1);
+    ASSERT(lyrics.tags[0] == "[Encoding:iso-8859-15]");
+}
+#endif
