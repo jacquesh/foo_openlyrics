@@ -27,7 +27,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
 
 std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyrics)
 {
-    LyricDataUnstructured unstructured = parsers::lrc::serialise(lyrics);
+    std::string text = from_tstring(parsers::lrc::expand_text(lyrics, false));
     std::pair<std::string_view, char> replacements[] =
     {
         {"&amp;", '&'},
@@ -41,12 +41,12 @@ std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyr
     for(auto [escaped, replacement] : replacements)
     {
         size_t current_index = 0;
-        while(current_index < unstructured.text.length())
+        while(current_index < text.length())
         {
-            size_t next_index = unstructured.text.find(escaped, current_index);
+            size_t next_index = text.find(escaped, current_index);
             if(next_index == std::string::npos) break;
 
-            unstructured.text.replace(next_index, escaped.length(), 1, replacement);
+            text.replace(next_index, escaped.length(), 1, replacement);
             current_index = next_index + 1;
             replace_count++;
         }
@@ -55,7 +55,7 @@ std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyr
 
     if(replace_count > 0)
     {
-        return {parsers::lrc::parse(unstructured)};
+        return {parsers::lrc::parse(lyrics, text)};
     }
     else
     {
@@ -253,32 +253,31 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
         }
     };
 
-    LyricDataUnstructured new_lyrics = parsers::lrc::serialise(lyrics);
-
+    std::string text = from_tstring(parsers::lrc::expand_text(lyrics, false));
     int change_count = 0;
-    size_t current_index = new_lyrics.text.find('[');
+    size_t current_index = text.find('[');
     while(current_index != std::string::npos)
     {
         bool changed = false;
 
-        size_t end_index = new_lyrics.text.find(']', current_index);
+        size_t end_index = text.find(']', current_index);
         if(end_index == std::string::npos)
         {
             break;
         }
-        std::string_view tag {new_lyrics.text.c_str() + current_index, end_index - current_index + 1};
+        std::string_view tag {text.c_str() + current_index, end_index - current_index + 1};
         changed |= fix_decimal_separator(tag);
 
         if(changed)
         {
             change_count++;
         }
-        current_index = new_lyrics.text.find('[', current_index+1);
+        current_index = text.find('[', current_index+1);
     }
 
     if(change_count > 0)
     {
-        return {parsers::lrc::parse(new_lyrics)};
+        return {parsers::lrc::parse(lyrics, text)};
     }
     else
     {

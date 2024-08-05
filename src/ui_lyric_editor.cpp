@@ -20,7 +20,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(LyricDataUnstructured lyrics, LyricUpdateHandle& update);
+    LyricEditor(LyricDataCommon common_data, std::tstring text, LyricUpdateHandle& update);
     ~LyricEditor() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -82,10 +82,10 @@ private:
     fb2k::CCoreDarkModeHooks m_dark;
 };
 
-LyricEditor::LyricEditor(LyricDataUnstructured lyrics, LyricUpdateHandle& update) :
+LyricEditor::LyricEditor(LyricDataCommon common_data, std::tstring text, LyricUpdateHandle& update) :
     m_update(update),
-    m_common_data(lyrics),
-    m_input_text(to_tstring(lyrics.text))
+    m_common_data(common_data),
+    m_input_text(text)
 {
 }
 
@@ -341,7 +341,7 @@ void LyricEditor::SelectLineWithTimestampGreaterOrEqual(double threshold_timesta
 
 void LyricEditor::SetEditorContents(const LyricData& lyrics)
 {
-    std::tstring new_contents = parsers::lrc::expand_text(lyrics);
+    std::tstring new_contents = parsers::lrc::expand_text(lyrics, false);
     SetDlgItemText(IDC_LYRIC_TEXT, new_contents.c_str());
     SendDlgItemMessage(IDC_LYRIC_TEXT, EM_SCROLLCARET , 0, 0);
 }
@@ -603,8 +603,8 @@ HWND SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update)
     HWND result = nullptr;
     try
     {
-        LyricDataUnstructured unstructured = parsers::lrc::serialise(lyrics);
-        auto new_window = fb2k::newDialog<LyricEditor>(unstructured, update);
+        const std::tstring text = parsers::lrc::expand_text(lyrics, false);
+        auto new_window = fb2k::newDialog<LyricEditor>(lyrics, text, update);
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)

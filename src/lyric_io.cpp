@@ -75,42 +75,7 @@ bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info,
         return false;
     }
 
-    std::string text;
-    if(lyrics.IsTimestamped() && preferences::saving::merge_equivalent_lrc_lines())
-    {
-        LyricData merged_lyrics = lyrics;
-        const auto lexicographic_sort = [](const auto& lhs, const auto& rhs){ return lhs.text < rhs.text; };
-        std::stable_sort(merged_lyrics.lines.begin(), merged_lyrics.lines.end(), lexicographic_sort);
-        std::vector<LyricDataLine>::iterator equal_begin = merged_lyrics.lines.begin();
-
-        while(equal_begin != merged_lyrics.lines.end())
-        {
-            std::vector<LyricDataLine>::iterator equal_end = equal_begin + 1;
-            while((equal_end != merged_lyrics.lines.end()) && (equal_begin->text == equal_end->text) && (equal_end->timestamp != DBL_MAX))
-            {
-                equal_end++;
-            }
-
-            // NOTE: We don't need to move equal_begin back one because we don't add
-            //       the first timestamp to the string. That'll happen as part of the
-            //       normal printing below.
-            for(auto iter=equal_end-1; iter!=equal_begin; iter--)
-            {
-                equal_begin->text = to_tstring(parsers::lrc::print_timestamp(iter->timestamp)) + equal_begin->text;
-            }
-            equal_begin = merged_lyrics.lines.erase(equal_begin+1, equal_end);
-        }
-
-        const auto timestamp_sort = [](const auto& lhs, const auto& rhs){ return lhs.timestamp < rhs.timestamp; };
-        std::stable_sort(merged_lyrics.lines.begin(), merged_lyrics.lines.end(), timestamp_sort);
-
-        text = from_tstring(parsers::lrc::expand_text(merged_lyrics));
-    }
-    else
-    {
-        text = from_tstring(parsers::lrc::expand_text(lyrics));
-    }
-
+    const std::string text = from_tstring(parsers::lrc::expand_text(lyrics, preferences::saving::merge_equivalent_lrc_lines()));
     try
     {
         std::string output_path = source->save(track, track_info, lyrics.IsTimestamped(), text, allow_overwrite, abort);

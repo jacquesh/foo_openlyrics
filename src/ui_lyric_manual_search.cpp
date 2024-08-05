@@ -293,7 +293,7 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
                 assert(item_lyrics != nullptr);
                 if(item_lyrics != nullptr)
                 {
-                    std::tstring lyrics_tstr = parsers::lrc::expand_text(*item_lyrics);
+                    std::tstring lyrics_tstr = parsers::lrc::expand_text(*item_lyrics, false);
                     SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, lyrics_tstr.c_str());
                 }
             }

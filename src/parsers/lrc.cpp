@@ -196,6 +196,7 @@ struct LineTimeParseResult
 
 std::string print_timestamp(double timestamp)
 {
+    assert(timestamp != DBL_MAX);
     double total_seconds_flt = std::floor(timestamp);
     int total_seconds = static_cast<int>(total_seconds_flt);
     int time_hours = total_seconds/3600;
@@ -373,6 +374,11 @@ std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricData
 
 LyricData parse(const LyricDataUnstructured& input)
 {
+    return parse(input, input.text);
+}
+
+LyricData parse(const LyricDataCommon& metadata, std::string text_utf8)
+{
     LOG_INFO("Parsing LRC lyric text...");
 
     std::vector<LyricDataLine> lines;
@@ -380,7 +386,7 @@ LyricData parse(const LyricDataUnstructured& input)
     bool tag_section_passed = false; // We only want to count lines as "tags" if they appear at the top of the file
     double timestamp_offset = 0.0;
 
-    std::string_view text(input.text.data(), input.text.size());
+    std::string_view text(text_utf8.data(), text_utf8.size());
     size_t line_start_index = 0;
     while (line_start_index < text.length())
     {
@@ -465,25 +471,18 @@ LyricData parse(const LyricDataUnstructured& input)
     });
     lines = collapse_concurrent_lines(lines);
 
-    LyricData result(input);
+    LyricData result(metadata);
     result.tags = std::move(tags);
     result.lines = std::move(lines);
     result.timestamp_offset = timestamp_offset;
     return result;
 }
 
-LyricDataUnstructured serialise(const LyricData& input)
-{
-    LyricDataUnstructured result(input);
-    result.text = from_tstring(expand_text(input));
-    return result;
-}
-
-std::tstring expand_text(const LyricData& data)
+std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 {
     LOG_INFO("Expanding lyric text...");
     std::tstring expanded_text;
-    expanded_text.reserve(data.lines.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
+    expanded_text.reserve(data.tags.size() * 64); // NOTE: 64 is an arbitrary "probably longer than most lines" value
     for(const std::string& tag : data.tags)
     {
         expanded_text += to_tstring(tag);
@@ -496,10 +495,98 @@ std::tstring expand_text(const LyricData& data)
     // NOTE: We specifically do *not* generate a new tag for the offset because all changes to that
     //       must happen *in the text* (which is the default because you can change it in the editor)
 
-    for(const LyricDataLine& line : data.lines)
+    if(data.IsTimestamped())
     {
-        if(line.timestamp == DBL_MAX)
+        // Split lines with the same timestamp
+        std::vector<LyricDataLine> out_lines;
+        out_lines.reserve(data.lines.size());
+        for(const LyricDataLine& in_line : data.lines)
         {
+            // NOTE: Ordinarily a single line is just a single line and contains no newlines.
+            //       However if two lines in an lrc file have identical timestamps, then we merge them
+            //       during parsing. In that case we need to split them out again here.
+            size_t start_index = 0;
+            while(start_index <= in_line.text.length()) // This is specifically less-or-equal so that empty lines do not get ignored and show up in the editor
+            {
+                size_t end_index = min(in_line.text.length(), in_line.text.find('\n', start_index));
+                size_t length = end_index - start_index;
+                std::tstring out_text(&in_line.text.c_str()[start_index], length);
+                out_lines.push_back({ out_text, in_line.timestamp });
+
+                start_index = end_index+1;
+            }
+        }
+
+        if(merge_equivalent_lrc_lines)
+        {
+            const auto enumerate = [](std::vector<LyricDataLine> input) -> std::vector<std::pair<size_t, LyricDataLine>>
+            {
+                std::vector<std::pair<size_t, LyricDataLine>> output;
+                output.reserve(input.size());
+                size_t index = 0;
+                for(LyricDataLine& value : input)
+                {
+                    output.push_back({index, std::move(value)});
+                    index++;
+                }
+                return output;
+            };
+            const auto denumerate = [](std::vector<std::pair<size_t, LyricDataLine>> input) -> std::vector<LyricDataLine>
+            {
+                std::vector<LyricDataLine> output;
+                output.reserve(input.size());
+                for(auto& value : input)
+                {
+                    output.push_back(std::move(value.second));
+                }
+                return output;
+            };
+            std::vector<std::pair<size_t, LyricDataLine>> indexed_lines = enumerate(std::move(out_lines));
+
+            const auto lexicographic_sort = [](const auto& lhs, const auto& rhs){ return lhs.second.text < rhs.second.text; };
+            std::stable_sort(indexed_lines.begin(), indexed_lines.end(), lexicographic_sort);
+            decltype(indexed_lines)::iterator equal_begin = indexed_lines.begin();
+
+            while(equal_begin != indexed_lines.end())
+            {
+                decltype(indexed_lines)::iterator equal_end = equal_begin + 1;
+                while((equal_end != indexed_lines.end()) && (equal_begin->second.text == equal_end->second.text) && (equal_end->second.timestamp != DBL_MAX))
+                {
+                    equal_end++;
+                }
+
+                // NOTE: We don't need to move equal_begin back one because we don't add
+                //       the first timestamp to the string. That'll happen as part of the
+                //       normal printing below.
+                for(auto iter=equal_end-1; iter!=equal_begin; iter--)
+                {
+                    equal_begin->second.text = to_tstring(parsers::lrc::print_timestamp(iter->second.timestamp)) + equal_begin->second.text;
+                }
+                equal_begin = indexed_lines.erase(equal_begin+1, equal_end);
+            }
+
+            const auto index_sort = [](const auto& lhs, const auto& rhs){ return lhs.first < rhs.first; };
+            std::sort(indexed_lines.begin(), indexed_lines.end(), index_sort);
+            out_lines = denumerate(indexed_lines);
+        }
+
+        for(const LyricDataLine& line : out_lines)
+        {
+            // Even timestamped lyrics can still contain untimestamped lines
+            if(line.timestamp != DBL_MAX)
+            {
+                expanded_text += to_tstring(print_timestamp(line.timestamp));
+            }
+            expanded_text += line.text;
+            expanded_text += _T("\r\n");
+        }
+    }
+    else
+    {
+        // Not timestamped
+        for(const LyricDataLine& line : data.lines)
+        {
+            assert(line.timestamp == DBL_MAX);
             if(line.text.empty())
             {
                 // NOTE: In the lyric editor, we automatically select the next line after synchronising the current one.
@@ -512,25 +599,6 @@ std::tstring expand_text(const LyricData& data)
                 expanded_text += line.text;
             }
             expanded_text += _T("\r\n");
-        }
-        else
-        {
-            // NOTE: Ordinarily a single line is just a single line and contains no newlines.
-            //       However if two lines in an lrc file have identical timestamps, then we merge them
-            //       during parsing. In that case we need to split them out again here.
-            size_t start_index = 0;
-            while(start_index <= line.text.length()) // This is specifically less-or-equal so that empty lines do not get ignored and show up in the editor
-            {
-                size_t end_index = min(line.text.length(), line.text.find('\n', start_index));
-                size_t length = end_index - start_index;
-                std::tstring_view view(&line.text.data()[start_index], length);
-
-                expanded_text += to_tstring(print_timestamp(line.timestamp));
-                expanded_text += view;
-                expanded_text += _T("\r\n");
-
-                start_index = end_index+1;
-            }
         }
     }
 
@@ -585,4 +653,175 @@ MVTF_TEST(lrcparse_timestamp_parsing_and_printing_roundtrips)
     ASSERT(output == input);
 }
 
+MVTF_TEST(lrcparse_parsing_merges_lines_with_matching_timestamps)
+{
+    const std::string input = "[02:29.75]linePart1\n[02:29.75]linePart2";
+    const LyricData parsed = parsers::lrc::parse({}, input);
+
+    ASSERT(parsed.lines.size() == 1);
+    ASSERT(parsed.lines[0].text == _T("linePart1\nlinePart2"));
+}
+
+MVTF_TEST(lrcparse_parsing_duplicates_lines_with_multiple_timestamps)
+{
+    const std::string input = "[00:36.28][01:25.09]dupe-line";
+    const LyricData parsed = parsers::lrc::parse({}, input);
+
+    ASSERT(parsed.lines.size() == 2);
+    ASSERT(parsed.lines[0].text == _T("dupe-line"));
+    ASSERT(parsed.lines[0].timestamp == 36.28);
+    ASSERT(parsed.lines[1].text == _T("dupe-line"));
+    ASSERT(parsed.lines[1].timestamp == 85.09);
+}
+
+MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("line1Part1\nline1Part2"), 149.75});
+    input.lines.push_back({_T("line2Part1\nline2Part2\nline2Part3"), 153.09});
+
+    const std::tstring output = parsers::lrc::expand_text(input, false);
+    ASSERT(output == _T("[02:29.75]line1Part1\r\n[02:29.75]line1Part2\r\n[02:33.09]line2Part1\r\n[02:33.09]line2Part2\r\n[02:33.09]line2Part3\r\n"));
+}
+
+MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps_and_then_merges_matching_lines)
+{
+    // Checks for the timestamp-modifying part of https://github.com/jacquesh/foo_openlyrics/issues/354
+    LyricData input = {};
+    input.lines.push_back({_T("linePart1\nlinePart2"), 149.75});
+    input.lines.push_back({_T("linePart1\nlinePart2\nlinePart3"), 153.09});
+
+    const std::tstring output = parsers::lrc::expand_text(input, true);
+    ASSERT(output == _T("[02:29.75][02:33.09]linePart1\r\n[02:29.75][02:33.09]linePart2\r\n[02:33.09]linePart3\r\n"));
+}
+
+MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps_in_their_original_order)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("lineBBBB\nlineAAAA"), 149.75});
+    // These lines should remain in their given order, even though this is not lexicographic order,
+    // which the code might conceivably change if it involved a sort to check for equivalent lines
+
+    const std::tstring output = parsers::lrc::expand_text(input, true);
+    ASSERT(output == _T("[02:29.75]lineBBBB\r\n[02:29.75]lineAAAA\r\n"));
+}
+
+MVTF_TEST(lrcparse_expanding_does_not_merge_matching_lines_when_not_requested)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("thebestline"), 5.0});
+    input.lines.push_back({_T("thebestline"), 10.0});
+    input.lines.push_back({_T("anotherline"), 12.0});
+    input.lines.push_back({_T("anotherline"), 14.0});
+
+    const std::tstring output = parsers::lrc::expand_text(input, false);
+    ASSERT(output == _T("[00:05.00]thebestline\r\n[00:10.00]thebestline\r\n[00:12.00]anotherline\r\n[00:14.00]anotherline\r\n"));
+}
+
+MVTF_TEST(lrcparse_expanding_merges_matching_lines)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("thebestline"), 5.0});
+    input.lines.push_back({_T("thebestline"), 10.0});
+    input.lines.push_back({_T("anotherline"), 12.0});
+    input.lines.push_back({_T("anotherline"), 14.0});
+
+    const std::tstring output = parsers::lrc::expand_text(input, true);
+    ASSERT(output == _T("[00:05.00][00:10.00]thebestline\r\n[00:12.00][00:14.00]anotherline\r\n"));
+}
+
+MVTF_TEST(lrcparse_expanding_merges_matching_lines_with_matching_timestamps)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("thebestline-part1"), 5.0});
+    input.lines.push_back({_T("thebestline-part2"), 5.0});
+    input.lines.push_back({_T("anotherline-part1"), 10.0});
+    input.lines.push_back({_T("anotherline-part2"), 10.0});
+    input.lines.push_back({_T("thebestline-part1"), 15.0});
+    input.lines.push_back({_T("thebestline-part2"), 15.0});
+
+    const std::tstring output = parsers::lrc::expand_text(input, true);
+    ASSERT(output == _T("[00:05.00][00:15.00]thebestline-part1\r\n[00:05.00][00:15.00]thebestline-part2\r\n[00:10.00]anotherline-part1\r\n[00:10.00]anotherline-part2\r\n"));
+}
+
+MVTF_TEST(lrcparse_expanding_merges_matching_lines_in_timestamp_order)
+{
+    // Unfortunately I couldn't find a smaller example.
+    // This is the result of std::sort not being std::stable_sort, so it depends on std::sort doing "unstable" things
+    // which is not really something that is easily controlled from outside std::sort
+    LyricData input = {};
+    input.lines.push_back({_T(""), 0.0});
+    input.lines.push_back({_T("13"), 0.83});
+    input.lines.push_back({_T("14"), 10.79});
+    input.lines.push_back({_T("15"), 18.31});
+    input.lines.push_back({_T(""), 20.96});
+    input.lines.push_back({_T("16"), 35.27});
+    input.lines.push_back({_T("17"), 44.97});
+    input.lines.push_back({_T("18"), 50.21});
+    input.lines.push_back({_T(""), 54.53});
+    input.lines.push_back({_T("19"), 54.66});
+    input.lines.push_back({_T("20"), 60.05});
+    input.lines.push_back({_T("21"), 64.40});
+    input.lines.push_back({_T("22"), 69.90});
+    input.lines.push_back({_T(""), 75.51});
+    input.lines.push_back({_T("23"), 79.39});
+    input.lines.push_back({_T("24"), 89.12});
+    input.lines.push_back({_T("1"), 94.28});
+    input.lines.push_back({_T(""), 98.51});
+    input.lines.push_back({_T("2"), 98.72});
+    input.lines.push_back({_T("3"), 104.10});
+    input.lines.push_back({_T("4"), 108.52});
+    input.lines.push_back({_T("22"), 113.96});
+    input.lines.push_back({_T(""), 119.64});
+    input.lines.push_back({_T("5"), 137.93});
+    input.lines.push_back({_T("6"), 148.06});
+    input.lines.push_back({_T("7"), 154.95});
+    input.lines.push_back({_T(""), 161.98});
+    input.lines.push_back({_T("20"), 167.83});
+    input.lines.push_back({_T(""), 172.02});
+    input.lines.push_back({_T("8"), 172.14});
+    input.lines.push_back({_T("9"), 177.64});
+    input.lines.push_back({_T("10"), 182.76});
+    input.lines.push_back({_T("11"), 186.76});
+    input.lines.push_back({_T(""), 189.80});
+
+    const std::tstring output = parsers::lrc::expand_text(input, true);
+    const TCHAR* expected = _T(
+        "[00:00.00][00:20.96][00:54.53][01:15.51][01:38.51][01:59.64][02:41.98][02:52.02][03:09.80]\r\n"
+        "[00:00.83]13\r\n"
+        "[00:10.79]14\r\n"
+        "[00:18.31]15\r\n"
+        "[00:35.27]16\r\n"
+        "[00:44.97]17\r\n"
+        "[00:50.21]18\r\n"
+        "[00:54.66]19\r\n"
+        "[01:00.05][02:47.83]20\r\n"
+        "[01:04.40]21\r\n"
+        "[01:09.90][01:53.96]22\r\n"
+        "[01:19.39]23\r\n"
+        "[01:29.12]24\r\n"
+        "[01:34.28]1\r\n"
+        "[01:38.72]2\r\n"
+        "[01:44.10]3\r\n"
+        "[01:48.52]4\r\n"
+        "[02:17.93]5\r\n"
+        "[02:28.06]6\r\n"
+        "[02:34.95]7\r\n"
+        "[02:52.14]8\r\n"
+        "[02:57.64]9\r\n"
+        "[03:02.76]10\r\n"
+        "[03:06.76]11\r\n");
+    ASSERT(output == expected);
+}
+
+MVTF_TEST(lrcparse_expanding_places_untimestamped_lines_at_the_end_with_no_timestamp)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("timeline1"), 1.0});
+    input.lines.push_back({_T("timeline2"), 2.0});
+    input.lines.push_back({_T("untimed"), DBL_MAX});
+
+    const std::tstring output = parsers::lrc::expand_text(input, true);
+    ASSERT(output == _T("[00:01.00]timeline1\r\n[00:02.00]timeline2\r\nuntimed\r\n"));
+}
 #endif

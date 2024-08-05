@@ -90,7 +90,7 @@ public:
                     if(success)
                     {
                         LyricData lyrics = update.get_result();
-                        std::tstring text = parsers::lrc::expand_text(lyrics);
+                        std::tstring text = parsers::lrc::expand_text(lyrics, false);
                         if(text.empty())
                         {
                             popup_message::g_show("No lyrics saved", dialog_title.c_str());
