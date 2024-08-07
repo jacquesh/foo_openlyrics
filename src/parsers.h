@@ -17,7 +17,6 @@ namespace lrc
     std::string print_timestamp(double timestamp);
     bool try_parse_timestamp(std::string_view tag, double& out_timestamp);
 
-    LyricData parse(const LyricDataUnstructured& input);
     LyricData parse(const LyricDataCommon& metadata, std::string text_utf8);
 
     std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines);

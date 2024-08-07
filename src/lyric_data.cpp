@@ -4,8 +4,6 @@
 
 LyricDataRaw::LyricDataRaw(LyricDataCommon common) : LyricDataCommon(common) {}
 
-LyricDataUnstructured::LyricDataUnstructured(LyricDataCommon common) : LyricDataCommon(common) {}
-
 LyricData::LyricData(LyricDataCommon common) : LyricDataCommon(common) {}
 
 bool LyricData::IsTimestamped() const

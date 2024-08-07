@@ -27,14 +27,6 @@ struct LyricDataRaw : public LyricDataCommon
     explicit LyricDataRaw(LyricDataCommon common);
 };
 
-// Unparsed lyric data with a known text encoding
-struct LyricDataUnstructured : public LyricDataCommon
-{
-    std::string text; // The parsed lyrics text, encoded in UTF-8
-
-    explicit LyricDataUnstructured(LyricDataCommon common);
-};
-
 // Parsed lyric data
 struct LyricDataLine
 {

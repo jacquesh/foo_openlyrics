@@ -51,9 +51,6 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, con
         lyric.title = track_metadata(track_info, "title");
         lyric.duration_sec = track_duration_in_seconds(track_info);
 
-        const LyricData parsed = parsers::lrc::parse(LyricDataUnstructured(lyric));
-        lyric.type = parsed.IsTimestamped() ? LyricType::Synced : LyricType::Unsynced;
-
         std::string text;
         size_t value_count = info.meta_enum_value_count(lyric_value_index);
         for(size_t i=0; i<value_count; i++)
@@ -66,6 +63,9 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, con
         if(!lyric.text_bytes.empty())
         {
             LOG_INFO("Found lyrics in tag: '%s'", tag.c_str());
+            const LyricData parsed = parsers::lrc::parse(lyric, text);
+            lyric.type = parsed.IsTimestamped() ? LyricType::Synced : LyricType::Unsynced;
+
             result.push_back(std::move(lyric));
         }
     }

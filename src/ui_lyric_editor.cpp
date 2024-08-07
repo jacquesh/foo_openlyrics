@@ -592,9 +592,7 @@ std::tstring LyricEditor::GetEditorContents()
 LyricData LyricEditor::ParseEditorContents()
 {
     std::string lyrics = from_tstring(GetEditorContents());
-    LyricDataUnstructured data(m_common_data);
-    data.text = lyrics;
-    return parsers::lrc::parse(data);
+    return parsers::lrc::parse(m_common_data, lyrics);
 }
 
 HWND SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update)

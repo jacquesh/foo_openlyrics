@@ -372,11 +372,6 @@ std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricData
     });
 }
 
-LyricData parse(const LyricDataUnstructured& input)
-{
-    return parse(input, input.text);
-}
-
 LyricData parse(const LyricDataCommon& metadata, std::string text_utf8)
 {
     LOG_INFO("Parsing LRC lyric text...");
@@ -614,13 +609,9 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 #ifdef MVTF_TESTS_ENABLED
 MVTF_TEST(lrcparse_title_tag_extracted_from_lyrics)
 {
-    LyricDataUnstructured input{{}};
-    input.text = "[Ti:thetitle]\n[00:00.00]line1";
+    const std::string input = "[Ti:thetitle]\n[00:00.00]line1";
 
-    bool foo = equals_ignore_case("asd", "qwe");
-    (void)foo;
-
-    const LyricData lyrics = parsers::lrc::parse(input);
+    const LyricData lyrics = parsers::lrc::parse({}, input);
     ASSERT(lyrics.lines.size() == 1);
     ASSERT(lyrics.lines[0].text == _T("line1"));
     ASSERT(lyrics.tags.size() == 1);
@@ -630,10 +621,9 @@ MVTF_TEST(lrcparse_title_tag_extracted_from_lyrics)
 MVTF_TEST(lrcparse_title_case_encoding_tag_extracted_from_lyrics)
 {
     // Checks for https://github.com/jacquesh/foo_openlyrics/issues/322
-    LyricDataUnstructured input{{}};
-    input.text = "[Encoding:iso-8859-15]\n[00:00.00]line1";
+    const std::string input = "[Encoding:iso-8859-15]\n[00:00.00]line1";
 
-    const LyricData lyrics = parsers::lrc::parse(input);
+    const LyricData lyrics = parsers::lrc::parse({}, input);
     ASSERT(lyrics.lines.size() == 1);
     ASSERT(lyrics.lines[0].text == _T("line1"));
     ASSERT(lyrics.tags.size() == 1);

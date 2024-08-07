@@ -195,15 +195,16 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
     return "";
 }
 
-static LyricDataUnstructured raw_to_unstructured(const LyricDataRaw& raw)
+static std::string decode_raw_lyric_bytes_to_text(const LyricDataRaw& raw)
 {
-    LyricDataUnstructured unstructured(raw);
-    if(!raw.text_bytes.empty())
+    if(raw.text_bytes.empty())
     {
-        unstructured.text = decode_to_utf8(raw.text_bytes);
-        ensure_windows_newlines(unstructured.text);
+        return std::string();
     }
-    return unstructured;
+
+    std::string text = decode_to_utf8(raw.text_bytes);
+    ensure_windows_newlines(text);
+    return text;
 }
 
 // Returns true if `lhs` is "strictly more desirable" than `rhs`
@@ -345,9 +346,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     LOG_INFO("Parsing lyrics text...");
     handle.set_progress("Parsing...");
 
-    const LyricDataUnstructured unstructured = raw_to_unstructured(lyric_data_raw);
-    LyricData lyric_data = parsers::lrc::parse(unstructured);
-
+    LyricData lyric_data = parsers::lrc::parse(lyric_data_raw, decode_raw_lyric_bytes_to_text(lyric_data_raw));
     if(lyric_data.IsEmpty())
     {
         search_avoidance_log_search_failure(handle.get_track());
@@ -405,12 +404,12 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
         {
             assert(result.source_id == source->id());
 
-            std::optional<LyricDataUnstructured> lyric;
+            std::optional<std::string> lyric;
             if(result.lookup_id.empty())
             {
                 if(!result.text_bytes.empty())
                 {
-                    lyric = raw_to_unstructured(result);
+                    lyric = decode_raw_lyric_bytes_to_text(result);
                 }
             }
             else
@@ -418,15 +417,13 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
                 bool lyrics_found = source->lookup(result, handle.get_checked_abort());
                 if(lyrics_found && !result.text_bytes.empty())
                 {
-                    lyric = raw_to_unstructured(result);
+                    lyric = decode_raw_lyric_bytes_to_text(result);
                 }
             }
 
             if(lyric.has_value())
             {
-                ensure_windows_newlines(lyric.value().text);
-
-                LyricData parsed_lyrics = parsers::lrc::parse(lyric.value());
+                LyricData parsed_lyrics = parsers::lrc::parse(result, lyric.value());
                 handle.set_result(std::move(parsed_lyrics), false);
             }
         }
