@@ -15,7 +15,7 @@ static const GUID GUID_CFG_SEARCH_TAGS = { 0xb7332708, 0xe70b, 0x4a6e, { 0xa4, 0
 static const GUID GUID_CFG_SAVE_TAG_UNTIMED = { 0x39b0bc08, 0x5c3a, 0x4359, { 0x9d, 0xdb, 0xd4, 0x90, 0x84, 0xb, 0x31, 0x88 } };
 static const GUID GUID_CFG_SAVE_TAG_TIMESTAMPED = { 0x337d0d40, 0xe9da, 0x4531, { 0xb0, 0x82, 0x13, 0x24, 0x56, 0xe5, 0xc4, 0x2 } };
 
-static cfg_auto_string cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "LYRICS;SYNCEDLYRICS;UNSYNCED LYRICS;UNSYNCEDLYRICS");
+static cfg_auto_string cfg_search_tags(GUID_CFG_SEARCH_TAGS, IDC_SEARCH_TAGS, "UNSYNCED LYRICS;LYRICS;SYNCEDLYRICS;UNSYNCEDLYRICS");
 
 // NOTE: fb2k will silently handle "UNSYNCED LYRICS" as a special case and store the text in a USLT frame rather than a TXXX frame
 //       Documented here: https://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
