@@ -193,11 +193,6 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
 
     const auto get_openlyrics_dll_hash = [](abort_callback& abort) -> std::string
     {
-        const auto is_success = [](NTSTATUS status)
-        {
-            return status >= 0; // According to the example code at https://learn.microsoft.com/en-us/windows/win32/seccng/creating-a-hash-with-cng
-        };
-
         Sha256Context sha;
         try
         {
@@ -367,7 +362,7 @@ public:
         }
     }
 
-    void on_done(ctx_t /*ctx*/, bool was_aborted)
+    void on_done(ctx_t /*ctx*/, bool was_aborted) override
     {
         LOG_INFO("Initiating post-collection metrics flow...");
         if(was_aborted)
@@ -416,10 +411,10 @@ public:
 static void send_metrics_on_init()
 {
     const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
-    const int days_since_unix_epoch = std::chrono::floor<std::chrono::days>(since_unix_epoch).count();
+    const uint64_t days_since_unix_epoch = static_cast<uint64_t>(std::chrono::floor<std::chrono::days>(since_unix_epoch).count());
     if(cfg_metrics_install_date_days_since_unix_epoch.get_value() == 0)
     {
-        cfg_metrics_install_date_days_since_unix_epoch = static_cast<uint64_t>(days_since_unix_epoch);
+        cfg_metrics_install_date_days_since_unix_epoch = days_since_unix_epoch;
     }
 
     // We use our "installed-date" config to delay initial metrics by at least a week from first
@@ -428,7 +423,7 @@ static void send_metrics_on_init()
     // out and not plan to use it long-term, and it probably wouldn't garner any favour from new users).
     // Immediately after install is also the least useful time to collect metrics since new users
     // will not have had the opportunity to change any configuration yet.
-    const int min_days_of_delay_after_install = 7;
+    const uint64_t min_days_of_delay_after_install = 7;
     if(days_since_unix_epoch < min_days_of_delay_after_install + cfg_metrics_install_date_days_since_unix_epoch.get_value())
     {
         return;
