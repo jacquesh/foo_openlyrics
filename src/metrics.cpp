@@ -26,13 +26,36 @@ static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 constexpr uint64_t current_metrics_generation = 2;
 constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2023), std::chrono::month(07), std::chrono::day(10)};
 
-struct FeatureTracker
+class FeatureTracker : public cfg_var_reader, public cfg_var_writer
 {
-    cfg_int_t<uint64_t> m_last_used; // Days since the unix epoch
+private:
+    uint64_t m_last_used; // Days since the unix epoch
+    uint64_t m_first_used; // Days since the unix epoch
+    uint64_t m_usage_count; // Number of tracked usages since first used
 
-    FeatureTracker(GUID last_used_guid)
-        : m_last_used(last_used_guid, 0)
+public:
+    explicit FeatureTracker(const GUID& p_guid)
+        : cfg_var_reader(p_guid)
+        , cfg_var_writer(p_guid)
+        , m_last_used(0)
+        , m_first_used(0)
+        , m_usage_count(0)
     {}
+
+    uint64_t last_used() const
+    {
+        return m_last_used;
+    }
+
+    uint64_t first_used() const
+    {
+        return m_first_used;
+    }
+
+    uint64_t usage_count() const
+    {
+        return m_usage_count;
+    }
 
     void log_usage()
     {
@@ -43,11 +66,36 @@ struct FeatureTracker
         {
             m_last_used = days_since_unix_epoch;
         }
+        if(m_first_used == 0)
+        {
+            m_first_used = days_since_unix_epoch;
+        }
+        m_usage_count++;
     }
 
-    uint64_t last_used()
+protected:
+    void get_data_raw(stream_writer* p_stream, abort_callback& p_abort) override
     {
-        return m_last_used;
+        p_stream->write_lendian_t(m_last_used, p_abort);
+        p_stream->write_lendian_t(m_first_used, p_abort);
+        p_stream->write_lendian_t(m_usage_count, p_abort);
+    }
+
+    void set_data_raw(stream_reader* p_stream, size_t bytes_available, abort_callback& p_abort) override
+    {
+        uint64_t temp_last_used;
+        p_stream->read_lendian_t(temp_last_used, p_abort); //alter member data only on success, this will throw an exception when something isn't right
+        m_last_used = temp_last_used;
+
+        if(bytes_available >= 24)
+        {
+            uint64_t temp_first_used;
+            uint64_t temp_usage_count;
+            p_stream->read_lendian_t(temp_first_used, p_abort);
+            p_stream->read_lendian_t(temp_usage_count, p_abort);
+            m_first_used = temp_first_used;
+            m_usage_count = temp_usage_count;
+        }
     }
 };
 
