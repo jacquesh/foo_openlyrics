@@ -26,21 +26,32 @@ static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 constexpr uint64_t current_metrics_generation = 2;
 constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2023), std::chrono::month(07), std::chrono::day(10)};
 
+class FeatureTracker;
+std::vector<FeatureTracker*> g_all_feature_trackers;
 class FeatureTracker : public cfg_var_reader, public cfg_var_writer
 {
 private:
+    const char* m_name;
     uint64_t m_last_used; // Days since the unix epoch
     uint64_t m_first_used; // Days since the unix epoch
     uint64_t m_usage_count; // Number of tracked usages since first used
 
 public:
-    explicit FeatureTracker(const GUID& p_guid)
+    explicit FeatureTracker(const char* name, const GUID& p_guid)
         : cfg_var_reader(p_guid)
         , cfg_var_writer(p_guid)
+        , m_name(name)
         , m_last_used(0)
         , m_first_used(0)
         , m_usage_count(0)
-    {}
+    {
+        g_all_feature_trackers.push_back(this);
+    }
+
+    const char* name() const
+    {
+        return m_name;
+    }
 
     uint64_t last_used() const
     {
@@ -99,16 +110,17 @@ protected:
     }
 };
 
-static FeatureTracker featuretrack_bulksearch({ 0x10f5f5c1, 0x472d, 0x4bc6, { 0xa4, 0xb4, 0x70, 0x54, 0x85, 0x0f, 0xc5, 0xe2 } });
-static FeatureTracker featuretrack_manualsearch({ 0x452cd5bf, 0x4c0c, 0x4814, { 0x8f, 0x4e, 0x1b, 0xda, 0x2f, 0x53, 0x4c, 0x6a } });
-static FeatureTracker featuretrack_lyriceditor({ 0x3304c89e, 0xec50, 0x4af1, { 0xa1, 0xa0, 0x21, 0xe3, 0xfd, 0xea, 0x12, 0x32 } });
-static FeatureTracker featuretrack_autoedit({ 0xb1df2480, 0xde3a, 0x49ec, { 0xbf, 0xd, 0x7d, 0x39, 0x31, 0xc8, 0x41, 0x24 } });
-static FeatureTracker featuretrack_instrumental({ 0x12253c20, 0x9324, 0x4095, { 0x89, 0xb8, 0x3e, 0xc8, 0x3f, 0x13, 0xf8, 0x23 } });
-static FeatureTracker featuretrack_showlyrics({ 0xa6665198, 0xd2d1, 0x44ac, { 0xa8, 0xde, 0x1c, 0x6c, 0xb5, 0xbe, 0x0d, 0x81 } });
-static FeatureTracker featuretrack_externalwindow({ 0xf426ac64, 0x4aa7, 0x403a, { 0x97, 0x64, 0xff, 0x62, 0x51, 0xcb, 0xe6, 0x73 } });
-static FeatureTracker featuretrack_manualscroll({ 0x3b751894, 0x9163, 0x4902, { 0x8d, 0x65, 0x3, 0x10, 0x35, 0x21, 0xb5, 0x4d } });
-static FeatureTracker featuretrack_lyricupload({ 0xf4975820, 0x23c, 0x44e6, { 0x8d, 0x30, 0xf1, 0xb8, 0x63, 0x2a, 0x8c, 0x46 } });
-static FeatureTracker featuretrack_remotetrack({ 0xa0cbfda0, 0x99c3, 0x4be7, { 0x86, 0xf0, 0x8e, 0xb2, 0xd1, 0x48, 0x89, 0x9 } });
+#define DECLARE_FEATURETRACKER(FTNAME, ...) static FeatureTracker featuretrack_##FTNAME(#FTNAME, __VA_ARGS__)
+DECLARE_FEATURETRACKER(bulksearch, { 0x10f5f5c1, 0x472d, 0x4bc6, { 0xa4, 0xb4, 0x70, 0x54, 0x85, 0x0f, 0xc5, 0xe2 } });
+DECLARE_FEATURETRACKER(manualsearch, { 0x452cd5bf, 0x4c0c, 0x4814, { 0x8f, 0x4e, 0x1b, 0xda, 0x2f, 0x53, 0x4c, 0x6a } });
+DECLARE_FEATURETRACKER(lyriceditor, { 0x3304c89e, 0xec50, 0x4af1, { 0xa1, 0xa0, 0x21, 0xe3, 0xfd, 0xea, 0x12, 0x32 } });
+DECLARE_FEATURETRACKER(autoedit, { 0xb1df2480, 0xde3a, 0x49ec, { 0xbf, 0xd, 0x7d, 0x39, 0x31, 0xc8, 0x41, 0x24 } });
+DECLARE_FEATURETRACKER(markinstrumental, { 0x12253c20, 0x9324, 0x4095, { 0x89, 0xb8, 0x3e, 0xc8, 0x3f, 0x13, 0xf8, 0x23 } });
+DECLARE_FEATURETRACKER(showlyrics, { 0xa6665198, 0xd2d1, 0x44ac, { 0xa8, 0xde, 0x1c, 0x6c, 0xb5, 0xbe, 0x0d, 0x81 } });
+DECLARE_FEATURETRACKER(externalwindow, { 0xf426ac64, 0x4aa7, 0x403a, { 0x97, 0x64, 0xff, 0x62, 0x51, 0xcb, 0xe6, 0x73 } });
+DECLARE_FEATURETRACKER(manualscroll, { 0x3b751894, 0x9163, 0x4902, { 0x8d, 0x65, 0x3, 0x10, 0x35, 0x21, 0xb5, 0x4d } });
+DECLARE_FEATURETRACKER(lyricupload, { 0xf4975820, 0x23c, 0x44e6, { 0x8d, 0x30, 0xf1, 0xb8, 0x63, 0x2a, 0x8c, 0x46 } });
+DECLARE_FEATURETRACKER(remotetrack, { 0xa0cbfda0, 0x99c3, 0x4be7, { 0x86, 0xf0, 0x8e, 0xb2, 0xd1, 0x48, 0x89, 0x9 } });
 
 void metrics::log_used_bulk_search()
 {
@@ -132,7 +144,7 @@ void metrics::log_used_auto_edit()
 
 void metrics::log_used_mark_instrumental()
 {
-    featuretrack_instrumental.log_usage();
+    featuretrack_markinstrumental.log_usage();
 }
 
 void metrics::log_used_show_lyrics()
@@ -171,132 +183,155 @@ static const char* get_windows_version_string()
     return "old";
 }
 
+static std::string get_openlyrics_dll_hash(abort_callback& abort)
+{
+    Sha256Context sha;
+    try
+    {
+        file_ptr file;
+        const char* dll_path = core_api::get_my_full_path();
+        filesystem::g_open_read(file, dll_path, abort);
+        if(file == nullptr)
+        {
+            return "<fileopen-error>";
+        }
+
+        uint8_t tmp_buffer[4096];
+        while(true)
+        {
+            size_t bytes_read = file->read(tmp_buffer, sizeof(tmp_buffer), abort);
+            if(bytes_read == 0)
+            {
+                break;
+            }
+            sha.add_data(tmp_buffer, bytes_read);
+        }
+    }
+    catch(const std::exception&)
+    {
+        return "<fileio-error>";
+    }
+
+    uint8_t hash_out[32] = {};
+    sha.finalise(hash_out);
+
+    char out[1024] = {};
+    for(size_t i=0; i<sizeof(hash_out); i++)
+    {
+        snprintf(&out[2*i], sizeof(out)-2*i, "%02x", hash_out[i]);
+    }
+    return out;
+}
+
+static std::string get_source_name(GUID guid)
+{
+    LyricSourceBase* source = LyricSourceBase::get(guid);
+    if(source == nullptr)
+    {
+        return "<unknown>";
+    }
+
+    return from_tstring(source->friendly_name());
+}
+
 std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
 {
     LOG_INFO("Metrics collection start");
     cJSON* json = cJSON_CreateObject();
 
-    cJSON_AddStringToObject(json, "fb2k.version", core_version_info::g_get_version_string());
-    cJSON_AddBoolToObject(json, "fb2k.is_portable", core_api::is_portable_mode_enabled());
-    cJSON_AddBoolToObject(json, "fb2k.is_dark_mode", is_dark_mode);
-
-    // NOTE: We use GetDeviceCaps instead of GetDpiForMonitor (or similar functions) because
-    //       fb2k supports Windows 7 and so we should too.
-    HDC screen_dc = GetDC(nullptr);
-    const int dpiX = GetDeviceCaps(screen_dc, LOGPIXELSX);
-    const int dpiY = GetDeviceCaps(screen_dc, LOGPIXELSY);
-    ReleaseDC(nullptr, screen_dc);
-
-    cJSON_AddStringToObject(json, "os.version", get_windows_version_string());
-    cJSON_AddNumberToObject(json, "os.dpi_x", dpiX);
-    cJSON_AddNumberToObject(json, "os.dpi_y", dpiY);
-
-    const auto get_openlyrics_dll_hash = [](abort_callback& abort) -> std::string
     {
-        Sha256Context sha;
-        try
+        cJSON* json_fb2k = cJSON_AddObjectToObject(json, "fb2k");
+        cJSON_AddStringToObject(json_fb2k, "version", core_version_info::g_get_version_string());
+        cJSON_AddBoolToObject(json_fb2k, "is_portable", core_api::is_portable_mode_enabled());
+        cJSON_AddBoolToObject(json_fb2k, "is_dark_mode", is_dark_mode);
+    }
+
+    {
+        cJSON* json_os = cJSON_AddObjectToObject(json, "os");
+
+        // NOTE: We use GetDeviceCaps instead of GetDpiForMonitor (or similar functions) because
+        //       fb2k supports Windows 7 and so we should too.
+        HDC screen_dc = GetDC(nullptr);
+        const int dpiX = GetDeviceCaps(screen_dc, LOGPIXELSX);
+        const int dpiY = GetDeviceCaps(screen_dc, LOGPIXELSY);
+        ReleaseDC(nullptr, screen_dc);
+
+        cJSON_AddStringToObject(json_os, "version", get_windows_version_string());
+        cJSON_AddNumberToObject(json_os, "dpi_x", dpiX);
+        cJSON_AddNumberToObject(json_os, "dpi_y", dpiY);
+    }
+
+    {
+        cJSON* json_ol = cJSON_AddObjectToObject(json, "openlyrics");
+
+        const std::string hash_str = get_openlyrics_dll_hash(abort);
+        const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_install_date_days_since_unix_epoch.get_value())}};
+        char install_ymd_str[64] = {};
+        snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
+
+        cJSON_AddStringToObject(json_ol, "version", hash_str.c_str());
+        cJSON_AddStringToObject(json_ol, "installed_since",install_ymd_str);
+        cJSON_AddNumberToObject(json_ol, "num_panels", double(num_lyric_panels()));
+    }
+
+    cJSON* json_features = cJSON_AddObjectToObject(json, "features");
+    for(const FeatureTracker* feature : g_all_feature_trackers)
+    {
+        cJSON* f = cJSON_AddObjectToObject(json_features, feature->name());
+        cJSON_AddNumberToObject(f, "first_used", double(feature->first_used()));
+        cJSON_AddNumberToObject(f, "last_used", double(feature->last_used()));
+        cJSON_AddNumberToObject(f, "usage_count", double(feature->usage_count()));
+    }
+
+    cJSON* json_sources = cJSON_AddArrayToObject(json, "sources");
+    for(GUID guid : preferences::searching::raw::active_sources_configured())
+    {
+        const std::string name = get_source_name(guid);
+        cJSON_AddItemToArray(json_sources, cJSON_CreateString(name.c_str()));
+    }
+
+    {
+        cJSON* json_cfg = cJSON_AddObjectToObject(json, "cfg");
+
+        const auto get_auto_edits = []() -> std::string
         {
-            file_ptr file;
-            const char* dll_path = core_api::get_my_full_path();
-            filesystem::g_open_read(file, dll_path, abort);
-            if(file == nullptr)
+            std::string result;
+            for(AutoEditType edit : preferences::editing::automated_auto_edits())
             {
-                return "<fileopen-error>";
+                result += std::to_string(int(edit));
+                result += ',';
             }
+            return result;
+        };
 
-            uint8_t tmp_buffer[4096];
-            while(true)
-            {
-                size_t bytes_read = file->read(tmp_buffer, sizeof(tmp_buffer), abort);
-                if(bytes_read == 0)
-                {
-                    break;
-                }
-                sha.add_data(tmp_buffer, bytes_read);
-            }
-        }
-        catch(const std::exception&)
-        {
-            return "<fileio-error>";
-        }
+        // Search settings
+        const std::string auto_edit_str = get_auto_edits();
+        const std::string save_src_name = get_source_name(preferences::saving::save_source());
+        cJSON_AddBoolToObject(json_cfg, "search_exclude_brackets", preferences::searching::exclude_trailing_brackets());
+        cJSON_AddBoolToObject(json_cfg, "is_skip_filter_default", preferences::searching::raw::is_skip_filter_default());
+        cJSON_AddStringToObject(json_cfg, "search_auto_edits", auto_edit_str.c_str());
+        cJSON_AddNumberToObject(json_cfg, "preferred_lyric_type", int(preferences::searching::preferred_lyric_type()));
 
-        uint8_t hash_out[32] = {};
-        sha.finalise(hash_out);
+        // Save settings
+        cJSON_AddNumberToObject(json_cfg, "autosave_strategy", int(preferences::saving::autosave_strategy()));
+        cJSON_AddStringToObject(json_cfg, "save_source", save_src_name.c_str());
+        cJSON_AddNumberToObject(json_cfg, "save_directory_type", int(preferences::saving::raw::directory_class()));
+        cJSON_AddBoolToObject(json_cfg, "merge_lrc_lines_on_save", preferences::saving::merge_equivalent_lrc_lines());
 
-        char out[1024] = {};
-        for(size_t i=0; i<sizeof(hash_out); i++)
-        {
-            snprintf(&out[2*i], sizeof(out)-2*i, "%02x", hash_out[i]);
-        }
-        return out;
-    };
+        // Display settings
+        cJSON_AddBoolToObject(json_cfg, "display_font_is_custom", preferences::display::raw::font_is_custom());
+        cJSON_AddNumberToObject(json_cfg, "line_scroll_type", int(preferences::display::scroll_type()));
+        cJSON_AddNumberToObject(json_cfg, "scroll_seconds", preferences::display::scroll_time_seconds());
+        cJSON_AddNumberToObject(json_cfg, "text_alignment", int(preferences::display::text_alignment()));
+        cJSON_AddBoolToObject(json_cfg, "debug_logs_enabled", preferences::display::debug_logs_enabled());
 
-    const std::string hash_str = get_openlyrics_dll_hash(abort);
-    cJSON_AddStringToObject(json, "ol.version", hash_str.c_str());
+        // Background settings
+        cJSON_AddNumberToObject(json_cfg, "background_type", int(preferences::background::fill_type()));
+        cJSON_AddNumberToObject(json_cfg, "background_image_type", int(preferences::background::image_type()));
 
-    const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_install_date_days_since_unix_epoch.get_value())}};
-    char install_ymd_str[64] = {};
-    snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
-    cJSON_AddStringToObject(json, "ol.installed_since",install_ymd_str);
-
-    cJSON_AddNumberToObject(json, "ol.usage.num_panels", double(num_lyric_panels()));
-    cJSON_AddNumberToObject(json, "ol.usage.bulksearch", double(featuretrack_bulksearch.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.manualsearch", double(featuretrack_manualsearch.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.lyriceditor", double(featuretrack_lyriceditor.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.autoedit", double(featuretrack_autoedit.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.markinstrumental", double(featuretrack_instrumental.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.showlyrics", double(featuretrack_showlyrics.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.externalwindow", double(featuretrack_externalwindow.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.manualscroll", double(featuretrack_manualscroll.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.lyricupload", double(featuretrack_lyricupload.last_used()));
-    cJSON_AddNumberToObject(json, "ol.usage.remotetrack", double(featuretrack_remotetrack.last_used()));
-
-    const auto get_source_name = [](GUID guid) -> std::string
-    {
-        LyricSourceBase* source = LyricSourceBase::get(guid);
-        if(source == nullptr)
-        {
-            return "<unknown>";
-        }
-
-        return from_tstring(source->friendly_name());
-    };
-    const auto get_active_sources = [&get_source_name]() -> std::string
-    {
-        std::string result;
-        for(GUID guid : preferences::searching::raw::active_sources_configured())
-        {
-            result += get_source_name(guid);
-            result += ',';
-        }
-        return result;
-    };
-    const auto get_auto_edits = []() -> std::string
-    {
-        std::string result;
-        for(AutoEditType edit : preferences::editing::automated_auto_edits())
-        {
-            result += std::to_string(int(edit));
-            result += ',';
-        }
-        return result;
-    };
-    const std::string sources_str = get_active_sources();
-    const std::string auto_edit_str = get_auto_edits();
-    const std::string save_src_name = get_source_name(preferences::saving::save_source());
-
-    cJSON_AddStringToObject(json, "ol.cfg.search.sources", sources_str.c_str());
-    cJSON_AddBoolToObject(json, "ol.cfg.search.exclude_brackets", preferences::searching::exclude_trailing_brackets());
-    cJSON_AddStringToObject(json, "ol.cfg.search.auto_edit", auto_edit_str.c_str());
-    cJSON_AddNumberToObject(json, "ol.cfg.save.autosave", int(preferences::saving::autosave_strategy()));
-    cJSON_AddStringToObject(json, "ol.cfg.save.src", save_src_name.c_str());
-    cJSON_AddNumberToObject(json, "ol.cfg.save.dir_type", int(preferences::saving::raw::directory_class()));
-    cJSON_AddBoolToObject(json, "ol.cfg.save.merge_lrc_lines", preferences::saving::merge_equivalent_lrc_lines());
-    cJSON_AddBoolToObject(json, "ol.cfg.display.font", preferences::display::raw::font_is_custom());
-    cJSON_AddNumberToObject(json, "ol.cfg.display.scroll_type", int(preferences::display::scroll_type()));
-    cJSON_AddNumberToObject(json, "ol.cfg.display.scroll_time", preferences::display::scroll_time_seconds());
-    cJSON_AddNumberToObject(json, "ol.cfg.display.linegap", preferences::display::linegap());
-    cJSON_AddBoolToObject(json, "ol.cfg.display.debug_logs", preferences::display::debug_logs_enabled());
+        // Upload settings
+        cJSON_AddNumberToObject(json_cfg, "lrclib_upload_strategy", int(preferences::upload::lrclib_upload_strategy()));
+    }
 
     char* json_str = cJSON_Print(json);
     std::string result(json_str);

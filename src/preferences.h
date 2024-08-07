@@ -111,6 +111,7 @@ namespace preferences
         namespace raw
         {
             std::vector<GUID> active_sources_configured();
+            bool is_skip_filter_default();
         }
     }
 

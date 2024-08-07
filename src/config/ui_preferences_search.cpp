@@ -50,6 +50,11 @@ LyricType preferences::searching::preferred_lyric_type()
     return cfg_search_preferred_lyric_type.get_value();
 }
 
+bool preferences::searching::raw::is_skip_filter_default()
+{
+    return (cfg_search_skip_filter.get_stringview() == cfg_search_skip_filter.get_default());
+}
+
 class PreferencesSearching : public CDialogImpl<PreferencesSearching>, public auto_preferences_page_instance, private play_callback_impl_base
 {
 public:
