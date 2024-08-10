@@ -16,6 +16,7 @@
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
 #include "preferences.h"
+#include "tag_util.h"
 #include "ui_hooks.h"
 #include "ui_lyrics_panel.h"
 

@@ -17,6 +17,7 @@
 #include "metrics.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
+#include "tag_util.h"
 #include "timer_block.h"
 #include "ui_hooks.h"
 #include "ui_lyrics_panel.h"
@@ -1131,7 +1132,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             case ID_SHOW_LYRIC_INFO:
             {
                 const char* dialog_title = "Lyric info";
-                const std::string info = get_lyric_metadata_string(m_lyrics, m_now_playing);
+                const std::string info = get_lyric_metadata_string(m_lyrics, m_now_playing_info);
                 popup_message::g_show(info.c_str(), dialog_title);
             } break;
 
@@ -1232,37 +1233,37 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                     io::delete_saved_lyrics(m_now_playing, m_lyrics);
                     m_lyrics = {};
                 }
-                search_avoidance_force_by_mark_instrumental(m_now_playing);
+                search_avoidance_force_by_mark_instrumental(m_now_playing, m_now_playing_info);
             } break;
 
             case ID_AUTO_REMOVE_EXTRA_SPACES:
             {
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveRepeatedSpaces, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveRepeatedSpaces, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_AUTO_REMOVE_EXTRA_BLANK_LINES:
             {
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveRepeatedBlankLines, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveRepeatedBlankLines, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_AUTO_REMOVE_ALL_BLANK_LINES:
             {
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveAllBlankLines, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveAllBlankLines, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_AUTO_REPLACE_XML_CHARS:
             {
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::ReplaceHtmlEscapedChars, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::ReplaceHtmlEscapedChars, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_AUTO_RESET_CAPITALISATION:
             {
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::ResetCapitalisation, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::ResetCapitalisation, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_AUTO_FIX_MALFORMED_TIMESTAMPS:
             {
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::FixMalformedTimestamps, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::FixMalformedTimestamps, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_AUTO_REMOVE_TIMESTAMPS:
@@ -1271,7 +1272,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
                 LOG_INFO("Removing persisted lyrics and re-saving them without timestamps");
                 io::delete_saved_lyrics(m_now_playing, m_lyrics);
-                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveTimestamps, m_lyrics, m_now_playing);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveTimestamps, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_DELETE_CURRENT_LYRICS:
@@ -1478,7 +1479,7 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
 
             if(maybe_lyrics.has_value())
             {
-                lyric_metadata_log_retrieved(update->get_track(), maybe_lyrics.value());
+                lyric_metadata_log_retrieved(update->get_track_info(), maybe_lyrics.value());
             }
 
             if((maybe_lyrics.has_value()) && (update->get_track() == now_playing))

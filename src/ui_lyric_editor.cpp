@@ -558,7 +558,7 @@ void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
     }
 
     m_update.set_result(std::move(data), is_editor_closing);
-    lyric_metadata_log_edit(m_update.get_track());
+    lyric_metadata_log_edit(m_update.get_track_info());
 
     // Update m_input_text so that HasContentChanged() will return the correct value after the same
     m_input_text = GetEditorContents();

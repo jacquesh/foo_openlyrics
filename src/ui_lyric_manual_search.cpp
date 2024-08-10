@@ -11,6 +11,7 @@
 #include "parsers.h"
 #include "lyric_io.h"
 #include "sources/lyric_source.h"
+#include "tag_util.h"
 #include "win32_util.h"
 
 

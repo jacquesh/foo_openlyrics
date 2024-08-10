@@ -6,6 +6,7 @@
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
 #include "parsers.h"
+#include "tag_util.h"
 #include "ui_hooks.h"
 #include "ui_util.h"
 
@@ -98,10 +99,10 @@ public:
                         }
                         else
                         {
-                            lyric_metadata_log_retrieved(track, lyrics);
+                            lyric_metadata_log_retrieved(track_info, lyrics);
 
                             std::string dialog_contents = std::format("{}\n---\n\n{}",
-                                    get_lyric_metadata_string(lyrics, track),
+                                    get_lyric_metadata_string(lyrics, track_info),
                                     from_tstring(text));
                             popup_message::g_show(dialog_contents.c_str(), dialog_title.c_str());
                         }
@@ -160,7 +161,7 @@ public:
                     if(success)
                     {
                         LyricData lyrics = search_update.get_result();
-                        lyric_metadata_log_retrieved(track, lyrics);
+                        lyric_metadata_log_retrieved(track_info, lyrics);
 
                         fb2k::inMainThread2([lyrics, track, track_info]()
                         {
@@ -263,7 +264,7 @@ public:
                                 }
                             }
                         }
-                        search_avoidance_force_by_mark_instrumental(track);
+                        search_avoidance_force_by_mark_instrumental(track, track_info);
                     }
                     LOG_INFO("Finished marking %d tracks as instrumental with %d failures", int(failure_count));
 

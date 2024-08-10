@@ -71,6 +71,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix the 'encoding' tag in LRC files being considered a lyric line\n"
     "- Fix rounding errors causing timestamps to randomly change when saving\n"
     "- Fix LRC same-line collapsing sometimes deleting parts of a line\n"
+    "- Fix search avoidance not working for remote/internet radio tracks\n"
     "- Many, many minor non-functional internal code improvements\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"

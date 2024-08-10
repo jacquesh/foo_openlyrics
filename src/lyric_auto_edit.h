@@ -7,5 +7,5 @@
 
 namespace auto_edit
 {
-    std::optional<LyricData> RunAutoEdit(AutoEditType type, const LyricData& lyrics, metadb_handle_ptr track);
+    std::optional<LyricData> RunAutoEdit(AutoEditType type, const LyricData& lyrics, const metadb_v2_rec_t& track_info);
 }

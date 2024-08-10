@@ -47,12 +47,12 @@ class lyric_metadb_index_init : public init_stage_callback
 };
 static service_factory_single_t<lyric_metadb_index_init> g_lyric_metadb_index_init;
 
-static lyric_metadata load_lyric_metadata(metadb_handle_ptr track)
+static lyric_metadata load_lyric_metadata(const metadb_v2_rec_t& track_info)
 {
     char data_buffer[512] = {};
 
     auto meta_index = metadb_index_manager::get();
-    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
+    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track_info);
     const size_t data_bytes = meta_index->get_user_data_here(GUID_METADBINDEX_LYRIC_METADATA,
                                                              our_index_hash,
                                                              data_buffer,
@@ -92,13 +92,8 @@ static lyric_metadata load_lyric_metadata(metadb_handle_ptr track)
     }
 }
 
-static void save_lyric_metadata(metadb_handle_ptr track, lyric_metadata metadata)
+static void save_lyric_metadata(const metadb_v2_rec_t& track_info, lyric_metadata metadata)
 {
-    if(track_is_remote(track))
-    {
-        return;
-    }
-
     const uint8_t latest_metadata_version = 1;
     stream_writer_formatter_simple<false> writer;
     writer << latest_metadata_version;
@@ -109,34 +104,24 @@ static void save_lyric_metadata(metadb_handle_ptr track, lyric_metadata metadata
     writer << metadata.number_of_edits;
 
     auto meta_index = metadb_index_manager::get();
-    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
+    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track_info);
     meta_index->set_user_data(GUID_METADBINDEX_LYRIC_METADATA,
                               our_index_hash,
                               writer.m_buffer.get_ptr(),
                               writer.m_buffer.get_size());
 }
 
-void lyric_metadata_log_edit(metadb_handle_ptr track)
+void lyric_metadata_log_edit(const metadb_v2_rec_t& track_info)
 {
-    if(track_is_remote(track))
-    {
-        return;
-    }
-
-    lyric_metadata metadata = load_lyric_metadata(track);
+    lyric_metadata metadata = load_lyric_metadata(track_info);
     metadata.number_of_edits++;
     metadata.last_edit_timestamp = pfc::fileTimeNow();
-    save_lyric_metadata(track, metadata);
+    save_lyric_metadata(track_info, metadata);
 }
 
-void lyric_metadata_log_retrieved(metadb_handle_ptr track, const LyricData& lyrics)
+void lyric_metadata_log_retrieved(const metadb_v2_rec_t& track_info, const LyricData& lyrics)
 {
-    if(track_is_remote(track))
-    {
-        return;
-    }
-
-    lyric_metadata metadata = load_lyric_metadata(track);
+    lyric_metadata metadata = load_lyric_metadata(track_info);
     if(metadata.first_retrieval_timestamp != filetimestamp_invalid)
     {
         // This track has been retrieved before
@@ -147,10 +132,10 @@ void lyric_metadata_log_retrieved(metadb_handle_ptr track, const LyricData& lyri
     metadata.first_retrieval_timestamp = pfc::fileTimeNow();
     metadata.first_retrieval_path = lyrics.source_path;
 
-    save_lyric_metadata(track, metadata);
+    save_lyric_metadata(track_info, metadata);
 }
 
-std::string get_lyric_metadata_string(const LyricData& lyrics, metadb_handle_ptr track)
+std::string get_lyric_metadata_string(const LyricData& lyrics, const metadb_v2_rec_t& track_info)
 {
     std::string result;
     result += (lyrics.IsTimestamped() ? "Synced lyrics\n" : "Unsynced lyrics\n");
@@ -174,8 +159,8 @@ std::string get_lyric_metadata_string(const LyricData& lyrics, metadb_handle_ptr
         }
     }
 
-    lyric_metadata metadata = load_lyric_metadata(track);
-    LyricSourceBase* first_src = LyricSourceBase::get(metadata.first_retrieval_source);
+    const lyric_metadata metadata = load_lyric_metadata(track_info);
+    const LyricSourceBase* first_src = LyricSourceBase::get(metadata.first_retrieval_source);
 
     if(first_src != nullptr)
     {

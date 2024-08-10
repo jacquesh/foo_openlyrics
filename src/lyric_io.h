@@ -3,7 +3,6 @@
 #include "stdafx.h"
 
 #include "lyric_data.h"
-#include "tag_util.h"
 
 class LyricUpdateHandle
 {

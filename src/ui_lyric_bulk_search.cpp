@@ -10,6 +10,7 @@
 #include "metrics.h"
 #include "lyric_io.h"
 #include "lyric_metadata.h"
+#include "tag_util.h"
 #include "win32_util.h"
 
 class BulkLyricSearch;
@@ -293,7 +294,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
 
     if(lyrics.has_value())
     {
-        lyric_metadata_log_retrieved(update.get_track(), lyrics.value());
+        lyric_metadata_log_retrieved(update.get_track_info(), lyrics.value());
     }
 
     SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_STEPIT, 0, 0);

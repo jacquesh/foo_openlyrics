@@ -9,6 +9,7 @@
 #include "mvtf/mvtf.h"
 #include "parsers.h"
 #include "sources/lyric_source.h"
+#include "tag_util.h"
 #include "ui_hooks.h"
 #include "win32_util.h"
 
@@ -81,7 +82,7 @@ bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info,
         std::string output_path = source->save(track, track_info, lyrics.IsTimestamped(), text, allow_overwrite, abort);
         lyrics.save_path = output_path;
         lyrics.save_source = source->id();
-        clear_search_avoidance(track); // Clear here so that we will always find saved lyrics
+        clear_search_avoidance(track_info); // Clear here so that we will always find saved lyrics
         return true;
     }
     catch(const std::exception& e)
@@ -349,12 +350,12 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw, decode_raw_lyric_bytes_to_text(lyric_data_raw));
     if(lyric_data.IsEmpty())
     {
-        search_avoidance_log_search_failure(handle.get_track());
+        search_avoidance_log_search_failure(handle.get_track_info());
     }
     else
     {
         // Clear here so that we will continue searching even if auto-save is disabled and the user doesn't save
-        clear_search_avoidance(handle.get_track());
+        clear_search_avoidance(handle.get_track_info());
     }
 
     handle.set_result(std::move(lyric_data), true);
@@ -649,7 +650,7 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
             {
                 for(AutoEditType type : preferences::editing::automated_auto_edits())
                 {
-                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics, update.get_track());
+                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics, update.get_track_info());
                     if(maybe_lyrics.has_value())
                     {
                         lyrics = std::move(maybe_lyrics.value());

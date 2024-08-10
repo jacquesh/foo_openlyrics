@@ -18,10 +18,13 @@ metadb_index_hash lyric_metadb_index_client::hash(const file_info& info)
     return static_api_ptr_t<hasher_md5>()->process_single_string(key.c_str()).xorHalve();
 }
 
-metadb_index_hash lyric_metadb_index_client::hash_handle(const metadb_handle_ptr& info)
+metadb_index_hash lyric_metadb_index_client::hash_handle(const metadb_v2_rec_t& track_meta)
 {
-    metadb_info_container::ptr container = info->get_info_ref();
-    return hash(container->info());
+    if(track_meta.info == nullptr)
+    {
+        return {};
+    }
+    return hash(track_meta.info->info());
 }
 
 metadb_index_hash lyric_metadb_index_client::transform(const file_info& info, const playable_location& /*location*/)

@@ -278,7 +278,7 @@ static std::optional<LyricData> RemoveTimestamps(const LyricData& lyrics)
     return {new_lyrics};
 }
 
-std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics, metadb_handle_ptr track)
+std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics, const metadb_v2_rec_t& track_info)
 {
     std::optional<LyricData> result;
     switch(type)
@@ -301,7 +301,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
     metrics::log_used_auto_edit();
     if(result.has_value())
     {
-        lyric_metadata_log_edit(track);
+        lyric_metadata_log_edit(track_info);
     }
     return result;
 }

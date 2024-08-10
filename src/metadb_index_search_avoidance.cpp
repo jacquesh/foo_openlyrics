@@ -53,12 +53,12 @@ class lyric_metadb_index_init : public init_stage_callback
 };
 static service_factory_single_t<lyric_metadb_index_init> g_lyric_metadb_index_init;
 
-static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
+static lyric_search_avoidance load_search_avoidance(const metadb_v2_rec_t& track_info)
 {
     char data_buffer[512] = {};
 
     auto meta_index = metadb_index_manager::get();
-    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
+    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track_info);
     size_t data_bytes = meta_index->get_user_data_here(GUID_METADBINDEX_LYRIC_HISTORY,
                                                        our_index_hash,
                                                        data_buffer,
@@ -120,17 +120,12 @@ static bool track_matches_skip_filter(metadb_handle_ptr track, const metadb_v2_r
 
 SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
-    if(track_is_remote(track))
-    {
-        return SearchAvoidanceReason::Allowed;
-    }
-
     if(track_matches_skip_filter(track, track_info))
     {
         return SearchAvoidanceReason::MatchesSkipFilter;
     }
 
-    lyric_search_avoidance avoidance = load_search_avoidance(track);
+    lyric_search_avoidance avoidance = load_search_avoidance(track_info);
     if((avoidance.flags & AvoidanceFlags::MarkedInstrumental) != 0)
     {
         return SearchAvoidanceReason::MarkedInstrumental;
@@ -148,15 +143,10 @@ SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, co
     return SearchAvoidanceReason::Allowed;
 }
 
-static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidance avoidance)
+static void save_search_avoidance(const metadb_v2_rec_t& track_info, lyric_search_avoidance avoidance)
 {
-    if(track_is_remote(track))
-    {
-        return;
-    }
-
     auto meta_index = metadb_index_manager::get();
-    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
+    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track_info);
 
     stream_writer_formatter_simple<false> writer;
     writer << avoidance.failed_searches;
@@ -170,14 +160,9 @@ static void save_search_avoidance(metadb_handle_ptr track, lyric_search_avoidanc
                               writer.m_buffer.get_size());
 }
 
-void search_avoidance_log_search_failure(metadb_handle_ptr track)
+void search_avoidance_log_search_failure(const metadb_v2_rec_t& track_info)
 {
-    if(track_is_remote(track))
-    {
-        return;
-    }
-
-    lyric_search_avoidance avoidance = load_search_avoidance(track);
+    lyric_search_avoidance avoidance = load_search_avoidance(track_info);
     avoidance.search_config_generation = preferences::searching::source_config_generation();
     if(avoidance.first_fail_time == 0)
     {
@@ -187,30 +172,25 @@ void search_avoidance_log_search_failure(metadb_handle_ptr track)
     {
         avoidance.failed_searches++;
     }
-    save_search_avoidance(track, avoidance);
+    save_search_avoidance(track_info, avoidance);
 }
 
-void search_avoidance_force_by_mark_instrumental(metadb_handle_ptr track)
+void search_avoidance_force_by_mark_instrumental(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
-    if(track_is_remote(track))
-    {
-        return;
-    }
-
-    lyric_search_avoidance avoidance = load_search_avoidance(track);
+    lyric_search_avoidance avoidance = load_search_avoidance(track_info);
     avoidance.flags |= AvoidanceFlags::MarkedInstrumental;
-    save_search_avoidance(track, avoidance);
+    save_search_avoidance(track_info, avoidance);
 
 #ifndef NDEBUG
     // Sanity check this in debug builds to ensure we have successfully prevented searches
-    assert(search_avoidance_allows_search(track, track->query_v2_()) == SearchAvoidanceReason::MarkedInstrumental);
+    assert(search_avoidance_allows_search(track, track_info) == SearchAvoidanceReason::MarkedInstrumental);
 #endif
 }
 
-void clear_search_avoidance(metadb_handle_ptr track)
+void clear_search_avoidance(const metadb_v2_rec_t& track_info)
 {
     auto meta_index = metadb_index_manager::get();
-    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track);
+    metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track_info);
 
     meta_index->set_user_data(GUID_METADBINDEX_LYRIC_HISTORY, our_index_hash, nullptr, 0);
 }
