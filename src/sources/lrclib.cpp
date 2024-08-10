@@ -2,12 +2,18 @@
 
 #include "cJSON.h"
 
+// Don't recompile every time in dev/debug builds
+#ifdef NDEBUG
+#include "openlyrics_version.h" // Defines OPENLYRICS_VERSION
+#else
+#define OPENLYRICS_VERSION "0.0-dev"
+#endif
+
 #include "hash_utils.h"
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_source.h"
 #include "mvtf/mvtf.h"
-#include "openlyrics_version.h"
 #include "parsers.h"
 
 static const GUID src_guid = { 0x9b4be445, 0x9a38, 0x4342, { 0xab, 0x72, 0x6f, 0x55, 0x8c, 0x4, 0x4d, 0xc0 } };
