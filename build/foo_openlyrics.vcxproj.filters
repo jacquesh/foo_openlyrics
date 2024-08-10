@@ -171,6 +171,9 @@
     <ClCompile Include="..\src\config\ui_preferences_upload.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\lyric_metadb_index_client.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">
@@ -234,6 +237,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\hash_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lyric_metadb_index_client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

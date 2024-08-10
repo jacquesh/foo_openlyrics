@@ -3,6 +3,7 @@
 #include "metadb_index_search_avoidance.h"
 
 #include "logging.h"
+#include "lyric_metadb_index_client.h"
 #include "preferences.h"
 #include "tag_util.h"
 
@@ -27,35 +28,6 @@ struct lyric_search_avoidance
     uint32_t flags; // Added in v2
 };
 
-struct lyric_metadb_index_client : metadb_index_client
-{
-    static lyric_metadb_index_client::ptr instance()
-    {
-        static lyric_metadb_index_client::ptr singleton = new service_impl_single_t<lyric_metadb_index_client>();
-        return singleton;
-    }
-
-    static metadb_index_hash hash(const file_info& info)
-    {
-        std::string artist = track_metadata(info, "artist");
-        std::string album = track_metadata(info, "album");
-        std::string title = track_metadata(info, "title");
-        std::string key = artist + album + title;
-        return static_api_ptr_t<hasher_md5>()->process_single_string(key.c_str()).xorHalve();
-    }
-
-    static metadb_index_hash hash_handle(const metadb_handle_ptr& info)
-    {
-        metadb_info_container::ptr container = info->get_info_ref();
-        return hash(container->info());
-    }
-
-    metadb_index_hash transform(const file_info& info, const playable_location& /*location*/) override
-    {
-        return hash(info);
-    }
-};
-
 class lyric_metadb_index_init : public init_stage_callback
 {
     void on_init_stage(t_uint32 stage) override
@@ -70,12 +42,12 @@ class lyric_metadb_index_init : public init_stage_callback
         {
             mim->add(lyric_metadb_index_client::instance(), GUID_METADBINDEX_LYRIC_HISTORY, system_time_periods::week);
             mim->dispatch_global_refresh();
-            LOG_INFO("Successfully initialised the lyric metadb index");
+            LOG_INFO("Successfully initialised the lyric search history metadb index");
         }
         catch(const std::exception& ex)
         {
             mim->remove(GUID_METADBINDEX_LYRIC_HISTORY);
-            LOG_INFO("Failed to initialise the lyric metadb index: %s", ex.what());
+            LOG_INFO("Failed to initialise the lyric search history metadb index: %s", ex.what());
         }
     }
 };
@@ -124,7 +96,7 @@ static lyric_search_avoidance load_search_avoidance(metadb_handle_ptr track)
     }
 }
 
-bool track_matches_skip_filter(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
+static bool track_matches_skip_filter(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
     const pfc::string8& skip_filter_str = preferences::searching::skip_filter();
     if(skip_filter_str.isEmpty())
