@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "lyric_io.h"
+#include "lyric_metadata.h"
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
 #include "parsers.h"
@@ -52,7 +53,7 @@ public:
                 case cmd_bulksearch_lyrics:
                 case cmd_mark_instrumental:
                 {
-                    // No change, keep default behaviuor
+                    // No change, keep default behaviour
                 } break;
 
                 default: uBugCheck();
@@ -97,8 +98,12 @@ public:
                         }
                         else
                         {
-                            std::string text_utf8 = from_tstring(text);
-                            popup_message::g_show(text_utf8.c_str(), dialog_title.c_str());
+                            lyric_metadata_log_retrieved(track, lyrics);
+
+                            std::string dialog_contents = std::format("{}\n---\n\n{}",
+                                    get_lyric_metadata_string(lyrics, track),
+                                    from_tstring(text));
+                            popup_message::g_show(dialog_contents.c_str(), dialog_title.c_str());
                         }
                     }
                     else
@@ -155,6 +160,8 @@ public:
                     if(success)
                     {
                         LyricData lyrics = search_update.get_result();
+                        lyric_metadata_log_retrieved(track, lyrics);
+
                         fb2k::inMainThread2([lyrics, track, track_info]()
                         {
                             auto edit_update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, track, track_info, fb2k::mainAborter());

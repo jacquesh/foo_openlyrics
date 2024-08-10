@@ -8,9 +8,8 @@
 
 #include "logging.h"
 #include "metrics.h"
-#include "parsers.h"
 #include "lyric_io.h"
-#include "sources/lyric_source.h"
+#include "lyric_metadata.h"
 #include "win32_util.h"
 
 class BulkLyricSearch;
@@ -291,6 +290,11 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
 
     std::optional<LyricData> lyrics = io::process_available_lyric_update(update);
     m_child_update.reset();
+
+    if(lyrics.has_value())
+    {
+        lyric_metadata_log_retrieved(update.get_track(), lyrics.value());
+    }
 
     SendDlgItemMessage(IDC_BULKSEARCH_PROGRESS, PBM_STEPIT, 0, 0);
     if(m_next_search_index < int(m_tracks_to_search.size()))

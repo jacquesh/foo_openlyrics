@@ -10,6 +10,7 @@
 #include "logging.h"
 #include "lyric_auto_edit.h"
 #include "lyric_data.h"
+#include "lyric_metadata.h"
 #include "lyric_io.h"
 #include "math_util.h"
 #include "metadb_index_search_avoidance.h"
@@ -1019,6 +1020,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             ID_SEARCH_LYRICS = 1,
             ID_SEARCH_LYRICS_MANUAL,
             ID_SAVE_LYRICS,
+            ID_SHOW_LYRIC_INFO,
             ID_PREFERENCES,
             ID_EDIT_LYRICS,
             ID_OPEN_FILE_DIR,
@@ -1054,6 +1056,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS_MANUAL, _T("Search for lyrics (manually)"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_SAVE_LYRICS, _T("Save lyrics"));
+        AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_SHOW_LYRIC_INFO, _T("About current lyrics"));
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
         AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_edit.m_hMenu, _T("Auto-edit lyrics"));
@@ -1067,6 +1070,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         menudesc.Set(ID_SEARCH_LYRICS, "Start a completely new search for lyrics");
         menudesc.Set(ID_SEARCH_LYRICS_MANUAL, "Start a new search for lyrics with customisable search terms and multiple results");
         menudesc.Set(ID_SAVE_LYRICS, "Save the current lyrics, even if they would not be auto-saved");
+        menudesc.Set(ID_SHOW_LYRIC_INFO, "Show extra info about this track's lyrics");
         menudesc.Set(ID_PREFERENCES, "Open the OpenLyrics preferences page");
         menudesc.Set(ID_EDIT_LYRICS, "Open the lyric editor with the current lyrics");
         menudesc.Set(ID_OPEN_FILE_DIR, "Open explorer to the location of the lyrics file");
@@ -1122,6 +1126,13 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 {
                     LOG_ERROR("Failed to complete manually requested lyric save: %s", e.what());
                 }
+            } break;
+
+            case ID_SHOW_LYRIC_INFO:
+            {
+                const char* dialog_title = "Lyric info";
+                const std::string info = get_lyric_metadata_string(m_lyrics, m_now_playing);
+                popup_message::g_show(info.c_str(), dialog_title);
             } break;
 
             case ID_PREFERENCES:
@@ -1267,7 +1278,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             {
                 if(m_now_playing == nullptr) break;
 
-                std::string msg = "This will delete the lyrics stored locally for the current track";
+                std::string msg = "This will delete the lyrics stored locally for the current track ";
                 std::string track_str = get_track_friendly_string(m_now_playing_info);
                 if(!track_str.empty())
                 {
@@ -1464,6 +1475,11 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
         if(update->has_result())
         {
             std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(*update);
+
+            if(maybe_lyrics.has_value())
+            {
+                lyric_metadata_log_retrieved(update->get_track(), maybe_lyrics.value());
+            }
 
             if((maybe_lyrics.has_value()) && (update->get_track() == now_playing))
             {

@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "lyric_auto_edit.h"
+#include "lyric_metadata.h"
 #include "metrics.h"
 #include "parsers.h"
 
@@ -298,6 +299,10 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
     }
 
     metrics::log_used_auto_edit();
+    if(result.has_value())
+    {
+        lyric_metadata_log_edit(track);
+    }
     return result;
 }
 

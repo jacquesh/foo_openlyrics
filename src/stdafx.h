@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <format>
 #include <numeric>
 #include <optional>
 #include <string>
