@@ -1,19 +1,11 @@
 #pragma once
 
-#include "stdafx.h"
+#include <optional>
 
-#include "lyric_io.h"
+#include "lyric_data.h"
 #include "preferences.h"
 
 namespace auto_edit
 {
-    std::optional<LyricData> RunAutoEdit(AutoEditType type, const LyricData& lyrics);
-
-    std::optional<LyricData> ReplaceHtmlEscapedChars(const LyricData& lyrics);
-    std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics);
-    std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics);
-    std::optional<LyricData> RemoveAllBlankLines(const LyricData& lyrics);
-    std::optional<LyricData> ResetCapitalisation(const LyricData& lyrics);
-    std::optional<LyricData> FixMalformedTimestamps(const LyricData& lyrics);
-    std::optional<LyricData> RemoveTimestamps(const LyricData& lyrics);
+    std::optional<LyricData> RunAutoEdit(AutoEditType type, const LyricData& lyrics, metadb_handle_ptr track);
 }

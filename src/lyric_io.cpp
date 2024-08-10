@@ -649,7 +649,7 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
             {
                 for(AutoEditType type : preferences::editing::automated_auto_edits())
                 {
-                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics);
+                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics, update.get_track());
                     if(maybe_lyrics.has_value())
                     {
                         lyrics = std::move(maybe_lyrics.value());

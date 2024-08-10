@@ -14,14 +14,12 @@
 #include "math_util.h"
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
-#include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
 #include "timer_block.h"
 #include "ui_hooks.h"
 #include "ui_lyrics_panel.h"
 #include "ui_util.h"
-#include "uie_shim_panel.h"
 #include "win32_util.h"
 
 namespace {
@@ -1228,54 +1226,46 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
             case ID_AUTO_REMOVE_EXTRA_SPACES:
             {
-                metrics::log_used_auto_edit();
-                updated_lyrics = auto_edit::RemoveRepeatedSpaces(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveRepeatedSpaces, m_lyrics, m_now_playing);
             } break;
 
             case ID_AUTO_REMOVE_EXTRA_BLANK_LINES:
             {
-                metrics::log_used_auto_edit();
-                updated_lyrics = auto_edit::RemoveRepeatedBlankLines(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveRepeatedBlankLines, m_lyrics, m_now_playing);
             } break;
 
             case ID_AUTO_REMOVE_ALL_BLANK_LINES:
             {
-                metrics::log_used_auto_edit();
-                updated_lyrics = auto_edit::RemoveAllBlankLines(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveAllBlankLines, m_lyrics, m_now_playing);
             } break;
 
             case ID_AUTO_REPLACE_XML_CHARS:
             {
-                metrics::log_used_auto_edit();
-                updated_lyrics = auto_edit::ReplaceHtmlEscapedChars(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::ReplaceHtmlEscapedChars, m_lyrics, m_now_playing);
             } break;
 
             case ID_AUTO_RESET_CAPITALISATION:
             {
-                metrics::log_used_auto_edit();
-                updated_lyrics = auto_edit::ResetCapitalisation(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::ResetCapitalisation, m_lyrics, m_now_playing);
             } break;
 
             case ID_AUTO_FIX_MALFORMED_TIMESTAMPS:
             {
-                metrics::log_used_auto_edit();
-                updated_lyrics = auto_edit::FixMalformedTimestamps(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::FixMalformedTimestamps, m_lyrics, m_now_playing);
             } break;
 
             case ID_AUTO_REMOVE_TIMESTAMPS:
             {
                 if(m_now_playing == nullptr) break;
-                metrics::log_used_auto_edit();
 
                 LOG_INFO("Removing persisted lyrics and re-saving them without timestamps");
                 io::delete_saved_lyrics(m_now_playing, m_lyrics);
-                updated_lyrics = auto_edit::RemoveTimestamps(m_lyrics);
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveTimestamps, m_lyrics, m_now_playing);
             } break;
 
             case ID_DELETE_CURRENT_LYRICS:
             {
                 if(m_now_playing == nullptr) break;
-                metrics::log_used_auto_edit();
 
                 std::string msg = "This will delete the lyrics stored locally for the current track";
                 std::string track_str = get_track_friendly_string(m_now_playing_info);

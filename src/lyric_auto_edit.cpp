@@ -1,31 +1,11 @@
 #include "stdafx.h"
 
-#include "parsers.h"
 #include "logging.h"
 #include "lyric_auto_edit.h"
-#include "lyric_io.h"
+#include "metrics.h"
+#include "parsers.h"
 
-std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics)
-{
-    switch(type)
-    {
-        case AutoEditType::ReplaceHtmlEscapedChars: return ReplaceHtmlEscapedChars(lyrics);
-        case AutoEditType::RemoveRepeatedSpaces: return RemoveRepeatedSpaces(lyrics);
-        case AutoEditType::RemoveRepeatedBlankLines: return RemoveRepeatedBlankLines(lyrics);
-        case AutoEditType::RemoveAllBlankLines: return RemoveAllBlankLines(lyrics);
-        case AutoEditType::ResetCapitalisation: return ResetCapitalisation(lyrics);
-        case AutoEditType::FixMalformedTimestamps: return FixMalformedTimestamps(lyrics);
-        case AutoEditType::RemoveTimestamps: return RemoveTimestamps(lyrics);
-
-        case AutoEditType::Unknown:
-        default:
-            LOG_ERROR("Unexpected auto-edit type: %d", int(type));
-            assert(false);
-            return {};
-    }
-}
-
-std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyrics)
+static std::optional<LyricData> ReplaceHtmlEscapedChars(const LyricData& lyrics)
 {
     std::string text = from_tstring(parsers::lrc::expand_text(lyrics, false));
     std::pair<std::string_view, char> replacements[] =
@@ -63,7 +43,7 @@ std::optional<LyricData> auto_edit::ReplaceHtmlEscapedChars(const LyricData& lyr
     }
 }
 
-std::optional<LyricData> auto_edit::RemoveRepeatedSpaces(const LyricData& lyrics)
+static std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics)
 {
     size_t spaces_erased = 0;
     LyricData new_lyrics = lyrics;
@@ -106,7 +86,7 @@ std::optional<LyricData> auto_edit::RemoveRepeatedSpaces(const LyricData& lyrics
     }
 }
 
-std::optional<LyricData> auto_edit::RemoveRepeatedBlankLines(const LyricData& lyrics)
+static std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics)
 {
     size_t lines_removed = 0;
     bool previous_blank = true;
@@ -138,7 +118,7 @@ std::optional<LyricData> auto_edit::RemoveRepeatedBlankLines(const LyricData& ly
     }
 }
 
-std::optional<LyricData> auto_edit::RemoveAllBlankLines(const LyricData& lyrics)
+static std::optional<LyricData> RemoveAllBlankLines(const LyricData& lyrics)
 {
     LyricData new_lyrics = lyrics;
     auto line_is_empty = [](const LyricDataLine& line)
@@ -167,7 +147,7 @@ std::optional<LyricData> auto_edit::RemoveAllBlankLines(const LyricData& lyrics)
     }
 }
 
-std::optional<LyricData> auto_edit::ResetCapitalisation(const LyricData& lyrics)
+static std::optional<LyricData> ResetCapitalisation(const LyricData& lyrics)
 {
     LyricData new_lyrics = lyrics;
 
@@ -215,7 +195,7 @@ std::optional<LyricData> auto_edit::ResetCapitalisation(const LyricData& lyrics)
     }
 }
 
-std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyrics)
+static std::optional<LyricData> FixMalformedTimestamps(const LyricData& lyrics)
 {
     const auto fix_decimal_separator = [](std::string_view tag)
     {
@@ -285,9 +265,39 @@ std::optional<LyricData> auto_edit::FixMalformedTimestamps(const LyricData& lyri
     }
 }
 
-std::optional<LyricData> auto_edit::RemoveTimestamps(const LyricData& lyrics)
+static std::optional<LyricData> RemoveTimestamps(const LyricData& lyrics)
 {
+    if(!lyrics.IsTimestamped())
+    {
+        return {};
+    }
+
     LyricData new_lyrics = lyrics;
     new_lyrics.RemoveTimestamps();
     return {new_lyrics};
 }
+
+std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics, metadb_handle_ptr track)
+{
+    std::optional<LyricData> result;
+    switch(type)
+    {
+        case AutoEditType::ReplaceHtmlEscapedChars: result = ReplaceHtmlEscapedChars(lyrics); break;
+        case AutoEditType::RemoveRepeatedSpaces: result = RemoveRepeatedSpaces(lyrics); break;
+        case AutoEditType::RemoveRepeatedBlankLines: result = RemoveRepeatedBlankLines(lyrics); break;
+        case AutoEditType::RemoveAllBlankLines: result = RemoveAllBlankLines(lyrics); break;
+        case AutoEditType::ResetCapitalisation: result = ResetCapitalisation(lyrics); break;
+        case AutoEditType::FixMalformedTimestamps: result = FixMalformedTimestamps(lyrics); break;
+        case AutoEditType::RemoveTimestamps: result = RemoveTimestamps(lyrics); break;
+
+        case AutoEditType::Unknown:
+        default:
+            LOG_ERROR("Unexpected auto-edit type: %d", int(type));
+            assert(false);
+            break;
+    }
+
+    metrics::log_used_auto_edit();
+    return result;
+}
+
