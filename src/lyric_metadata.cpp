@@ -9,6 +9,7 @@
 
 static const GUID GUID_METADBINDEX_LYRIC_METADATA = { 0x88da8d97, 0xb450, 0x4ff4, { 0xa8, 0x81, 0xf6, 0xf6, 0xad, 0x38, 0x36, 0xc1 } };
 DECLARE_OPENLYRICS_METADB_INDEX("lyric metadata", GUID_METADBINDEX_LYRIC_METADATA);
+static constexpr size_t MAX_METADATA_BYTES = 4096;
 
 struct lyric_metadata
 {
@@ -22,9 +23,42 @@ struct lyric_metadata
     uint32_t number_of_edits;
 };
 
+class lyric_metadb_index_maintenance : public metadb_io_edit_callback_v2
+{
+    void on_edited(metadb_handle_list_cref /*items*/, t_infosref /*before*/, t_infosref /*after*/) override {}
+
+    void on_edited_v2(metadb_handle_list_cref /*items*/, t_infosref /*before*/, t_infosref after, t_infosref beforeInMetadb) override
+    {
+        auto meta_index = metadb_index_manager_v2::get();
+        char data_buffer[MAX_METADATA_BYTES] = {};
+
+        metadb_index_transaction::ptr trans = meta_index->begin_transaction();
+
+        assert(beforeInMetadb.size() == after.size());
+        for(size_t i=0; i<beforeInMetadb.size(); i++)
+        {
+            metadb_index_hash before_hash = lyric_metadb_index_client::hash(*beforeInMetadb[i]);
+            metadb_index_hash after_hash = lyric_metadb_index_client::hash(*after[i]);
+            if(before_hash == after_hash)
+            {
+                continue;
+            }
+
+            const size_t data_bytes = meta_index->get_user_data_here(GUID_METADBINDEX_LYRIC_METADATA,
+                                                                     before_hash,
+                                                                     data_buffer,
+                                                                     sizeof(data_buffer));
+            trans->set_user_data(GUID_METADBINDEX_LYRIC_METADATA, before_hash, nullptr, 0);
+            trans->set_user_data(GUID_METADBINDEX_LYRIC_METADATA, after_hash, data_buffer, data_bytes);
+        }
+        trans->commit();
+    }
+};
+static service_factory_single_t<lyric_metadb_index_maintenance> g_lyric_metadb_index_maintenance;
+
 static lyric_metadata load_lyric_metadata(const metadb_v2_rec_t& track_info)
 {
-    char data_buffer[512] = {};
+    char data_buffer[MAX_METADATA_BYTES] = {};
 
     auto meta_index = metadb_index_manager::get();
     metadb_index_hash our_index_hash = lyric_metadb_index_client::hash_handle(track_info);
@@ -103,6 +137,7 @@ void lyric_metadata_log_retrieved(const metadb_v2_rec_t& track_info, const Lyric
         return;
     }
 
+    assert(lyrics.source_id != GUID{});
     metadata.first_retrieval_source = lyrics.source_id;
     metadata.first_retrieval_timestamp = pfc::fileTimeNow();
     metadata.first_retrieval_path = lyrics.source_path;

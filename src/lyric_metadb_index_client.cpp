@@ -26,6 +26,8 @@ metadb_index_hash lyric_metadb_index_client::hash(const file_info& info)
     std::string album = track_metadata(info, "album");
     std::string title = track_metadata(info, "title");
     std::string key = artist + album + title;
+    // TODO: It might be good to include the track length here, but then we'd need a way to migrate all the existing index data
+    //       This can possibly be done with metadb_index_manager::get_all_hashes or get_ML_hashes (in combination with metadb_index_manager_v2::begin_transaction)
     return static_api_ptr_t<hasher_md5>()->process_single_string(key.c_str()).xorHalve();
 }
 
