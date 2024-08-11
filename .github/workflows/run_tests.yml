@@ -13,6 +13,17 @@ jobs:
         continue-on-error: true
         run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
+  print-compiler-version:
+    runs-on: windows-2022
+    steps:
+      - name: Add MSBuild to the PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Print the active MSVC compiler version
+        shell: pwsh
+        continue-on-error: true
+        run: cl /?
+
   build-and-test-32bit:
     runs-on: windows-2022
     name: Build and test - x86
