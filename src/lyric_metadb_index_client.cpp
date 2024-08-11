@@ -1,12 +1,23 @@
 #include "stdafx.h"
 
+#include "logging.h"
 #include "lyric_metadb_index_client.h"
 #include "tag_util.h"
 
-lyric_metadb_index_client::ptr lyric_metadb_index_client::instance()
+void lyric_metadb_index_client::setup_metadb_index(const char* index_title, GUID index_guid)
 {
-    static lyric_metadb_index_client::ptr singleton = new service_impl_single_t<lyric_metadb_index_client>();
-    return singleton;
+    auto mim = metadb_index_manager::get();
+    try
+    {
+        mim->add(fb2k::service_new<lyric_metadb_index_client>(), index_guid, system_time_periods::week);
+        mim->dispatch_global_refresh();
+        LOG_INFO("Successfully initialised the %s metadb index", index_title);
+    }
+    catch(const std::exception& ex)
+    {
+        mim->remove(index_guid);
+        LOG_INFO("Failed to initialise the %s metadb index: %s", index_title, ex.what());
+    }
 }
 
 metadb_index_hash lyric_metadb_index_client::hash(const file_info& info)

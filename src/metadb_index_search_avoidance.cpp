@@ -5,9 +5,9 @@
 #include "logging.h"
 #include "lyric_metadb_index_client.h"
 #include "preferences.h"
-#include "tag_util.h"
 
 static const GUID GUID_METADBINDEX_LYRIC_HISTORY = { 0x915bee72, 0xfd1d, 0x4cf8, { 0x90, 0xd4, 0x8e, 0x2c, 0x18, 0xfd, 0x5, 0xbf } };
+DECLARE_OPENLYRICS_METADB_INDEX("lyric search history", GUID_METADBINDEX_LYRIC_HISTORY);
 
 // Much like preferences, these constants must be preserved forever because they get
 // persisted in the search avoidance database on the user's machine.
@@ -27,31 +27,6 @@ struct lyric_search_avoidance
     uint64_t search_config_generation;
     uint32_t flags; // Added in v2
 };
-
-class lyric_metadb_index_init : public init_stage_callback
-{
-    void on_init_stage(t_uint32 stage) override
-    {
-        if(stage != init_stages::before_config_read)
-        {
-            return;
-        }
-
-        auto mim = metadb_index_manager::get();
-        try
-        {
-            mim->add(lyric_metadb_index_client::instance(), GUID_METADBINDEX_LYRIC_HISTORY, system_time_periods::week);
-            mim->dispatch_global_refresh();
-            LOG_INFO("Successfully initialised the lyric search history metadb index");
-        }
-        catch(const std::exception& ex)
-        {
-            mim->remove(GUID_METADBINDEX_LYRIC_HISTORY);
-            LOG_INFO("Failed to initialise the lyric search history metadb index: %s", ex.what());
-        }
-    }
-};
-static service_factory_single_t<lyric_metadb_index_init> g_lyric_metadb_index_init;
 
 static lyric_search_avoidance load_search_avoidance(const metadb_v2_rec_t& track_info)
 {

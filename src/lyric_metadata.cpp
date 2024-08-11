@@ -6,9 +6,9 @@
 #include "lyric_data.h"
 #include "lyric_metadb_index_client.h"
 #include "sources/lyric_source.h"
-#include "tag_util.h"
 
 static const GUID GUID_METADBINDEX_LYRIC_METADATA = { 0x88da8d97, 0xb450, 0x4ff4, { 0xa8, 0x81, 0xf6, 0xf6, 0xad, 0x38, 0x36, 0xc1 } };
+DECLARE_OPENLYRICS_METADB_INDEX("lyric metadata", GUID_METADBINDEX_LYRIC_METADATA);
 
 struct lyric_metadata
 {
@@ -21,31 +21,6 @@ struct lyric_metadata
     t_filetimestamp last_edit_timestamp = pfc::filetimestamp_invalid;
     uint32_t number_of_edits;
 };
-
-class lyric_metadb_index_init : public init_stage_callback
-{
-    void on_init_stage(t_uint32 stage) override
-    {
-        if(stage != init_stages::before_config_read)
-        {
-            return;
-        }
-
-        auto mim = metadb_index_manager::get();
-        try
-        {
-            mim->add(lyric_metadb_index_client::instance(), GUID_METADBINDEX_LYRIC_METADATA, system_time_periods::week);
-            mim->dispatch_global_refresh();
-            LOG_INFO("Successfully initialised the lyric metadata metadb index");
-        }
-        catch(const std::exception& ex)
-        {
-            mim->remove(GUID_METADBINDEX_LYRIC_METADATA);
-            LOG_INFO("Failed to initialise the lyric metadata metadb index: %s", ex.what());
-        }
-    }
-};
-static service_factory_single_t<lyric_metadb_index_init> g_lyric_metadb_index_init;
 
 static lyric_metadata load_lyric_metadata(const metadb_v2_rec_t& track_info)
 {
