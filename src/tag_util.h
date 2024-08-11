@@ -1,6 +1,9 @@
 #pragma once
 
-#include "stdafx.h"
+#include <optional>
+#include <string>
+
+#include "foobar2000/SDK/metadb_handle.h"
 
 std::string_view trim_surrounding_whitespace(std::string_view str);
 std::string_view trim_surrounding_line_endings(std::string_view str);

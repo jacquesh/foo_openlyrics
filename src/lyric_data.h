@@ -1,6 +1,7 @@
 #pragma once
 
-#include "stdafx.h"
+#include <string>
+#include <guiddef.h>
 
 #include "preferences.h"
 #include "win32_util.h"

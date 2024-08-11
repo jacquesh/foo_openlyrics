@@ -1,6 +1,10 @@
 #pragma once
 
-#include "stdafx.h"
+#include <guiddef.h>
+
+#include "foobar2000/SDK/metadb_handle.h"
+#include "foobar2000/SDK/metadb_index.h"
+#include "foobar2000/SDK/initquit.h"
 
 struct lyric_metadb_index_client : metadb_index_client
 {
