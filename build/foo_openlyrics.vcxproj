@@ -288,6 +288,7 @@
     <ClInclude Include="..\src\lyric_metadb_index_client.h" />
     <ClInclude Include="..\src\math_util.h" />
     <ClInclude Include="..\src\metadb_index_search_avoidance.h" />
+    <ClInclude Include="..\src\mvtf\mvtf.h" />
     <ClInclude Include="..\src\parsers.h" />
     <ClInclude Include="..\src\preferences.h" />
     <ClInclude Include="..\src\resource.h" />
@@ -297,7 +298,6 @@
     <ClInclude Include="..\src\uie_shim_panel.h" />
     <ClInclude Include="..\src\ui_hooks.h" />
     <ClInclude Include="..\src\win32_util.h" />
-    <ClInclude Include="..\test\bvtf.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\3rdparty\columns_ui-sdk-7.0.0-beta.2\columns_ui-sdk-public.vcxproj">
