@@ -16,8 +16,8 @@ jobs:
   print-compiler-version:
     runs-on: windows-2022
     steps:
-      - name: Add MSBuild to the PATH
-        uses: microsoft/setup-msbuild@v2
+      - name: Add MSVC compiler to the PATH
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Print the active MSVC compiler version
         shell: pwsh
