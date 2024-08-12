@@ -15,10 +15,14 @@
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 
-static const GUID GUID_METRICS_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH = { 0x6ce22b14, 0x3237, 0x4afb, { 0x9d, 0x66, 0xe8, 0xe9, 0x9b, 0xa4, 0xee, 0xe6 } };
+static const GUID GUID_METRICS_FIRST_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH = { 0x6ce22b14, 0x3237, 0x4afb, { 0x9d, 0x66, 0xe8, 0xe9, 0x9b, 0xa4, 0xee, 0xe6 } };
+static const GUID GUID_METRICS_CURRENT_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH = { 0xe827d9b6, 0x681a, 0x4d99, { 0xa5, 0xaa, 0x41, 0xcf, 0xef, 0xf2, 0xf, 0x18 } };
+static const GUID GUID_METRICS_CURRENT_VERSION = { 0x922ab2fa, 0x5b, 0x4971, { 0x9b, 0x78, 0xf5, 0xc5, 0x57, 0x30, 0xc1, 0x32 } };
 static const GUID GUID_METRICS_GENERATION = { 0xf2d97e96, 0x38ab, 0x4e5e, { 0x83, 0x7c, 0xe3, 0x3b, 0x5a, 0x82, 0x43, 0xca } };
 
-static cfg_int_t<uint64_t> cfg_metrics_install_date_days_since_unix_epoch(GUID_METRICS_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
+static cfg_int_t<uint64_t> cfg_metrics_first_version_install_date_days_since_unix_epoch(GUID_METRICS_FIRST_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
+static cfg_int_t<uint64_t> cfg_metrics_current_version_install_date_days_since_unix_epoch(GUID_METRICS_CURRENT_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
+static cfg_string cfg_metrics_current_version(GUID_METRICS_CURRENT_VERSION, "");
 static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 
 // The metrics "generation", which tells us whether or not we need to send a new batch of metrics.
@@ -265,7 +269,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
         cJSON* json_ol = cJSON_AddObjectToObject(json, "openlyrics");
 
         const std::string hash_str = get_openlyrics_dll_hash(abort);
-        const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_install_date_days_since_unix_epoch.get_value())}};
+        const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value())}};
         char install_ymd_str[64] = {};
         snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
 
@@ -447,9 +451,17 @@ static void send_metrics_on_init()
 {
     const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
     const uint64_t days_since_unix_epoch = static_cast<uint64_t>(std::chrono::floor<std::chrono::days>(since_unix_epoch).count());
-    if(cfg_metrics_install_date_days_since_unix_epoch.get_value() == 0)
+    if(cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value() == 0)
     {
-        cfg_metrics_install_date_days_since_unix_epoch = days_since_unix_epoch;
+        cfg_metrics_first_version_install_date_days_since_unix_epoch = days_since_unix_epoch;
+    }
+
+    const bool current_version_set = (cfg_metrics_current_version_install_date_days_since_unix_epoch.get_value() != 0);
+    const bool current_version_matches_installed_version = (cfg_metrics_current_version == OPENLYRICS_VERSION);
+    if(!current_version_set || !current_version_matches_installed_version)
+    {
+        cfg_metrics_current_version = OPENLYRICS_VERSION;
+        cfg_metrics_current_version_install_date_days_since_unix_epoch = days_since_unix_epoch;
     }
 
     // We use our "installed-date" config to delay initial metrics by at least a week from first
@@ -459,7 +471,9 @@ static void send_metrics_on_init()
     // Immediately after install is also the least useful time to collect metrics since new users
     // will not have had the opportunity to change any configuration yet.
     const uint64_t min_days_of_delay_after_install = 7;
-    if(days_since_unix_epoch < min_days_of_delay_after_install + cfg_metrics_install_date_days_since_unix_epoch.get_value())
+    const uint64_t min_days_since_first_install = min_days_of_delay_after_install + cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value();
+    const uint64_t min_days_since_last_install = min_days_of_delay_after_install + cfg_metrics_current_version_install_date_days_since_unix_epoch.get_value();
+    if((days_since_unix_epoch < min_days_since_first_install) || (days_since_unix_epoch < min_days_since_last_install))
     {
         return;
     }
