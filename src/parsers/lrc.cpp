@@ -2,6 +2,7 @@
 
 #include "logging.h"
 #include "lyric_data.h"
+#include "openlyrics_algorithms.h"
 #include "mvtf/mvtf.h"
 #include "parsers.h"
 #include "tag_util.h"
@@ -333,34 +334,9 @@ static ParsedLineContents parse_line_times(std::string_view line)
     return {result, std::string(line.substr(index).data(), line.size()-index)};
 }
 
-template<typename T, typename TOperation>
-std::vector<T> collapse(const std::vector<T>& input, TOperation op)
-{
-    if(input.size() <= 1) return std::vector<T>(input);
-
-    std::vector<T> result;
-    T first_arg = *input.begin();
-    for(auto iter = ++input.begin(); iter != input.end(); iter++)
-    {
-        std::pair<T, std::optional<T>> collapsed = op(first_arg, *iter);
-        if(collapsed.second.has_value())
-        {
-            result.emplace_back(std::move(collapsed.first));
-            first_arg = std::move(collapsed.second.value());
-        }
-        else
-        {
-            first_arg = std::move(collapsed.first);
-        }
-    }
-
-    result.emplace_back(std::move(first_arg));
-    return result;
-}
-
 std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricDataLine>& input)
 {
-    return collapse(input, [](const LyricDataLine& lhs, const LyricDataLine& rhs)
+    return alg::collapse(input, [](const LyricDataLine& lhs, const LyricDataLine& rhs)
     {
         if((lhs.timestamp == DBL_MAX) || (lhs.timestamp != rhs.timestamp))
         {
@@ -514,29 +490,7 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 
         if(merge_equivalent_lrc_lines)
         {
-            const auto enumerate = [](std::vector<LyricDataLine> input) -> std::vector<std::pair<size_t, LyricDataLine>>
-            {
-                std::vector<std::pair<size_t, LyricDataLine>> output;
-                output.reserve(input.size());
-                size_t index = 0;
-                for(LyricDataLine& value : input)
-                {
-                    output.push_back({index, std::move(value)});
-                    index++;
-                }
-                return output;
-            };
-            const auto denumerate = [](std::vector<std::pair<size_t, LyricDataLine>> input) -> std::vector<LyricDataLine>
-            {
-                std::vector<LyricDataLine> output;
-                output.reserve(input.size());
-                for(auto& value : input)
-                {
-                    output.push_back(std::move(value.second));
-                }
-                return output;
-            };
-            std::vector<std::pair<size_t, LyricDataLine>> indexed_lines = enumerate(std::move(out_lines));
+            std::vector<std::pair<size_t, LyricDataLine>> indexed_lines = alg::enumerate(std::move(out_lines));
 
             const auto lexicographic_sort = [](const auto& lhs, const auto& rhs){ return lhs.second.text < rhs.second.text; };
             std::stable_sort(indexed_lines.begin(), indexed_lines.end(), lexicographic_sort);
@@ -562,7 +516,7 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 
             const auto index_sort = [](const auto& lhs, const auto& rhs){ return lhs.first < rhs.first; };
             std::sort(indexed_lines.begin(), indexed_lines.end(), index_sort);
-            out_lines = denumerate(indexed_lines);
+            out_lines = alg::denumerate(indexed_lines);
         }
 
         for(const LyricDataLine& line : out_lines)

@@ -289,6 +289,7 @@
     <ClInclude Include="..\src\math_util.h" />
     <ClInclude Include="..\src\metadb_index_search_avoidance.h" />
     <ClInclude Include="..\src\mvtf\mvtf.h" />
+    <ClInclude Include="..\src\openlyrics_algorithms.h" />
     <ClInclude Include="..\src\parsers.h" />
     <ClInclude Include="..\src\preferences.h" />
     <ClInclude Include="..\src\resource.h" />
