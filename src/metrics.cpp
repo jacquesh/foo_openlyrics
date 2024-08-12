@@ -9,6 +9,13 @@
 
 #include "cJSON.h"
 
+// Don't recompile every time in dev/debug builds
+#ifdef NDEBUG
+#include "openlyrics_version.h" // Defines OPENLYRICS_VERSION
+#else
+#define OPENLYRICS_VERSION "0.0-dev"
+#endif
+
 #include "hash_utils.h"
 #include "logging.h"
 #include "metrics.h"
@@ -273,8 +280,9 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
         char install_ymd_str[64] = {};
         snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
 
-        cJSON_AddStringToObject(json_ol, "version", hash_str.c_str());
-        cJSON_AddStringToObject(json_ol, "installed_since",install_ymd_str);
+        cJSON_AddStringToObject(json_ol, "version", OPENLYRICS_VERSION);
+        cJSON_AddStringToObject(json_ol, "library_hash", hash_str.c_str());
+        cJSON_AddStringToObject(json_ol, "first_installed",install_ymd_str);
         cJSON_AddNumberToObject(json_ol, "num_panels", double(num_lyric_panels()));
     }
 
