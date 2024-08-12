@@ -4,6 +4,7 @@
 #include "lyric_auto_edit.h"
 #include "lyric_metadata.h"
 #include "metrics.h"
+#include "mvtf/mvtf.h"
 #include "parsers.h"
 
 static std::optional<LyricData> ReplaceHtmlEscapedChars(const LyricData& lyrics)
@@ -306,3 +307,23 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
     return result;
 }
 
+// ============
+// Tests
+// ============
+#ifdef MVTF_TESTS_ENABLED
+MVTF_TEST(autoedit_fixmalformedtimestamps_corrects_decimal_separator_from_colon_to_dot)
+{
+    const std::string input = "[00:15:83]test";
+    LyricData parsed = parsers::lrc::parse({}, input);
+    std::optional<LyricData> fixed = FixMalformedTimestamps(parsed);
+    ASSERT(fixed.has_value());
+
+    std::tstring output = parsers::lrc::expand_text(fixed.value(), false);
+
+    ASSERT(fixed.value().IsTimestamped());
+    ASSERT(fixed.value().lines.size() == 1);
+    ASSERT(fixed.value().lines[0].timestamp == 15.83);
+    ASSERT(fixed.value().lines[0].text == _T("test"));
+    ASSERT(output == _T("[00:15.83]test\r\n"));
+}
+#endif
