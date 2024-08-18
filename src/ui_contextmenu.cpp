@@ -86,12 +86,12 @@ public:
                         dialog_title += "' lyrics";
                     }
 
-                    LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
-                    io::search_for_lyrics(update, true);
-                    bool success = update.wait_for_complete(30'000);
+                    LyricSearchHandle handle(LyricSearchHandle::Type::AutoSearch, track, track_info, abort);
+                    io::search_for_lyrics(handle, true);
+                    bool success = handle.wait_for_complete(30'000);
                     if(success)
                     {
-                        LyricData lyrics = update.get_result();
+                        LyricData lyrics = handle.get_result();
                         std::tstring text = parsers::lrc::expand_text(lyrics, false);
                         if(text.empty())
                         {
@@ -146,12 +146,12 @@ public:
                 const auto async_edit = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
                     const metadb_v2_rec_t track_info = get_full_metadata(track);
-                    LyricUpdateHandle search_update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
-                    io::search_for_lyrics(search_update, true);
-                    bool success = search_update.wait_for_complete(30'000);
+                    LyricSearchHandle search_handle(LyricSearchHandle::Type::AutoSearch, track, track_info, abort);
+                    io::search_for_lyrics(search_handle, true);
+                    bool success = search_handle.wait_for_complete(30'000);
                     if(success)
                     {
-                        LyricData lyrics = search_update.get_result();
+                        LyricData lyrics = search_handle.get_result();
                         lyric_metadata_log_retrieved(track_info, lyrics);
 
                         fb2k::inMainThread2([lyrics, track, track_info]()
@@ -230,12 +230,12 @@ public:
                         metadb_handle_ptr track = data_copy.get_item(i);
                         const metadb_v2_rec_t& track_info = all_track_info[i];
 
-                        LyricUpdateHandle update(LyricUpdateHandle::Type::AutoSearch, track, track_info, abort);
-                        io::search_for_lyrics(update, true);
-                        bool success = update.wait_for_complete(30'000);
+                        LyricSearchHandle handle(LyricSearchHandle::Type::AutoSearch, track, track_info, abort);
+                        io::search_for_lyrics(handle, true);
+                        bool success = handle.wait_for_complete(30'000);
                         if(success)
                         {
-                            LyricData lyrics = update.get_result();
+                            LyricData lyrics = handle.get_result();
                             if(!lyrics.IsEmpty())
                             {
                                 bool delete_success = io::delete_saved_lyrics(track, lyrics);

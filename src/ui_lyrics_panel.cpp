@@ -31,7 +31,7 @@ namespace {
     static UINT_PTR PANEL_UPDATE_TIMER = 2304692;
 
     static std::vector<LyricPanel*> g_active_panels;
-    static std::vector<std::unique_ptr<LyricUpdateHandle>> g_update_handles;
+    static std::vector<std::unique_ptr<LyricSearchHandle>> g_search_handles;
 }
 
 LyricPanel::LyricPanel() :
@@ -1420,11 +1420,11 @@ void LyricPanel::InitiateLyricSearch(SearchAvoidanceReason avoid_reason)
         m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
     }
 
-    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
-    io::search_for_lyrics(*update, search_local_only);
+    auto handle = std::make_unique<LyricSearchHandle>(LyricSearchHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
+    io::search_for_lyrics(*handle, search_local_only);
 
     core_api::ensure_main_thread();
-    g_update_handles.push_back(std::move(update));
+    g_search_handles.push_back(std::move(handle));
 }
 
 // (Attempt to) Compute the current playback time and duration for the currently-playing track.
@@ -1461,7 +1461,7 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
     service_ptr_t<playback_control> playback = playback_control::get();
     playback->get_now_playing(now_playing);
 
-    const auto is_complete = [now_playing](const std::unique_ptr<LyricUpdateHandle>& update)
+    const auto is_complete = [now_playing](const std::unique_ptr<LyricSearchHandle>& update)
     {
         if(update->has_result())
         {
@@ -1491,10 +1491,10 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
 
         return update->is_complete();
     };
-    auto new_end = std::remove_if(g_update_handles.begin(),
-                                  g_update_handles.end(),
+    auto new_end = std::remove_if(g_search_handles.begin(),
+                                  g_search_handles.end(),
                                   is_complete);
-    g_update_handles.erase(new_end, g_update_handles.end());
+    g_search_handles.erase(new_end, g_search_handles.end());
 }
 
 void LyricPanel::LyricUpdateQueue::announce_lyric_update(LyricUpdate update)
@@ -1541,13 +1541,13 @@ std::optional<std::string> LyricPanel::LyricUpdateQueue::get_progress_message()
 
     if(has_now_playing)
     {
-        for(std::unique_ptr<LyricUpdateHandle>& update : g_update_handles)
+        for(std::unique_ptr<LyricSearchHandle>& handle : g_search_handles)
         {
-            if((update != nullptr) &&
-                (update->get_type() == LyricUpdateHandle::Type::AutoSearch) &&
-                (update->get_track() == now_playing))
+            if((handle != nullptr) &&
+                (handle->get_type() == LyricSearchHandle::Type::AutoSearch) &&
+                (handle->get_track() == now_playing))
             {
-                const std::string progress_msg = update->get_progress();
+                const std::string progress_msg = handle->get_progress();
                 return std::move(progress_msg);
             }
         }

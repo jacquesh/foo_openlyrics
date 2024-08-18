@@ -20,15 +20,15 @@ struct LyricUpdate
     Type type;
 };
 
-class LyricUpdateHandle
+class LyricSearchHandle
 {
 public:
     using Type = LyricUpdate::Type;
 
-    LyricUpdateHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
-    LyricUpdateHandle(const LyricUpdateHandle& other) = delete;
-    LyricUpdateHandle(LyricUpdateHandle&& other);
-    ~LyricUpdateHandle();
+    LyricSearchHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
+    LyricSearchHandle(const LyricSearchHandle& other) = delete;
+    LyricSearchHandle(LyricSearchHandle&& other);
+    ~LyricSearchHandle();
 
     Type get_type();
     std::string get_progress();
@@ -73,8 +73,8 @@ private:
 
 namespace io
 {
-    void search_for_lyrics(LyricUpdateHandle& handle, bool local_only);
-    void search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title);
+    void search_for_lyrics(LyricSearchHandle& handle, bool local_only);
+    void search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, std::string album, std::string title);
 
     std::optional<LyricData> process_available_lyric_update(LyricUpdate update);
 

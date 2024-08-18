@@ -51,7 +51,7 @@ private:
     void update_status_text();
     void add_tracks_to_ui(const std::vector<TrackAndInfo>& new_tracks);
 
-    std::optional<LyricUpdateHandle> m_child_update;
+    std::optional<LyricSearchHandle> m_child_search;
     abort_callback_impl m_child_abort;
 
     std::vector<TrackAndInfo> m_tracks_to_search;
@@ -127,9 +127,9 @@ void BulkLyricSearch::OnDestroyDialog()
     assert(g_active_bulk_search_panel == this);
     g_active_bulk_search_panel = nullptr;
 
-    if(m_child_update.has_value())
+    if(m_child_search.has_value())
     {
-        bool completed = m_child_update.value().wait_for_complete(10'000);
+        bool completed = m_child_search.value().wait_for_complete(10'000);
         if(!completed)
         {
             LOG_WARN("Failed to complete custom lyric search before closing the window");
@@ -264,14 +264,14 @@ void BulkLyricSearch::update_status_text()
 
 LRESULT BulkLyricSearch::OnTimer(WPARAM)
 {
-    if(!m_child_update.has_value())
+    if(!m_child_search.has_value())
     {
         assert((m_next_search_index >= 0) && (m_next_search_index < int(m_tracks_to_search.size())));
 
         const TrackAndInfo& track = m_tracks_to_search[m_next_search_index];
-        m_child_update.emplace(LyricUpdateHandle::Type::ManualSearch, track.track, track.track_info, m_child_abort);
+        m_child_search.emplace(LyricSearchHandle::Type::ManualSearch, track.track, track.track_info, m_child_abort);
 
-        io::search_for_lyrics(m_child_update.value(), false);
+        io::search_for_lyrics(m_child_search.value(), false);
 
         UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 16, nullptr);
         if (result != BULK_SEARCH_UPDATE_TIMER)
@@ -281,8 +281,8 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         return 0;
     }
 
-    assert(m_child_update.has_value());
-    LyricUpdateHandle& update = m_child_update.value();
+    assert(m_child_search.has_value());
+    LyricSearchHandle& update = m_child_search.value();
     bool were_remote_sources_searched = update.has_searched_remote_sources();
     if(!update.is_complete())
     {
@@ -299,7 +299,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
             update.get_type()
         });
     }
-    m_child_update.reset();
+    m_child_search.reset();
 
     if(lyrics.has_value())
     {
@@ -358,7 +358,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
             sleep_ms = 1;
         }
 
-        assert(!m_child_update.has_value());
+        assert(!m_child_search.has_value());
         UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, sleep_ms, nullptr);
         if (result != BULK_SEARCH_UPDATE_TIMER)
         {

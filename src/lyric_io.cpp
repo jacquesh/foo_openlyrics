@@ -221,7 +221,7 @@ static bool compare_search_results(const LyricDataRaw& lhs, const LyricDataRaw& 
     return false;
 }
 
-static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
+static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_only)
 {
     handle.set_started();
     std::string tag_artist = track_metadata(handle.get_track_info(), "artist");
@@ -362,7 +362,7 @@ static void internal_search_for_lyrics(LyricUpdateHandle& handle, bool local_onl
     LOG_INFO("Lyric loading complete");
 }
 
-void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
+void io::search_for_lyrics(LyricSearchHandle& handle, bool local_only)
 {
     if(track_is_remote(handle.get_track()))
     {
@@ -374,7 +374,7 @@ void io::search_for_lyrics(LyricUpdateHandle& handle, bool local_only)
     });
 }
 
-static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle, LyricSourceBase* source, const LyricSearchParams& params)
+static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle, LyricSourceBase* source, const LyricSearchParams& params)
 {
     std::string friendly_name = from_tstring(source->friendly_name());
     handle.set_started();
@@ -441,7 +441,7 @@ static void internal_search_for_all_lyrics_from_source(LyricUpdateHandle& handle
     handle.set_complete();
 }
 
-static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title)
+static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, std::string album, std::string title)
 {
     LOG_INFO("Searching for lyrics using custom parameters...");
     handle.set_started();
@@ -461,7 +461,7 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
     //       does not re-allocate the entire list and invalidate earlier pointers. We pass references
     //       to these handles into the search task and so they need to remain valid for the task's
     //       entire lifetime or we'll get weird random-memory bugs.
-    std::list<LyricUpdateHandle> source_handles;
+    std::list<LyricSearchHandle> source_handles;
 
     std::vector<GUID> all_source_ids = LyricSourceBase::get_all_ids();
     for(GUID source_id : all_source_ids)
@@ -475,7 +475,7 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
         }
 
         source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
-        LyricUpdateHandle& src_handle = source_handles.back();
+        LyricSearchHandle& src_handle = source_handles.back();
 
         fb2k::splitTask([&src_handle, source, &params](){
             internal_search_for_all_lyrics_from_source(src_handle, source, params);
@@ -486,7 +486,7 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
     {
         for(auto iter=source_handles.begin(); iter!=source_handles.end(); /*omitted*/)
         {
-            LyricUpdateHandle& src_handle = *iter;
+            LyricSearchHandle& src_handle = *iter;
 
             bool is_complete = src_handle.wait_for_complete(100);
             // It's critically important that we wait for update handle completion above,
@@ -515,22 +515,22 @@ static void internal_search_for_all_lyrics(LyricUpdateHandle& handle, std::strin
     LOG_INFO("Finished loading lyrics from a custom search");
 }
 
-void io::search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title)
+void io::search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, std::string album, std::string title)
 {
     fb2k::splitTask([&handle, artist, album, title](){
         internal_search_for_all_lyrics(handle, artist, album, title);
     });
 }
 
-static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdateHandle::Type update_type, bool is_timestamped)
+static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricSearchHandle::Type update_type, bool is_timestamped)
 {
     const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always) ||
                                            ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped) ||
                                            ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped);
-    const bool should_autosave = ((update_type == LyricUpdateHandle::Type::AutoSearch) && is_configured_to_autosave && !loaded_from_local_src);
+    const bool should_autosave = ((update_type == LyricSearchHandle::Type::AutoSearch) && is_configured_to_autosave && !loaded_from_local_src);
 
-    const bool is_a_user_edit = (update_type == LyricUpdateHandle::Type::Edit);
-    const bool user_requested_search = ((update_type == LyricUpdateHandle::Type::ManualSearch) && !loaded_from_local_src);
+    const bool is_a_user_edit = (update_type == LyricSearchHandle::Type::Edit);
+    const bool user_requested_search = ((update_type == LyricSearchHandle::Type::ManualSearch) && !loaded_from_local_src);
 
     // NOTE: We previously changed this to:
     //       `should_autosave && (is_edit || !loaded_from_local_src)`
@@ -543,15 +543,15 @@ static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStr
     return should_save;
 }
 
-static bool save_overwrite_allowed(LyricUpdateHandle::Type update_type)
+static bool save_overwrite_allowed(LyricSearchHandle::Type update_type)
 {
-    const bool allow_overwrite = (update_type == LyricUpdateHandle::Type::Edit) || (update_type == LyricUpdateHandle::Type::ManualSearch);
+    const bool allow_overwrite = (update_type == LyricSearchHandle::Type::Edit) || (update_type == LyricSearchHandle::Type::ManualSearch);
     return allow_overwrite;
 }
 
-static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdateHandle::Type update_type)
+static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricSearchHandle::Type update_type)
 {
-    const bool was_search = (update_type == LyricUpdateHandle::Type::AutoSearch) || (update_type == LyricUpdateHandle::Type::ManualSearch);
+    const bool was_search = (update_type == LyricSearchHandle::Type::AutoSearch) || (update_type == LyricSearchHandle::Type::ManualSearch);
     const bool should_auto_edit = was_search && !loaded_from_local_src;
     return should_auto_edit;
 }
@@ -714,7 +714,7 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     }
 }
 
-LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
+LyricSearchHandle::LyricSearchHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
     m_track(track),
     m_track_info(track_info),
     m_type(type),
@@ -731,7 +731,7 @@ LyricUpdateHandle::LyricUpdateHandle(Type type, metadb_handle_ptr track, metadb_
     assert(m_complete != nullptr);
 }
 
-LyricUpdateHandle::LyricUpdateHandle(LyricUpdateHandle&& other) :
+LyricSearchHandle::LyricSearchHandle(LyricSearchHandle&& other) :
     m_track(other.m_track),
     m_type(other.m_type),
     m_mutex(),
@@ -754,7 +754,7 @@ LyricUpdateHandle::LyricUpdateHandle(LyricUpdateHandle&& other) :
     assert(m_complete != nullptr);
 }
 
-LyricUpdateHandle::~LyricUpdateHandle()
+LyricSearchHandle::~LyricSearchHandle()
 {
     DWORD wait_result = WaitForSingleObject(m_complete, 30'000);
     while(wait_result != WAIT_OBJECT_0)
@@ -768,12 +768,12 @@ LyricUpdateHandle::~LyricUpdateHandle()
     DeleteCriticalSection(&m_mutex);
 }
 
-LyricUpdateHandle::Type LyricUpdateHandle::get_type()
+LyricSearchHandle::Type LyricSearchHandle::get_type()
 {
     return m_type;
 }
 
-std::string LyricUpdateHandle::get_progress()
+std::string LyricSearchHandle::get_progress()
 {
     EnterCriticalSection(&m_mutex);
     std::string result = m_progress;
@@ -781,7 +781,7 @@ std::string LyricUpdateHandle::get_progress()
     return result;
 }
 
-bool LyricUpdateHandle::is_complete()
+bool LyricSearchHandle::is_complete()
 {
     EnterCriticalSection(&m_mutex);
     bool complete = ((m_status == Status::Complete) || (m_status == Status::Closed));
@@ -789,13 +789,13 @@ bool LyricUpdateHandle::is_complete()
     return complete;
 }
 
-bool LyricUpdateHandle::wait_for_complete(uint32_t timeout_ms)
+bool LyricSearchHandle::wait_for_complete(uint32_t timeout_ms)
 {
     DWORD wait_result = WaitForSingleObject(m_complete, timeout_ms);
     return (wait_result == WAIT_OBJECT_0);
 }
 
-bool LyricUpdateHandle::has_result()
+bool LyricSearchHandle::has_result()
 {
     EnterCriticalSection(&m_mutex);
     bool output = !m_lyrics.empty();
@@ -803,7 +803,7 @@ bool LyricUpdateHandle::has_result()
     return output;
 }
 
-bool LyricUpdateHandle::has_searched_remote_sources()
+bool LyricSearchHandle::has_searched_remote_sources()
 {
     EnterCriticalSection(&m_mutex);
     bool output = m_searched_remote_sources;
@@ -811,7 +811,7 @@ bool LyricUpdateHandle::has_searched_remote_sources()
     return output;
 }
 
-LyricData LyricUpdateHandle::get_result()
+LyricData LyricSearchHandle::get_result()
 {
     EnterCriticalSection(&m_mutex);
     assert(!m_lyrics.empty());
@@ -825,23 +825,23 @@ LyricData LyricUpdateHandle::get_result()
     return result;
 }
 
-abort_callback& LyricUpdateHandle::get_checked_abort()
+abort_callback& LyricSearchHandle::get_checked_abort()
 {
     m_abort.check();
     return m_abort;
 }
 
-metadb_handle_ptr LyricUpdateHandle::get_track()
+metadb_handle_ptr LyricSearchHandle::get_track()
 {
     return m_track;
 }
 
-const metadb_v2_rec_t& LyricUpdateHandle::get_track_info()
+const metadb_v2_rec_t& LyricSearchHandle::get_track_info()
 {
     return m_track_info;
 }
 
-void LyricUpdateHandle::set_started()
+void LyricSearchHandle::set_started()
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Created);
@@ -849,7 +849,7 @@ void LyricUpdateHandle::set_started()
     LeaveCriticalSection(&m_mutex);
 }
 
-void LyricUpdateHandle::set_progress(std::string_view value)
+void LyricSearchHandle::set_progress(std::string_view value)
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Running);
@@ -859,14 +859,14 @@ void LyricUpdateHandle::set_progress(std::string_view value)
     repaint_all_lyric_panels();
 }
 
-void LyricUpdateHandle::set_remote_source_searched()
+void LyricSearchHandle::set_remote_source_searched()
 {
     EnterCriticalSection(&m_mutex);
     m_searched_remote_sources = true;
     LeaveCriticalSection(&m_mutex);
 }
 
-void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
+void LyricSearchHandle::set_result(LyricData&& data, bool final_result)
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Running);
@@ -883,7 +883,7 @@ void LyricUpdateHandle::set_result(LyricData&& data, bool final_result)
     repaint_all_lyric_panels();
 }
 
-void LyricUpdateHandle::set_complete()
+void LyricSearchHandle::set_complete()
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Running);
@@ -913,15 +913,15 @@ static const AutoSaveStrategy g_all_save_strategies[] =
     AutoSaveStrategy::OnlySynced,
     AutoSaveStrategy::OnlyUnsynced
 };
-static const LyricUpdateHandle::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
+static const LyricSearchHandle::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
 {
-    LyricUpdateHandle::Type::AutoSearch,
-    LyricUpdateHandle::Type::ManualSearch
+    LyricSearchHandle::Type::AutoSearch,
+    LyricSearchHandle::Type::ManualSearch
 };
 
 MVTF_TEST(autoedits_dont_apply_to_edit_results)
 {
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::Edit;
     const bool all_bools[] = { true, false };
     for(bool loaded_from_local_src : all_bools)
     {
@@ -933,7 +933,7 @@ MVTF_TEST(autoedits_dont_apply_to_edit_results)
 MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
 {
     // NOTE: Most tests assume that all update types are either a search type or "Edit"
-    for(LyricUpdateHandle::Type update_type : g_search_update_types)
+    for(LyricSearchHandle::Type update_type : g_search_update_types)
     {
         const bool applied_remote = should_auto_edits_be_applied(false, update_type);
         const bool applied_local =  should_auto_edits_be_applied(true, update_type);
@@ -944,7 +944,7 @@ MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
 
 MVTF_TEST(saving_always_save_edit_updates)
 {
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::Edit;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::Edit;
     const bool all_bools[] = { true, false };
     for(bool loaded_from_local_src : all_bools)
     {
@@ -967,7 +967,7 @@ MVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
     const bool all_bools[] = { true, false };
     const bool loaded_from_local_src = true;
 
-    for(LyricUpdateHandle::Type update_type : g_search_update_types)
+    for(LyricSearchHandle::Type update_type : g_search_update_types)
     {
         for(AutoSaveStrategy autosave : g_all_save_strategies)
         {
@@ -985,7 +985,7 @@ MVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
 // by (always_save_edit_updates), we now only need to test AutoSearch.
 MVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
 {
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::ManualSearch;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::ManualSearch;
     const bool loaded_from_local_src = false;
     const bool all_bools[] = { true, false };
 
@@ -1002,7 +1002,7 @@ MVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
 MVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
 {
     const bool loaded_from_local_src = false;
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::Always;
     const bool all_bools[] = { true, false };
 
@@ -1016,7 +1016,7 @@ MVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
 MVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
 {
     const bool loaded_from_local_src = false;
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::Never;
     const bool all_bools[] = { true, false };
 
@@ -1030,7 +1030,7 @@ MVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
 MVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysynced)
 {
     const bool loaded_from_local_src = false;
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::OnlySynced;
 
     bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
@@ -1042,7 +1042,7 @@ MVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysync
 MVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
 {
     const bool loaded_from_local_src = false;
-    const LyricUpdateHandle::Type update_type = LyricUpdateHandle::Type::AutoSearch;
+    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::OnlyUnsynced;
 
     bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);

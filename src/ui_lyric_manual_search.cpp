@@ -68,7 +68,7 @@ private:
 
     metadb_handle_ptr m_track;
     metadb_v2_rec_t m_track_info;
-    std::optional<LyricUpdateHandle> m_child_update;
+    std::optional<LyricSearchHandle> m_child_search;
     abort_callback_impl m_child_abort;
     std::list<LyricData> m_all_lyrics;
 
@@ -177,9 +177,9 @@ void ManualLyricSearch::OnDestroyDialog()
     cfg_source_column_width = column_data.cx;
 
     m_child_abort.abort();
-    if(m_child_update.has_value())
+    if(m_child_search.has_value())
     {
-        bool completed = m_child_update.value().wait_for_complete(10'000);
+        bool completed = m_child_search.value().wait_for_complete(10'000);
         if(!completed)
         {
             LOG_WARN("Failed to complete custom lyric search before closing the window");
@@ -325,10 +325,10 @@ void ManualLyricSearch::start_search()
     SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_DELETEALLITEMS, 0, 0);
     m_all_lyrics.clear();
 
-    assert(!m_child_update.has_value());
+    assert(!m_child_search.has_value());
     try
     {
-        m_child_update.emplace(LyricUpdate::Type::ManualSearch, m_track, m_track_info, m_child_abort);
+        m_child_search.emplace(LyricUpdate::Type::ManualSearch, m_track, m_track_info, m_child_abort);
     }
     catch(const std::exception& e)
     {
@@ -346,7 +346,7 @@ void ManualLyricSearch::start_search()
     std::string artist = from_tstring(std::tstring_view{ui_artist, ui_artist_len});
     std::string album = from_tstring(std::tstring_view{ui_album, ui_album_len});
     std::string title = from_tstring(std::tstring_view{ui_title, ui_title_len});
-    io::search_for_all_lyrics(m_child_update.value(), artist, album, title);
+    io::search_for_all_lyrics(m_child_search.value(), artist, album, title);
 
     GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(false);
     UINT_PTR result = SetTimer(MANUAL_SEARCH_UPDATE_TIMER, 16, nullptr);
@@ -416,27 +416,27 @@ void ManualLyricSearch::OnSearchRequested(UINT /*btn_id*/, int /*notify_code*/, 
 
 LRESULT ManualLyricSearch::OnTimer(WPARAM)
 {
-    if(!m_child_update.has_value())
+    if(!m_child_search.has_value())
     {
         GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(true);
         WIN32_OP(KillTimer(MANUAL_SEARCH_UPDATE_TIMER))
         return 0;
     }
 
-    assert(m_child_update.has_value());
-    LyricUpdateHandle& child_update = m_child_update.value();
-    if(child_update.is_complete() && !child_update.has_result())
+    assert(m_child_search.has_value());
+    LyricSearchHandle& child_search = m_child_search.value();
+    if(child_search.is_complete() && !child_search.has_result())
     {
         GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(true);
-        m_child_update.reset();
+        m_child_search.reset();
         SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Search complete"));
         WIN32_OP(KillTimer(MANUAL_SEARCH_UPDATE_TIMER))
         return 0;
     }
 
-    while(child_update.has_result())
+    while(child_search.has_result())
     {
-        m_all_lyrics.push_back(child_update.get_result());
+        m_all_lyrics.push_back(child_search.get_result());
         const LyricData& lyrics = m_all_lyrics.back();
 
         LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
