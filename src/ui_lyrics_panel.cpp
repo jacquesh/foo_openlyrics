@@ -1103,9 +1103,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             {
                 if(m_now_playing == nullptr) break;
 
-                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, m_now_playing, m_now_playing_info, m_child_abort);
-                SpawnManualLyricSearch(*update);
-                LyricUpdateQueue::add_handle(std::move(update));
+                SpawnManualLyricSearch(m_now_playing, m_now_playing_info);
             } break;
 
             case ID_SAVE_LYRICS:
@@ -1121,7 +1119,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 try
                 {
                     const bool allow_overwrite = true;
-                    io::save_lyrics(m_now_playing, m_now_playing_info, m_lyrics, allow_overwrite, m_child_abort);
+                    io::save_lyrics(m_now_playing, m_now_playing_info, m_lyrics, allow_overwrite);
                 }
                 catch(const std::exception& e)
                 {
@@ -1145,9 +1143,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             {
                 if(m_now_playing == nullptr) break;
 
-                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
-                SpawnLyricEditor(m_lyrics, *update);
-                LyricUpdateQueue::add_handle(std::move(update));
+                SpawnLyricEditor(m_lyrics, m_now_playing, m_now_playing_info);
             } break;
 
             case ID_OPEN_FILE_DIR:
@@ -1316,11 +1312,12 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
         if(updated_lyrics.has_value())
         {
-            LyricUpdateHandle update(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
-            update.set_started();
-            update.set_result(std::move(updated_lyrics.value()), true);
-
-            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(update);
+            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update({
+                std::move(updated_lyrics.value()),
+                m_now_playing,
+                m_now_playing_info,
+                LyricUpdate::Type::Edit,
+            });
             assert(maybe_lyrics.has_value()); // Round-trip through the processing to avoid copies
             m_lyrics = std::move(maybe_lyrics.value());
         }
@@ -1335,9 +1332,7 @@ void LyricPanel::OnDoubleClick(UINT /*virtualKeys*/, CPoint /*cursorPos*/)
 {
     if(m_now_playing == nullptr) return;
 
-    auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, m_now_playing, m_now_playing_info, m_child_abort);
-    SpawnLyricEditor(m_lyrics, *update);
-    LyricUpdateQueue::add_handle(std::move(update));
+    SpawnLyricEditor(m_lyrics, m_now_playing, m_now_playing_info);
 }
 
 LRESULT LyricPanel::OnMouseWheel(UINT /*virtualKeys*/, short rotation, CPoint /*point*/)
@@ -1427,7 +1422,9 @@ void LyricPanel::InitiateLyricSearch(SearchAvoidanceReason avoid_reason)
 
     auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
     io::search_for_lyrics(*update, search_local_only);
-    LyricUpdateQueue::add_handle(std::move(update));
+
+    core_api::ensure_main_thread();
+    g_update_handles.push_back(std::move(update));
 }
 
 // (Attempt to) Compute the current playback time and duration for the currently-playing track.
@@ -1456,13 +1453,6 @@ LyricPanel::PlaybackTimeInfo LyricPanel::get_playback_time()
     return result;
 }
 
-void LyricPanel::LyricUpdateQueue::add_handle(std::unique_ptr<LyricUpdateHandle> handle)
-{
-    core_api::ensure_main_thread();
-
-    g_update_handles.push_back(std::move(handle));
-}
-
 void LyricPanel::LyricUpdateQueue::check_for_available_updates()
 {
     core_api::ensure_main_thread();
@@ -1475,7 +1465,12 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
     {
         if(update->has_result())
         {
-            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(*update);
+            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update({
+                update->get_result(),
+                update->get_track(),
+                update->get_track_info(),
+                update->get_type()
+            });
 
             if(maybe_lyrics.has_value())
             {
@@ -1501,6 +1496,40 @@ void LyricPanel::LyricUpdateQueue::check_for_available_updates()
                                   is_complete);
     g_update_handles.erase(new_end, g_update_handles.end());
 }
+
+void LyricPanel::LyricUpdateQueue::announce_lyric_update(LyricUpdate update)
+{
+    core_api::ensure_main_thread();
+
+    metadb_handle_ptr now_playing = nullptr;
+    service_ptr_t<playback_control> playback = playback_control::get();
+    playback->get_now_playing(now_playing);
+    const bool is_now_playing = (update.track == now_playing);
+    metadb_v2_rec_t track_info = update.track_info; // Copy this out so we can move update into process_available_lyric_update
+
+    std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(std::move(update));
+    if(maybe_lyrics.has_value())
+    {
+        lyric_metadata_log_retrieved(track_info, maybe_lyrics.value());
+    }
+
+    if((maybe_lyrics.has_value()) && is_now_playing)
+    {
+        for(LyricPanel* panel : g_active_panels)
+        {
+            assert(panel != nullptr);
+            panel->m_lyrics = maybe_lyrics.value();
+            panel->m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
+            ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
+        }
+    }
+}
+
+void announce_lyric_update(LyricUpdate update)
+{
+    LyricPanel::LyricUpdateQueue::announce_lyric_update(std::move(update));
+}
+
 
 std::optional<std::string> LyricPanel::LyricUpdateQueue::get_progress_message()
 {
@@ -1530,38 +1559,6 @@ std::optional<std::string> LyricPanel::LyricUpdateQueue::get_progress_message()
 size_t num_lyric_panels()
 {
     return g_active_panels.size();
-}
-
-void register_update_handle_with_lyric_panels(std::unique_ptr<LyricUpdateHandle>&& handle)
-{
-    // NOTE: Moving something into a lambda is annoyingly difficult to do correctly.
-    //       In the case of unique_ptr we can just extract the pointer from inside it, copy that
-    //       into the lambda by value and re-create a new unique_ptr. We've effectively moved
-    //       out of the unique_ptr at that point which was the expected behaviour anyway
-    //       when the value is passed as r-value ref.
-    LyricUpdateHandle* handle_ptr = handle.release();
-    fb2k::inMainThread2([handle_ptr]()
-    {
-        std::unique_ptr<LyricUpdateHandle> update(handle_ptr);
-        core_api::ensure_main_thread();
-        if(g_active_panels.size() == 0)
-        {
-            // The update won't save!
-            popup_message_v3::query_t query = {};
-            query.title = "No OpenLyrics lyric panels";
-            query.msg = "There are no OpenLyrics lyric panels on the UI. As a result, this lyric will not be saved. Please add a lyric panel to the UI before editing or searching for lyrics.";
-            query.buttons = popup_message_v3::buttonOK;
-            query.icon = popup_message_v3::iconWarning;
-            popup_message_v3::get()->show_query_modal(query);
-
-            update->set_complete(); // The handle is going to be destroyed, complete it so we don't sit waiting for it to complete in the destructor
-            update.reset(); // Consume the handle that got passed into us, since that is the expected behaviour
-        }
-        else
-        {
-            LyricPanel::LyricUpdateQueue::add_handle(std::move(update));
-        }
-    });
 }
 
 void repaint_all_lyric_panels()

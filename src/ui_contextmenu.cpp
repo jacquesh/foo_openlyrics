@@ -135,16 +135,7 @@ public:
                 if(data.get_count() == 0) break;
                 metadb_handle_ptr track = data.get_item(0);
 
-                auto update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::ManualSearch, track, get_full_metadata(track), fb2k::mainAborter());
-                if(num_lyric_panels() > 0)
-                {
-                    SpawnManualLyricSearch(*update);
-                }
-                else
-                {
-                    update->set_started();
-                }
-                register_update_handle_with_lyric_panels(std::move(update));
+                SpawnManualLyricSearch(track, get_full_metadata(track));
             } break;
 
             case cmd_edit_lyrics:
@@ -165,17 +156,7 @@ public:
 
                         fb2k::inMainThread2([lyrics, track, track_info]()
                         {
-                            auto edit_update = std::make_unique<LyricUpdateHandle>(LyricUpdateHandle::Type::Edit, track, track_info, fb2k::mainAborter());
-
-                            if(num_lyric_panels() > 0)
-                            {
-                                SpawnLyricEditor(lyrics, *edit_update);
-                            }
-                            else
-                            {
-                                edit_update->set_started();
-                            }
-                            register_update_handle_with_lyric_panels(std::move(edit_update));
+                            SpawnLyricEditor(lyrics, track, track_info);
                         });
                     }
                 };

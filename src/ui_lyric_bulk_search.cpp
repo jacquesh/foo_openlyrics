@@ -289,7 +289,16 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         return 0;
     }
 
-    std::optional<LyricData> lyrics = io::process_available_lyric_update(update);
+    std::optional<LyricData> lyrics;
+    if(update.has_result())
+    {
+        lyrics = io::process_available_lyric_update({
+            update.get_result(),
+            update.get_track(),
+            update.get_track_info(),
+            update.get_type()
+        });
+    }
     m_child_update.reset();
 
     if(lyrics.has_value())

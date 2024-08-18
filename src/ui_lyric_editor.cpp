@@ -21,7 +21,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_LYRIC_EDIT };
 
-    LyricEditor(LyricDataCommon common_data, std::tstring text, LyricUpdateHandle& update);
+    LyricEditor(LyricDataCommon common_data, std::tstring text, metadb_handle_ptr track, metadb_v2_rec_t& track_info);
     ~LyricEditor() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -66,16 +66,17 @@ private:
     void update_play_button();
     void update_time_text(double time);
     bool HasContentChanged(size_t* new_length);
-    void ApplyLyricEdits(bool is_editor_closing);
+    void ApplyLyricEdits();
 
     void SelectLineWithTimestampGreaterOrEqual(double threshold_timestamp);
     void SetEditorContents(const LyricData& lyrics);
     std::tstring GetEditorContents();
     LyricData ParseEditorContents();
 
-    LyricUpdateHandle& m_update;
     LyricDataCommon m_common_data;
     std::tstring m_input_text;
+    metadb_handle_ptr m_track;
+    metadb_v2_rec_t m_track_info;
 
     HWND m_offset_apply_tooltip;
     HWND m_offset_sync_tooltip;
@@ -83,10 +84,11 @@ private:
     fb2k::CCoreDarkModeHooks m_dark;
 };
 
-LyricEditor::LyricEditor(LyricDataCommon common_data, std::tstring text, LyricUpdateHandle& update) :
-    m_update(update),
+LyricEditor::LyricEditor(LyricDataCommon common_data, std::tstring text, metadb_handle_ptr track, metadb_v2_rec_t& track_info) :
     m_common_data(common_data),
-    m_input_text(text)
+    m_input_text(text),
+    m_track(track),
+    m_track_info(track_info)
 {
 }
 
@@ -145,12 +147,11 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
     GotoDlgCtrl(GetDlgItem(IDC_LYRIC_TEXT));
 
-    m_update.set_started();
     if(!m_input_text.empty())
     {
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());
 
-        bool editing_now_playing = (now_playing == m_update.get_track());
+        bool editing_now_playing = (now_playing == m_track);
         double playback_time = playback->playback_get_position();
         double select_time = editing_now_playing ? playback_time : 0.0;
         SelectLineWithTimestampGreaterOrEqual(select_time);
@@ -177,11 +178,6 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 
 void LyricEditor::OnDestroyDialog()
 {
-    if(!m_update.is_complete())
-    {
-        m_update.set_complete();
-    }
-
     ::DestroyWindow(m_offset_apply_tooltip);
     ::DestroyWindow(m_offset_sync_tooltip);
 }
@@ -414,21 +410,21 @@ void LyricEditor::OnCancel(UINT /*btn_id*/, int /*notification_type*/, CWindow /
 void LyricEditor::OnApply(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
     assert(HasContentChanged(nullptr));
-    ApplyLyricEdits(false);
+    ApplyLyricEdits();
 }
 
 void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 {
     if(HasContentChanged(nullptr))
     {
-        ApplyLyricEdits(true);
+        ApplyLyricEdits();
     }
     DestroyWindow();
 }
 
 void LyricEditor::on_playback_new_track(metadb_handle_ptr track)
 {
-    bool edit_track_playing = (track == m_update.get_track());
+    bool edit_track_playing = (track == m_track);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_SYNC), edit_track_playing);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_BACK5), edit_track_playing);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_FWD5), edit_track_playing);
@@ -476,7 +472,7 @@ void LyricEditor::update_time_text(double new_time)
     playback_control::ptr playback = playback_control::get();
     if(playback->get_now_playing(now_playing))
     {
-        edit_track_playing = (now_playing == m_update.get_track());
+        edit_track_playing = (now_playing == m_track);
     }
 
     if(edit_track_playing)
@@ -544,21 +540,22 @@ bool LyricEditor::HasContentChanged(size_t* new_length)
     }
 }
 
-void LyricEditor::ApplyLyricEdits(bool is_editor_closing)
+void LyricEditor::ApplyLyricEdits()
 {
     LOG_INFO("Saving lyrics from editor...");
     LyricData data = ParseEditorContents();
     if(data.IsEmpty())
     {
-        if(is_editor_closing)
-        {
-            m_update.set_complete();
-        }
         return;
     }
 
-    m_update.set_result(std::move(data), is_editor_closing);
-    lyric_metadata_log_edit(m_update.get_track_info());
+    announce_lyric_update({
+        std::move(data),
+        m_track,
+        m_track_info,
+        LyricUpdate::Type::Edit,
+    });
+    lyric_metadata_log_edit(m_track_info);
 
     // Update m_input_text so that HasContentChanged() will return the correct value after the same
     m_input_text = GetEditorContents();
@@ -597,14 +594,15 @@ LyricData LyricEditor::ParseEditorContents()
     return parsers::lrc::parse(m_common_data, lyrics);
 }
 
-HWND SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update)
+HWND SpawnLyricEditor(const LyricData& lyrics, metadb_handle_ptr track, metadb_v2_rec_t track_info)
 {
     LOG_INFO("Spawning editor window...");
+    core_api::ensure_main_thread();
     HWND result = nullptr;
     try
     {
         const std::tstring text = parsers::lrc::expand_text(lyrics, false);
-        auto new_window = fb2k::newDialog<LyricEditor>(lyrics, text, update);
+        auto new_window = fb2k::newDialog<LyricEditor>(lyrics, text, track, track_info);
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)

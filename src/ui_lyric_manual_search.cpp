@@ -12,6 +12,7 @@
 #include "lyric_io.h"
 #include "sources/lyric_source.h"
 #include "tag_util.h"
+#include "ui_hooks.h"
 #include "win32_util.h"
 
 
@@ -36,7 +37,7 @@ public:
     // Dialog resource ID
     enum { IDD = IDD_MANUAL_SEARCH };
 
-    ManualLyricSearch(LyricUpdateHandle& update);
+    ManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info);
     ~ManualLyricSearch() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
@@ -65,7 +66,8 @@ private:
     void start_search();
     void save_selected_item();
 
-    LyricUpdateHandle& m_parent_update;
+    metadb_handle_ptr m_track;
+    metadb_v2_rec_t m_track_info;
     std::optional<LyricUpdateHandle> m_child_update;
     abort_callback_impl m_child_abort;
     std::list<LyricData> m_all_lyrics;
@@ -78,8 +80,9 @@ private:
 
 static const UINT_PTR MANUAL_SEARCH_UPDATE_TIMER = 7917213;
 
-ManualLyricSearch::ManualLyricSearch(LyricUpdateHandle& update) :
-    m_parent_update(update)
+ManualLyricSearch::ManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info) :
+    m_track(track),
+    m_track_info(track_info)
 {
 }
 
@@ -131,12 +134,9 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Searching..."));
     SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
 
-    m_parent_update.set_started();
-
-    const metadb_v2_rec_t& initial_track_info = m_parent_update.get_track_info();
-    std::string artist = track_metadata(initial_track_info, "artist");
-    std::string album = track_metadata(initial_track_info, "album");
-    std::string title = track_metadata(initial_track_info, "title");
+    std::string artist = track_metadata(m_track_info, "artist");
+    std::string album = track_metadata(m_track_info, "album");
+    std::string title = track_metadata(m_track_info, "title");
 
     std::tstring artist_ui = to_tstring(artist);
     std::tstring album_ui = to_tstring(album);
@@ -187,10 +187,6 @@ void ManualLyricSearch::OnDestroyDialog()
     }
 
     KillTimer(MANUAL_SEARCH_UPDATE_TIMER);
-    if(!m_parent_update.is_complete())
-    {
-        m_parent_update.set_complete();
-    }
 }
 
 void ManualLyricSearch::OnClose()
@@ -332,7 +328,7 @@ void ManualLyricSearch::start_search()
     assert(!m_child_update.has_value());
     try
     {
-        m_child_update.emplace(m_parent_update.get_type(), m_parent_update.get_track(), m_parent_update.get_track_info(), m_child_abort);
+        m_child_update.emplace(LyricUpdate::Type::ManualSearch, m_track, m_track_info, m_child_abort);
     }
     catch(const std::exception& e)
     {
@@ -382,7 +378,12 @@ void ManualLyricSearch::save_selected_item()
             //       preview for the applied lyrics will be empty (and so will the applied lyrics)
             //       if you click "Apply" again.
             LyricData lyrics_copy = *selected_lyrics;
-            m_parent_update.set_result(std::move(lyrics_copy), false);
+            announce_lyric_update({
+                std::move(lyrics_copy),
+                m_track,
+                m_track_info,
+                LyricUpdate::Type::ManualSearch,
+            });
         }
         else
         {
@@ -490,20 +491,8 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         }
     }
 
-    bool aborting = false;
-    try
-    {
-        if(m_parent_update.get_checked_abort().is_aborting())
-        {
-            aborting = true;
-        }
-    }
-    catch(const std::exception& ex)
-    {
-        LOG_WARN("Error when checking the child update handle, it was probably cancelled so cancelling our own handle: %s", ex.what());
-        aborting = true;
-    }
-    if(aborting && !m_child_abort.is_aborting())
+    // Stop all the background search tasks if we're shutting down
+    if(fb2k::mainAborter().is_aborting())
     {
         m_child_abort.abort();
     }
@@ -511,13 +500,14 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
     return 0;
 }
 
-HWND SpawnManualLyricSearch(LyricUpdateHandle& update)
+HWND SpawnManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info)
 {
     LOG_INFO("Spawning manual search window...");
+    core_api::ensure_main_thread();
     HWND result = nullptr;
     try
     {
-        auto new_window = fb2k::newDialog<ManualLyricSearch>(update);
+        auto new_window = fb2k::newDialog<ManualLyricSearch>(track, track_info);
         result = new_window->m_hWnd;
     }
     catch(const std::exception& e)

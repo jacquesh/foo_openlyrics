@@ -4,9 +4,8 @@
 
 #include "lyric_data.h"
 
-class LyricUpdateHandle
+struct LyricUpdate
 {
-public:
     enum class Type
     {
         Unknown,
@@ -14,6 +13,17 @@ public:
         ManualSearch,
         Edit,
     };
+
+    LyricData lyrics;
+    metadb_handle_ptr track;
+    metadb_v2_rec_t track_info;
+    Type type;
+};
+
+class LyricUpdateHandle
+{
+public:
+    using Type = LyricUpdate::Type;
 
     LyricUpdateHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
     LyricUpdateHandle(const LyricUpdateHandle& other) = delete;
@@ -66,11 +76,11 @@ namespace io
     void search_for_lyrics(LyricUpdateHandle& handle, bool local_only);
     void search_for_all_lyrics(LyricUpdateHandle& handle, std::string artist, std::string album, std::string title);
 
-    std::optional<LyricData> process_available_lyric_update(LyricUpdateHandle& update);
+    std::optional<LyricData> process_available_lyric_update(LyricUpdate update);
 
     // Updates the lyric data with the ID of the source used for saving, as well as the persistence path that it reports.
     // Returns a success flag
-    bool save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort);
+    bool save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite);
 
     bool delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics);
 }

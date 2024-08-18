@@ -1,15 +1,18 @@
 #pragma once
 
+#include "foobar2000/SDK/metadb_handle.h"
+
+#include "lyric_data.h"
 #include "lyric_io.h"
 
-HWND SpawnLyricEditor(const LyricData& lyrics, LyricUpdateHandle& update);
-HWND SpawnManualLyricSearch(LyricUpdateHandle& update);
+HWND SpawnLyricEditor(const LyricData& lyrics, metadb_handle_ptr track, metadb_v2_rec_t track_info);
+HWND SpawnManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info);
 HWND SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search);
 
 size_t num_lyric_panels();
-void register_update_handle_with_lyric_panels(std::unique_ptr<LyricUpdateHandle>&& handle);
 void repaint_all_lyric_panels();
 void recompute_lyric_panel_backgrounds();
+void announce_lyric_update(LyricUpdate update);
 
 class LyricPanel;
 bool should_panel_search(const LyricPanel* panel);

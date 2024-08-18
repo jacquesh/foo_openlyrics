@@ -110,7 +110,7 @@ private:
     UINT_PTR m_panel_update_timer;
 
 protected: // TODO: These two are only protected to support the external window
-    metadb_handle_ptr m_now_playing;
+    metadb_handle_ptr m_now_playing; // TODO: metadb_handle_v2 when we move to requiring fb2k v2.0
     metadb_v2_rec_t m_now_playing_info;
 private:
     double m_now_playing_time_offset = 0.0;
@@ -137,8 +137,8 @@ public: // TODO: This need not be in a header at all, but we need it in the exte
     class LyricUpdateQueue
     {
     public:
-        static void add_handle(std::unique_ptr<LyricUpdateHandle> handle);
         static void check_for_available_updates();
+        static void announce_lyric_update(LyricUpdate update);
         static std::optional<std::string> get_progress_message();
 
     private:

@@ -63,7 +63,7 @@ static bool is_upload_duplicated_after_a_delay(LyricSearchParams params)
     return other_uploads_exist;
 }
 
-bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite, abort_callback& abort)
+bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
     //       only happen on the main thread.
@@ -79,7 +79,7 @@ bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info,
     const std::string text = from_tstring(parsers::lrc::expand_text(lyrics, preferences::saving::merge_equivalent_lrc_lines()));
     try
     {
-        std::string output_path = source->save(track, track_info, lyrics.IsTimestamped(), text, allow_overwrite, abort);
+        std::string output_path = source->save(track, track_info, lyrics.IsTimestamped(), text, allow_overwrite, fb2k::mainAborter());
         lyrics.save_path = output_path;
         lyrics.save_source = source->id();
         clear_search_avoidance(track_info); // Clear here so that we will always find saved lyrics
@@ -619,53 +619,44 @@ static void try_publish_update(LyricData lyrics, const metadb_v2_rec_t& track_in
     }
 }
 
-std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& update)
+std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
 {
-    if(!update.has_result())
-    {
-        LOG_INFO("Received lyric update with no results, ignoring...");
-        return {};
-    }
-
-    assert(update.has_result());
-    LyricData lyrics = update.get_result();
-
-    if(lyrics.IsEmpty())
+    if(update.lyrics.IsEmpty())
     {
         LOG_INFO("Received empty lyric update, ignoring...");
         return {};
     }
 
-    const LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
+    const LyricSourceBase* source = LyricSourceBase::get(update.lyrics.source_id);
     const bool loaded_from_local_src = ((source != nullptr) && source->is_local());
     const AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
 
-    const bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update.get_type(), lyrics.IsTimestamped());
+    const bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update.type, update.lyrics.IsTimestamped());
     if(should_save)
     {
         try
         {
-            const bool should_auto_edit = should_auto_edits_be_applied(loaded_from_local_src, update.get_type());
+            const bool should_auto_edit = should_auto_edits_be_applied(loaded_from_local_src, update.type);
             if(should_auto_edit)
             {
                 for(AutoEditType type : preferences::editing::automated_auto_edits())
                 {
-                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, lyrics, update.get_track_info());
+                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, update.lyrics, update.track_info);
                     if(maybe_lyrics.has_value())
                     {
-                        lyrics = std::move(maybe_lyrics.value());
+                        update.lyrics = std::move(maybe_lyrics.value());
                     }
                 }
             }
 
-            const bool allow_overwrite = save_overwrite_allowed(update.get_type());
-            io::save_lyrics(update.get_track(), update.get_track_info(), lyrics, allow_overwrite, update.get_checked_abort());
+            const bool allow_overwrite = save_overwrite_allowed(update.type);
+            io::save_lyrics(update.track, update.track_info, update.lyrics, allow_overwrite);
 
             if((preferences::upload::lrclib_upload_strategy() == UploadStrategy::OnEdit) &&
-                (update.get_type() == LyricUpdateHandle::Type::Edit) &&
-                lyrics.IsTimestamped())
+                (update.type == LyricUpdate::Type::Edit) &&
+                update.lyrics.IsTimestamped())
             {
-                try_publish_update(lyrics, update.get_track_info());
+                try_publish_update(update.lyrics, update.track_info);
             }
         }
         catch(const std::exception& e)
@@ -676,13 +667,13 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdateHandle& u
     else
     {
         LOG_INFO("Skipping lyric save. Type: %d, Local: %s, Timestamped: %s, Autosave: %d",
-                int(update.get_type()),
+                int(update.type),
                 loaded_from_local_src ? "yes" : "no",
-                lyrics.IsTimestamped() ? "yes" : "no",
+                update.lyrics.IsTimestamped() ? "yes" : "no",
                 int(autosave));
     }
 
-    return {std::move(lyrics)};
+    return {std::move(update.lyrics)};
 }
 
 bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
