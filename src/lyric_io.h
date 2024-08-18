@@ -23,14 +23,12 @@ struct LyricUpdate
 class LyricSearchHandle
 {
 public:
-    using Type = LyricUpdate::Type;
-
-    LyricSearchHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
+    LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
     LyricSearchHandle(const LyricSearchHandle& other) = delete;
     LyricSearchHandle(LyricSearchHandle&& other);
     ~LyricSearchHandle();
 
-    Type get_type();
+    LyricUpdate::Type get_type();
     std::string get_progress();
     bool wait_for_complete(uint32_t timeout_ms);
     bool is_complete();
@@ -60,7 +58,7 @@ private:
 
     const metadb_handle_ptr m_track;
     const metadb_v2_rec_t m_track_info;
-    const Type m_type;
+    const LyricUpdate::Type m_type;
 
     CRITICAL_SECTION m_mutex;
     std::vector<LyricData> m_lyrics;

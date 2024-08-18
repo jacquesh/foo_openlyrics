@@ -1420,7 +1420,7 @@ void LyricPanel::InitiateLyricSearch(SearchAvoidanceReason avoid_reason)
         m_auto_search_avoided_timestamp = filetimestamp_from_system_timer();
     }
 
-    auto handle = std::make_unique<LyricSearchHandle>(LyricSearchHandle::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
+    auto handle = std::make_unique<LyricSearchHandle>(LyricUpdate::Type::AutoSearch, m_now_playing, m_now_playing_info, m_child_abort);
     io::search_for_lyrics(*handle, search_local_only);
 
     core_api::ensure_main_thread();
@@ -1544,7 +1544,7 @@ std::optional<std::string> LyricPanel::LyricUpdateQueue::get_progress_message()
         for(std::unique_ptr<LyricSearchHandle>& handle : g_search_handles)
         {
             if((handle != nullptr) &&
-                (handle->get_type() == LyricSearchHandle::Type::AutoSearch) &&
+                (handle->get_type() == LyricUpdate::Type::AutoSearch) &&
                 (handle->get_track() == now_playing))
             {
                 const std::string progress_msg = handle->get_progress();

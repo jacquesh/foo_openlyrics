@@ -522,15 +522,15 @@ void io::search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, st
     });
 }
 
-static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricSearchHandle::Type update_type, bool is_timestamped)
+static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdate::Type update_type, bool is_timestamped)
 {
     const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always) ||
                                            ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped) ||
                                            ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped);
-    const bool should_autosave = ((update_type == LyricSearchHandle::Type::AutoSearch) && is_configured_to_autosave && !loaded_from_local_src);
+    const bool should_autosave = ((update_type == LyricUpdate::Type::AutoSearch) && is_configured_to_autosave && !loaded_from_local_src);
 
-    const bool is_a_user_edit = (update_type == LyricSearchHandle::Type::Edit);
-    const bool user_requested_search = ((update_type == LyricSearchHandle::Type::ManualSearch) && !loaded_from_local_src);
+    const bool is_a_user_edit = (update_type == LyricUpdate::Type::Edit);
+    const bool user_requested_search = ((update_type == LyricUpdate::Type::ManualSearch) && !loaded_from_local_src);
 
     // NOTE: We previously changed this to:
     //       `should_autosave && (is_edit || !loaded_from_local_src)`
@@ -543,15 +543,15 @@ static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStr
     return should_save;
 }
 
-static bool save_overwrite_allowed(LyricSearchHandle::Type update_type)
+static bool save_overwrite_allowed(LyricUpdate::Type update_type)
 {
-    const bool allow_overwrite = (update_type == LyricSearchHandle::Type::Edit) || (update_type == LyricSearchHandle::Type::ManualSearch);
+    const bool allow_overwrite = (update_type == LyricUpdate::Type::Edit) || (update_type == LyricUpdate::Type::ManualSearch);
     return allow_overwrite;
 }
 
-static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricSearchHandle::Type update_type)
+static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdate::Type update_type)
 {
-    const bool was_search = (update_type == LyricSearchHandle::Type::AutoSearch) || (update_type == LyricSearchHandle::Type::ManualSearch);
+    const bool was_search = (update_type == LyricUpdate::Type::AutoSearch) || (update_type == LyricUpdate::Type::ManualSearch);
     const bool should_auto_edit = was_search && !loaded_from_local_src;
     return should_auto_edit;
 }
@@ -714,7 +714,7 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     }
 }
 
-LyricSearchHandle::LyricSearchHandle(Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
+LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
     m_track(track),
     m_track_info(track_info),
     m_type(type),
@@ -768,7 +768,7 @@ LyricSearchHandle::~LyricSearchHandle()
     DeleteCriticalSection(&m_mutex);
 }
 
-LyricSearchHandle::Type LyricSearchHandle::get_type()
+LyricUpdate::Type LyricSearchHandle::get_type()
 {
     return m_type;
 }
@@ -913,15 +913,15 @@ static const AutoSaveStrategy g_all_save_strategies[] =
     AutoSaveStrategy::OnlySynced,
     AutoSaveStrategy::OnlyUnsynced
 };
-static const LyricSearchHandle::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
+static const LyricUpdate::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
 {
-    LyricSearchHandle::Type::AutoSearch,
-    LyricSearchHandle::Type::ManualSearch
+    LyricUpdate::Type::AutoSearch,
+    LyricUpdate::Type::ManualSearch
 };
 
 MVTF_TEST(autoedits_dont_apply_to_edit_results)
 {
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::Edit;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::Edit;
     const bool all_bools[] = { true, false };
     for(bool loaded_from_local_src : all_bools)
     {
@@ -933,7 +933,7 @@ MVTF_TEST(autoedits_dont_apply_to_edit_results)
 MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
 {
     // NOTE: Most tests assume that all update types are either a search type or "Edit"
-    for(LyricSearchHandle::Type update_type : g_search_update_types)
+    for(LyricUpdate::Type update_type : g_search_update_types)
     {
         const bool applied_remote = should_auto_edits_be_applied(false, update_type);
         const bool applied_local =  should_auto_edits_be_applied(true, update_type);
@@ -944,7 +944,7 @@ MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
 
 MVTF_TEST(saving_always_save_edit_updates)
 {
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::Edit;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::Edit;
     const bool all_bools[] = { true, false };
     for(bool loaded_from_local_src : all_bools)
     {
@@ -967,7 +967,7 @@ MVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
     const bool all_bools[] = { true, false };
     const bool loaded_from_local_src = true;
 
-    for(LyricSearchHandle::Type update_type : g_search_update_types)
+    for(LyricUpdate::Type update_type : g_search_update_types)
     {
         for(AutoSaveStrategy autosave : g_all_save_strategies)
         {
@@ -985,7 +985,7 @@ MVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
 // by (always_save_edit_updates), we now only need to test AutoSearch.
 MVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
 {
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::ManualSearch;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::ManualSearch;
     const bool loaded_from_local_src = false;
     const bool all_bools[] = { true, false };
 
@@ -1002,7 +1002,7 @@ MVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
 MVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
 {
     const bool loaded_from_local_src = false;
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::Always;
     const bool all_bools[] = { true, false };
 
@@ -1016,7 +1016,7 @@ MVTF_TEST(saving_always_save_autosearch_results_with_save_strategy_always)
 MVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
 {
     const bool loaded_from_local_src = false;
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::Never;
     const bool all_bools[] = { true, false };
 
@@ -1030,7 +1030,7 @@ MVTF_TEST(saving_never_save_autosearch_results_with_save_strategy_never)
 MVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysynced)
 {
     const bool loaded_from_local_src = false;
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::OnlySynced;
 
     bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
@@ -1042,7 +1042,7 @@ MVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysync
 MVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyunsynced)
 {
     const bool loaded_from_local_src = false;
-    const LyricSearchHandle::Type update_type = LyricSearchHandle::Type::AutoSearch;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::AutoSearch;
     const AutoSaveStrategy autosave = AutoSaveStrategy::OnlyUnsynced;
 
     bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
