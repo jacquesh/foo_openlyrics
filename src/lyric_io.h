@@ -23,7 +23,7 @@ struct LyricUpdate
 class LyricSearchHandle
 {
 public:
-    LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
+    LyricSearchHandle(bool was_invoked_automatically, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
     LyricSearchHandle(const LyricSearchHandle& other) = delete;
     LyricSearchHandle(LyricSearchHandle&& other);
     ~LyricSearchHandle();

@@ -456,6 +456,7 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
         std::move(title),
         {} // No duration
     );
+    const bool is_search_automatic = (handle.get_type() == LyricUpdate::Type::AutoSearch);
 
     // NOTE: It is crucial that this is a std::list so that inserting new items or removing old ones
     //       does not re-allocate the entire list and invalidate earlier pointers. We pass references
@@ -474,7 +475,7 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
             continue;
         }
 
-        source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
+        source_handles.emplace_back(is_search_automatic, handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         LyricSearchHandle& src_handle = source_handles.back();
 
         fb2k::splitTask([&src_handle, source, &params](){
@@ -714,10 +715,10 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     }
 }
 
-LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
+LyricSearchHandle::LyricSearchHandle(bool was_invoked_automatically, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
     m_track(track),
     m_track_info(track_info),
-    m_type(type),
+    m_type(was_invoked_automatically ? LyricUpdate::Type::AutoSearch : LyricUpdate::Type::ManualSearch),
     m_mutex({}),
     m_lyrics(),
     m_abort(abort),

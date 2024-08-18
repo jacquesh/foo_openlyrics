@@ -269,7 +269,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         assert((m_next_search_index >= 0) && (m_next_search_index < int(m_tracks_to_search.size())));
 
         const TrackAndInfo& track = m_tracks_to_search[m_next_search_index];
-        m_child_search.emplace(LyricUpdate::Type::ManualSearch, track.track, track.track_info, m_child_abort);
+        m_child_search.emplace(false, track.track, track.track_info, m_child_abort);
 
         io::search_for_lyrics(m_child_search.value(), false);
 

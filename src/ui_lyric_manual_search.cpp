@@ -328,7 +328,7 @@ void ManualLyricSearch::start_search()
     assert(!m_child_search.has_value());
     try
     {
-        m_child_search.emplace(LyricUpdate::Type::ManualSearch, m_track, m_track_info, m_child_abort);
+        m_child_search.emplace(false, m_track, m_track_info, m_child_abort);
     }
     catch(const std::exception& e)
     {
