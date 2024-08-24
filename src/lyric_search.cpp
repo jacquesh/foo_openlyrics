@@ -26,7 +26,7 @@ public:
 private:
     void on_playback_starting(play_control::t_track_command /*cmd*/, bool /*paused*/) override {}
     void on_playback_new_track(metadb_handle_ptr track) override;
-    void on_playback_stop(play_control::t_stop_reason /*reason*/) override {}
+    void on_playback_stop(play_control::t_stop_reason reason) override;
     void on_playback_seek(double /*time*/) override {}
     void on_playback_pause(bool /*state*/) override {}
     void on_playback_edited(metadb_handle_ptr /*track*/) override {}
@@ -67,7 +67,7 @@ std::optional<std::string> get_autosearch_progress_message()
 // ==============================================
 void LyricAutosearchManager::on_init()
 {
-    play_callback_manager::get()->register_callback(this, flag_on_playback_new_track | flag_on_playback_dynamic_info_track, false);
+    play_callback_manager::get()->register_callback(this, flag_on_playback_new_track | flag_on_playback_stop | flag_on_playback_dynamic_info_track, false);
 
     fb2k::splitTask([this](){
         while(!fb2k::mainAborter().is_aborting())
@@ -203,4 +203,12 @@ void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& inf
     meta_record.info = info_container_impl;
 
     initiate_search(track, std::move(meta_record), false);
+}
+
+void LyricAutosearchManager::on_playback_stop(play_control::t_stop_reason reason)
+{
+    if(reason != play_control::t_stop_reason::stop_reason_starting_another)
+    {
+        m_last_played_track = nullptr; // Unset this so we do search when the next track is played
+    }
 }
