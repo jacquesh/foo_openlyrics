@@ -4,6 +4,7 @@
 
 #include "lyric_data.h"
 #include "lyric_io.h"
+#include "metadb_index_search_avoidance.h"
 
 HWND SpawnLyricEditor(const LyricData& lyrics, metadb_handle_ptr track, metadb_v2_rec_t track_info);
 HWND SpawnManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info);
@@ -14,6 +15,7 @@ size_t num_visible_lyric_panels();
 void repaint_all_lyric_panels();
 void recompute_lyric_panel_backgrounds();
 void announce_lyric_update(LyricUpdate update);
+void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
 
 // Provides fb2k's default UI parameters, usually only available through UI components.
 // These should be queried just-in-time as the values they return may change if the user

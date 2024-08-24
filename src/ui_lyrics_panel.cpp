@@ -1447,16 +1447,12 @@ void LyricPanel::LyricUpdateQueue::internal_check_for_available_updates()
                 handle->get_track_info(),
                 handle->get_type()
             };
-            fb2k::inMainThread2([this, inner_update = std::move(update)](){
-                internal_announce_lyric_update(std::move(inner_update));
-            });
+            announce_lyric_update(std::move(update));
         }
 
         if(didnt_find_anything && (tracker.avoidance_reason != SearchAvoidanceReason::Allowed))
         {
-            fb2k::inMainThread2([this, track = tracker.handle->get_track(), reason = tracker.avoidance_reason](){
-                internal_announce_lyric_search_avoided(track, reason);
-            });
+            announce_lyric_search_avoided(tracker.handle->get_track(), tracker.avoidance_reason);
         }
         return is_complete;
     };
@@ -1469,44 +1465,32 @@ void LyricPanel::LyricUpdateQueue::internal_check_for_available_updates()
     m_handle_mutex.unlock();
 }
 
-void LyricPanel::LyricUpdateQueue::announce_lyric_update(LyricUpdate update)
-{
-    fb2k::inMainThread2([update = std::move(update)]{
-        g_lyric_update_queue.get_static_instance().internal_announce_lyric_update(std::move(update));
-    });
-}
-
-void LyricPanel::LyricUpdateQueue::internal_announce_lyric_update(LyricUpdate update)
-{
-    core_api::ensure_main_thread();
-
-    metadb_v2_rec_t track_info = update.track_info; // Copy this out so we can move update into process_available_lyric_update
-    std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(std::move(update));
-    if(maybe_lyrics.has_value())
-    {
-        lyric_metadata_log_retrieved(track_info, maybe_lyrics.value());
-    }
-
-    if(maybe_lyrics.has_value())
-    {
-        for(LyricPanel* panel : g_active_panels)
-        {
-            assert(panel != nullptr);
-            if(update.track != panel->m_now_playing)
-            {
-                continue;
-            }
-
-            panel->m_lyrics = maybe_lyrics.value();
-            panel->m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
-            ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
-        }
-    }
-}
-
 void announce_lyric_update(LyricUpdate update)
 {
-    LyricPanel::LyricUpdateQueue::announce_lyric_update(std::move(update));
+    fb2k::inMainThread2([update = std::move(update)]{
+        metadb_v2_rec_t track_info = update.track_info; // Copy this out so we can move update into process_available_lyric_update
+        std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(std::move(update));
+        if(maybe_lyrics.has_value())
+        {
+            lyric_metadata_log_retrieved(track_info, maybe_lyrics.value());
+        }
+
+        if(maybe_lyrics.has_value())
+        {
+            for(LyricPanel* panel : g_active_panels)
+            {
+                assert(panel != nullptr);
+                if(update.track != panel->m_now_playing)
+                {
+                    continue;
+                }
+
+                panel->m_lyrics = maybe_lyrics.value();
+                panel->m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
+                ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
+            }
+        }
+    });
 }
 
 void LyricPanel::LyricUpdateQueue::initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
@@ -1536,24 +1520,24 @@ void LyricPanel::LyricUpdateQueue::internal_initiate_search(metadb_handle_ptr tr
     m_handle_mutex.unlock();
 }
 
-void LyricPanel::LyricUpdateQueue::internal_announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason avoid_reason)
+void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason avoid_reason)
 {
-    core_api::ensure_main_thread();
-
-    const uint64_t avoided_timestamp = filetimestamp_from_system_timer();
-    for(LyricPanel* panel : g_active_panels)
-    {
-        assert(panel != nullptr);
-        if(panel->m_now_playing != track)
+    fb2k::inMainThread2([track, avoid_reason]{
+        const uint64_t avoided_timestamp = filetimestamp_from_system_timer();
+        for(LyricPanel* panel : g_active_panels)
         {
-            continue;
-        }
+            assert(panel != nullptr);
+            if(panel->m_now_playing != track)
+            {
+                continue;
+            }
 
-        panel->m_lyrics = {};
-        panel->m_auto_search_avoided_reason = avoid_reason;
-        panel->m_auto_search_avoided_timestamp = avoided_timestamp;
-        ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
-    }
+            panel->m_lyrics = {};
+            panel->m_auto_search_avoided_reason = avoid_reason;
+            panel->m_auto_search_avoided_timestamp = avoided_timestamp;
+            ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
+        }
+    });
 }
 
 

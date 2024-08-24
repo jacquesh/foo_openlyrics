@@ -138,7 +138,6 @@ public: // TODO: This need not be in a header at all, but we need it in the exte
     {
     public:
         static void initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance);
-        static void announce_lyric_update(LyricUpdate update);
         static std::optional<std::string> get_progress_message();
 
         void on_init() override;
@@ -158,12 +157,13 @@ public: // TODO: This need not be in a header at all, but we need it in the exte
 
         void internal_initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance);
         void internal_check_for_available_updates();
-        void internal_announce_lyric_update(LyricUpdate update);
-        void internal_announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
         std::optional<std::string> internal_get_progress_message();
 
         metadb_handle_ptr m_last_played_track;
         std::vector<SearchTracker> m_search_handles;
         std::mutex m_handle_mutex;
     };
+
+    friend void announce_lyric_update(LyricUpdate);
+    friend void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
 };
