@@ -12,6 +12,10 @@
 #define WINVER WINVER_WIN8
 #define _WIN32_WINNT WINVER
 
+// Stop the Windows headers from defining all sorts of symbols that we don't want or need
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
 #include <foobar2000/helpers/foobar2000+atl.h>
 
 #include <cwctype>

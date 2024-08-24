@@ -396,7 +396,7 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
         uint16_t accum[4] = {};
         for(int accum_x=-radius; accum_x<radius+1; accum_x++)
         {
-            int x = max(0, min(width-1, accum_x));
+            int x = std::max(0, std::min(width-1, accum_x));
             for(int c=0; c<4; c++)
             {
                 accum[c] += in_pixels[4*(width*y + x) + c];

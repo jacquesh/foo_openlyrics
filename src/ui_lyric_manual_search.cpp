@@ -103,7 +103,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     title_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     title_column.fmt = LVCFMT_LEFT;
     title_column.pszText = _T("Title");
-    title_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_title_column_width);
+    title_column.cx = std::max(MIN_COLUMN_WIDTH_PX, cfg_title_column_width.get_value());
     LRESULT title_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 0, (LPARAM)&title_column);
     assert(title_index >= 0);
 
@@ -111,7 +111,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     album_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     album_column.fmt = LVCFMT_LEFT;
     album_column.pszText = _T("Album");
-    album_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_album_column_width);
+    album_column.cx = std::max(MIN_COLUMN_WIDTH_PX, cfg_album_column_width.get_value());
     LRESULT album_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 1, (LPARAM)&album_column);
     assert(album_index >= 0);
 
@@ -119,7 +119,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     artist_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     artist_column.fmt = LVCFMT_LEFT;
     artist_column.pszText = _T("Artist");
-    artist_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_artist_column_width);
+    artist_column.cx = std::max(MIN_COLUMN_WIDTH_PX, cfg_artist_column_width.get_value());
     LRESULT artist_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 2, (LPARAM)&artist_column);
     assert(artist_index >= 0);
 
@@ -127,7 +127,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     source_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
     source_column.fmt = LVCFMT_LEFT;
     source_column.pszText = _T("Source");
-    source_column.cx = max(MIN_COLUMN_WIDTH_PX, cfg_source_column_width);
+    source_column.cx = std::max(MIN_COLUMN_WIDTH_PX, cfg_source_column_width.get_value());
     LRESULT source_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 3, (LPARAM)&source_column);
     assert(source_index >= 0);
 

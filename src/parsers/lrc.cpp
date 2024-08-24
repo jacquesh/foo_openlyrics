@@ -288,7 +288,7 @@ static LineTimeParseResult parse_time_from_line(std::string_view line)
     {
         if(line[index] != '[') break;
 
-        size_t close_index = min(line_length, line.find(']', index));
+        size_t close_index = std::min(line_length, line.find(']', index));
         size_t tag_length = close_index - index + 1;
         std::string_view tag = line.substr(index, tag_length);
 
@@ -479,7 +479,7 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
             size_t start_index = 0;
             while(start_index <= in_line.text.length()) // This is specifically less-or-equal so that empty lines do not get ignored and show up in the editor
             {
-                size_t end_index = min(in_line.text.length(), in_line.text.find('\n', start_index));
+                size_t end_index = std::min(in_line.text.length(), in_line.text.find('\n', start_index));
                 size_t length = end_index - start_index;
                 std::tstring out_text(&in_line.text.c_str()[start_index], length);
                 out_lines.push_back({ out_text, in_line.timestamp });

@@ -440,7 +440,7 @@ static int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_vie
     while(text_outstanding.length() > 0)
     {
         size_t leading_spaces = text_outstanding.find_first_not_of(_T(' '));
-        text_outstanding.remove_prefix(min(leading_spaces, text_outstanding.size()));
+        text_outstanding.remove_prefix(std::min(leading_spaces, text_outstanding.size()));
 
         size_t last_not_space = text_outstanding.find_last_not_of(_T(' '));
         if(last_not_space != std::tstring_view::npos)
@@ -450,7 +450,7 @@ static int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_vie
         }
 
         size_t next_line_start_index = text_outstanding.length();
-        int chars_to_draw = min(int(text_outstanding.length()), generous_max_chars);
+        int chars_to_draw = std::min(int(text_outstanding.length()), generous_max_chars);
         while(true)
         {
             SIZE line_size;
@@ -524,7 +524,7 @@ static int _WrapCompoundLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_v
     size_t start_index = 0;
     while(start_index < line.length())
     {
-        size_t end_index = min(line.length(), line.find('\n', start_index));
+        size_t end_index = std::min(line.length(), line.find('\n', start_index));
         size_t length = end_index - start_index;
         std::tstring_view view(&line.data()[start_index], length);
         int row_height = _WrapSimpleLyricsLineToRect(dc, clip_rect, view, origin);
@@ -768,7 +768,7 @@ void LyricPanel::DrawUntimedLyrics(HDC dc, CRect client_area)
     //       so we don't need to do it again below, we just use the origin value as-is.
     const int min_scroll = font_metrics.tmAscent - total_scrollable_height - origin.y;
     const int max_scroll = client_area.Height() - origin.y;
-    m_manual_scroll_distance = min(max(m_manual_scroll_distance, min_scroll), max_scroll);
+    m_manual_scroll_distance = std::min(std::max(m_manual_scroll_distance, min_scroll), max_scroll);
     origin.y += m_manual_scroll_distance;
 
     for(const LyricDataLine& line : m_lyrics.lines)
@@ -802,7 +802,7 @@ static LyricScrollPosition get_scroll_position(const LyricData& lyrics, double c
     const double active_line_time = lyrics.LineTimestamp(active_line_index);
     const double next_line_time = lyrics.LineTimestamp(active_line_index+1);
 
-    const double scroll_start_time = max(active_line_time, next_line_time - scroll_duration);
+    const double scroll_start_time = std::max(active_line_time, next_line_time - scroll_duration);
     const double scroll_end_time = next_line_time;
 
     double next_line_scroll_factor = lerp_inverse_clamped(scroll_start_time, scroll_end_time, current_time);

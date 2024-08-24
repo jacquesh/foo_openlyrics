@@ -131,7 +131,7 @@ static int compute_edit_distance(const std::string_view strA, const std::string_
                 subst_cost = prev_row[i] + 1;
             }
 
-            cur_row[i+1] = min(min(delete_cost, insert_cost), subst_cost);
+            cur_row[i+1] = std::min(std::min(delete_cost, insert_cost), subst_cost);
         }
 
         int* tmp = cur_row;

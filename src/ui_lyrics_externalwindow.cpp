@@ -480,7 +480,7 @@ static int _WrapCompoundLyricsLineToRect(D2DTextRenderContext& render, D2D1_SIZE
     size_t start_index = 0;
     while(start_index < line.length())
     {
-        size_t end_index = min(line.length(), line.find('\n', start_index));
+        size_t end_index = std::min(line.length(), line.find('\n', start_index));
         size_t length = end_index - start_index;
         std::tstring_view view(&line.data()[start_index], length);
         const int row_height = _WrapSimpleLyricsLineToRect(render, canvas_size, view, origin_y, draw_requested);
@@ -646,7 +646,7 @@ static LyricScrollPosition get_scroll_position(const LyricData& lyrics, double c
     const double active_line_time = lyrics.LineTimestamp(active_line_index);
     const double next_line_time = lyrics.LineTimestamp(active_line_index+1);
 
-    const double scroll_start_time = max(active_line_time, next_line_time - scroll_duration);
+    const double scroll_start_time = std::max(active_line_time, next_line_time - scroll_duration);
     const double scroll_end_time = next_line_time;
 
     double next_line_scroll_factor = lerp_inverse_clamped(scroll_start_time, scroll_end_time, current_time);
