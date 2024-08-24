@@ -268,7 +268,9 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
             // We're going to look through these and use the first acceptable result, so
             // so before that, we sort by most-desirable-first to ensure that the accepted
             // result is more desirable than any acceptable, but not accepted result.
-            std::sort(search_results.begin(), search_results.end(), compare_search_results);
+            // NOTE: This should be stable_sort so that the last-level ordering is always
+            // the order returned by the source
+            std::stable_sort(search_results.begin(), search_results.end(), compare_search_results);
 
             for(LyricDataRaw& result : search_results)
             {
