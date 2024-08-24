@@ -98,7 +98,7 @@ metadb_v2_rec_t get_full_metadata(metadb_handle_ptr track)
 #endif
 }
 
-static int compute_edit_distance(const std::string_view strA, const std::string_view strB)
+int string_edit_distance(const std::string_view strA, const std::string_view strB)
 {
     // 2-row levenshtein distance
     int row_count = static_cast<int>(strA.length());
@@ -154,7 +154,7 @@ bool tag_values_match(std::string_view tagA, std::string_view tagB)
     }
 
     const int MAX_TAG_EDIT_DISTANCE = 3; // Arbitrarily selected
-    return (compute_edit_distance(tagA, tagB) <= MAX_TAG_EDIT_DISTANCE);
+    return (string_edit_distance(tagA, tagB) <= MAX_TAG_EDIT_DISTANCE);
 }
 
 std::string track_metadata(const metadb_v2_rec_t& track, std::string_view key)

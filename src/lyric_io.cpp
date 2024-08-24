@@ -208,25 +208,49 @@ static std::string decode_raw_lyric_bytes_to_text(const LyricDataRaw& raw)
     return text;
 }
 
-// Returns true if `lhs` is "strictly more desirable" than `rhs`
-static bool compare_search_results(const LyricDataRaw& lhs, const LyricDataRaw& rhs)
+static void sort_source_results(std::vector<LyricDataRaw>& results, std::string_view artist, std::string_view album, std::string_view title, LyricType preferred_type)
 {
-
-    const LyricType preferred_type = preferences::searching::preferred_lyric_type();
-    if((lhs.type == preferred_type) && (rhs.type != preferred_type))
+    // Returns true if `lhs` is "strictly more desirable" than `rhs`
+    const auto compare_search_results = [&artist, &album, &title, preferred_type](const LyricDataRaw& lhs, const LyricDataRaw& rhs) -> bool
     {
-        return true;
-    }
+        if((lhs.type == preferred_type) && (rhs.type != preferred_type))
+        {
+            return true;
+        }
 
-    return false;
+        if(string_edit_distance(artist, lhs.artist) < string_edit_distance(artist, rhs.artist))
+        {
+            return true;
+        }
+
+        // Only sort based on album if the track and both lyrics have album data
+        if(!album.empty() && !lhs.album.empty() && !rhs.album.empty() &&
+            (string_edit_distance(album, lhs.album) < string_edit_distance(album, rhs.album)))
+        {
+            return true;
+        }
+
+        if(string_edit_distance(title, lhs.title) < string_edit_distance(title, rhs.title))
+        {
+            return true;
+        }
+        return false;
+    };
+
+    // We're going to look through these and use the first acceptable result, so
+    // so before that, we sort by most-desirable-first to ensure that the accepted
+    // result is more desirable than any acceptable, but not accepted result.
+    // NOTE: This should be stable_sort so that the last-level ordering is always
+    // the order returned by the source
+    std::stable_sort(results.begin(), results.end(), compare_search_results);
 }
 
 static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_only)
 {
     handle.set_started();
-    std::string tag_artist = track_metadata(handle.get_track_info(), "artist");
-    std::string tag_album = track_metadata(handle.get_track_info(), "album");
-    std::string tag_title = track_metadata(handle.get_track_info(), "title");
+    const std::string tag_artist = track_metadata(handle.get_track_info(), "artist");
+    const std::string tag_album = track_metadata(handle.get_track_info(), "album");
+    const std::string tag_title = track_metadata(handle.get_track_info(), "title");
     LOG_INFO("Searching for lyrics for artist='%s', album='%s', title='%s'...", tag_artist.c_str(), tag_album.c_str(), tag_title.c_str());
 
     // If there are no identifying tags and it's not already a local-only search, then
@@ -264,13 +288,7 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
                 handle.set_remote_source_searched();
             }
             std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
-
-            // We're going to look through these and use the first acceptable result, so
-            // so before that, we sort by most-desirable-first to ensure that the accepted
-            // result is more desirable than any acceptable, but not accepted result.
-            // NOTE: This should be stable_sort so that the last-level ordering is always
-            // the order returned by the source
-            std::stable_sort(search_results.begin(), search_results.end(), compare_search_results);
+            sort_source_results(search_results, tag_artist, tag_album, tag_title, preferences::searching::preferred_lyric_type());
 
             for(LyricDataRaw& result : search_results)
             {
@@ -949,6 +967,46 @@ MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
         ASSERT(applied_remote);
         ASSERT(!applied_local);
     }
+}
+
+MVTF_TEST(searching_sorts_results_by_type)
+{
+    std::vector<LyricDataRaw> results;
+    LyricDataRaw first = {};
+    first.lookup_id = "1";
+    first.type = LyricType::Synced;
+    LyricDataRaw second = first;
+    second.lookup_id = "2";
+    second.type = LyricType::Unsynced;
+    results.push_back(first);
+    results.push_back(second);
+
+    sort_source_results(results, "artist", "album", "title", LyricType::Unsynced);
+
+    ASSERT(results.size() == 2);
+    ASSERT(results[0].lookup_id == "2");
+    ASSERT(results[1].lookup_id == "1");
+}
+
+MVTF_TEST(searching_sorts_results_by_tag_match)
+{
+    std::vector<LyricDataRaw> results;
+    LyricDataRaw first = {};
+    first.lookup_id = "1";
+    first.artist = "artist";
+    first.album = "album";
+    first.title = "titleZ";
+    LyricDataRaw second = first;
+    second.lookup_id = "2";
+    second.title = "title";
+    results.push_back(first);
+    results.push_back(second);
+
+    sort_source_results(results, "artist", "album", "title", LyricType::Unsynced);
+
+    ASSERT(results.size() == 2);
+    ASSERT(results[0].lookup_id == "2");
+    ASSERT(results[1].lookup_id == "1");
 }
 
 MVTF_TEST(saving_always_save_edit_updates)
