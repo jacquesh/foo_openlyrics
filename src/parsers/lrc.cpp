@@ -386,7 +386,7 @@ LyricData parse(const LyricDataCommon& metadata, std::string text_utf8)
             }
         }
 
-        std::string_view line_view {text.data() + line_start_index, line_bytes};
+        const std::string_view line_view {text.data() + line_start_index, line_bytes};
         ParsedLineContents parse_output = parse_line_times(line_view);
         if(parse_output.timestamps.size() > 0)
         {
@@ -419,8 +419,7 @@ LyricData parse(const LyricDataCommon& metadata, std::string text_utf8)
             else
             {
                 tag_section_passed |= (line_bytes > 0);
-                std::string_view content(text.data() + line_start_index, line_bytes);
-                lines.push_back({to_tstring(content), DBL_MAX});
+                lines.push_back({to_tstring(line_view), DBL_MAX});
             }
         }
 

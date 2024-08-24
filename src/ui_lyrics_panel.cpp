@@ -1016,6 +1016,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             ID_AUTO_RESET_CAPITALISATION,
             ID_AUTO_FIX_MALFORMED_TIMESTAMPS,
             ID_AUTO_REMOVE_TIMESTAMPS,
+            ID_AUTO_REMOVE_SURROUNDING_SPACE,
             ID_DELETE_CURRENT_LYRICS,
             ID_OPEN_EXTERNAL_WINDOW,
             ID_CMD_COUNT,
@@ -1027,6 +1028,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu_edit, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REPLACE_XML_CHARS, _T("Replace &&-named HTML characters"));
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_SPACES, _T("Remove repeated spaces"));
+        AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_SURROUNDING_SPACE, _T("Remove surrounding whitespace from each line"));
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_EXTRA_BLANK_LINES, _T("Remove repeated blank lines"));
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_REMOVE_ALL_BLANK_LINES, _T("Remove all blank lines"));
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_RESET_CAPITALISATION, _T("Reset capitalisation"));
@@ -1066,6 +1068,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         menudesc.Set(ID_AUTO_RESET_CAPITALISATION, "Reset capitalisation of each line so that only the first character is upper case");
         menudesc.Set(ID_AUTO_FIX_MALFORMED_TIMESTAMPS, "Fix timestamps that are slightly malformed so that they're recognised as timestamps and not shown in the text");
         menudesc.Set(ID_AUTO_REMOVE_TIMESTAMPS, "Remove timestamps, changing from synced lyrics to unsynced lyrics");
+        menudesc.Set(ID_AUTO_REMOVE_SURROUNDING_SPACE, "Remove excess whitespace surrounding each line of lyrics");
 
         std::optional<LyricData> updated_lyrics;
         int cmd = menu.TrackPopupMenu(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, menudesc, nullptr);
@@ -1254,6 +1257,11 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 LOG_INFO("Removing persisted lyrics and re-saving them without timestamps");
                 io::delete_saved_lyrics(m_now_playing, m_lyrics);
                 updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveTimestamps, m_lyrics, m_now_playing_info);
+            } break;
+
+            case ID_AUTO_REMOVE_SURROUNDING_SPACE:
+            {
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveSurroundingWhitespace, m_lyrics, m_now_playing_info);
             } break;
 
             case ID_DELETE_CURRENT_LYRICS:

@@ -279,6 +279,64 @@ static std::optional<LyricData> RemoveTimestamps(const LyricData& lyrics)
     return {new_lyrics};
 }
 
+static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyrics)
+{
+    constexpr std::tstring_view trimset = _T("\t ");
+    LyricData new_lyrics = lyrics;
+    size_t edit_count = 0;
+    for(LyricDataLine& line : new_lyrics.lines)
+    {
+        size_t line_start = 0;
+        while(line_start < line.text.length())
+        {
+            const size_t exclusive_line_end = std::min(line.text.find('\n', line_start), line.text.length());
+            if(exclusive_line_end == line_start)
+            {
+                // If there are 2 consecutive newlines then just skip past them
+                line_start++;
+                continue;
+            }
+            const size_t inclusive_line_end = exclusive_line_end - 1;
+
+            const size_t trimmed_start = line.text.find_first_not_of(trimset, line_start);
+            const size_t inclusive_trimmed_end = line.text.find_last_not_of(trimset, inclusive_line_end);
+            if(inclusive_trimmed_end == std::tstring::npos)
+            {
+                // The entire line is whitespace
+                line.text.erase(line_start);
+            }
+            else
+            {
+                line.text.erase(inclusive_trimmed_end+1, exclusive_line_end-inclusive_trimmed_end-1);
+                if(trimmed_start < exclusive_line_end)
+                {
+                    line.text.erase(line_start, trimmed_start-line_start);
+                }
+            }
+            if((line_start != trimmed_start) || (inclusive_line_end != inclusive_trimmed_end))
+            {
+                edit_count++;
+            }
+
+            line_start = line.text.find('\n', line_start);
+            if(line_start != std::tstring::npos)
+            {
+                line_start++;
+            }
+        }
+    }
+    LOG_INFO("Auto-edit removed surrounding whitespace from %zu lyric lines", edit_count);
+
+    if(edit_count > 0)
+    {
+        return {new_lyrics};
+    }
+    else
+    {
+        return {};
+    }
+}
+
 std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics, const metadb_v2_rec_t& track_info)
 {
     std::optional<LyricData> result;
@@ -291,6 +349,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
         case AutoEditType::ResetCapitalisation: result = ResetCapitalisation(lyrics); break;
         case AutoEditType::FixMalformedTimestamps: result = FixMalformedTimestamps(lyrics); break;
         case AutoEditType::RemoveTimestamps: result = RemoveTimestamps(lyrics); break;
+        case AutoEditType::RemoveSurroundingWhitespace: result = RemoveSurroundingWhitespace(lyrics); break;
 
         case AutoEditType::Unknown:
         default:
@@ -325,5 +384,71 @@ MVTF_TEST(autoedit_fixmalformedtimestamps_corrects_decimal_separator_from_colon_
     ASSERT(fixed.value().lines[0].timestamp == 15.83);
     ASSERT(fixed.value().lines[0].text == _T("test"));
     ASSERT(output == _T("[00:15.83]test\r\n"));
+}
+
+MVTF_TEST(autoedit_removesurroundingwhitespace_leaves_already_trimmed_lyrics_unchanged)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("This is an already-trimmed lyric line"), DBL_MAX});
+
+    std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
+
+    ASSERT(!output.has_value());
+}
+
+MVTF_TEST(autoedit_removesurroundingwhitespace_leaves_already_trimmed_multiline_lyrics_unchanged)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("This is an already-trimmed lyric line\nThat has had concurrent lines collapsed"), 1.0});
+
+    std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
+
+    ASSERT(!output.has_value());
+}
+
+MVTF_TEST(autoedit_removesurroundingwhitespace_trims_surrounding_whitespace)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("This line has trailing whitespace   "), DBL_MAX});
+    input.lines.push_back({_T(" This line has leading whitespace"), DBL_MAX});
+    input.lines.push_back({_T("This line has no surrounding whitespace"), DBL_MAX});
+    input.lines.push_back({_T("  This line has both surrounding whitespaces "), DBL_MAX});
+
+    std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
+
+    ASSERT(output.has_value());
+    ASSERT(output->lines.size() == 4);
+    ASSERT(output->lines[0].text == _T("This line has trailing whitespace"));
+    ASSERT(output->lines[1].text == _T("This line has leading whitespace"));
+    ASSERT(output->lines[2].text == _T("This line has no surrounding whitespace"));
+    ASSERT(output->lines[3].text == _T("This line has both surrounding whitespaces"));
+}
+
+MVTF_TEST(autoedit_removesurroundingwhitespace_trims_lines_that_are_only_whitespace)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("  "), DBL_MAX}); // This line is only whitespace
+    input.lines.push_back({_T("Next line is only whitespace\n  \nSee?"), DBL_MAX});
+
+    std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
+
+    ASSERT(output.has_value());
+    ASSERT(output->lines.size() == 2);
+    ASSERT(output->lines[0].text == _T(""));
+    ASSERT(output->lines[1].text == _T("Next line is only whitespace\n\nSee?"));
+}
+
+MVTF_TEST(autoedit_removesurroundingwhitespace_trims_surrounding_whitespace_from_collapsed_lines)
+{
+    LyricData input = {};
+    input.lines.push_back({_T("This line has trailing whitespace   \n This line has leading whitespace"), 1.0});
+    input.lines.push_back({_T("One line followed by \n\n A whole empty line"), 2.0});
+
+    std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
+
+    ASSERT(output.has_value());
+    ASSERT(output->lines.size() == 2);
+    ASSERT(output->lines[0].text == _T("This line has trailing whitespace\nThis line has leading whitespace"));
+    ASSERT(output->lines[1].text == _T("One line followed by\n\nA whole empty line"));
 }
 #endif

@@ -40,15 +40,16 @@ enum class LineScrollType : int
 
 enum class AutoEditType : int
 {
-    Unknown                  = 0,
+    Unknown                     = 0,
     // CreateInstrumental       = 1, // Deprecated
-    ReplaceHtmlEscapedChars  = 2,
-    RemoveRepeatedSpaces     = 3,
-    RemoveRepeatedBlankLines = 4,
-    RemoveAllBlankLines      = 5,
-    ResetCapitalisation      = 6,
-    FixMalformedTimestamps   = 7,
-    RemoveTimestamps         = 8,
+    ReplaceHtmlEscapedChars     = 2,
+    RemoveRepeatedSpaces        = 3,
+    RemoveRepeatedBlankLines    = 4,
+    RemoveAllBlankLines         = 5,
+    ResetCapitalisation         = 6,
+    FixMalformedTimestamps      = 7,
+    RemoveTimestamps            = 8,
+    RemoveSurroundingWhitespace = 9,
 };
 
 enum class BackgroundFillType : int

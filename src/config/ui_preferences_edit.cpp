@@ -6,15 +6,13 @@
 #include "foobar2000/SDK/coreDarkMode.h"
 #pragma warning(pop)
 
-#include "config/config_auto.h"
-#include "logging.h"
 #include "preferences.h"
 
 static const GUID GUID_PREFERENCES_PAGE_EDIT = { 0x6187e852, 0x199c, 0x4dc2, { 0x85, 0x21, 0x65, 0x39, 0x9, 0xc0, 0xeb, 0x3c } };
 
 static const GUID GUID_CFG_EDIT_AUTO_AUTO_EDITS = { 0x3b416210, 0x85fa, 0x4406, { 0xb5, 0xd6, 0x4b, 0x39, 0x72, 0x8e, 0xee, 0xab } };
 
-static const int cfg_edit_auto_auto_edits_default[] = {static_cast<int>(AutoEditType::ReplaceHtmlEscapedChars)};
+static const int cfg_edit_auto_auto_edits_default[] = {static_cast<int>(AutoEditType::ReplaceHtmlEscapedChars), static_cast<int>(AutoEditType::RemoveRepeatedSpaces)};
 
 static cfg_objList<int> cfg_edit_auto_auto_edits(GUID_CFG_EDIT_AUTO_AUTO_EDITS, cfg_edit_auto_auto_edits_default);
 
@@ -22,6 +20,7 @@ static const std::pair<AutoEditType, const TCHAR*> g_autoedit_options[] =
 {
     {AutoEditType::ReplaceHtmlEscapedChars, _T("Replace &-named HTML characters")},
     {AutoEditType::RemoveRepeatedSpaces, _T("Remove repeated spaces")},
+    {AutoEditType::RemoveSurroundingWhitespace, _T("Remove surrounding whitespace from each line")},
     {AutoEditType::RemoveRepeatedBlankLines, _T("Remove repeated blank lines")},
     {AutoEditType::RemoveAllBlankLines, _T("Remove all blank lines")},
     {AutoEditType::ResetCapitalisation, _T("Reset capitalisation")},
