@@ -16,6 +16,7 @@ const GUID GUID_PREFERENCES_PAGE_SEARCH = { 0xf835ba65, 0x9a56, 0x4c0f, { 0xb1, 
 static const GUID GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS = { 0x2cbdf6c3, 0xdb8c, 0x43d4, { 0xb5, 0x40, 0x76, 0xc0, 0x4a, 0x39, 0xa7, 0xc7 } };
 static const GUID GUID_CFG_SEARCH_SKIP_FILTER = { 0x4c6e3dac, 0xb668, 0x4056, { 0x8c, 0xb7, 0x52, 0x89, 0x1a, 0x57, 0x1f, 0x3a } };
 static const GUID GUID_CFG_SEARCH_PREFERRED_LYRIC_TYPE = { 0x66b4edf6, 0x7995, 0x4d52, { 0xa9, 0xa, 0x12, 0xdf, 0xf7, 0xa, 0x11, 0xa2 } };
+static const GUID GUID_CFG_SEARCH_WITHOUT_LYRIC_PANELS = { 0x3d29b9eb, 0x4454, 0x4798, { 0x9b, 0x33, 0x4b, 0xb5, 0xbf, 0x44, 0x4a, 0x7f } };
 
 static cfg_auto_combo_option<LyricType> preferred_lyric_type_options[] =
 {
@@ -26,12 +27,14 @@ static cfg_auto_combo_option<LyricType> preferred_lyric_type_options[] =
 static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
 static cfg_auto_string     cfg_search_skip_filter(GUID_CFG_SEARCH_SKIP_FILTER, IDC_SEARCH_SKIP_FILTER_STR, "$if($strstr($lower(%genre%),instrumental),skip,)$if($strstr($lower(%genre%),classical),skip,)");
 static cfg_auto_combo<LyricType, 2> cfg_search_preferred_lyric_type(GUID_CFG_SEARCH_PREFERRED_LYRIC_TYPE, IDC_SEARCH_PREFERRED_TYPE, LyricType::Synced, preferred_lyric_type_options);
+static cfg_auto_bool       cfg_search_without_lyric_panels(GUID_CFG_SEARCH_WITHOUT_LYRIC_PANELS, IDC_SEARCH_WITHOUT_PANELS, false);
 
 static cfg_auto_property* g_searching_auto_properties[] =
 {
     &cfg_search_exclude_trailing_brackets,
     &cfg_search_skip_filter,
     &cfg_search_preferred_lyric_type,
+    &cfg_search_without_lyric_panels,
 };
 
 
@@ -48,6 +51,11 @@ const pfc::string8& preferences::searching::skip_filter()
 LyricType preferences::searching::preferred_lyric_type()
 {
     return cfg_search_preferred_lyric_type.get_value();
+}
+
+bool preferences::searching::should_search_without_panels()
+{
+    return cfg_search_without_lyric_panels.get_value();
 }
 
 bool preferences::searching::raw::is_skip_filter_default()
@@ -67,6 +75,7 @@ public:
     BEGIN_MSG_MAP_EX(PreferencesSearching)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
+        COMMAND_HANDLER_EX(IDC_SEARCH_WITHOUT_PANELS, BN_CLICKED, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SEARCH_PREFERRED_TYPE, CBN_SELCHANGE, OnUIChange)
         COMMAND_HANDLER_EX(IDC_SEARCH_SKIP_FILTER_STR, EN_CHANGE, OnSkipFilterFormatChange)
         NOTIFY_HANDLER_EX(IDC_SEARCH_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)

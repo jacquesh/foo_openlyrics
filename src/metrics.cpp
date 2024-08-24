@@ -283,7 +283,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
         cJSON_AddStringToObject(json_ol, "version", OPENLYRICS_VERSION);
         cJSON_AddStringToObject(json_ol, "library_hash", hash_str.c_str());
         cJSON_AddStringToObject(json_ol, "first_installed",install_ymd_str);
-        cJSON_AddNumberToObject(json_ol, "num_panels", double(num_lyric_panels()));
+        cJSON_AddNumberToObject(json_ol, "num_visible_panels", double(num_visible_lyric_panels()));
     }
 
     cJSON* json_features = cJSON_AddObjectToObject(json, "features");
@@ -323,6 +323,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
         cJSON_AddBoolToObject(json_cfg, "is_skip_filter_default", preferences::searching::raw::is_skip_filter_default());
         cJSON_AddStringToObject(json_cfg, "search_auto_edits", auto_edit_str.c_str());
         cJSON_AddNumberToObject(json_cfg, "preferred_lyric_type", int(preferences::searching::preferred_lyric_type()));
+        cJSON_AddBoolToObject(json_cfg, "search_without_lyric_panels", preferences::searching::should_search_without_panels());
 
         // Save settings
         cJSON_AddNumberToObject(json_cfg, "autosave_strategy", int(preferences::saving::autosave_strategy()));

@@ -94,8 +94,6 @@ private:
     void DrawTimestampedLyrics(HDC dc, CRect client_area);
 
 protected: // TODO: Only protected to support the external window
-    void InitiateLyricSearch(SearchAvoidanceReason avoid_reason);
-
     struct PlaybackTimeInfo
     {
         double current_time;
@@ -116,7 +114,6 @@ private:
     double m_now_playing_time_offset = 0.0;
 protected: // TODO: Only protected to support the external window
     LyricData m_lyrics;
-    bool m_search_pending = false;
 private:
     SearchAvoidanceReason m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
     uint64_t m_auto_search_avoided_timestamp = 0;
@@ -134,15 +131,41 @@ protected: // TODO: Only protected to support the external window
     Image m_background_img = {};
 
 public: // TODO: This need not be in a header at all, but we need it in the external window because it completely re-implements OnPaint
-    class LyricUpdateQueue
+    struct SearchTracker
+    {
+        std::unique_ptr<LyricSearchHandle> handle;
+        SearchAvoidanceReason avoidance_reason;
+    };
+    class LyricUpdateQueue : public initquit, private play_callback
     {
     public:
-        static void check_for_available_updates();
+        static void initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance);
         static void announce_lyric_update(LyricUpdate update);
         static std::optional<std::string> get_progress_message();
 
+        void on_init() override;
+        void on_quit() override;
+
     private:
-        LyricUpdateQueue() = delete;
-        ~LyricUpdateQueue() = delete;
+        void on_playback_starting(play_control::t_track_command /*cmd*/, bool /*paused*/) override {}
+        void on_playback_new_track(metadb_handle_ptr track) override;
+        void on_playback_stop(play_control::t_stop_reason /*reason*/) override {}
+        void on_playback_seek(double /*time*/) override {}
+        void on_playback_pause(bool /*state*/) override {}
+        void on_playback_edited(metadb_handle_ptr /*track*/) override {}
+        void on_playback_dynamic_info(const file_info& /*info*/) override {}
+        void on_playback_dynamic_info_track(const file_info& info) override;
+        void on_playback_time(double /*time*/) override {}
+        void on_volume_change(float /*new_volume*/) override {}
+
+        void internal_initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance);
+        void internal_check_for_available_updates();
+        void internal_announce_lyric_update(LyricUpdate update);
+        void internal_announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
+        std::optional<std::string> internal_get_progress_message();
+
+        metadb_handle_ptr m_last_played_track;
+        std::vector<SearchTracker> m_search_handles;
+        std::mutex m_handle_mutex;
     };
 };

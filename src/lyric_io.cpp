@@ -351,14 +351,14 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
     if(lyric_data.IsEmpty())
     {
         search_avoidance_log_search_failure(handle.get_track_info());
+        handle.set_complete();
     }
     else
     {
         // Clear here so that we will continue searching even if auto-save is disabled and the user doesn't save
         clear_search_avoidance(handle.get_track_info());
+        handle.set_result(std::move(lyric_data), true);
     }
-
-    handle.set_result(std::move(lyric_data), true);
     LOG_INFO("Lyric loading complete");
 }
 
@@ -456,7 +456,6 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
         std::move(title),
         {} // No duration
     );
-    const bool is_search_automatic = (handle.get_type() == LyricUpdate::Type::AutoSearch);
 
     // NOTE: It is crucial that this is a std::list so that inserting new items or removing old ones
     //       does not re-allocate the entire list and invalidate earlier pointers. We pass references
@@ -475,7 +474,7 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
             continue;
         }
 
-        source_handles.emplace_back(is_search_automatic, handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
+        source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         LyricSearchHandle& src_handle = source_handles.back();
 
         fb2k::splitTask([&src_handle, source, &params](){
@@ -715,10 +714,10 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     }
 }
 
-LyricSearchHandle::LyricSearchHandle(bool was_invoked_automatically, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
+LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
     m_track(track),
     m_track_info(track_info),
-    m_type(was_invoked_automatically ? LyricUpdate::Type::AutoSearch : LyricUpdate::Type::ManualSearch),
+    m_type(type),
     m_mutex({}),
     m_lyrics(),
     m_abort(abort),
@@ -727,6 +726,9 @@ LyricSearchHandle::LyricSearchHandle(bool was_invoked_automatically, metadb_hand
     m_progress(),
     m_searched_remote_sources(false)
 {
+    assert(type != LyricUpdate::Type::Unknown); // Caller must specify a valid type
+    assert(type != LyricUpdate::Type::Edit); // Caller cannot specify a non-search type for a search handle
+
     InitializeCriticalSection(&m_mutex);
     m_complete = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     assert(m_complete != nullptr);
@@ -871,6 +873,7 @@ void LyricSearchHandle::set_result(LyricData&& data, bool final_result)
 {
     EnterCriticalSection(&m_mutex);
     assert(m_status == Status::Running);
+    assert(!data.IsEmpty()); // Not allowed to pass in an empty result
     m_lyrics.push_back(std::move(data));
 
     if(final_result)

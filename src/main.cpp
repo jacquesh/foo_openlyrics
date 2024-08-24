@@ -47,6 +47,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "  - This shows the original source, when last it was edited and more\n"
     "  - This data wasn't available before this update, so tracks with existing\n"
     "    saved lyrics will show that the original source is local files/tags\n"
+    "- Add the option to enable searching even with no visible OpenLyrics panels\n"
+    "  - This can be enabled in Preferences/Searching\n"
     "- Update the foobar2000 SDK to version 20230913\n"
     "- Change default local file name format to replace invalid characters\n"
     "  - Applies to new users only. Existing users' settings won't be changed\n"

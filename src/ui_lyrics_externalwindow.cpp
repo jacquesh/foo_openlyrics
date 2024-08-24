@@ -938,28 +938,6 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         return;
     }
 
-    if(m_search_pending)
-    {
-        m_search_pending = false;
-
-        // We need to check that there is a now-playing track still.
-        // There might not be one if a new track started while fb2k was minimised (so we don't repaint) and then playback stopped before fb2k got maximised again.
-        // In that case we'd previously try to use m_now_playing to power the search & search-avoidance and would crash.
-        if(m_now_playing != nullptr)
-        {
-            if(should_panel_search(this))
-            {
-                const SearchAvoidanceReason avoid_reason = search_avoidance_allows_search(m_now_playing, m_now_playing_info);
-                InitiateLyricSearch(avoid_reason);
-            }
-        }
-    }
-
-    if(should_panel_search(this))
-    {
-        LyricUpdateQueue::check_for_available_updates();
-    }
-
     if(m_d2d_dc == nullptr)
     {
         return;

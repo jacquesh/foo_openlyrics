@@ -103,10 +103,11 @@ namespace preferences
         std::vector<GUID> active_sources();
         bool exclude_trailing_brackets();
         const pfc::string8& skip_filter();
+        LyricType preferred_lyric_type();
+        bool should_search_without_panels();
 
         std::vector<std::string> tags();
         std::string_view musixmatch_api_key();
-        LyricType preferred_lyric_type();
 
         namespace raw
         {

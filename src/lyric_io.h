@@ -9,9 +9,10 @@ struct LyricUpdate
     enum class Type
     {
         Unknown,
-        AutoSearch,
-        ManualSearch,
-        Edit,
+        AutoSearch, // The result of a search initiated automatically, whose result should be automatically processed
+        ManualSearch, // The result of a search initiated manually by the user
+        InternalSearch, // The result of a search initiated by and for the internal working of openlyrics, transparent to the user
+        Edit, // The result of an edit by the user
     };
 
     LyricData lyrics;
@@ -23,7 +24,7 @@ struct LyricUpdate
 class LyricSearchHandle
 {
 public:
-    LyricSearchHandle(bool was_invoked_automatically, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
+    LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
     LyricSearchHandle(const LyricSearchHandle& other) = delete;
     LyricSearchHandle(LyricSearchHandle&& other);
     ~LyricSearchHandle();

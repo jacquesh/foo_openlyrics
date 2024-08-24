@@ -86,7 +86,7 @@ public:
                         dialog_title += "' lyrics";
                     }
 
-                    LyricSearchHandle handle(true, track, track_info, abort);
+                    LyricSearchHandle handle(LyricUpdate::Type::InternalSearch, track, track_info, abort);
                     io::search_for_lyrics(handle, true);
                     bool success = handle.wait_for_complete(30'000);
                     if(success)
@@ -146,7 +146,7 @@ public:
                 const auto async_edit = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
                     const metadb_v2_rec_t track_info = get_full_metadata(track);
-                    LyricSearchHandle search_handle(true, track, track_info, abort);
+                    LyricSearchHandle search_handle(LyricUpdate::Type::InternalSearch, track, track_info, abort);
                     io::search_for_lyrics(search_handle, true);
                     bool success = search_handle.wait_for_complete(30'000);
                     if(success)
@@ -230,19 +230,18 @@ public:
                         metadb_handle_ptr track = data_copy.get_item(i);
                         const metadb_v2_rec_t& track_info = all_track_info[i];
 
-                        LyricSearchHandle handle(true, track, track_info, abort);
+                        LyricSearchHandle handle(LyricUpdate::Type::InternalSearch, track, track_info, abort);
                         io::search_for_lyrics(handle, true);
                         bool success = handle.wait_for_complete(30'000);
-                        if(success)
+                        if(success && handle.has_result())
                         {
                             LyricData lyrics = handle.get_result();
-                            if(!lyrics.IsEmpty())
+                            assert(!lyrics.IsEmpty()); // Search should never return empty lyrics. Instead it should complete without a result
+
+                            const bool delete_success = io::delete_saved_lyrics(track, lyrics);
+                            if(!delete_success)
                             {
-                                bool delete_success = io::delete_saved_lyrics(track, lyrics);
-                                if(!delete_success)
-                                {
-                                    failure_count++;
-                                }
+                                failure_count++;
                             }
                         }
                         search_avoidance_force_by_mark_instrumental(track, track_info);
