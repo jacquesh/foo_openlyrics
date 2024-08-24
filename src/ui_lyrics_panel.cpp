@@ -1484,23 +1484,23 @@ void LyricPanel::LyricUpdateQueue::internal_announce_lyric_update(LyricUpdate up
 {
     core_api::ensure_main_thread();
 
-    metadb_handle_ptr now_playing = nullptr;
-    service_ptr_t<playback_control> playback = playback_control::get();
-    playback->get_now_playing(now_playing);
-    const bool is_now_playing = (update.track == now_playing);
     metadb_v2_rec_t track_info = update.track_info; // Copy this out so we can move update into process_available_lyric_update
-
     std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(std::move(update));
     if(maybe_lyrics.has_value())
     {
         lyric_metadata_log_retrieved(track_info, maybe_lyrics.value());
     }
 
-    if((maybe_lyrics.has_value()) && is_now_playing)
+    if(maybe_lyrics.has_value())
     {
         for(LyricPanel* panel : g_active_panels)
         {
             assert(panel != nullptr);
+            if(update.track != panel->m_now_playing)
+            {
+                continue;
+            }
+
             panel->m_lyrics = maybe_lyrics.value();
             panel->m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
             ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
