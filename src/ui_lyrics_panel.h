@@ -102,8 +102,6 @@ protected: // TODO: Only protected to support the external window
     PlaybackTimeInfo get_playback_time();
 private:
 
-    abort_callback_impl m_child_abort;
-
     bool m_timerRunning = false;
     UINT_PTR m_panel_update_timer;
 

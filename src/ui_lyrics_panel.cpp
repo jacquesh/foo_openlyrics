@@ -309,7 +309,6 @@ LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
         on_playback_new_track(track);
     }
 
-    m_child_abort.reset(); // Reset this on create so that when the external window get's recreated, this state makes sense
     g_active_panels.push_back(this);
 
     // Register for notifications about available album art
@@ -346,9 +345,6 @@ void LyricPanel::OnWindowDestroy()
     // Prevent us from getting album-art callbacks after destruction
     now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
     art_manager->remove(m_albumart_listen_handle);
-
-    // Cancel and clean up any pending updates
-    m_child_abort.abort();
 
     auto panel_iter = std::find(g_active_panels.begin(), g_active_panels.end(), this);
     assert(panel_iter != g_active_panels.end());
@@ -1532,7 +1528,7 @@ void LyricPanel::LyricUpdateQueue::internal_initiate_search(metadb_handle_ptr tr
         LOG_INFO("Search avoidance skipped remote sources for this track: %s", search_avoid_reason_to_string(avoid_reason));
     }
 
-    auto handle = std::make_unique<LyricSearchHandle>(LyricUpdate::Type::AutoSearch, track, track_info, fb2k::mainAborter()/*TODO m_child_abort*/);
+    auto handle = std::make_unique<LyricSearchHandle>(LyricUpdate::Type::AutoSearch, track, track_info, fb2k::mainAborter());
     io::search_for_lyrics(*handle, search_local_only);
 
     m_handle_mutex.lock();
