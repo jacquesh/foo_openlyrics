@@ -331,7 +331,12 @@ LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
         // anyway.
     }
 
-    play_callback_manager::get()->register_callback(this, flag_on_playback_all, false);
+    const uint32_t playback_flags = flag_on_playback_new_track
+                                  | flag_on_playback_stop
+                                  | flag_on_playback_seek
+                                  | flag_on_playback_pause
+                                  | flag_on_playback_dynamic_info_track;
+    play_callback_manager::get()->register_callback(this, playback_flags, false);
     return 0;
 }
 

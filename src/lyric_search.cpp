@@ -67,7 +67,7 @@ std::optional<std::string> get_autosearch_progress_message()
 // ==============================================
 void LyricUpdateQueue::on_init()
 {
-    play_callback_manager::get()->register_callback(this, flag_on_playback_all, false); // TODO: Check this
+    play_callback_manager::get()->register_callback(this, flag_on_playback_new_track | flag_on_playback_dynamic_info_track, false);
 
     fb2k::splitTask([this](){
         while(!fb2k::mainAborter().is_aborting())
