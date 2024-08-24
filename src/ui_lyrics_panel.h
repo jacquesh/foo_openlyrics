@@ -57,9 +57,7 @@ public:
 protected:
     virtual bool is_panel_ui_in_edit_mode() = 0;
 
-
-private:
-protected: // TODO: These 3 are only protected & virtual to support the external window
+    // Window events overridden by the external window
     virtual LRESULT OnWindowCreate(LPCREATESTRUCT);
     virtual void OnWindowDestroy();
     virtual void OnWindowMove(CPoint /*new_origin*/) {}
@@ -69,6 +67,9 @@ protected: // TODO: These 3 are only protected & virtual to support the external
     virtual void OnNonClientMouseMove(UINT /*virtual_keys*/, CPoint /*point*/) {}
     virtual void OnNonClientMouseLeave() {}
     virtual void OnMouseLeave() {}
+    virtual void OnMouseMove(UINT virtualKeys, CPoint point);
+    virtual void OnLMBDown(UINT virtualKeys, CPoint point);
+    virtual void OnLMBUp(UINT virtualKeys, CPoint point);
 
 private:
     LRESULT OnTimer(WPARAM);
@@ -77,12 +78,6 @@ private:
     void OnContextMenu(CWindow window, CPoint point);
     void OnDoubleClick(UINT virtualKeys, CPoint cursorPos);
     LRESULT OnMouseWheel(UINT virtualKeys, short rotation, CPoint point);
-
-protected: // TODO: Only protected to support the external window
-    virtual void OnMouseMove(UINT virtualKeys, CPoint point);
-    virtual void OnLMBDown(UINT virtualKeys, CPoint point);
-    virtual void OnLMBUp(UINT virtualKeys, CPoint point);
-private:
 
     void StartTimer();
 protected: // TODO: Only protected to support the external window
@@ -106,13 +101,12 @@ private:
     UINT_PTR m_panel_update_timer;
 
 protected: // TODO: These two are only protected to support the external window
+    LyricData m_lyrics;
     metadb_handle_ptr m_now_playing; // TODO: metadb_handle_v2 when we move to requiring fb2k v2.0
     metadb_v2_rec_t m_now_playing_info;
 private:
     double m_now_playing_time_offset = 0.0;
-protected: // TODO: Only protected to support the external window
-    LyricData m_lyrics;
-private:
+
     SearchAvoidanceReason m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
     uint64_t m_auto_search_avoided_timestamp = 0;
 
@@ -127,8 +121,11 @@ private:
     Image m_custom_img_original = {};
 protected: // TODO: Only protected to support the external window
     Image m_background_img = {};
+    // TODO: We should consolidate the panel implementations:
+    // Once we have metrics showing people actually use the external window,
+    // we can update the regular implementation to use D2D as well and then
+    // most of the above protected members could be made private.
 
-public: // TODO: This need not be in a header at all, but we need it in the external window because it completely re-implements OnPaint
     friend void announce_lyric_update(LyricUpdate);
     friend void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
 };
