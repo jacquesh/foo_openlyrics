@@ -1072,7 +1072,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         {
             case ID_OPEN_EXTERNAL_WINDOW:
             {
-                show_external_lyric_window();
+                SpawnExternalLyricWindow();
             } break;
             case ID_SEARCH_LYRICS:
             {

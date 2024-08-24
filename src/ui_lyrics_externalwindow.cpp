@@ -1230,7 +1230,7 @@ void ExternalLyricWindow::compute_background_image()
             ));
 }
 
-void show_external_lyric_window()
+void SpawnExternalLyricWindow()
 {
     if(g_external_window == nullptr)
     {
@@ -1247,7 +1247,7 @@ static void open_external_window_on_init()
     const bool was_open = (cfg_external_window_was_open.get_value() != 0);
     if(was_open)
     {
-        show_external_lyric_window();
+        SpawnExternalLyricWindow();
     }
 }
 static void close_external_window_on_quit()
