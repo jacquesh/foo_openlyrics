@@ -17,7 +17,7 @@ struct SearchTracker
     SearchAvoidanceReason avoidance_reason;
 };
 
-class LyricUpdateQueue : public initquit, private play_callback
+class LyricAutosearchManager : public initquit, private play_callback
 {
 public:
     void on_init() override;
@@ -47,7 +47,7 @@ private:
     friend std::optional<std::string> get_autosearch_progress_message();
 };
 namespace {
-    static initquit_factory_t<LyricUpdateQueue> g_lyric_update_queue;
+    static initquit_factory_t<LyricAutosearchManager> g_lyric_autosearch_manager;
 }
 
 // =========================================
@@ -55,17 +55,17 @@ namespace {
 // =========================================
 void initiate_lyrics_autosearch(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
 {
-    g_lyric_update_queue.get_static_instance().initiate_search(track, track_info, ignore_search_avoidance);
+    g_lyric_autosearch_manager.get_static_instance().initiate_search(track, track_info, ignore_search_avoidance);
 }
 std::optional<std::string> get_autosearch_progress_message()
 {
-    return g_lyric_update_queue.get_static_instance().get_progress_message();
+    return g_lyric_autosearch_manager.get_static_instance().get_progress_message();
 }
 
 // ==============================================
 // Instance functions that handle the actual work
 // ==============================================
-void LyricUpdateQueue::on_init()
+void LyricAutosearchManager::on_init()
 {
     play_callback_manager::get()->register_callback(this, flag_on_playback_new_track | flag_on_playback_dynamic_info_track, false);
 
@@ -78,12 +78,12 @@ void LyricUpdateQueue::on_init()
     });
 }
 
-void LyricUpdateQueue::on_quit()
+void LyricAutosearchManager::on_quit()
 {
     play_callback_manager::get()->unregister_callback(this);
 }
 
-void LyricUpdateQueue::check_for_available_updates()
+void LyricAutosearchManager::check_for_available_updates()
 {
     const auto is_search_complete = [this](const SearchTracker& tracker)
     {
@@ -118,7 +118,7 @@ void LyricUpdateQueue::check_for_available_updates()
     m_handle_mutex.unlock();
 }
 
-void LyricUpdateQueue::initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
+void LyricAutosearchManager::initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
 {
     const SearchAvoidanceReason avoid_reason = ignore_search_avoidance
                                                ? SearchAvoidanceReason::Allowed
@@ -140,7 +140,7 @@ void LyricUpdateQueue::initiate_search(metadb_handle_ptr track, metadb_v2_rec_t 
     m_handle_mutex.unlock();
 }
 
-std::optional<std::string> LyricUpdateQueue::get_progress_message()
+std::optional<std::string> LyricAutosearchManager::get_progress_message()
 {
     core_api::ensure_main_thread();
 
@@ -165,7 +165,7 @@ std::optional<std::string> LyricUpdateQueue::get_progress_message()
     return {};
 }
 
-void LyricUpdateQueue::on_playback_new_track(metadb_handle_ptr track)
+void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 {
     assert(track != nullptr);
 
@@ -186,7 +186,7 @@ void LyricUpdateQueue::on_playback_new_track(metadb_handle_ptr track)
     initiate_search(track, get_full_metadata(track), false);
 }
 
-void LyricUpdateQueue::on_playback_dynamic_info_track(const file_info& info)
+void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& info)
 {
     service_ptr_t<playback_control> playback = playback_control::get();
     metadb_handle_ptr track;
