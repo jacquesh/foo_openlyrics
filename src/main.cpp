@@ -69,6 +69,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "  - This should very slightly improve compatibility with other software\n"
     "  - This will not affect whether synced or unsynced lyrics are selected\n"
     "  - This will only apply to new users. Existing config will not be changed\n"
+    "- Add 'Remove repeated spaces' to the set of auto-edits enabled by default\n"
+    "  - This will only affect new users of OpenLyrics\n"
     "- Fix the lyric editor sometimes responding badly to Ctrl-A/Ctrl-Backspace\n"
     "- Fix possibly using the wrong background colour when changing FB2K colours\n"
     "- Fix Metal Archives possibly returning 'lyrics not available'\n"
