@@ -12,8 +12,8 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "lyric_search.h"
 #include "math_util.h"
-#include "metadb_index_search_avoidance.h"
 #include "metrics.h"
 #include "preferences.h"
 #include "tag_util.h"

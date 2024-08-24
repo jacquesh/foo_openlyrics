@@ -12,6 +12,7 @@
 #include "lyric_data.h"
 #include "lyric_metadata.h"
 #include "lyric_io.h"
+#include "lyric_search.h"
 #include "math_util.h"
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
@@ -31,7 +32,6 @@ namespace {
     static UINT_PTR PANEL_UPDATE_TIMER = 2304692;
 
     static std::vector<LyricPanel*> g_active_panels;
-    static initquit_factory_t<LyricPanel::LyricUpdateQueue> g_lyric_update_queue;
 }
 
 LyricPanel::LyricPanel() :
@@ -674,7 +674,7 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
         origin.y += DrawWrappedLyricLine(dc, client_rect, title_line, origin);
     }
 
-    std::optional<std::string> progress_msg = g_lyric_update_queue.get_static_instance().get_progress_message();
+    std::optional<std::string> progress_msg = LyricUpdateQueue::get_progress_message();
     if(progress_msg.has_value())
     {
         std::tstring progress_text = to_tstring(progress_msg.value());
@@ -1076,7 +1076,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
                 m_lyrics = {};
                 const bool ignore_search_avoidance = true;
-                g_lyric_update_queue.get_static_instance().initiate_search(m_now_playing, m_now_playing_info, ignore_search_avoidance);
+                LyricUpdateQueue::initiate_search(m_now_playing, m_now_playing_info, ignore_search_avoidance);
             } break;
 
             case ID_SEARCH_LYRICS_MANUAL:
@@ -1411,60 +1411,6 @@ LyricPanel::PlaybackTimeInfo LyricPanel::get_playback_time()
     return result;
 }
 
-void LyricPanel::LyricUpdateQueue::on_init()
-{
-    play_callback_manager::get()->register_callback(this, flag_on_playback_all, false); // TODO: Check this
-
-    fb2k::splitTask([this](){
-        while(!fb2k::mainAborter().is_aborting())
-        {
-            internal_check_for_available_updates();
-            Sleep(50);
-        }
-    });
-}
-
-
-void LyricPanel::LyricUpdateQueue::on_quit()
-{
-    play_callback_manager::get()->unregister_callback(this);
-}
-
-void LyricPanel::LyricUpdateQueue::internal_check_for_available_updates()
-{
-    const auto is_search_complete = [this](const SearchTracker& tracker)
-    {
-        const std::unique_ptr<LyricSearchHandle>& handle = tracker.handle;
-
-        const bool has_result = handle->has_result();
-        const bool is_complete = handle->is_complete();
-        const bool didnt_find_anything = (!has_result && is_complete);
-        if(has_result)
-        {
-            LyricUpdate update = {
-                handle->get_result(),
-                handle->get_track(),
-                handle->get_track_info(),
-                handle->get_type()
-            };
-            announce_lyric_update(std::move(update));
-        }
-
-        if(didnt_find_anything && (tracker.avoidance_reason != SearchAvoidanceReason::Allowed))
-        {
-            announce_lyric_search_avoided(tracker.handle->get_track(), tracker.avoidance_reason);
-        }
-        return is_complete;
-    };
-
-    m_handle_mutex.lock();
-    auto new_end = std::remove_if(m_search_handles.begin(),
-                                  m_search_handles.end(),
-                                  is_search_complete);
-    m_search_handles.erase(new_end, m_search_handles.end());
-    m_handle_mutex.unlock();
-}
-
 void announce_lyric_update(LyricUpdate update)
 {
     fb2k::inMainThread2([update = std::move(update)]{
@@ -1493,33 +1439,6 @@ void announce_lyric_update(LyricUpdate update)
     });
 }
 
-void LyricPanel::LyricUpdateQueue::initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
-{
-    g_lyric_update_queue.get_static_instance().internal_initiate_search(track, track_info, ignore_search_avoidance);
-}
-
-void LyricPanel::LyricUpdateQueue::internal_initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
-{
-    const SearchAvoidanceReason avoid_reason = ignore_search_avoidance
-                                               ? SearchAvoidanceReason::Allowed
-                                               : search_avoidance_allows_search(track, track_info);
-    const bool search_local_only = (avoid_reason != SearchAvoidanceReason::Allowed);
-    // NOTE: We also track a generation counter that increments every time you change the search config
-    //       so that if you don't find lyrics with some active sources and then add more, it'll search
-    //       again at least once, possibly finding something if there are new active sources.
-    if(search_local_only)
-    {
-        LOG_INFO("Search avoidance skipped remote sources for this track: %s", search_avoid_reason_to_string(avoid_reason));
-    }
-
-    auto handle = std::make_unique<LyricSearchHandle>(LyricUpdate::Type::AutoSearch, track, track_info, fb2k::mainAborter());
-    io::search_for_lyrics(*handle, search_local_only);
-
-    m_handle_mutex.lock();
-    m_search_handles.push_back({std::move(handle), avoid_reason});
-    m_handle_mutex.unlock();
-}
-
 void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason avoid_reason)
 {
     fb2k::inMainThread2([track, avoid_reason]{
@@ -1541,75 +1460,6 @@ void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReaso
 }
 
 
-std::optional<std::string> LyricPanel::LyricUpdateQueue::get_progress_message()
-{
-    return g_lyric_update_queue.get_static_instance().internal_get_progress_message();
-}
-
-std::optional<std::string> LyricPanel::LyricUpdateQueue::internal_get_progress_message()
-{
-    core_api::ensure_main_thread();
-
-    metadb_handle_ptr now_playing = nullptr;
-    service_ptr_t<playback_control> playback = playback_control::get();
-    const bool has_now_playing = playback->get_now_playing(now_playing);
-
-    if(has_now_playing)
-    {
-        std::lock_guard lock(m_handle_mutex);
-        for(const SearchTracker& tracker : m_search_handles)
-        {
-            assert(tracker.handle != nullptr);
-            if((tracker.handle->get_type() == LyricUpdate::Type::AutoSearch) &&
-                (tracker.handle->get_track() == now_playing))
-            {
-                return tracker.handle->get_progress();
-            }
-        }
-    }
-
-    return {};
-}
-
-void LyricPanel::LyricUpdateQueue::on_playback_new_track(metadb_handle_ptr track)
-{
-    assert(track != nullptr);
-
-    const bool track_changed = (track != m_last_played_track);
-    m_last_played_track = track;
-
-    const bool search_postponed_for_dynamic_info = track_is_remote(track); // If this is an internet radio then don't search until we get dynamic track info
-    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0) &&
-                                               !preferences::searching::should_search_without_panels();
-    const bool should_search = track_changed &&
-                               !search_postponed_for_dynamic_info &&
-                               !search_prevented_by_no_panels;
-    if(!should_search)
-    {
-        return;
-    }
-
-    initiate_search(track, get_full_metadata(track), false);
-}
-
-void LyricPanel::LyricUpdateQueue::on_playback_dynamic_info_track(const file_info& info)
-{
-    service_ptr_t<playback_control> playback = playback_control::get();
-    metadb_handle_ptr track;
-    if(!playback->get_now_playing(track))
-    {
-        return;
-    }
-
-    // NOTE: This is not called when we start playing tracks that are not remote/internet radio
-    service_ptr_t<metadb_info_container_const_impl> info_container_impl = new service_impl_t<metadb_info_container_const_impl>();
-    info_container_impl->m_info = info;
-
-    metadb_v2_rec_t meta_record = {};
-    meta_record.info = info_container_impl;
-
-    initiate_search(track, std::move(meta_record), false);
-}
 
 size_t num_visible_lyric_panels()
 {
@@ -1667,4 +1517,3 @@ void recompute_lyric_panel_backgrounds()
         }
     });
 }
-

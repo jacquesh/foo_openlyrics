@@ -229,6 +229,7 @@
     <ClCompile Include="..\src\lyric_io.cpp" />
     <ClCompile Include="..\src\lyric_metadata.cpp" />
     <ClCompile Include="..\src\lyric_metadb_index_client.cpp" />
+    <ClCompile Include="..\src\lyric_search.cpp" />
     <ClCompile Include="..\src\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -286,6 +287,7 @@
     <ClInclude Include="..\src\lyric_io.h" />
     <ClInclude Include="..\src\lyric_metadata.h" />
     <ClInclude Include="..\src\lyric_metadb_index_client.h" />
+    <ClInclude Include="..\src\lyric_search.h" />
     <ClInclude Include="..\src\math_util.h" />
     <ClInclude Include="..\src\metadb_index_search_avoidance.h" />
     <ClInclude Include="..\src\mvtf\mvtf.h" />
