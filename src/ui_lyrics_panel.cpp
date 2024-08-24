@@ -674,7 +674,7 @@ void LyricPanel::DrawNoLyrics(HDC dc, CRect client_rect)
         origin.y += DrawWrappedLyricLine(dc, client_rect, title_line, origin);
     }
 
-    std::optional<std::string> progress_msg = LyricUpdateQueue::get_progress_message();
+    std::optional<std::string> progress_msg = get_autosearch_progress_message();
     if(progress_msg.has_value())
     {
         std::tstring progress_text = to_tstring(progress_msg.value());
@@ -1076,7 +1076,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
                 m_lyrics = {};
                 const bool ignore_search_avoidance = true;
-                LyricUpdateQueue::initiate_search(m_now_playing, m_now_playing_info, ignore_search_avoidance);
+                initiate_lyrics_autosearch(m_now_playing, m_now_playing_info, ignore_search_avoidance);
             } break;
 
             case ID_SEARCH_LYRICS_MANUAL:

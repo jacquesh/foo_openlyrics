@@ -583,7 +583,7 @@ void ExternalLyricWindow::DrawNoLyrics(D2DTextRenderContext& render)
         origin_y += DrawWrappedLyricLine(render, canvas_size, title_line, origin_y);
     }
 
-    std::optional<std::string> progress_msg = LyricUpdateQueue::get_progress_message();
+    std::optional<std::string> progress_msg = get_autosearch_progress_message();
     if(progress_msg.has_value())
     {
         std::tstring progress_text = to_tstring(progress_msg.value());
