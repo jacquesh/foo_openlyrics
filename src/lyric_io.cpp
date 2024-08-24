@@ -352,7 +352,10 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
     LyricData lyric_data = parsers::lrc::parse(lyric_data_raw, decode_raw_lyric_bytes_to_text(lyric_data_raw));
     if(lyric_data.IsEmpty())
     {
-        search_avoidance_log_search_failure(handle.get_track_info());
+        if(!local_only)
+        {
+            search_avoidance_log_search_failure(handle.get_track_info());
+        }
         handle.set_complete();
     }
     else
