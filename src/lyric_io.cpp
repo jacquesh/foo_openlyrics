@@ -467,6 +467,7 @@ static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle
 static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, std::string album, std::string title)
 {
     LOG_INFO("Searching for lyrics using custom parameters...");
+    assert(handle.get_type() != LyricUpdate::Type::AutoSearch);
     handle.set_started();
 
     // NOTE: This is only ever used in this function as a const&,

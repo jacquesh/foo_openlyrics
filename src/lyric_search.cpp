@@ -8,6 +8,7 @@
 #include "lyric_io.h"
 #include "lyric_search.h"
 #include "metadb_index_search_avoidance.h"
+#include "metrics.h"
 #include "tag_util.h"
 #include "ui_hooks.h"
 
@@ -138,6 +139,11 @@ void LyricAutosearchManager::initiate_search(metadb_handle_ptr track, metadb_v2_
     m_handle_mutex.lock();
     m_search_handles.push_back({std::move(handle), avoid_reason});
     m_handle_mutex.unlock();
+
+    if(IsIconic(core_api::get_main_window()) || (num_visible_lyric_panels() == 0))
+    {
+        metrics::log_hidden_search();
+    }
 }
 
 std::optional<std::string> LyricAutosearchManager::get_progress_message()
