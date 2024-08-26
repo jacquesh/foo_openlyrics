@@ -213,26 +213,36 @@ static void sort_source_results(std::vector<LyricDataRaw>& results, std::string_
     // Returns true if `lhs` is "strictly more desirable" than `rhs`
     const auto compare_search_results = [&artist, &album, &title, preferred_type](const LyricDataRaw& lhs, const LyricDataRaw& rhs) -> bool
     {
-        if((lhs.type == preferred_type) && (rhs.type != preferred_type))
+        // If they're not the same, we always have to return, to ensure that the ordering is correctly maintained.
+        // This function returns true iff lhs is *strictly* more desirable/ordered before rhs, which means we can't
+        // ever have compare(lhs, rhs)==true *and* compare(rhs, lhs)==true, because that'd be saying that
+        // `lhs < rhs` and also `lhs > rhs`.
+        if(lhs.type != rhs.type)
         {
-            return true;
+            return (lhs.type == preferred_type);
         }
 
-        if(string_edit_distance(artist, lhs.artist) < string_edit_distance(artist, rhs.artist))
+        const int dist_artist_lhs = string_edit_distance(artist, lhs.artist);
+        const int dist_artist_rhs = string_edit_distance(artist, rhs.artist);
+        if(dist_artist_lhs != dist_artist_rhs)
         {
-            return true;
+            return (dist_artist_lhs < dist_artist_rhs);
         }
 
         // Only sort based on album if the track and both lyrics have album data
+        const int dist_album_lhs = string_edit_distance(album, lhs.album);
+        const int dist_album_rhs = string_edit_distance(album, rhs.album);
         if(!album.empty() && !lhs.album.empty() && !rhs.album.empty() &&
-            (string_edit_distance(album, lhs.album) < string_edit_distance(album, rhs.album)))
+            (dist_album_lhs != dist_album_rhs))
         {
-            return true;
+            return (dist_album_lhs < dist_album_rhs);
         }
 
-        if(string_edit_distance(title, lhs.title) < string_edit_distance(title, rhs.title))
+        const int dist_title_lhs = string_edit_distance(title, lhs.title);
+        const int dist_title_rhs = string_edit_distance(title, rhs.title);
+        if(dist_title_lhs != dist_title_rhs)
         {
-            return true;
+            return (dist_title_lhs < dist_title_rhs);
         }
         return false;
     };
