@@ -602,10 +602,6 @@ void ExternalLyricWindow::DrawUntimedLyrics(LyricData& lyrics, D2DTextRenderCont
     }
 
     const D2D1_SIZE_F canvas_size = render.device->GetSize();
-
-    COLORREF text_color = preferences::display::main_text_colour();
-    render.brush->SetColor(colour_gdi2dx(text_color));
-
     const int total_height = std::accumulate(lyrics.lines.begin(), lyrics.lines.end(), 0,
         [&render, canvas_size](int x, const LyricDataLine& line)
         {
@@ -657,9 +653,9 @@ void ExternalLyricWindow::DrawTimestampedLyrics(D2DTextRenderContext& render)
 {
     const D2D1_SIZE_F canvas_size = render.device->GetSize();
 
-    t_ui_color past_text_colour = preferences::display::past_text_colour();
-    t_ui_color main_text_colour = preferences::display::main_text_colour();
-    t_ui_color hl_colour = preferences::display::highlight_colour();
+    const t_ui_color past_text_colour = preferences::display::past_text_colour();
+    const t_ui_color main_text_colour = preferences::display::main_text_colour();
+    const t_ui_color hl_colour = preferences::display::highlight_colour();
 
     const PlaybackTimeInfo playback_time = get_playback_time();
     const double scroll_time = preferences::display::scroll_time_seconds();
@@ -689,12 +685,12 @@ void ExternalLyricWindow::DrawTimestampedLyrics(D2DTextRenderContext& render)
         const LyricDataLine& line = m_lyrics.lines[line_index];
         if(line_index == scroll.active_line_index)
         {
-            t_ui_color colour = lerp(hl_colour, past_text_colour, fade.next_line_scroll_factor);
+            const t_ui_color colour = lerp(hl_colour, past_text_colour, fade.next_line_scroll_factor);
             render.brush->SetColor(colour_gdi2dx(colour));
         }
         else if(line_index == scroll.active_line_index+1)
         {
-            t_ui_color colour = lerp(main_text_colour, hl_colour, fade.next_line_scroll_factor);
+            const t_ui_color colour = lerp(main_text_colour, hl_colour, fade.next_line_scroll_factor);
             render.brush->SetColor(colour_gdi2dx(colour));
         }
         else if(line_index < scroll.active_line_index)
@@ -1150,6 +1146,9 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
             render.device->DrawLine(x_topleft, x_botright, render.brush, stroke_width, nullptr);
             render.device->DrawLine(x_topright, x_botleft, render.brush, stroke_width, nullptr);
         }
+
+        const COLORREF text_color = preferences::display::main_text_colour();
+        render.brush->SetColor(colour_gdi2dx(text_color));
 
         if(m_lyrics.IsEmpty())
         {

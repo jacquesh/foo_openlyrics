@@ -82,6 +82,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Fix debug logs going missing if printed early on during fb2k startup\n"
     "- Fix the search-avoidance tracker counting local-only searches\n"
     "- Fix possibly selecting the worse match of two lyrics provided by a source\n"
+    "- The external window now respects colour settings when no lyrics are found\n"
     "- Many, many minor non-functional internal code improvements\n"
     "\n";
     out += "Version 1.9 (2024-06-12):\n"
