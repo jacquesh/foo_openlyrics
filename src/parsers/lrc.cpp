@@ -348,7 +348,7 @@ std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricData
     });
 }
 
-LyricData parse(const LyricDataCommon& metadata, std::string text_utf8)
+LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text` is assumed to be utf-8
 {
     LOG_INFO("Parsing LRC lyric text...");
 
@@ -357,7 +357,6 @@ LyricData parse(const LyricDataCommon& metadata, std::string text_utf8)
     bool tag_section_passed = false; // We only want to count lines as "tags" if they appear at the top of the file
     double timestamp_offset = 0.0;
 
-    std::string_view text(text_utf8.data(), text_utf8.size());
     size_t line_start_index = 0;
     while (line_start_index < text.length())
     {
