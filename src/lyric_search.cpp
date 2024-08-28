@@ -56,10 +56,12 @@ namespace {
 // =========================================
 void initiate_lyrics_autosearch(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
 {
+    core_api::ensure_main_thread();
     g_lyric_autosearch_manager.get_static_instance().initiate_search(track, track_info, ignore_search_avoidance);
 }
 std::optional<std::string> get_autosearch_progress_message()
 {
+    core_api::ensure_main_thread();
     return g_lyric_autosearch_manager.get_static_instance().get_progress_message();
 }
 
