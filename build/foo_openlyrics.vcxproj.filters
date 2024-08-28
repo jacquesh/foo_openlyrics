@@ -180,6 +180,9 @@
     <ClCompile Include="..\src\lyric_search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sources\lyricsify.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">

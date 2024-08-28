@@ -247,6 +247,7 @@
     <ClCompile Include="..\src\sources\darklyrics.cpp" />
     <ClCompile Include="..\src\sources\id3tag.cpp" />
     <ClCompile Include="..\src\sources\lrclib.cpp" />
+    <ClCompile Include="..\src\sources\lyricsify.cpp" />
     <ClCompile Include="..\src\sources\lyric_source.cpp" />
     <ClCompile Include="..\src\sources\metalarchives.cpp" />
     <ClCompile Include="..\src\sources\musixmatch.cpp" />

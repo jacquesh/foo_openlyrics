@@ -155,6 +155,8 @@ void LyricSourceRemote::load_html_document(const char* html, pugi::xml_document&
     TidyBuffer tidy_output = {};
     TidyBuffer tidy_error = {};
 
+    // NOTE: TidyHtml will output debug messages to stderr by default on Windows, unless we define
+    //       `DISABLE_DEBUG_LOG` when compiling the TidyHtml project.
     TidyDoc tidy_doc = tidyCreate();
     tidySetErrorBuffer(tidy_doc, &tidy_error);
     tidyOptSetBool(tidy_doc, TidyXhtmlOut, yes);
