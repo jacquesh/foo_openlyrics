@@ -183,6 +183,9 @@
     <ClCompile Include="..\src\sources\lyricsify.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sources\letras.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\resource.h">

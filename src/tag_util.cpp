@@ -2,6 +2,7 @@
 #include <cctype>
 
 #include "logging.h"
+#include "mvtf/mvtf.h"
 #include "preferences.h"
 #include "tag_util.h"
 
@@ -252,3 +253,37 @@ bool track_is_remote(metadb_handle_ptr track)
     return is_remote;
 #endif
 }
+
+bool starts_with_ignore_case(std::string_view input, std::string_view prefix)
+{
+    if(input.length() < prefix.length())
+    {
+        return false;
+    }
+
+    for(size_t i=0; i<prefix.length(); i++)
+    {
+        const char input_char = static_cast<char>(std::tolower(static_cast<unsigned char>(input[i])));
+        const char prefix_char = static_cast<char>(std::tolower(static_cast<unsigned char>(prefix[i])));
+        if(input_char != prefix_char)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ============
+// Tests
+// ============
+#ifdef MVTF_TESTS_ENABLED
+MVTF_TEST(tagutil_startswithignorecase_ignores_case)
+{
+    ASSERT(starts_with_ignore_case("qweasd", "qWe"));
+}
+
+MVTF_TEST(tagutil_startswithignorecase_works_for_prefix_being_the_whole_string)
+{
+    ASSERT(starts_with_ignore_case("QwEaSd", "qweasd"));
+}
+#endif

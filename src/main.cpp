@@ -38,6 +38,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add a source for LRCLIB (https://lrclib.net)\n"
     "- Add a source for SongLyrics.com\n"
     "- Add a source for lyricsify.com\n"
+    "- Add a source for letras.com\n"
     "- Add the option to upload lyrics to LRCLIB\n"
     "  - For now this feature is experimental, not all lyrics will be uploaded\n"
     "  - Upload is disabled by default, but can be enabled in Preferences/Upload\n"
