@@ -16,67 +16,20 @@ static bool equals_ignore_case(std::string_view lhs, std::string_view rhs)
     return comparison == 0;
 }
 
+template<typename TResult>
+static std::optional<TResult> strtoint(std::string_view str)
+{
+    TResult output = 0;
+    std::from_chars_result result = std::from_chars(str.data(), str.data() + str.length(), output);
+    if(result.ec == std::errc{})
+    {
+        return {output};
+    }
+    return {};
+}
+
 namespace parsers::lrc
 {
-
-static std::optional<uint64_t> strtou64(std::string_view str)
-{
-    uint64_t result = 0;
-    for(char c : str)
-    {
-        if((c >= '0') && (c <= '9'))
-        {
-            uint64_t char_val = uint64_t(c) - uint64_t('0');
-            result = (result*10) + char_val;
-        }
-        else
-        {
-            return {};
-        }
-
-    }
-    return result;
-}
-
-// TODO: In theory this can be replaced by std::from_chars when we update to a compiler version that supports it
-static std::optional<int64_t> strtoi64(std::string_view str)
-{
-    int64_t sign = 1;
-    int64_t value = 0;
-    bool sign_complete = false;
-
-    for(char c : str)
-    {
-        if(c == '-')
-        {
-            if(!sign_complete)
-            {
-                sign *= -1;
-                continue;
-            }
-            else
-            {
-                return {}; // The string looks like -1-1 (with a minus in the middle somewhere)
-            }
-        }
-        else
-        {
-            sign_complete = true;
-        }
-
-        if((c >= '0') && (c <= '9'))
-        {
-            int64_t char_val = c - '0';
-            value = (value*10) + char_val;
-        }
-        else
-        {
-            return {}; // String contains illegal characters
-        }
-    }
-
-    return sign*value;
-}
 
 bool is_tag_line(std::string_view line)
 {
@@ -128,7 +81,7 @@ static std::optional<double> try_parse_offset_tag(std::string_view line)
     const std::string_view tag_val = trim_surrounding_whitespace(line.substr(val_start, val_length));
 
     if(tag_key != "offset") return {};
-    std::optional<int64_t> maybe_offset = strtoi64(tag_val);
+    std::optional<int64_t> maybe_offset = strtoint<int64_t>(tag_val);
     if(maybe_offset.has_value())
     {
         int64_t offset_ms = maybe_offset.value();
@@ -249,10 +202,10 @@ bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
         hour_str = tag.substr(1, hourmin_separator - 1);
     }
 
-    std::optional<uint64_t> maybe_subsec = strtou64(subsec_str);
-    std::optional<uint64_t> maybe_sec = strtou64(sec_str);
-    std::optional<uint64_t> maybe_min = strtou64(min_str);
-    std::optional<uint64_t> maybe_hour = strtou64(hour_str);
+    std::optional<uint64_t> maybe_subsec = strtoint<uint64_t>(subsec_str);
+    std::optional<uint64_t> maybe_sec = strtoint<uint64_t>(sec_str);
+    std::optional<uint64_t> maybe_min = strtoint<uint64_t>(min_str);
+    std::optional<uint64_t> maybe_hour = strtoint<uint64_t>(hour_str);
 
     if(!maybe_subsec.has_value() ||
        !maybe_sec.has_value() ||
@@ -765,5 +718,21 @@ MVTF_TEST(lrcparse_expanding_places_untimestamped_lines_at_the_end_with_no_times
 
     const std::tstring output = parsers::lrc::expand_text(input, true);
     ASSERT(output == _T("[00:01.00]timeline1\r\n[00:02.00]timeline2\r\nuntimed\r\n"));
+}
+
+MVTF_TEST(lrcparse_parseoffset_parses_positive_values)
+{
+    const std::string_view input = "[offset:1234]";
+    const std::optional<double> output = parsers::lrc::try_parse_offset_tag(input);
+    ASSERT(output.has_value());
+    ASSERT(output.value() == 1.234);
+}
+
+MVTF_TEST(lrcparse_parseoffset_parses_negative_values)
+{
+    const std::string_view input = "[offset:-567]";
+    const std::optional<double> output = parsers::lrc::try_parse_offset_tag(input);
+    ASSERT(output.has_value());
+    ASSERT(output.value() == -0.567);
 }
 #endif
