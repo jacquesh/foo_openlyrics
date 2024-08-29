@@ -17,7 +17,6 @@ public:
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("Lyricsify.com"); }
 
-    void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
     std::string extract_lyrics_from_page(pfc::string8 page_content) const;
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
@@ -34,7 +33,7 @@ static std::string transform_tag_for_url(const std::string_view input)
 
     for(char c : transliterated)
     {
-        if(c == ' ')
+        if((c == ' ') || (c == '-'))
         {
             output += '-';
         }
@@ -47,60 +46,19 @@ static std::string transform_tag_for_url(const std::string_view input)
     return output;
 }
 
-void LyricsifySource::add_all_text_to_string(std::string& output, pugi::xml_node node) const
-{
-    if(node.type() == pugi::node_null)
-    {
-        return;
-    }
-
-    pugi::xml_node current = node;
-    while(current != nullptr)
-    {
-        if(current.type() == pugi::node_pcdata)
-        {
-            // We assume the text is already UTF-8
-            std::string_view node_text = trim_surrounding_whitespace(current.value());
-            output += node_text;
-        }
-        else if(current.type() == pugi::node_element)
-        {
-            const std::string_view current_name = current.name();
-            if(current_name == "br")
-            {
-                output += "\r\n";
-            }
-            else
-            {
-                add_all_text_to_string(output, current.first_child());
-            }
-        }
-
-        current = current.next_sibling();
-    }
-}
-
 std::string LyricsifySource::extract_lyrics_from_page(pfc::string8 page_content) const
 {
     std::string lyric_text;
     pugi::xml_document doc;
     load_html_document(page_content.c_str(), doc);
 
-    try
+    // Really this should be starts-with() and ends-with(), but pugi::xml doesn't
+    // seem to support ends-with, so we settle for contains() instead.
+    pugi::xpath_query query_lyricdivs("//div[starts-with(@id, 'lyrics_') and contains(@id, '_details')]");
+    pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
+    if(!lyricdivs.empty())
     {
-        // Really this should be starts-with() and ends-with(), but pugi::xml doesn't
-        // seem to support ends-with, so we settle for contains() instead.
-        pugi::xpath_query query_lyricdivs("//div[starts-with(@id, 'lyrics_') and contains(@id, '_details')]");
-        pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
-        if(!lyricdivs.empty())
-        {
-            add_all_text_to_string(lyric_text, lyricdivs.first().node());
-        }
-    }
-    catch(const pugi::xpath_exception& ex)
-    {
-        const std::string w = ex.what();
-        LOG_WARN("Failed to process xpath query: %s", w.c_str());
+        add_all_text_to_string(lyric_text, lyricdivs.first().node());
     }
 
     return lyric_text;
@@ -109,6 +67,9 @@ std::string LyricsifySource::extract_lyrics_from_page(pfc::string8 page_content)
 std::vector<LyricDataRaw> LyricsifySource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     http_request::ptr request = http_client::get()->create_request("GET");
+
+    // Without a User-Agent we sometimes only get partial lyrics back
+    request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0");
 
     const std::string url_artist = transform_tag_for_url(params.artist);
     const std::string url_title = transform_tag_for_url(params.title);
@@ -166,7 +127,7 @@ bool LyricsifySource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 MVTF_TEST(lyricsify_known_bad_chars_removed_from_url)
 {
     const std::string result = transform_tag_for_url("?!@#asd!@#qwe[]'_zxc-+><");
-    ASSERT(result == "asdqwezxc");
+    ASSERT(result == "asdqwezxc-");
 }
 
 MVTF_TEST(lyricsify_tag_spaces_replaced_with_dash)
