@@ -20,6 +20,7 @@ static const GUID GUID_CFG_TITLE_COLUMN_WIDTH = { 0x18d967fe, 0xad07, 0x464c, { 
 static const GUID GUID_CFG_ALBUM_COLUMN_WIDTH = { 0x7ac61807, 0x57a2, 0x4880, { 0xba, 0x6d, 0xb2, 0x35, 0xf9, 0x88, 0x5a, 0x60 } };
 static const GUID GUID_CFG_ARTIST_COLUMN_WIDTH = { 0xdebf2d4e, 0xfb93, 0x4a3f, { 0xb6, 0x3e, 0x84, 0x3f, 0x89, 0xa9, 0x86, 0xba } };
 static const GUID GUID_CFG_SOURCE_COLUMN_WIDTH = { 0x44350ccb, 0xf62a, 0x4d47, { 0x9a, 0xeb, 0x5a, 0x7a, 0xc4, 0xce, 0x75, 0xa1 } };
+static const GUID GUID_CFG_TIMESTAMPED_COLUMN_WIDTH = { 0xe99dc1c7, 0x7224, 0x4b4d, { 0x8e, 0xd1, 0x90, 0xae, 0x51, 0xbb, 0x6b, 0xa2 } };
 
 // Without enforcing a minimum width, we could end up with columns being 0px wide
 // (either as a result of user resizing or a bug that breaks the width persistence).
@@ -30,6 +31,7 @@ static cfg_int_t<int> cfg_title_column_width(GUID_CFG_TITLE_COLUMN_WIDTH, 160);
 static cfg_int_t<int> cfg_album_column_width(GUID_CFG_ALBUM_COLUMN_WIDTH, 160);
 static cfg_int_t<int> cfg_artist_column_width(GUID_CFG_ARTIST_COLUMN_WIDTH, 128);
 static cfg_int_t<int> cfg_source_column_width(GUID_CFG_SOURCE_COLUMN_WIDTH, 96);
+static cfg_int_t<int> cfg_timestamped_column_width(GUID_CFG_TIMESTAMPED_COLUMN_WIDTH, 96);
 
 class ManualLyricSearch : public CDialogImpl<ManualLyricSearch>
 {
@@ -131,6 +133,14 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     LRESULT source_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 3, (LPARAM)&source_column);
     assert(source_index >= 0);
 
+    LVCOLUMN timestamped_column = {};
+    timestamped_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
+    timestamped_column.fmt = LVCFMT_LEFT;
+    timestamped_column.pszText = _T("Is timestamped?");
+    timestamped_column.cx = std::max(MIN_COLUMN_WIDTH_PX, cfg_timestamped_column_width.get_value());
+    LRESULT timestamped_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 4, (LPARAM)&timestamped_column);
+    assert(timestamped_index >= 0);
+
     SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Searching..."));
     SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
 
@@ -176,6 +186,10 @@ void ManualLyricSearch::OnDestroyDialog()
     assert(std::tstring_view(column_data.pszText) == _T("Source"));
     cfg_source_column_width = column_data.cx;
 
+    ListView_GetColumn(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), 4, &column_data);
+    assert(std::tstring_view(column_data.pszText) == _T("Is timestamped?"));
+    cfg_timestamped_column_width = column_data.cx;
+
     m_child_abort.abort();
     if(m_child_search.has_value())
     {
@@ -213,7 +227,7 @@ static int CALLBACK column_sort_fn(LPARAM lparam1, LPARAM lparam2, LPARAM sort_d
         case 0: return order_factor * item1->title.compare(item2->title);
         case 1: return order_factor * item1->album.compare(item2->album);
         case 2: return order_factor * item1->artist.compare(item2->artist);
-        case 3:
+        case 3: // Source
         {
             LyricSourceBase* source1 = LyricSourceBase::get(item1->source_id);
             LyricSourceBase* source2 = LyricSourceBase::get(item2->source_id);
@@ -227,6 +241,7 @@ static int CALLBACK column_sort_fn(LPARAM lparam1, LPARAM lparam2, LPARAM sort_d
                 return -1;
             }
         } break;
+        case 4: return order_factor * (int(item1->IsTimestamped()) - int(item2->IsTimestamped()));
 
         default:
             LOG_ERROR("Unexpected sort column index %d", sort_column_index);
@@ -483,6 +498,14 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_source.pszText = const_cast<TCHAR*>(source_name.c_str());
         LRESULT source_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_source);
         assert(source_success);
+
+        LVITEM subitem_timestamped = {};
+        subitem_timestamped.mask = LVIF_TEXT;
+        subitem_timestamped.iItem = item_index;
+        subitem_timestamped.iSubItem = 4;
+        subitem_timestamped.pszText = const_cast<TCHAR*>(lyrics.IsTimestamped() ? _T("Yes") : _T("No"));
+        LRESULT timestamped_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_timestamped);
+        assert(timestamped_success);
 
         bool is_first_entry = (m_all_lyrics.size() == 1);
         if(is_first_entry)

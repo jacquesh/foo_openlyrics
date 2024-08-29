@@ -55,6 +55,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Add an auto-edit for removing surrounding whitespace from lyrics lines\n"
     "  - This is enabled by default for auto-application to new lyrics\n"
     "  - The new default will only apply to new OpenLyrics users\n"
+    "- Add an 'Is timestamped?' column to the manual search result table\n"
     "- Update the foobar2000 SDK to version 20230913\n"
     "- Change default local file name format to replace invalid characters\n"
     "  - Applies to new users only. Existing users' settings won't be changed\n"
