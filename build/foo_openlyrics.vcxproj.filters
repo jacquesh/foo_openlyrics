@@ -171,6 +171,9 @@
     <ClCompile Include="..\src\config\ui_preferences_upload.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sources\lyricfind.cpp">
+      <Filter>Source Files\sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\lyric_metadb_index_client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
