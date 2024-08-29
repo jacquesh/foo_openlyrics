@@ -17,7 +17,6 @@ public:
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("letras.com"); }
 
-    void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
     std::string extract_lyrics_from_page(pfc::string8 page_content) const;
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
@@ -57,46 +56,13 @@ static std::string transform_artist_for_url(const std::string_view artist)
     return transform_tag_for_url(artist);
 }
 
-void LetrasSource::add_all_text_to_string(std::string& output, pugi::xml_node node) const
-{
-    if(node.type() == pugi::node_null)
-    {
-        return;
-    }
-
-    pugi::xml_node current = node;
-    while(current != nullptr)
-    {
-        if(current.type() == pugi::node_pcdata)
-        {
-            // We assume the text is already UTF-8
-            std::string_view node_text = trim_surrounding_whitespace(current.value());
-            output += node_text;
-        }
-        else if(current.type() == pugi::node_element)
-        {
-            const std::string_view current_name = current.name();
-            if(current_name == "br")
-            {
-                output += "\r\n";
-            }
-            else
-            {
-                add_all_text_to_string(output, current.first_child());
-            }
-        }
-
-        current = current.next_sibling();
-    }
-}
-
 std::string LetrasSource::extract_lyrics_from_page(pfc::string8 page_content) const
 {
     std::string lyric_text;
     pugi::xml_document doc;
     load_html_document(page_content.c_str(), doc);
 
-    pugi::xpath_query query_lyricdivs("//div[@class='lyric-original']/p");
+    pugi::xpath_query query_lyricdivs("//div[@class='lyric-original']");
     pugi::xpath_node_set lyricdivs = query_lyricdivs.evaluate_node_set(doc);
     if(!lyricdivs.empty())
     {

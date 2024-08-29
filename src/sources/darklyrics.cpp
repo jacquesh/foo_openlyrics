@@ -15,7 +15,7 @@ class DarkLyricsSource : public LyricSourceRemote
     const GUID& id() const final { return src_guid; }
     std::tstring_view friendly_name() const final { return _T("DarkLyrics.com"); }
 
-    void add_all_text_to_string(std::string& output, pugi::xml_node node) const;
+    void add_subsection_text_to_string(std::string& output, pugi::xml_node node) const;
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 };
@@ -39,7 +39,7 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
-void DarkLyricsSource::add_all_text_to_string(std::string& output, pugi::xml_node node) const
+void DarkLyricsSource::add_subsection_text_to_string(std::string& output, pugi::xml_node node) const
 {
     if(node.type() == pugi::node_null)
     {
@@ -68,7 +68,7 @@ void DarkLyricsSource::add_all_text_to_string(std::string& output, pugi::xml_nod
             }
             else
             {
-                add_all_text_to_string(output, current.first_child());
+                add_subsection_text_to_string(output, current.first_child());
             }
         }
 
@@ -126,7 +126,7 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(const LyricSearchParams& para
 
             if(node.parent().type() != pugi::node_null)
             {
-                add_all_text_to_string(lyric_text, node.parent().next_sibling());
+                add_subsection_text_to_string(lyric_text, node.parent().next_sibling());
                 break;
             }
         }
