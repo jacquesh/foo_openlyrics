@@ -34,7 +34,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "Source available at https://github.com/jacquesh/foo_openlyrics\n";
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
-    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    out += "Version 1.10 (2024-08-30):\n"
     "- Add a source for LRCLIB (https://lrclib.net)\n"
     "- Add a source for SongLyrics.com\n"
     "- Add a source for lyricsify.com\n"
