@@ -35,7 +35,7 @@ static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 // The metrics "generation", which tells us whether or not we need to send a new batch of metrics.
 // Manually bump this when a new round of metrics collection is desired.
 constexpr uint64_t current_metrics_generation = 3;
-constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2023), std::chrono::month(07), std::chrono::day(10)};
+constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2025), std::chrono::month(01), std::chrono::day(01)};
 
 class FeatureTracker;
 std::vector<FeatureTracker*> g_all_feature_trackers;
