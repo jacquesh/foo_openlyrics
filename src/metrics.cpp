@@ -34,7 +34,7 @@ static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 
 // The metrics "generation", which tells us whether or not we need to send a new batch of metrics.
 // Manually bump this when a new round of metrics collection is desired.
-constexpr uint64_t current_metrics_generation = 2;
+constexpr uint64_t current_metrics_generation = 3;
 constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2023), std::chrono::month(07), std::chrono::day(10)};
 
 class FeatureTracker;
@@ -251,7 +251,7 @@ static std::string get_source_name(GUID guid)
     return from_tstring(source->friendly_name());
 }
 
-std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
+std::string collect_metrics(abort_callback& abort, bool is_dark_mode, size_t number_of_visible_lyric_panels)
 {
     LOG_INFO("Metrics collection start");
     cJSON* json = cJSON_CreateObject();
@@ -289,7 +289,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode)
         cJSON_AddStringToObject(json_ol, "version", OPENLYRICS_VERSION);
         cJSON_AddStringToObject(json_ol, "library_hash", hash_str.c_str());
         cJSON_AddStringToObject(json_ol, "first_installed",install_ymd_str);
-        cJSON_AddNumberToObject(json_ol, "num_visible_panels", double(num_visible_lyric_panels()));
+        cJSON_AddNumberToObject(json_ol, "num_visible_panels", double(number_of_visible_lyric_panels));
     }
 
     cJSON* json_features = cJSON_AddObjectToObject(json, "features");
@@ -395,20 +395,22 @@ class AsyncMetricsCollectionAndSubmission : public threaded_process_callback
 {
     std::string m_metrics;
 
-    bool is_dark_mode;
+    bool m_is_dark_mode;
+    size_t m_num_visible_lyric_panels;
 
 public:
     void on_init(ctx_t /*p_wnd*/) override
     {
         LOG_INFO("Initiating pre-collection metrics flow...");
-        is_dark_mode = fb2k::isDarkMode(); // In fb2k v2 beta 31 and earlier, isDarkMode() should only be called from the main/UI thread.
+        m_is_dark_mode = fb2k::isDarkMode(); // In fb2k v2 beta 31 and earlier, isDarkMode() should only be called from the main/UI thread.
+        m_num_visible_lyric_panels = num_visible_lyric_panels(); // This needs to be done from the main thread
     }
 
     void run(threaded_process_status& /*status*/, abort_callback& abort) override
     {
         try
         {
-            m_metrics = collect_metrics(abort, is_dark_mode);
+            m_metrics = collect_metrics(abort, m_is_dark_mode, m_num_visible_lyric_panels);
         }
         catch(const std::exception& ex)
         {
@@ -432,7 +434,7 @@ public:
 
         popup_message_v3::query_t query = {};
         query.title = "OpenLyrics metrics";
-        query.msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to inform which features are added or enhanced, as well as potentially which features get removed (e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information will be used exclusively to inform foo_openlyrics' development, will never be sold or used for marketting (by anybody), and will be deleted after 6 months.\n\nYou can click 'Retry' to view the exact data that would be submitted.";
+        query.msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to inform which features are added or enhanced, as well as potentially which features get removed (e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information will be used exclusively to inform foo_openlyrics' development and will never be sold or used for marketing (by anybody).\n\nYou can click 'Retry' to view the exact data that would be submitted.";
         query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo | popup_message_v3::buttonRetry;
         query.defButton = popup_message_v3::buttonNo;
         query.icon = popup_message_v3::iconQuestion;
@@ -479,13 +481,13 @@ static void send_metrics_on_init()
         cfg_metrics_current_version_install_date_days_since_unix_epoch = days_since_unix_epoch;
     }
 
-    // We use our "installed-date" config to delay initial metrics by at least a week from first
+    // We use our "installed-date" config to delay initial metrics by a few days from first
     // install. This lets people have some time to use the plugin before we prompt for metrics.
     // We don't want to bother somebody on their very first launch (they might just be trying it
     // out and not plan to use it long-term, and it probably wouldn't garner any favour from new users).
     // Immediately after install is also the least useful time to collect metrics since new users
     // will not have had the opportunity to change any configuration yet.
-    const uint64_t min_days_of_delay_after_install = 7;
+    const uint64_t min_days_of_delay_after_install = 14;
     const uint64_t min_days_since_first_install = min_days_of_delay_after_install + cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value();
     const uint64_t min_days_since_last_install = min_days_of_delay_after_install + cfg_metrics_current_version_install_date_days_since_unix_epoch.get_value();
     if((days_since_unix_epoch < min_days_since_first_install) || (days_since_unix_epoch < min_days_since_last_install))
