@@ -2,7 +2,7 @@ param (
         [Parameter(Mandatory)]
         [string]$output_path
       )
-$version_string = git describe HEAD
+$version_string = git describe --tags --first-parent HEAD
 if ([string]::IsNullOrEmpty($version_string)) {
     Write-Output "Failed to compute commit description, git returned an empty string, terminating..."
     return 1
