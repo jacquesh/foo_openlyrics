@@ -3,6 +3,11 @@ param (
         [string]$output_path
       )
 $version_string = git describe HEAD
+if ([string]::IsNullOrEmpty($version_string)) {
+    Write-Output "Failed to compute commit description, git returned an empty string, terminating..."
+    return 1
+}
+
 if ($version_string[0] -Ne 'v') {
     Write-Output "Current commit description ""$version_string"" does not have the expected format, terminating..."
     Return 1

@@ -18,16 +18,19 @@ jobs:
     needs: run-tests
 
     steps:
-      - name: Print installed Windows SDK versions
-        shell: pwsh
-        continue-on-error: true
-        run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
-
       - name: Add MSBuild to the PATH
         uses: microsoft/setup-msbuild@v2
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all the history so that `git describe` works to generate the version header
+          fetch-tags: true
+
+      - name: Print git tag description
+        shell: pwsh
+        continue-on-error: false
+        run: git describe HEAD
 
       - name: Build 32-bit binary
         run: msbuild /r /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
@@ -61,7 +64,7 @@ jobs:
 
       - name: Create GitHub release
         id: release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ env.RELEASE_NAME }}.fb2k-component

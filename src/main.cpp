@@ -35,6 +35,9 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    out += "Version 1.10.1 (2024-08-30):\n"
+    "- Fix version 1.10 not having any version at all in the fb2k components UI\n"
+    "\n";
     out += "Version 1.10 (2024-08-30):\n"
     "- Add a source for LRCLIB (https://lrclib.net)\n"
     "- Add a source for SongLyrics.com\n"
