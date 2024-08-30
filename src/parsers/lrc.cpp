@@ -523,6 +523,17 @@ MVTF_TEST(lrcparse_title_tag_extracted_from_lyrics)
     ASSERT(lyrics.tags[0] == "[Ti:thetitle]");
 }
 
+MVTF_TEST(lrcparse_empty_title_tag_extracted_from_lyrics)
+{
+    const std::string input = "[ti:]\n[00:00.00]line1";
+
+    const LyricData lyrics = parsers::lrc::parse({}, input);
+    ASSERT(lyrics.lines.size() == 1);
+    ASSERT(lyrics.lines[0].text == _T("line1"));
+    ASSERT(lyrics.tags.size() == 1);
+    ASSERT(lyrics.tags[0] == "[ti:]");
+}
+
 MVTF_TEST(lrcparse_title_case_encoding_tag_extracted_from_lyrics)
 {
     // Checks for https://github.com/jacquesh/foo_openlyrics/issues/322
