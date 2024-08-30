@@ -27,10 +27,22 @@ jobs:
           fetch-depth: 0  # Fetch all the history so that `git describe` works to generate the version header
           fetch-tags: true
 
-      - name: Print git tag description
-        shell: pwsh
-        continue-on-error: false
-        run: git describe HEAD
+      - name: Print all available git tags
+        run: git tag --list
+
+      - name: Check that tag description matches the release version
+        continue-on-error: false  # The C++ compilation uses `git describe HEAD` while the release creation uses the tag given by the Github Actions trigger, these should match
+        shell: bash
+        run: |
+          tag_description=$(git describe HEAD)
+          release_version="${GITHUB_REF#refs/tags/}"
+          echo "Checking tag description \"$tag_description\" against release version \"$release_version\"..."
+          if [ "$tag_description" == "$release_version" ]; then
+            echo "Release descriptions match, release can continue..."
+          else
+            echo "Release descriptions do NOT match, failing the release..."
+            exit 1
+          fi
 
       - name: Build 32-bit binary
         run: msbuild /r /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
