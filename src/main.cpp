@@ -35,6 +35,10 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
     out += "\nChangelog:\n";
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    // "\n";
+    out += "Version 1.10.2 (2024-09-01):\n"
+    "- Fix a crash when attempting to edit lyrics on a track with none saved\n"
+    "\n";
     out += "Version 1.10.1 (2024-08-30):\n"
     "- Fix version 1.10 not having any version at all in the fb2k components UI\n"
     "\n";

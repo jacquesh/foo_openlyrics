@@ -151,8 +151,21 @@ public:
                     bool success = search_handle.wait_for_complete(30'000);
                     if(success)
                     {
-                        LyricData lyrics = search_handle.get_result();
-                        lyric_metadata_log_retrieved(track_info, lyrics);
+                        // If we don't already have lyrics for a track then search will return no results,
+                        // so we need to construct our own blank lyric data
+                        LyricData lyrics;
+                        if(search_handle.has_result())
+                        {
+                            lyrics = search_handle.get_result();
+                            lyric_metadata_log_retrieved(track_info, lyrics);
+                        }
+                        else
+                        {
+                            lyrics.artist = track_metadata(track_info, "artist");
+                            lyrics.album = track_metadata(track_info, "album");
+                            lyrics.title = track_metadata(track_info, "title");
+                            lyrics.duration_sec = track_duration_in_seconds(track_info);
+                        }
 
                         fb2k::inMainThread2([lyrics, track, track_info]()
                         {
