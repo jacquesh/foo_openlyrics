@@ -13,7 +13,7 @@
 #ifdef NDEBUG
 #include "openlyrics_version.h" // Defines OPENLYRICS_VERSION
 #else
-#define OPENLYRICS_VERSION "0.0-dev"
+#define OPENLYRICS_VERSION "0.0-alpha"
 #endif
 
 #include "hash_utils.h"
