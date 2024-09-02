@@ -36,7 +36,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     // "\n";
-    out += "Version 1.10.2 (2024-09-01):\n"
+    out += "Version 1.10.2 (2024-09-02):\n"
     "- Fix a crash when attempting to edit lyrics on a track with none saved\n"
     "- Fix internet radio always searching when a new track starts, ignoring\n"
     "  the option to only search when an OpenLyrics panel is visible\n"
