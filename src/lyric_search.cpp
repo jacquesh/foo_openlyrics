@@ -196,6 +196,14 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 
 void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& info)
 {
+    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0) &&
+                                               !preferences::searching::should_search_without_panels();
+    const bool should_search = !search_prevented_by_no_panels;
+    if(!should_search)
+    {
+        return;
+    }
+
     service_ptr_t<playback_control> playback = playback_control::get();
     metadb_handle_ptr track;
     if(!playback->get_now_playing(track))
