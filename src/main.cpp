@@ -36,8 +36,8 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     out += "\nChangelog:\n";
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     // "\n";
-    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
-    "- Add a source for Bandcamp.com"
+    out += "Version 1.11 (2024-09-05):\n"
+    "- Add a source for Bandcamp.com\n"
     "- Fix SongLyrics.com sometimes returning lyrics saying there are no lyrics\n"
     "- Fix OpenLyrics panels getting colours confused when toggling dark mode\n"
     "\n";
