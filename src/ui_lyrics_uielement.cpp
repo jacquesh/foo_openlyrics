@@ -39,7 +39,8 @@ namespace {
         void initialize_window(HWND parent);
         void set_configuration(ui_element_config::ptr config) override;
         ui_element_config::ptr get_configuration() override;
-        void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override;
+        void ui_fonts_changed() override;
+        void ui_colors_changed() override;
 
         bool is_panel_ui_in_edit_mode() override;
 
@@ -51,6 +52,9 @@ namespace {
 
     private:
         ui_element_config::ptr m_config;
+
+        void recompute_fonts();
+        void recompute_colours();
 
     protected:
         // this must be declared as protected for ui_element_impl_withpopup<> to work.
@@ -71,11 +75,8 @@ namespace {
         m_config(config),
         m_callback(p_callback)
     {
-        g_defaultui_default_font = m_callback->query_font_ex(ui_font_default);
-        g_defaultui_console_font = m_callback->query_font_ex(ui_font_console);
-        g_defaultui_background_colour = m_callback->query_std_color(ui_color_background);
-        g_defaultui_text_colour = m_callback->query_std_color(ui_color_text);
-        g_defaultui_highlight_colour = m_callback->query_std_color(ui_color_highlight);
+        recompute_fonts();
+        recompute_colours();
     }
 
     // Called from the fb2k-helper's atl-misc
@@ -95,26 +96,47 @@ namespace {
         WIN32_OP(Create(parent, rect, window_name, style) != NULL)
     }
 
-    void LyricPanelUiElement::notify(const GUID& what, t_size /*param1*/, const void* /*param2*/, t_size /*param2size*/)
+    void LyricPanelUiElement::ui_fonts_changed()
     {
-        if ((what == ui_element_notify_colors_changed) || (what == ui_element_notify_font_changed))
-        {
-            // If the font changed then the previously-stored font handle will now be invalid, so we
-            // need to re-store the (possibly new) font handle to avoid getting the default font.
-            g_defaultui_default_font = m_callback->query_font_ex(ui_font_default);
-            g_defaultui_console_font = m_callback->query_font_ex(ui_font_console);
-            g_defaultui_background_colour = m_callback->query_std_color(ui_color_background);
-            g_defaultui_text_colour = m_callback->query_std_color(ui_color_text);
-            g_defaultui_highlight_colour = m_callback->query_std_color(ui_color_highlight);
+        // If the font changed then the previously-stored font handle will now be invalid, so we
+        // need to re-store the (possibly new) font handle to avoid getting the default font.
+        recompute_fonts();
 
-            // we use global colors and fonts - trigger a repaint whenever these change.
-            Invalidate();
-        }
+        LyricPanel::ui_fonts_changed();
+
+        // Repaint with the new fonts
+        Invalidate();
+    }
+
+    void LyricPanelUiElement::ui_colors_changed()
+    {
+        // This callback executes when the fb2k UI colour config is changed (including toggling dark mode).
+        recompute_colours();
+
+        LyricPanel::ui_colors_changed();
+
+        // Repaint with the new colours
+        Invalidate();
     }
 
     bool LyricPanelUiElement::is_panel_ui_in_edit_mode()
     {
         return m_callback->is_edit_mode_enabled();
+    }
+
+    void LyricPanelUiElement::recompute_fonts()
+    {
+        core_api::ensure_main_thread();
+        g_defaultui_default_font = m_callback->query_font_ex(ui_font_default);
+        g_defaultui_console_font = m_callback->query_font_ex(ui_font_console);
+    }
+
+    void LyricPanelUiElement::recompute_colours()
+    {
+        core_api::ensure_main_thread();
+        g_defaultui_background_colour = m_callback->query_std_color(ui_color_background);
+        g_defaultui_text_colour = m_callback->query_std_color(ui_color_text);
+        g_defaultui_highlight_colour = m_callback->query_std_color(ui_color_highlight);
     }
 
     // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.
