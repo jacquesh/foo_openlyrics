@@ -48,6 +48,23 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
+static std::string remove_chars_for_availability_check(const std::string_view input)
+{
+    std::string transliterated = from_tstring(normalise_utf8(to_tstring(input)));
+
+    std::string output;
+    output.reserve(transliterated.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
+    for(char c : transliterated)
+    {
+        if(pfc::char_is_ascii_alphanumeric(c) || (c == ' ') || (c == '-'))
+        {
+            output += c;
+        }
+    }
+
+    return output;
+}
+
 std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     auto request = http_client::get()->create_request("GET");
@@ -98,7 +115,7 @@ std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& para
         const std::string_view trimmed_text = trim_surrounding_whitespace(lyric_text);
 
         std::vector<LyricDataRaw> result_list;
-        const std::string not_found_text = "We do not have the lyrics for " + params.title + " yet.";
+        const std::string not_found_text = "We do not have the lyrics for " + remove_chars_for_availability_check(params.title) + " yet.";
         if(trimmed_text != not_found_text)
         {
             LyricDataRaw result = {};
