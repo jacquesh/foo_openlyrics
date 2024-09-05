@@ -37,6 +37,7 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     // "\n";
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Add a source for Bandcamp.com"
     "- Fix SongLyrics.com sometimes returning lyrics saying there are no lyrics\n"
     "\n";
     out += "Version 1.10.2 (2024-09-02):\n"

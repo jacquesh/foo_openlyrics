@@ -244,6 +244,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\sources\azlyricscom.cpp" />
+    <ClCompile Include="..\src\sources\bandcamp.cpp" />
     <ClCompile Include="..\src\sources\darklyrics.cpp" />
     <ClCompile Include="..\src\sources\id3tag.cpp" />
     <ClCompile Include="..\src\sources\letras.cpp" />
