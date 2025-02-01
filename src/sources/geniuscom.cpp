@@ -176,6 +176,12 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
             return {};
         }
 
+        if (song_lyrics_plain->type != cJSON_String) {
+            LOG_WARN("Failed to download from genius.com: Invalid lyrics data!");
+            cJSON_Delete(json);
+            return {};
+        }
+
         data.text_bytes = string_to_raw_bytes(std::string_view(song_lyrics_plain->valuestring));
         cJSON_Delete(json);
         return true;
