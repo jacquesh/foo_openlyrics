@@ -16,6 +16,8 @@ jobs:
     name: Build Release
     runs-on: windows-latest
     needs: run-tests
+    permissions:
+      contents: write  # Needed to allow creating a release
 
     steps:
       - name: Add MSBuild to the PATH
