@@ -91,20 +91,20 @@ public:
                     bool success = handle.wait_for_complete(30'000);
                     if(success)
                     {
-                        LyricData lyrics = handle.get_result();
-                        std::tstring text = parsers::lrc::expand_text(lyrics, false);
-                        if(text.empty())
+                        if(handle.has_result())
                         {
-                            popup_message::g_show("No lyrics saved", dialog_title.c_str());
-                        }
-                        else
-                        {
+                            const LyricData lyrics = handle.get_result();
+                            const std::tstring text = parsers::lrc::expand_text(lyrics, false);
                             lyric_metadata_log_retrieved(track_info, lyrics);
 
-                            std::string dialog_contents = std::format("{}\n---\n\n{}",
+                            const std::string dialog_contents = std::format("{}\n---\n\n{}",
                                     get_lyric_metadata_string(lyrics, track_info),
                                     from_tstring(text));
                             popup_message::g_show(dialog_contents.c_str(), dialog_title.c_str());
+                        }
+                        else
+                        {
+                            popup_message::g_show("No lyrics saved", dialog_title.c_str());
                         }
                     }
                     else

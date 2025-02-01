@@ -29,6 +29,9 @@ static void compute_about_message_string(pfc::string_base & out)
     out += "\nChangelog:\n";
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     // "\n";
+    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    "- Fix a crash when trying to show lyrics for a track with none saved\n"
+    "\n";
     out += "Version 1.11 (2024-09-05):\n"
     "- Add a source for Bandcamp.com\n"
     "- Fix SongLyrics.com sometimes returning lyrics saying there are no lyrics\n"
