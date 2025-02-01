@@ -140,7 +140,7 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
     auto request = http_client::get()->create_request("GET");
     request->add_header(API_KEY_HEADER);
 
-    std::string url = std::format("https://api.genius.com%s?text_format=plain", data.lookup_id);
+    std::string url = std::format("https://api.genius.com{}?text_format=plain", data.lookup_id);
 
     pfc::string8 content;
     try
