@@ -1,0 +1,22 @@
+name: Check pull request contents
+on: pull_request
+
+jobs:
+  check-changelist-modified:
+    name: Check that the changelog has been updated
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check what files have been modified
+        uses: dorny/paths-filter@v2.2.1
+        id: filter
+        with:
+          filters: |
+            main:
+              - 'src/main.cpp'
+
+      - name: Fail if the changelog wasn't updated
+        if: ${{ steps.filter.outputs.main == 'false' }}
+        run: exit 1
