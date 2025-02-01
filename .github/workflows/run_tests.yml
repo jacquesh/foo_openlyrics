@@ -7,6 +7,7 @@ on:
 
 jobs:
   print-windows-sdks:
+    name: Log Windows SDKs
     runs-on: windows-2022
     steps:
       - name: Print installed Windows SDK versions
@@ -15,6 +16,7 @@ jobs:
         run: Get-ChildItem -Name "HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots"
 
   print-compiler-version:
+    name: Log MSVC compiler version
     runs-on: windows-2022
     steps:
       - name: Add MSVC compiler to the PATH
@@ -26,8 +28,8 @@ jobs:
         run: cl /?
 
   build-and-test-32bit:
+    name: Build & test - x86
     runs-on: windows-2022
-    name: Build and test - x86
     steps:
       - name: Add MSBuild to the PATH
         uses: microsoft/setup-msbuild@v2
@@ -42,8 +44,8 @@ jobs:
         run: build\Debug\test_foo_openlyrics.exe build\Debug\foo_openlyrics.dll
 
   build-and-test-64bit:
+    name: Build & test - x64
     runs-on: windows-2022
-    name: Build and test - x64
     steps:
       - name: Add MSBuild to the PATH
         uses: microsoft/setup-msbuild@v2
