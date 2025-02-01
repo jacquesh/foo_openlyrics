@@ -301,6 +301,7 @@
     <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\sources\lyric_source.h" />
     <ClInclude Include="..\src\stdafx.h" />
+    <ClInclude Include="..\src\string_split.h" />
     <ClInclude Include="..\src\tag_util.h" />
     <ClInclude Include="..\src\uie_shim_panel.h" />
     <ClInclude Include="..\src\ui_hooks.h" />

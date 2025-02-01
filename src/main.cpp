@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include "mvtf/mvtf.h"
+
 // NOTE: We only pull in the generated header in release builds because that file gets recreated
 //       on every build, which forces every file that includes it to also be recompiled on every
 //       build. This is a significant waste of time during development.
@@ -17,17 +19,8 @@
 // Copied from the DECLARE_COMPONENT_VERSION(NAME,VERSION,ABOUT) macro, defined in foo_SDK/foobar2000/SDK/component_version.h
 namespace
 {
-    class OpenLyricsVersion : public componentversion
-    {
-        public:
-            void get_file_name(pfc::string_base& out) final {out = core_api::get_my_file_name();}
-            void get_component_name(pfc::string_base & out) final {out = "OpenLyrics";}
-            void get_component_version(pfc::string_base & out) final {out = OPENLYRICS_VERSION;}
-            void get_about_message(pfc::string_base & out) final;
-    };
-    static service_factory_single_t<OpenLyricsVersion> g_openlyricsversion_factory;
-}
-void OpenLyricsVersion::get_about_message(pfc::string_base & out)
+
+static void compute_about_message_string(pfc::string_base & out)
 {
     out = "foo_openlyrics " OPENLYRICS_VERSION "\n";
     out += "Open-source lyrics retrieval and display\n";
@@ -340,5 +333,47 @@ void OpenLyricsVersion::get_about_message(pfc::string_base & out)
     "- Initial release\n";
 }
 
+class OpenLyricsVersion : public componentversion
+{
+    public:
+        void get_file_name(pfc::string_base& out) final {out = core_api::get_my_file_name();}
+        void get_component_name(pfc::string_base & out) final {out = "OpenLyrics";}
+        void get_component_version(pfc::string_base & out) final {out = OPENLYRICS_VERSION;}
+        void get_about_message(pfc::string_base & out) final { compute_about_message_string(out); }
+};
+static service_factory_single_t<OpenLyricsVersion> g_openlyricsversion_factory;
+}
+
 // This will prevent users from renaming your component around (important for proper troubleshooter behaviors) or loading multiple instances of it.
 VALIDATE_COMPONENT_FILENAME("foo_openlyrics.dll");
+
+// ============
+// Tests
+// ============
+#ifdef MVTF_TESTS_ENABLED
+#include "string_split.h"
+
+MVTF_TEST(changelog_isnt_empty)
+{
+    pfc::string8 changelog;
+    compute_about_message_string(changelog);
+    ASSERT(!changelog.is_empty());
+}
+
+MVTF_TEST(changelog_has_no_lines_long_enough_to_wrap_in_the_fb2k_about_dialog)
+{
+    constexpr size_t max_non_wrapping_line_length = 76;
+    pfc::string8 changelog_pfc;
+    compute_about_message_string(changelog_pfc);
+
+    std::string_view changelog(changelog_pfc.ptr(), changelog_pfc.length());
+    string_split split(changelog, "\n");
+    while(!split.reached_the_end())
+    {
+        const std::string_view line = split.next();
+        ASSERT(line.length() <= max_non_wrapping_line_length);
+    }
+    ASSERT(!split.failed());
+}
+
+#endif
