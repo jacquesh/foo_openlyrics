@@ -64,31 +64,10 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
     }
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
-    if((json == nullptr) || (json->type != cJSON_Object))
-    {
-        LOG_WARN("Received musixmatch search result but root was malformed: %s", content.c_str());
-        cJSON_Delete(json);
-        return {};
-    }
-
     cJSON* json_message = cJSON_GetObjectItem(json, "message");
-    if((json_message == nullptr) || (json_message->type != cJSON_Object))
-    {
-        LOG_WARN("Received musixmatch search result but message was malformed: %s", content.c_str());
-        cJSON_Delete(json);
-        return {};
-    }
-
     cJSON* json_body = cJSON_GetObjectItem(json_message, "body");
-    if((json_body == nullptr) || (json_body->type != cJSON_Object))
-    {
-        LOG_WARN("Received musixmatch search result but body was malformed: %s", content.c_str());
-        cJSON_Delete(json);
-        return {};
-    }
-
     cJSON* json_tracklist = cJSON_GetObjectItem(json_body, "track_list");
-    if((json_tracklist == nullptr) || (json_tracklist->type != cJSON_Array))
+    if(!cJSON_IsArray(json_tracklist))
     {
         LOG_WARN("Received musixmatch search result but track_list was malformed: %s", content.c_str());
         cJSON_Delete(json);
@@ -99,65 +78,25 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
     cJSON* json_track = nullptr;
     cJSON_ArrayForEach(json_track, json_tracklist)
     {
-        if((json_track == nullptr) || (json_track->type != cJSON_Object))
-        {
-            LOG_WARN("Received musixmatch search result but track was malformed: %s", content.c_str());
-            break;
-        }
-
         cJSON* json_tracktrack = cJSON_GetObjectItem(json_track, "track");
-        if((json_tracktrack == nullptr) || (json_tracktrack->type != cJSON_Object))
-        {
-            LOG_WARN("Received musixmatch search result but tracktrack was malformed: %s", content.c_str());
-            break;
-        }
 
         cJSON* json_artist = cJSON_GetObjectItem(json_tracktrack, "artist_name");
-        if((json_artist == nullptr) || (json_artist->type != cJSON_String))
-        {
-            LOG_WARN("Received musixmatch search result but artist_name was malformed");
-            break;
-        }
-
         cJSON* json_album = cJSON_GetObjectItem(json_tracktrack, "album_name");
-        if((json_album == nullptr) || (json_album->type != cJSON_String))
-        {
-            LOG_WARN("Received musixmatch search result but album_name was malformed");
-            break;
-        }
-
         cJSON* json_title = cJSON_GetObjectItem(json_tracktrack, "track_name");
-        if((json_title == nullptr) || (json_title->type != cJSON_String))
-        {
-            LOG_WARN("Received musixmatch search result but track_name was malformed");
-            break;
-        }
-
         cJSON* json_haslyrics = cJSON_GetObjectItem(json_tracktrack, "has_lyrics");
-        if((json_haslyrics == nullptr) || (json_haslyrics->type != cJSON_Number))
-        {
-            LOG_WARN("Received musixmatch search result but has-lyrics was malformed: %s", content.c_str());
-            break;
-        }
-
         cJSON* json_hassubtitles = cJSON_GetObjectItem(json_tracktrack, "has_subtitles");
-        if((json_hassubtitles == nullptr) || (json_hassubtitles->type != cJSON_Number))
-        {
-            LOG_WARN("Received musixmatch search result but has-subtitles was malformed: %s", content.c_str());
-            break;
-        }
-
         cJSON* json_trackid = cJSON_GetObjectItem(json_tracktrack, "commontrack_id");
-        if((json_trackid == nullptr) || (json_trackid->type != cJSON_Number))
-        {
-            LOG_WARN("Received musixmatch search result but track ID was malformed: %s", content.c_str());
-            break;
-        }
-
         cJSON* json_duration = cJSON_GetObjectItem(json_tracktrack, "track_length");
-        if((json_duration == nullptr) || (json_duration->type != cJSON_Number))
+
+        if(!cJSON_IsString(json_artist) ||
+            !cJSON_IsString(json_album) ||
+            !cJSON_IsString(json_title) ||
+            !cJSON_IsNumber(json_haslyrics) ||
+            !cJSON_IsNumber(json_hassubtitles) ||
+            !cJSON_IsNumber(json_trackid) ||
+            !cJSON_IsNumber(json_duration))
         {
-            LOG_WARN("Received musixmatch search result but track length was malformed: %s", content.c_str());
+            LOG_WARN("Received musixmatch search result but track info was malformed: %s", content.c_str());
             break;
         }
 
@@ -213,41 +152,13 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
     }
 
     cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
-    if((json == nullptr) || (json->type != cJSON_Object))
-    {
-        LOG_INFO("Received musixmatch %s response but root was malformed: %s", method, content.c_str());
-        cJSON_Delete(json);
-        return false;
-    }
-
     cJSON* json_message = cJSON_GetObjectItem(json, "message");
-    if((json_message == nullptr) || (json_message->type != cJSON_Object))
-    {
-        LOG_INFO("Received musixmatch %s response but message was malformed: %s", method, content.c_str());
-        cJSON_Delete(json);
-        return false;
-    }
-
     cJSON* json_body = cJSON_GetObjectItem(json_message, "body");
-    if((json_body == nullptr) || (json_body->type != cJSON_Object))
-    {
-        LOG_INFO("Received musixmatch %s response but body was malformed: %s", method, content.c_str());
-        cJSON_Delete(json);
-        return false;
-    }
-
     cJSON* json_lyrics = cJSON_GetObjectItem(json_body, body_entry_name);
-    if((json_lyrics == nullptr) || (json_lyrics->type != cJSON_Object))
-    {
-        LOG_INFO("Received musixmatch %s response but %s was malformed: %s", method, body_entry_name, content.c_str());
-        cJSON_Delete(json);
-        return false;
-    }
-
     cJSON* json_lyricstext = cJSON_GetObjectItem(json_lyrics, text_entry_name);
-    if((json_lyricstext == nullptr) || (json_lyricstext->type != cJSON_String))
+    if(!cJSON_IsString(json_lyricstext))
     {
-        LOG_INFO("Received musixmatch %s response but %s was malformed: %s", method, text_entry_name, content.c_str());
+        LOG_WARN("Received musixmatch %s response but %s was malformed: %s", method, text_entry_name, content.c_str());
         cJSON_Delete(json);
         return false;
     }
