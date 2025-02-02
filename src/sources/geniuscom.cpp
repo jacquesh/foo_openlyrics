@@ -5,12 +5,14 @@
 
 #include "logging.h"
 #include "lyric_source.h"
-#include "tag_util.h"
 
 static const GUID src_guid = { 0xb4cf497f, 0xd2c, 0x45ff, { 0xaa, 0x46, 0xf1, 0x45, 0xa7, 0xf, 0x90, 0x14 } };
 
 constexpr int RESULT_LIMIT = 3;
-// The Genius API client access key for foo_openlyrics
+
+// The Genius API client access key used by MusicBee.
+// For some unknown reason when we request song data using *this* API key, we get lyrics,
+// but when we request song data using our own API key, we don't always get lyrics.
 constexpr auto API_KEY_HEADER = "Authorization: Bearer ZTejoT_ojOEasIkT9WrMBhBQOz6eYKK5QULCMECmOhvwqjRZ6WbpamFe3geHnvp3";
 
 class GeniusComSource : public LyricSourceRemote
@@ -71,7 +73,7 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
     }
     catch(const std::exception& e)
     {
-        LOG_WARN("Failed to download genius.com page %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to retrieve genius.com search result from %s: %s", url.c_str(), e.what());
         return {};
     }
 
@@ -88,7 +90,7 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
         const cJSON* search_hits = cJSON_GetObjectItem(search_response, "hits");
 
         if (!cJSON_IsArray(search_hits)) {
-            LOG_INFO("Failed to download genius.com page: Invalid search payload");
+            LOG_INFO("Received genius.com search result but the hits list was malformed: %s", content.c_str());
             cJSON_Delete(json);
             return {};
         }
@@ -101,32 +103,26 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
                 break;
             }
 
-			const cJSON* search_result = cJSON_GetObjectItem(search_hit, "result");
-			const cJSON* search_path = cJSON_GetObjectItem(search_result, "api_path");
-			const cJSON* search_title = cJSON_GetObjectItem(search_result, "title");
+            const cJSON* search_result = cJSON_GetObjectItem(search_hit, "result");
+            const cJSON* search_path = cJSON_GetObjectItem(search_result, "api_path");
+            const cJSON* search_title = cJSON_GetObjectItem(search_result, "title");
             // "artist_names" returns a list of all the artists involved, properly attributed
-			const cJSON* search_artist = cJSON_GetObjectItem(search_result, "artist_names");
+            const cJSON* search_artist = cJSON_GetObjectItem(search_result, "artist_names");
 
-            if (search_path == nullptr || search_title == nullptr || search_artist == nullptr) {
-                LOG_WARN("Failed to download from genius.com: Missing search data!");
+            if (!cJSON_IsString(search_artist) || !cJSON_IsString(search_title) || !cJSON_IsString(search_path)) {
+                LOG_WARN("Received genius.com search result but the search hit data was malformed: %s", content.c_str());
                 cJSON_Delete(json);
                 return {};
             }
 
-            if (search_artist->type != cJSON_String || search_title->type != cJSON_String || search_path->type != cJSON_String) {
-                LOG_WARN("Failed to download from genius.com: Invalid search data!");
-                cJSON_Delete(json);
-                return {};
-            }
-
-			LyricDataRaw result = {};
-			result.source_id = id();
-			result.lookup_id = search_path->valuestring;
+            LyricDataRaw result = {};
+            result.source_id = id();
             result.source_path = search_path->valuestring;
-            result.title = search_title->valuestring;
             result.artist = search_artist->valuestring;
+            result.title = search_title->valuestring;
+            result.lookup_id = search_path->valuestring;
 
-			song_metadata.push_back(result);
+            song_metadata.push_back(result);
         }
 
         cJSON_Delete(json);
@@ -140,8 +136,7 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
     auto request = http_client::get()->create_request("GET");
     request->add_header(API_KEY_HEADER);
 
-    std::string url = std::format("https://api.genius.com{}?text_format=plain", data.lookup_id);
-
+    const std::string url = std::format("https://api.genius.com{}?text_format=plain", data.lookup_id);
     pfc::string8 content;
     try
     {
@@ -151,7 +146,7 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
     }
     catch (const std::exception& e)
     {
-        LOG_WARN("Failed to download genius.com page %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to retrieve genius.com song data from %s: %s", url.c_str(), e.what());
         return false;
     }
 
@@ -170,21 +165,18 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
         const cJSON* song_lyrics = cJSON_GetObjectItem(song_song, "lyrics");
         const cJSON* song_lyrics_plain = cJSON_GetObjectItem(song_lyrics, "plain");
 
-        if (song_lyrics_plain == nullptr) {
-            LOG_WARN("Failed to download from genius.com: No lyrics data!");
+        if (cJSON_IsString(song_lyrics_plain)) {
+            data.text_bytes = string_to_raw_bytes(std::string_view(song_lyrics_plain->valuestring));
+        }
+        else {
+            LOG_WARN("Received genius.com song result but the lyrics data was malformed: %s", content.c_str());
             cJSON_Delete(json);
-            return {};
+            return false;
         }
 
-        if (song_lyrics_plain->type != cJSON_String) {
-            LOG_WARN("Failed to download from genius.com: Invalid lyrics data!");
-            cJSON_Delete(json);
-            return {};
-        }
-
-        data.text_bytes = string_to_raw_bytes(std::string_view(song_lyrics_plain->valuestring));
         cJSON_Delete(json);
-        return true;
     }
-    return false;
+
+    data.type = LyricType::Unsynced;
+    return true;
 }
