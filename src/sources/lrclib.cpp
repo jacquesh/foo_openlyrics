@@ -18,6 +18,9 @@
 
 static const GUID src_guid = { 0x9b4be445, 0x9a38, 0x4342, { 0xab, 0x72, 0x6f, 0x55, 0x8c, 0x4, 0x4d, 0xc0 } };
 
+// We could get up to twice this many because LRCLib can provide both synced and unsynced lyrics for each item
+constexpr int RESULT_LIMIT = 3;
+
 class LrclibLyricsSource : public LyricSourceRemote
 {
     const GUID& id() const final { return src_guid; }
@@ -150,9 +153,16 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search_for_lyrics(std::string_view
 
     std::vector<LyricDataRaw> results;
     cJSON* json_result = nullptr;
+    int result_count = 0;
     cJSON_ArrayForEach(json_result, json)
     {
         parse_lyric_result(json_result, results);
+
+        result_count++;
+        if(result_count >= RESULT_LIMIT)
+        {
+            break;
+        }
     }
 
     cJSON_Delete(json);
