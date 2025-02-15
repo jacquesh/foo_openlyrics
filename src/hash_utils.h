@@ -6,6 +6,7 @@ struct Sha256Context
     void* m_algorithm_handle;
     void* m_hash_handle;
     void* m_internal_storage;
+    bool m_error;
 
     Sha256Context();
     ~Sha256Context();

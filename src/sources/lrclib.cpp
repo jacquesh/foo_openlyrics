@@ -338,7 +338,6 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
     LARGE_INTEGER start_time = {};
     QueryPerformanceCounter(&start_time);
 
-    Sha256Context sha;
     uint8_t target_buffer[32] = {};
     uint8_t hash_buffer[32] = {};
     char combined_input[128] = {};
@@ -360,10 +359,16 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
         const size_t nonce_len = (size_t)snprintf(nonce_start_ptr, nonce_capacity, "%llu", nonce);
         const size_t combined_len = prefix_len + nonce_len;
 
+        Sha256Context sha;
         sha.add_data((uint8_t*)&combined_input[0], combined_len);
         sha.finalise(hash_buffer);
 
         if(is_hash_less_or_equal(hash_buffer, target_buffer)) {
+            break;
+        }
+        if(sha.m_error)
+        {
+            LOG_WARN("Breaking out of proof of work calculation due to error in hash calculation");
             break;
         }
         if((nonce % 1024 == 0) && (abort.is_aborting()))
