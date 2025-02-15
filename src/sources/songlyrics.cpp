@@ -5,6 +5,7 @@
 
 #include "logging.h"
 #include "lyric_source.h"
+#include "mvtf/mvtf.h"
 #include "tag_util.h"
 
 static const GUID src_guid = { 0x5153d050, 0x387d, 0x47ec, { 0x93, 0x50, 0xd5, 0x3, 0xf2, 0x7b, 0x6c, 0x65 } };
@@ -48,21 +49,11 @@ static std::string remove_chars_for_url(const std::string_view input)
     return output;
 }
 
-static std::string remove_chars_for_availability_check(const std::string_view input)
+static bool is_text_placeholder(std::string_view lyrics_text, const LyricSearchParams& params)
 {
-    std::string transliterated = from_tstring(normalise_utf8(to_tstring(input)));
-
-    std::string output;
-    output.reserve(transliterated.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
-    for(char c : transliterated)
-    {
-        if(pfc::char_is_ascii_alphanumeric(c) || (c == ' ') || (c == '-'))
-        {
-            output += c;
-        }
-    }
-
-    return output;
+    const std::string not_found_text = std::format("We do not have the lyrics for {} yet.", params.title);
+    const int edit_distance = string_edit_distance(lyrics_text, not_found_text);
+    return (edit_distance < 5);
 }
 
 std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
@@ -114,9 +105,9 @@ std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& para
         LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
         const std::string_view trimmed_text = trim_surrounding_whitespace(lyric_text);
 
+        const bool is_placeholder = is_text_placeholder(trimmed_text, params);
         std::vector<LyricDataRaw> result_list;
-        const std::string not_found_text = "We do not have the lyrics for " + remove_chars_for_availability_check(params.title) + " yet.";
-        if(trimmed_text != not_found_text)
+        if(!is_placeholder)
         {
             LyricDataRaw result = {};
             result.source_id = id();
@@ -138,3 +129,30 @@ bool SonglyricsSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
     assert(false);
     return false;
 }
+
+// ============
+// Tests
+// ============
+#ifdef MVTF_TESTS_ENABLED
+MVTF_TEST(songlyrics_regular_placeholder_text_is_detected_as_such)
+{
+    const std::string_view text = "We do not have the lyrics for Wishes ft Sophie Barker yet.";
+    LyricSearchParams params("Rena Jones", "Echoes", "Wishes ft Sophie Barker", {});
+    ASSERT(is_text_placeholder(text, params));
+}
+
+MVTF_TEST(songlyrics_placeholder_is_detected_as_such_when_title_contains_special_characters)
+{
+    // Note the non-ASCII unicode character used here for the apostrophe in "Ain't True"
+    const std::string_view text = "We do not have the lyrics for Ain’t True yet.";
+    LyricSearchParams params("All Good Funk Alliance", "Jack Of All Trades (Remixed Volume 3)", "Ain't True", {});
+    ASSERT(is_text_placeholder(text, params));
+}
+
+MVTF_TEST(songlyrics_the_start_of_regular_lyrics_text_is_not_detected_as_a_placeholder)
+{
+    const std::string_view text = "Sum 41\nMiscellaneous\nHell Song\n...";
+    LyricSearchParams params("Sum 41", "Does This Look Infected?", "Hell Song", {});
+    ASSERT(!is_text_placeholder(text, params));
+}
+#endif

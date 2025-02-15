@@ -35,6 +35,7 @@ static void compute_about_message_string(pfc::string_base & out)
     "- Add a label to the root preferences page prompting to check the subpages\n"
     "- Fix a crash when trying to show lyrics for a track with none saved\n"
     "- Fix letras.com returning random lyrics when a good match isn't found\n"
+    "- Fix SongLyrics.com still returning lyrics saying there are no lyrics\n"
     "\n";
     out += "Version 1.11 (2024-09-05):\n"
     "- Add a source for Bandcamp.com\n"
