@@ -158,6 +158,27 @@ std::string print_timestamp(double timestamp)
     int time_seconds = total_seconds - (time_hours*3600) - (time_minutes*60);
     int time_centisec = static_cast<int>(std::round((timestamp - total_seconds_flt) * 100.0));
 
+    // NOTE: We need this special case here because the `std::round` call above might round us up
+    //       and give us 100 centiseconds, which visually should actually be just "the next second".
+    //       In theory we could just replace the `round` with a `floor` and be done but that would
+    //       cause timestamp parsing and printing to not roundtrip cleanly (at least not with the
+    //       rest of this implementation as it is today).
+    if(time_centisec == 100)
+    {
+        time_centisec = 0;
+        time_seconds++;
+        if(time_seconds == 60)
+        {
+            time_seconds = 0;
+            time_minutes++;
+            if(time_minutes == 60)
+            {
+                time_minutes = 0;
+                time_hours++;
+            }
+        }
+    }
+
     char temp[32];
     if(time_hours == 0)
     {
@@ -745,5 +766,14 @@ MVTF_TEST(lrcparse_parseoffset_parses_negative_values)
     const std::optional<double> output = parsers::lrc::try_parse_offset_tag(input);
     ASSERT(output.has_value());
     ASSERT(output.value() == -0.567);
+}
+
+MVTF_TEST(lrcparse_print_timestamp_correctly_rounds_up_when_given_input_very_near_to_the_next_second)
+{
+    // Checks for https://github.com/jacquesh/foo_openlyrics/issues/417
+    // This would likely only happen when synchronising lines in the editor, since then the timestamp does
+    // not come from text originally so it's not bound to 2 decimal places of precision.
+    const std::string output = parsers::lrc::print_timestamp(5.999);
+    ASSERT(output == "[00:06.00]");
 }
 #endif

@@ -37,6 +37,7 @@ static void compute_about_message_string(pfc::string_base & out)
     "- Fix letras.com returning random lyrics when a good match isn't found\n"
     "- Fix SongLyrics.com still returning lyrics saying there are no lyrics\n"
     "- Fix a potential crash while hashing for metrics or LRCLib upload\n"
+    "- Fix the editor occasionally producing an invalid timestamp on line sync\n"
     "\n";
     out += "Version 1.11 (2024-09-05):\n"
     "- Add a source for Bandcamp.com\n"
