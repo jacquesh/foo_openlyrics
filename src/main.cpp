@@ -32,6 +32,7 @@ static void compute_about_message_string(pfc::string_base & out)
     out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     "- Migrate the genius.com source from web scraping to using the API\n"
     "- Enforce a limit on the number of search results returned from LRCLib\n"
+    "- Add a label to the root preferences page prompting to check the subpages\n"
     "- Fix a crash when trying to show lyrics for a track with none saved\n"
     "- Fix letras.com returning random lyrics when a good match isn't found\n"
     "\n";

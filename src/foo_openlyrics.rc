@@ -156,6 +156,7 @@ STYLE DS_SETFONT | WS_CHILD
 FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
 BEGIN
     CONTROL         "Debug logging enabled",IDC_DEBUG_LOGS_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,4,89,10
+    LTEXT           "Select a subpage for more options",IDC_STATIC,7,120,108,8
 END
 
 IDD_PREFERENCES_SRC_METATAGS DIALOGEX 0, 0, 332, 288
