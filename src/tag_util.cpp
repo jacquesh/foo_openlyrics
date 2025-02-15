@@ -276,7 +276,7 @@ bool starts_with_ignore_case(std::string_view input, std::string_view prefix)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(tagutil_startswithignorecase_ignores_case)
 {
     ASSERT(starts_with_ignore_case("qweasd", "qWe"));

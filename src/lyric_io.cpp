@@ -943,7 +943,7 @@ void LyricSearchHandle::set_complete()
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 static const AutoSaveStrategy g_all_save_strategies[] =
 {
     AutoSaveStrategy::Never,

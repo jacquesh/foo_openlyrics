@@ -123,7 +123,7 @@ bool LyricsifySource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(lyricsify_known_bad_chars_removed_from_url)
 {
     const std::string result = transform_tag_for_url("?!@#asd!@#qwe[]'_zxc-+><");

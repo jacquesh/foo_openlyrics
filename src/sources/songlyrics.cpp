@@ -133,7 +133,7 @@ bool SonglyricsSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(songlyrics_regular_placeholder_text_is_detected_as_such)
 {
     const std::string_view text = "We do not have the lyrics for Wishes ft Sophie Barker yet.";

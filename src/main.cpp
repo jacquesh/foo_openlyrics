@@ -360,7 +360,7 @@ VALIDATE_COMPONENT_FILENAME("foo_openlyrics.dll");
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 #include "string_split.h"
 
 MVTF_TEST(changelog_isnt_empty)

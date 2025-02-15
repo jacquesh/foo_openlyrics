@@ -223,7 +223,7 @@ bool LyricfindSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(lyricfind_urltransform_replaces_spaces_with_dash)
 {
     const std::string_view input = "The Offspring";

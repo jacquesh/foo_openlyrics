@@ -12,13 +12,13 @@
 // ============================================================================
 
 #ifndef NDEBUG
-#define MVTF_TESTS_ENABLED
-// TODO: Change test names to be fully generated, rather than contain the name string, which might not be a valid identifier
+#define MVTF_TESTS_ENABLED 1
 #define MVTF_TEST(TEST_NAME) MVTF_TEST_FUNCTION_TYPE TEST_NAME; static int mvtf_test_##TEST_NAME = mvtf_register_function(&TEST_NAME, #TEST_NAME); void TEST_NAME(int* mvtf_error_count)
 
 #else // Tests are *not* enabled
 // static functions that aren't called/referenced anywhere should be removed during compilation.
 // Some compilers always do this, some will only remove the code if optimisations are enabled.
+#define MVTF_TESTS_ENABLED 0
 #define MVTF_TEST(TEST_NAME) static void TEST_NAME(int* mvtf_error_count)
 #endif
 
@@ -36,7 +36,7 @@ typedef struct
 
 int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name);
 
-#ifdef MVTF_IMPLEMENTATION
+#if defined(MVTF_IMPLEMENTATION) && MVTF_TESTS_ENABLED
 #include <stdio.h> // printf
 #include <stdlib.h> // Realloc
 

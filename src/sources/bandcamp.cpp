@@ -134,7 +134,7 @@ bool BandcampSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(bandcamp_artist_url_removes_spaces_and_special_chars)
 {
     const std::string result = remove_artist_url_chars("hello world!");

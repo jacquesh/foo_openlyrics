@@ -369,7 +369,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricDa
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(autoedit_fixmalformedtimestamps_corrects_decimal_separator_from_colon_to_dot)
 {
     const std::string input = "[00:15:83]test";

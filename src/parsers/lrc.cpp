@@ -532,7 +532,7 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(lrcparse_title_tag_extracted_from_lyrics)
 {
     const std::string input = "[Ti:thetitle]\n[00:00.00]line1";

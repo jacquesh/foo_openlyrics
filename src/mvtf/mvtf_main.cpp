@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-typedef int(*bvtf_func)();
+typedef int(*mvtf_func)();
 int main(int argc, char** argv)
 {
     if(argc == 1)
@@ -30,14 +30,14 @@ int main(int argc, char** argv)
     }
 
     const char* main_name =  "run_mvtf_tests";
-    bvtf_func bvtf_main = (bvtf_func)GetProcAddress(lib, main_name);
-    if(bvtf_main == nullptr)
+    mvtf_func mvtf_main = (mvtf_func)GetProcAddress(lib, main_name);
+    if(mvtf_main == nullptr)
     {
         printf("Failed to load test entrypoint '%s' from test library at '%s'", main_name, library_path);
         return 1;
     }
 
-    int result = bvtf_main();
+    int result = mvtf_main();
     if(result == 0) {
         printf("All tests passed\n");
     } else {

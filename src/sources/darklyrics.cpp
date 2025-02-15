@@ -163,7 +163,7 @@ bool DarkLyricsSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(darklyrics_known_bad_chars_removed_from_url)
 {
     const std::string result = remove_chars_for_url("?!@#asd!@#qwe[]'_zxc-+><");

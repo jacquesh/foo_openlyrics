@@ -80,7 +80,7 @@ void Sha256Context::finalise(uint8_t (&output)[32])
 // ============
 // Tests
 // ============
-#ifdef MVTF_TESTS_ENABLED
+#if MVTF_TESTS_ENABLED
 MVTF_TEST(sha256_correctly_hashes_input_text)
 {
     const std::string_view input = "some random example text";
