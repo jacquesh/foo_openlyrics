@@ -29,7 +29,7 @@ static void compute_about_message_string(pfc::string_base & out)
     out += "\nChangelog:\n";
     // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
     // "\n";
-    out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+    out += "Version 1.12 (2025-02-21):\n"
     "- Migrate the genius.com source from web scraping to using the API\n"
     "- Enforce a limit on the number of search results returned from LRCLib\n"
     "- Add a label to the root preferences page prompting to check the subpages\n"
