@@ -9,6 +9,7 @@
 #include "tag_util.h"
 #include "ui_hooks.h"
 #include "ui_util.h"
+#include "ui_lyrics_panel.h"
 
 static const GUID GUID_OPENLYRICS_CTX_POPUP = { 0x99cb0828, 0x6b73, 0x404f, { 0x95, 0xcd, 0x29, 0xca, 0x63, 0x50, 0x4c, 0xea } };
 static const GUID GUID_OPENLYRICS_CTX_SUBGROUP = { 0x119bf93d, 0xdeec, 0x4fd2, { 0x80, 0xbb, 0x91, 0x6a, 0x58, 0x6a, 0x2, 0x25 } };
@@ -31,6 +32,9 @@ public:
             case cmd_manualsearch_lyrics: out = "Search for lyrics (manually)"; break;
             case cmd_edit_lyrics: out = "Edit lyrics"; break;
             case cmd_mark_instrumental: out = "Mark as instrumental"; break;
+            case cmd_seek_to_next_lyric: out = "Seek to next lyric timestamp"; break;
+            case cmd_seek_to_prev_lyric: out = "Seek to prev lyric timestamp"; break;
+            case cmd_seek_to_repeat_current_lyric: out = "Seek to repeat current lyric timestamp"; break;
             default: uBugCheck();
         }
     }
@@ -47,6 +51,9 @@ public:
                 case cmd_show_lyrics:
                 case cmd_manualsearch_lyrics:
                 case cmd_edit_lyrics:
+                case cmd_seek_to_next_lyric:
+                case cmd_seek_to_prev_lyric:
+                case cmd_seek_to_repeat_current_lyric:
                 {
                     out_display_flags = contextmenu_item_simple::FLAG_DISABLED_GRAYED;
                 } break;
@@ -90,7 +97,7 @@ public:
                     io::search_for_lyrics(handle, true);
                     bool success = handle.wait_for_complete(30'000);
                     if(success)
-                    {
+                {
                         if(handle.has_result())
                         {
                             const LyricData lyrics = handle.get_result();
@@ -142,7 +149,7 @@ public:
             {
                 if(data.get_count() == 0) break;
                 metadb_handle_ptr track = data.get_item(0);
-
+                
                 const auto async_edit = [track](threaded_process_status& /*status*/, abort_callback& abort)
                 {
                     const metadb_v2_rec_t track_info = get_full_metadata(track);
@@ -293,7 +300,79 @@ public:
                                                  core_api::get_main_window(),
                                                  "Marking tracks as instrumental...");
             } break;
+            case cmd_seek_to_next_lyric: {
+                auto& panels = get_active_panels();
+                if (!panels.empty())
+                {
+                    LyricPanel* panel = panels[0];
+                    LyricData lyrics = panel->get_lyrics();
+                    service_ptr_t<playback_control> playback = playback_control::get();
 
+                    double timeNow = playback->playback_get_position();
+
+                    for (size_t i = 0; i < lyrics.lines.size(); ++i)
+                    {
+                        double ts = lyrics.lines[i].timestamp;
+                        if (ts > timeNow)
+                        {
+                            playback->playback_seek(ts);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case cmd_seek_to_prev_lyric: {
+                auto& panels = get_active_panels();
+                if (!panels.empty())
+                {
+                    LyricPanel* panel = panels[0];
+                    LyricData lyrics = panel->get_lyrics();
+                    service_ptr_t<playback_control> playback = playback_control::get();
+
+                    bool skipOne = true;
+                    double timeNow = playback->playback_get_position();
+
+                    for (size_t i = lyrics.lines.size(); i-- > 0; )
+                    {
+                        double ts = lyrics.lines[i].timestamp;
+                        if (ts < timeNow)
+                        {
+                            if (skipOne) 
+                            {
+                                skipOne = false;
+                                continue;
+                            }
+                            playback->playback_seek(ts);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case cmd_seek_to_repeat_current_lyric: {
+                auto& panels = get_active_panels();
+                if (!panels.empty())
+                {
+                    LyricPanel* panel = panels[0];
+                    LyricData lyrics = panel->get_lyrics();
+                    service_ptr_t<playback_control> playback = playback_control::get();
+
+                    double timeNow = playback->playback_get_position();
+
+                    for (size_t i = lyrics.lines.size(); i-- > 0; )
+                    {
+                        double ts = lyrics.lines[i].timestamp;
+                        if (ts < timeNow)
+                        {
+                            playback->playback_seek(ts);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            
             default:
                 LOG_ERROR("Unexpected openlyrics context menu command: %d", int(index));
                 uBugCheck();
@@ -307,6 +386,9 @@ public:
         static const GUID GUID_ITEM_MANUALSEARCH_LYRICS = { 0x9fac3e8e, 0xa847, 0x4b73, { 0x90, 0xe4, 0xc9, 0x5, 0x49, 0xf9, 0xe9, 0x32 } };
         static const GUID GUID_ITEM_EDIT_LYRICS = { 0x518d992d, 0xd61b, 0x4cfd, { 0x8f, 0xcf, 0x8c, 0x7f, 0x21, 0xd0, 0x59, 0x2c } };
         static const GUID GUID_ITEM_MARK_INSTRUMENTAL = { 0x23b658fc, 0x71e1, 0x4e3c, { 0x87, 0xe0, 0xb, 0x34, 0x8c, 0x26, 0x3f, 0x59 } };
+        static const GUID GUID_ITEM_SEEK_TO_NEXT_LYRIC = { 0x3e8f4dc9, 0xa3c9, 0x4f95, { 0x94, 0x47, 0x32, 0xc5, 0x6b, 0x1a, 0xe1, 0x6e } };
+        static const GUID GUID_ITEM_SEEK_TO_PREV_LYRIC = { 0x8b5a1a77, 0x4cc4, 0x4e1a, { 0x90, 0x39, 0xaa, 0xde, 0x3f, 0x48, 0x62, 0x1f } };
+        static const GUID GUID_ITEM_SEEK_TO_REPEAT_LYRIC = { 0xa7d1f6c2, 0x2bd5, 0x4a7b, { 0x8f, 0x6e, 0x3a, 0x91, 0x2b, 0xcc, 0xd4, 0x55 } };
 
         switch(index)
         {
@@ -315,6 +397,9 @@ public:
             case cmd_manualsearch_lyrics: return GUID_ITEM_MANUALSEARCH_LYRICS;
             case cmd_edit_lyrics: return GUID_ITEM_EDIT_LYRICS;
             case cmd_mark_instrumental: return GUID_ITEM_MARK_INSTRUMENTAL;
+            case cmd_seek_to_next_lyric: return GUID_ITEM_SEEK_TO_NEXT_LYRIC;
+            case cmd_seek_to_prev_lyric: return GUID_ITEM_SEEK_TO_PREV_LYRIC;
+            case cmd_seek_to_repeat_current_lyric: return GUID_ITEM_SEEK_TO_REPEAT_LYRIC;
             default: uBugCheck();
         }
     }
@@ -338,6 +423,15 @@ public:
             case cmd_mark_instrumental:
                 out = "Remove existing lyrics and skip future automated lyric searches";
                 return true;
+            case cmd_seek_to_next_lyric:
+                out = "Seek to next lyrics timestamp";
+                return true;
+            case cmd_seek_to_prev_lyric:
+                out = "Seek to prev lyrics timestamp";
+                return true;
+            case cmd_seek_to_repeat_current_lyric:
+                out = "Seek to current lyrics timestamp,  repeat current line";
+                return true;
             default:
                 uBugCheck();
         }
@@ -351,6 +445,9 @@ private:
         cmd_manualsearch_lyrics,
         cmd_edit_lyrics,
         cmd_mark_instrumental,
+        cmd_seek_to_next_lyric,
+        cmd_seek_to_prev_lyric,
+        cmd_seek_to_repeat_current_lyric,
         cmd_total
     };
 };
