@@ -5,6 +5,9 @@
 #include "img_processing.h"
 #include "lyric_io.h"
 #include "metadb_index_search_avoidance.h"
+#include <vector> 
+class LyricPanel;
+std::vector<LyricPanel*>& get_active_panels(); 
 
 class LyricPanel : public CWindowImpl<LyricPanel>, protected ui_config_callback_impl, private play_callback
 {
@@ -24,6 +27,7 @@ public:
     void on_playback_dynamic_info_track(const file_info& info) override;
     void on_playback_time(double /*time*/) override {}
     void on_volume_change(float /*new_volume*/) override {}
+    const LyricData& get_lyrics() const { return m_lyrics; } // m_lyrics getter
 
     CRect compute_background_image_rect();
     void load_custom_background_image();

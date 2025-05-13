@@ -24,6 +24,7 @@
 #include "ui_lyrics_panel.h"
 #include "ui_util.h"
 #include "win32_util.h"
+static std::vector<LyricPanel*> g_active_panels;
 
 namespace {
     // NOTE: This needs to be stored per-instance so that they all have their own
@@ -31,7 +32,12 @@ namespace {
     //       (e.g by having several panels all try to stop the same timer).
     static UINT_PTR PANEL_UPDATE_TIMER = 2304692;
 
-    static std::vector<LyricPanel*> g_active_panels;
+    //static std::vector<LyricPanel*> g_active_panels;
+}
+
+std::vector<LyricPanel*>& get_active_panels()
+{
+    return g_active_panels;
 }
 
 LyricPanel::LyricPanel() :
