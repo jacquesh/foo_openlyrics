@@ -2,6 +2,27 @@ name: Check pull request contents
 on: pull_request
 
 jobs:
+  clang-format:
+    name: Check conformance to the code format style
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run clang-format
+        uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: 'file'  # Use .clang-format config file
+
+      - name: Fail if clang-format reports any issues
+        if: steps.linter.outputs.checks-failed > 0 }}
+        run: |
+          echo "All user-visible changes must include an appropriate addition to the changelog"
+          exit 1
+
   check-changelist-modified:
     name: Check that the changelog has been updated
     runs-on: windows-2022
@@ -19,4 +40,6 @@ jobs:
 
       - name: Fail if the changelog wasn't updated
         if: ${{ steps.filter.outputs.main == 'false' }}
-        run: exit 1
+        run: |
+          echo "All user-visible changes must include an appropriate addition to the changelog"
+          exit 1
