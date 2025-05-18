@@ -3,7 +3,8 @@
 #include "config/config_font.h"
 #include "win32_util.h"
 
-cfg_font_t::cfg_font_t(const GUID& guid) : cfg_var(guid)
+cfg_font_t::cfg_font_t(const GUID& guid)
+    : cfg_var(guid)
 {
     HDC dc = GetDC(nullptr);
     int default_point_size = 9;
@@ -24,7 +25,7 @@ cfg_font_t::cfg_font_t(const GUID& guid) : cfg_var(guid)
 
 void cfg_font_t::get_data_raw(stream_writer* stream, abort_callback& abort)
 {
-    std::string name = from_tstring(std::tstring_view{m_value.lfFaceName, LF_FACESIZE});
+    std::string name = from_tstring(std::tstring_view { m_value.lfFaceName, LF_FACESIZE });
 
     stream->write_lendian_t(m_value.lfHeight, abort);
     stream->write_lendian_t(m_value.lfWidth, abort);

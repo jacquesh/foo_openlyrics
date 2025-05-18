@@ -13,7 +13,7 @@
 
 RGBAColour from_colorref(COLORREF colour)
 {
-    const RGBAColour result = {GetRValue(colour), GetGValue(colour), GetBValue(colour), 255};
+    const RGBAColour result = { GetRValue(colour), GetGValue(colour), GetBValue(colour), 255 };
     return result;
 }
 
@@ -40,11 +40,16 @@ RGBAColour lerp_colour(RGBAColour lhs, RGBAColour rhs, uint8_t factor)
     uint8_t g = nmul(lhs.g, 255 - factor) + nmul(rhs.g, factor);
     uint8_t b = nmul(lhs.b, 255 - factor) + nmul(rhs.b, factor);
     uint8_t a = nmul(lhs.a, 255 - factor) + nmul(rhs.a, factor);
-    return RGBAColour{r,g,b,a};
+    return RGBAColour { r, g, b, a };
 }
 
 // Bilinear interpolation between `topleft`, `topright`, `botleft` & `botright`
-static RGBAColour blerp_colour(RGBAColour topleft, RGBAColour topright, RGBAColour botleft, RGBAColour botright, uint8_t factor_x, uint8_t factor_y)
+static RGBAColour blerp_colour(RGBAColour topleft,
+                               RGBAColour topright,
+                               RGBAColour botleft,
+                               RGBAColour botright,
+                               uint8_t factor_x,
+                               uint8_t factor_y)
 {
     RGBAColour top = lerp_colour(topleft, topright, factor_x);
     RGBAColour bot = lerp_colour(botleft, botright, factor_x);
@@ -60,7 +65,7 @@ Image::Image(Image&& other)
     other.pixels = nullptr;
 }
 
-Image& Image::operator =(Image&& other)
+Image& Image::operator=(Image&& other)
 {
     free(pixels);
 
@@ -92,18 +97,21 @@ static std::optional<Image> load_image_from(const T& stream_init_func)
     ComPtr<IWICBitmapFrameDecode> frame = nullptr;
     ComPtr<IWICBitmapSource> source = nullptr;
 
-    bool success = HR_SUCCESS(CoCreateInstance(
-                CLSID_WICImagingFactory,
-                nullptr,
-                CLSCTX_INPROC_SERVER,
-                IID_IWICImagingFactory,
-                (void**)wic_factory.GetAddressOf())
-            );
+    bool success = HR_SUCCESS(CoCreateInstance(CLSID_WICImagingFactory,
+                                               nullptr,
+                                               CLSCTX_INPROC_SERVER,
+                                               IID_IWICImagingFactory,
+                                               (void**)wic_factory.GetAddressOf()));
     success = success && HR_SUCCESS(wic_factory->CreateStream(stream.GetAddressOf()));
     success = success && HR_SUCCESS(stream_init_func(stream.Get()));
-    success = success && HR_SUCCESS(wic_factory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnLoad, decoder.GetAddressOf()));
+    success = success
+              && HR_SUCCESS(wic_factory->CreateDecoderFromStream(stream.Get(),
+                                                                 nullptr,
+                                                                 WICDecodeMetadataCacheOnLoad,
+                                                                 decoder.GetAddressOf()));
     success = success && HR_SUCCESS(decoder->GetFrame(0, frame.GetAddressOf()));
-    success = success && HR_SUCCESS(WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, frame.Get(), source.GetAddressOf()));
+    success = success
+              && HR_SUCCESS(WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, frame.Get(), source.GetAddressOf()));
 
     UINT width = 0;
     UINT height = 0;
@@ -119,7 +127,7 @@ static std::optional<Image> load_image_from(const T& stream_init_func)
     result.width = int(width);
     result.height = int(height);
     result.pixels = (uint8_t*)malloc(width * height * 4);
-    source->CopyPixels(nullptr, 4*width, 4*width*height, result.pixels);
+    source->CopyPixels(nullptr, 4 * width, 4 * width * height, result.pixels);
     return result;
 }
 
@@ -127,16 +135,14 @@ std::optional<Image> load_image(const char* file_path)
 {
     std::tstring tfile_storage = to_tstring(std::string_view(file_path));
     const TCHAR* tfile = tfile_storage.c_str();
-    return load_image_from([tfile](IWICStream* stream) -> HRESULT {
-            return stream->InitializeFromFilename(tfile, GENERIC_READ);
-        });
+    return load_image_from([tfile](IWICStream* stream) -> HRESULT
+                           { return stream->InitializeFromFilename(tfile, GENERIC_READ); });
 }
 
 std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_length)
 {
-    return load_image_from([input_buffer, input_buffer_length](IWICStream* stream) {
-            return stream->InitializeFromMemory((BYTE*)input_buffer, (DWORD)input_buffer_length);
-        });
+    return load_image_from([input_buffer, input_buffer_length](IWICStream* stream)
+                           { return stream->InitializeFromMemory((BYTE*)input_buffer, (DWORD)input_buffer_length); });
 }
 
 Image generate_background_colour(int width, int height, RGBAColour colour)
@@ -145,11 +151,11 @@ Image generate_background_colour(int width, int height, RGBAColour colour)
     assert(height >= 0);
     uint8_t* pixels = (uint8_t*)malloc(width * height * 4);
 
-    for(int y=0; y<height; y++)
+    for(int y = 0; y < height; y++)
     {
-        for(int x=0; x<width; x++)
+        for(int x = 0; x < width; x++)
         {
-            uint8_t* px = pixels + 4*(y*width + x);
+            uint8_t* px = pixels + 4 * (y * width + x);
             px[0] = colour.r;
             px[1] = colour.g;
             px[2] = colour.b;
@@ -164,21 +170,26 @@ Image generate_background_colour(int width, int height, RGBAColour colour)
     return result;
 }
 
-Image generate_background_colour(int width, int height, RGBAColour topleft, RGBAColour topright, RGBAColour botleft, RGBAColour botright)
+Image generate_background_colour(int width,
+                                 int height,
+                                 RGBAColour topleft,
+                                 RGBAColour topright,
+                                 RGBAColour botleft,
+                                 RGBAColour botright)
 {
     assert(width >= 0);
     assert(height >= 0);
     uint8_t* pixels = (uint8_t*)malloc(width * height * 4);
 
-    for(int y=0; y<height; y++)
+    for(int y = 0; y < height; y++)
     {
-        const uint8_t factor_y = ((255 * y)/(height-1)) & 0xFF;
-        for(int x=0; x<width; x++)
+        const uint8_t factor_y = ((255 * y) / (height - 1)) & 0xFF;
+        for(int x = 0; x < width; x++)
         {
-            const uint8_t factor_x = ((255 * x)/(width-1)) & 0xFF;
+            const uint8_t factor_x = ((255 * x) / (width - 1)) & 0xFF;
             const RGBAColour colour = blerp_colour(topleft, topright, botleft, botright, factor_x, factor_y);
 
-            uint8_t* px = pixels + 4*(y*width + x);
+            uint8_t* px = pixels + 4 * (y * width + x);
             px[0] = colour.r;
             px[1] = colour.g;
             px[2] = colour.b;
@@ -200,11 +211,11 @@ Image lerp_image(const Image& lhs, const Image& rhs, double t)
 
     const uint8_t factor = uint8_t(255.0 * t);
     uint8_t* pixels = (uint8_t*)malloc(lhs.width * lhs.height * 4);
-    for(int y=0; y<lhs.height; y++)
+    for(int y = 0; y < lhs.height; y++)
     {
-        for(int x=0; x<lhs.width; x++)
+        for(int x = 0; x < lhs.width; x++)
         {
-            int offset = 4*(y*lhs.width + x);
+            int offset = 4 * (y * lhs.width + x);
             uint8_t* lhs_px = lhs.pixels + offset;
             uint8_t* rhs_px = rhs.pixels + offset;
             uint8_t* out_px = pixels + offset;
@@ -240,22 +251,22 @@ Image lerp_offset_image(const Image& full_img, const Image& offset_img, CPoint o
     // Just memcopy whatever rows at the top contain only the full image
     memcpy(pixels, full_img.pixels, full_img.width * offset.y * 4);
 
-    for(int y=0; y<offset_img.height; y++)
+    for(int y = 0; y < offset_img.height; y++)
     {
         const int full_y = offset.y + y;
-        uint8_t* out_row = pixels + 4*full_img.width*full_y;
-        uint8_t* in_full_row = full_img.pixels + 4*full_img.width*full_y;
-        uint8_t* in_offset_row = offset_img.pixels + 4*offset_img.width*y;
+        uint8_t* out_row = pixels + 4 * full_img.width * full_y;
+        uint8_t* in_full_row = full_img.pixels + 4 * full_img.width * full_y;
+        uint8_t* in_offset_row = offset_img.pixels + 4 * offset_img.width * y;
 
         // memcopy pixels to the left of the offset image
         memcpy(out_row, in_full_row, offset.x * 4);
 
-        for(int x=0; x<offset_img.width; x++)
+        for(int x = 0; x < offset_img.width; x++)
         {
             const int full_x = offset.x + x;
-            uint8_t* full_px = in_full_row + 4*full_x;
-            uint8_t* offset_px = in_offset_row + 4*x;
-            uint8_t* out_px = out_row + 4*full_x;
+            uint8_t* full_px = in_full_row + 4 * full_x;
+            uint8_t* offset_px = in_offset_row + 4 * x;
+            uint8_t* out_px = out_row + 4 * full_x;
 
             RGBAColour full_colour = *((RGBAColour*)full_px);
             RGBAColour offset_colour = *((RGBAColour*)offset_px);
@@ -269,18 +280,22 @@ Image lerp_offset_image(const Image& full_img, const Image& offset_img, CPoint o
 
         const int columns_on_or_before_offset_img = offset.x + offset_img.width;
         const int columns_after_offset_img = full_img.width - columns_on_or_before_offset_img;
-        const int post_offsetimg_row_offset = 4*columns_on_or_before_offset_img;
+        const int post_offsetimg_row_offset = 4 * columns_on_or_before_offset_img;
         assert(columns_after_offset_img >= 0);
-        memcpy(out_row + post_offsetimg_row_offset, in_full_row + post_offsetimg_row_offset, 4*columns_after_offset_img);
+        memcpy(out_row + post_offsetimg_row_offset,
+               in_full_row + post_offsetimg_row_offset,
+               4 * columns_after_offset_img);
     }
 
     // Just memcopy whatever rows at the bottom contain only the full image
     const int rows_on_or_above_offset_img = offset.y + offset_img.height;
     const int rows_below_offset_img = full_img.height - rows_on_or_above_offset_img;
-    uint8_t* first_full_pixel_below_offset_img = full_img.pixels + 4*full_img.width*rows_on_or_above_offset_img;
-    uint8_t* first_out_pixels_below_offset_img = pixels + 4*full_img.width*rows_on_or_above_offset_img;
+    uint8_t* first_full_pixel_below_offset_img = full_img.pixels + 4 * full_img.width * rows_on_or_above_offset_img;
+    uint8_t* first_out_pixels_below_offset_img = pixels + 4 * full_img.width * rows_on_or_above_offset_img;
     assert(rows_below_offset_img >= 0);
-    memcpy(first_out_pixels_below_offset_img, first_full_pixel_below_offset_img, full_img.width * rows_below_offset_img * 4);
+    memcpy(first_out_pixels_below_offset_img,
+           first_full_pixel_below_offset_img,
+           full_img.width * rows_below_offset_img * 4);
 
     Image result = {};
     result.pixels = pixels;
@@ -303,26 +318,25 @@ Image resize_image(const Image& input, int out_width, int out_height)
     ComPtr<IWICBitmapScaler> scaler = nullptr;
     ComPtr<IWICBitmapSource> source = nullptr;
 
-    bool success = HR_SUCCESS(CoCreateInstance(
-                CLSID_WICImagingFactory,
-                nullptr,
-                CLSCTX_INPROC_SERVER,
-                IID_IWICImagingFactory,
-                (void**)wic_factory.GetAddressOf())
-            );
+    bool success = HR_SUCCESS(CoCreateInstance(CLSID_WICImagingFactory,
+                                               nullptr,
+                                               CLSCTX_INPROC_SERVER,
+                                               IID_IWICImagingFactory,
+                                               (void**)wic_factory.GetAddressOf()));
     success = success && HR_SUCCESS(wic_factory->CreateStream(stream.GetAddressOf()));
-    success = success && HR_SUCCESS(wic_factory->CreateBitmapFromMemory(
-                input.width,
-                input.height,
-                GUID_WICPixelFormat32bppRGBA,
-                4 * input.width,
-                4 * input.width * input.height,
-                input.pixels,
-                bitmap.GetAddressOf()
-                ));
+    success = success
+              && HR_SUCCESS(wic_factory->CreateBitmapFromMemory(input.width,
+                                                                input.height,
+                                                                GUID_WICPixelFormat32bppRGBA,
+                                                                4 * input.width,
+                                                                4 * input.width * input.height,
+                                                                input.pixels,
+                                                                bitmap.GetAddressOf()));
     success = success && HR_SUCCESS(wic_factory->CreateBitmapScaler(scaler.GetAddressOf()));
-    success = success && HR_SUCCESS(scaler->Initialize(bitmap.Get(), out_width, out_height, WICBitmapInterpolationModeFant));
-    success = success && HR_SUCCESS(WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, scaler.Get(), source.GetAddressOf()));
+    success = success
+              && HR_SUCCESS(scaler->Initialize(bitmap.Get(), out_width, out_height, WICBitmapInterpolationModeFant));
+    success = success
+              && HR_SUCCESS(WICConvertBitmapSource(GUID_WICPixelFormat32bppRGBA, scaler.Get(), source.GetAddressOf()));
 
     if(!success)
     {
@@ -333,8 +347,8 @@ Image resize_image(const Image& input, int out_width, int out_height)
     Image result = {};
     result.width = out_width;
     result.height = out_height;
-    result.pixels = new uint8_t[out_width*out_height*4];
-    source->CopyPixels(nullptr, 4*out_width, 4*out_width*out_height, result.pixels);
+    result.pixels = new uint8_t[out_width * out_height * 4];
+    source->CopyPixels(nullptr, 4 * out_width, 4 * out_width * out_height, result.pixels);
     return result;
 }
 
@@ -342,16 +356,16 @@ void transpose_image_noalloc(int width, int height, const uint8_t* in_pixels, ui
 {
     // Instead of doing the entire image at once, we transpose in "blocks" for better cache efficiency
     const int block_size = 256;
-    for(int block_y=0; block_y<height; block_y+=block_size)
+    for(int block_y = 0; block_y < height; block_y += block_size)
     {
-        for(int x=0; x < width; x++)
+        for(int x = 0; x < width; x++)
         {
-            const uint8_t* in_block_column = in_pixels + 4*(block_y*width + x);
-            uint8_t* out_foo = out_pixels + 4*(x*height + block_y);
-            for(int y=0; (y<block_size) && (block_y+y<height); y++)
+            const uint8_t* in_block_column = in_pixels + 4 * (block_y * width + x);
+            uint8_t* out_foo = out_pixels + 4 * (x * height + block_y);
+            for(int y = 0; (y < block_size) && (block_y + y < height); y++)
             {
-                const uint8_t* in_px = in_block_column + 4*y*width;
-                uint8_t* out_px = out_foo + 4*y;
+                const uint8_t* in_px = in_block_column + 4 * y * width;
+                uint8_t* out_px = out_foo + 4 * y;
                 memcpy(out_px, in_px, 4);
             }
         }
@@ -371,14 +385,15 @@ Image transpose_image(const Image& img)
 
 static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_pixels, uint8_t* out_pixels, int radius)
 {
-    if(width <= 2*radius+1)
+    if(width <= 2 * radius + 1)
     {
         // We assume the image is wide enough to contain at least one full blur window.
         LOG_INFO("Skipping blur as image of width %d is too small to have a blur window of size %d",
-                width, 2*radius+1);
+                 width,
+                 2 * radius + 1);
         return;
     }
-    assert(width > 2*radius+1);
+    assert(width > 2 * radius + 1);
 
     // A box blur requires that we total up the pixel values across the blur window and
     // divide them by the window width. This is an integer division and therefore is
@@ -386,20 +401,20 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
     // allows us to express integer division in terms of integer additions, multiplies
     // and shifts, which in turn allows us to apply SIMD to compute several divisions
     // in parallel.
-    libdivide::libdivide_u16_branchfree_t divisor = libdivide::libdivide_u16_branchfree_gen(2*uint16_t(radius)+1);
-    for(int y=0; y<height; y++)
+    libdivide::libdivide_u16_branchfree_t divisor = libdivide::libdivide_u16_branchfree_gen(2 * uint16_t(radius) + 1);
+    for(int y = 0; y < height; y++)
     {
-        const uint8_t* in_row = &in_pixels[4*width*y];
-        uint8_t* out_row = &out_pixels[4*width*y];
+        const uint8_t* in_row = &in_pixels[4 * width * y];
+        uint8_t* out_row = &out_pixels[4 * width * y];
 
         // Prime the accumulation buffer
         uint16_t accum[4] = {};
-        for(int accum_x=-radius; accum_x<radius+1; accum_x++)
+        for(int accum_x = -radius; accum_x < radius + 1; accum_x++)
         {
-            int x = std::max(0, std::min(width-1, accum_x));
-            for(int c=0; c<4; c++)
+            int x = std::max(0, std::min(width - 1, accum_x));
+            for(int c = 0; c < 4; c++)
             {
-                accum[c] += in_pixels[4*(width*y + x) + c];
+                accum[c] += in_pixels[4 * (width * y + x) + c];
             }
         }
 
@@ -411,21 +426,21 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
         // * One where we assume the entire blur window falls within the valid horizontal
         //   range. This loop covers almost all pixels.
         // * One where X is "hard coded" as "clamped to `width-1`"
-        for(int x=0; x<radius; x++)
+        for(int x = 0; x < radius; x++)
         {
-            for(int c=0; c<4; c++)
+            for(int c = 0; c < 4; c++)
             {
                 uint16_t val = libdivide::libdivide_u16_branchfree_do(accum[c], &divisor);
-                out_pixels[4*(width*y + x) + c] = val & 0xFF;
+                out_pixels[4 * (width * y + x) + c] = val & 0xFF;
             }
 
             const int old_x = 0;
-            const int new_x = x+radius+1;
+            const int new_x = x + radius + 1;
 
-            for(int c=0; c<4; c++)
+            for(int c = 0; c < 4; c++)
             {
-                const uint8_t oldval = in_pixels[(4*(width*y + old_x) + c)];
-                const uint8_t newval = in_pixels[(4*(width*y + new_x) + c)];
+                const uint8_t oldval = in_pixels[(4 * (width * y + old_x) + c)];
+                const uint8_t newval = in_pixels[(4 * (width * y + new_x) + c)];
                 accum[c] += newval;
                 accum[c] -= oldval;
             }
@@ -433,7 +448,7 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
 
         const __m128i zero = {};
         __m128i accum128 = _mm_loadu_si64(accum);
-        for(int x=radius; x<width-radius-1; x++)
+        for(int x = radius; x < width - radius - 1; x++)
         {
             // This is the main loop. Effectively all it needs to do is this:
             //     for(int c=0; c<4; c++)
@@ -463,12 +478,12 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
             __m128i t3 = _mm_add_epi16(t2, q);
             __m128i val = _mm_srli_epi16(t3, divisor.more);
             __m128i packed_val = _mm_packus_epi16(val, val);
-            _mm_storeu_si64(&out_row[4*x], packed_val);
+            _mm_storeu_si64(&out_row[4 * x], packed_val);
 
             const int old_x = x - radius;
             const int new_x = x + radius + 1;
-            const uint8_t* old_pixel_ptr = &in_row[4*old_x];
-            const uint8_t* new_pixel_ptr = &in_row[4*new_x];
+            const uint8_t* old_pixel_ptr = &in_row[4 * old_x];
+            const uint8_t* new_pixel_ptr = &in_row[4 * new_x];
 
             // Now that we've computed the output pixel, we need to update the accumulator
             // to remove the 'old' pixel on the left of the blur window, and add in the
@@ -490,21 +505,21 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
         }
         _mm_storeu_si64(accum, accum128);
 
-        for(int x=width-radius-1; x<width; x++)
+        for(int x = width - radius - 1; x < width; x++)
         {
-            for(int c=0; c<4; c++)
+            for(int c = 0; c < 4; c++)
             {
                 uint16_t val = libdivide::libdivide_u16_branchfree_do(accum[c], &divisor);
-                out_pixels[4*(width*y + x) + c] = val & 0xFF;
+                out_pixels[4 * (width * y + x) + c] = val & 0xFF;
             }
 
-            const int old_x = x-radius;
-            const int new_x = width-1;
+            const int old_x = x - radius;
+            const int new_x = width - 1;
 
-            for(int c=0; c<4; c++)
+            for(int c = 0; c < 4; c++)
             {
-                const uint8_t oldval = in_pixels[(4*(width*y + old_x) + c)];
-                const uint8_t newval = in_pixels[(4*(width*y + new_x) + c)];
+                const uint8_t oldval = in_pixels[(4 * (width * y + old_x) + c)];
+                const uint8_t newval = in_pixels[(4 * (width * y + new_x) + c)];
                 accum[c] += newval;
                 accum[c] -= oldval;
             }
@@ -526,8 +541,8 @@ static Image image_boxblur_linear_horizontal(const Image& img, int radius)
 
 Image blur_image(const Image& img, int radius)
 {
-    if(radius > img.width/3) radius = img.width/3;
-    if(radius > img.height/3) radius = img.height/3;
+    if(radius > img.width / 3) radius = img.width / 3;
+    if(radius > img.height / 3) radius = img.height / 3;
 
     if(radius <= 0)
     {
@@ -569,11 +584,11 @@ Image blur_image(const Image& img, int radius)
 // Convert an RGBA image into a BGRA image (or vice-versa)
 void toggle_image_rgba_bgra_inplace(Image& img)
 {
-    for(int y=0; y<img.height; y++)
+    for(int y = 0; y < img.height; y++)
     {
-        for(int x=0; x<img.width; x++)
+        for(int x = 0; x < img.width; x++)
         {
-            uint8_t* px = img.pixels + (y*img.width + x)*4;
+            uint8_t* px = img.pixels + (y * img.width + x) * 4;
             uint8_t r = px[0];
             uint8_t b = px[2];
             px[0] = b;

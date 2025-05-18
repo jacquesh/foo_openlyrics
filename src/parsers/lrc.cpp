@@ -2,8 +2,8 @@
 
 #include "logging.h"
 #include "lyric_data.h"
-#include "openlyrics_algorithms.h"
 #include "mvtf/mvtf.h"
+#include "openlyrics_algorithms.h"
 #include "parsers.h"
 #include "tag_util.h"
 #include "win32_util.h"
@@ -21,32 +21,30 @@ static std::optional<TResult> strtoint(std::string_view str)
 {
     TResult output = 0;
     std::from_chars_result result = std::from_chars(str.data(), str.data() + str.length(), output);
-    if(result.ec == std::errc{})
+    if(result.ec == std::errc {})
     {
-        return {output};
+        return { output };
     }
     return {};
 }
 
-namespace parsers::lrc
-{
-
-bool is_tag_line(std::string_view line)
+bool parsers::lrc::is_tag_line(std::string_view line)
 {
     if(line.size() <= 0) return false;
     if(line[0] != '[') return false;
-    if(line[line.size()-1] != ']') return false;
+    if(line[line.size() - 1] != ']') return false;
 
     size_t colon_index = line.find(':');
     if(colon_index == std::string::npos) return false;
     assert(colon_index != 0); // We've already checked that the first char is '['
 
-    size_t tag_length = colon_index - 1; // Tag lines have the form [tag:value] so we -1 to count from the 't' to the ':'
+    // Tag lines have the form [tag:value] so we -1 to count from the 't' to the ':'
+    size_t tag_length = colon_index - 1;
     if(tag_length == 0) return false;
 
-    std::string_view tag = line.substr(1, colon_index-1);
+    std::string_view tag = line.substr(1, colon_index - 1);
 
-    if(   !equals_ignore_case(tag, "ar") // Artist
+    if(!equals_ignore_case(tag, "ar") // Artist
        && !equals_ignore_case(tag, "al") // Album
        && !equals_ignore_case(tag, "ti") // Title
        && !equals_ignore_case(tag, "by") // Lyric 'author' (person who made the lrc)
@@ -55,7 +53,7 @@ bool is_tag_line(std::string_view line)
        && !equals_ignore_case(tag, "length") // Track length (e.g ''03:40')
        && !equals_ignore_case(tag, "t_time") // Track length (e.g '(2:57)')
        && !equals_ignore_case(tag, "encoding") // Lyrics encoding (e.g 'utf-8' or 'iso-8859-15')
-       )
+    )
     {
         return false;
     }
@@ -67,7 +65,7 @@ static std::optional<double> try_parse_offset_tag(std::string_view line)
 {
     if(line.size() <= 0) return {};
     if(line[0] != '[') return {};
-    if(line[line.size()-1] != ']') return {};
+    if(line[line.size() - 1] != ']') return {};
 
     size_t colon_index = line.find(':');
     if(colon_index == std::string::npos) return {};
@@ -85,7 +83,7 @@ static std::optional<double> try_parse_offset_tag(std::string_view line)
     if(maybe_offset.has_value())
     {
         int64_t offset_ms = maybe_offset.value();
-        double offset_sec = double(offset_ms)/1000.0;
+        double offset_sec = double(offset_ms) / 1000.0;
         return offset_sec;
     }
     else
@@ -94,10 +92,10 @@ static std::optional<double> try_parse_offset_tag(std::string_view line)
     }
 }
 
-void set_offset_tag(LyricData& lyrics, double offset_seconds)
+void parsers::lrc::set_offset_tag(LyricData& lyrics, double offset_seconds)
 {
-    std::string new_tag = "[offset:" + std::to_string(static_cast<int>(offset_seconds*1000.0)) + "]";
-    for(auto iter=lyrics.tags.begin(); iter!=lyrics.tags.end(); iter++)
+    std::string new_tag = "[offset:" + std::to_string(static_cast<int>(offset_seconds * 1000.0)) + "]";
+    for(auto iter = lyrics.tags.begin(); iter != lyrics.tags.end(); iter++)
     {
         if(try_parse_offset_tag(*iter).has_value())
         {
@@ -109,9 +107,9 @@ void set_offset_tag(LyricData& lyrics, double offset_seconds)
     lyrics.tags.push_back(std::move(new_tag));
 }
 
-void remove_offset_tag(LyricData& lyrics)
+void parsers::lrc::remove_offset_tag(LyricData& lyrics)
 {
-    for(auto iter=lyrics.tags.begin(); iter!=lyrics.tags.end(); /*omitted*/)
+    for(auto iter = lyrics.tags.begin(); iter != lyrics.tags.end(); /*omitted*/)
     {
         if(try_parse_offset_tag(*iter).has_value())
         {
@@ -124,11 +122,12 @@ void remove_offset_tag(LyricData& lyrics)
     }
 }
 
-double get_line_first_timestamp(std::string_view line)
+double parsers::lrc::get_line_first_timestamp(std::string_view line)
 {
     double timestamp = DBL_MAX;
     size_t close_index = line.find(']');
-    if((close_index != std::string_view::npos) && try_parse_timestamp(line.substr(0, close_index+1), timestamp))
+    if((close_index != std::string_view::npos)
+       && parsers::lrc::try_parse_timestamp(line.substr(0, close_index + 1), timestamp))
     {
         return timestamp;
     }
@@ -148,14 +147,14 @@ struct LineTimeParseResult
     size_t charsConsumed;
 };
 
-std::string print_timestamp(double timestamp)
+std::string parsers::lrc::print_timestamp(double timestamp)
 {
     assert(timestamp != DBL_MAX);
     double total_seconds_flt = std::floor(timestamp);
     int total_seconds = static_cast<int>(total_seconds_flt);
-    int time_hours = total_seconds/3600;
-    int time_minutes = (total_seconds - 3600*time_hours)/60;
-    int time_seconds = total_seconds - (time_hours*3600) - (time_minutes*60);
+    int time_hours = total_seconds / 3600;
+    int time_minutes = (total_seconds - 3600 * time_hours) / 60;
+    int time_seconds = total_seconds - (time_hours * 3600) - (time_minutes * 60);
     int time_centisec = static_cast<int>(std::round((timestamp - total_seconds_flt) * 100.0));
 
     // NOTE: We need this special case here because the `std::round` call above might round us up
@@ -191,10 +190,9 @@ std::string print_timestamp(double timestamp)
     return std::string(temp);
 }
 
-bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
+bool parsers::lrc::try_parse_timestamp(std::string_view tag, double& out_timestamp)
 {
-    if((tag[0] != '[') ||
-       (tag[tag.length()-1] != ']'))
+    if((tag[0] != '[') || (tag[tag.length() - 1] != ']'))
     {
         // We require that the tag is the entire string
         return false;
@@ -202,7 +200,7 @@ bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
 
     size_t second_separator = tag.rfind('.');
     size_t minsec_separator = tag.rfind(':');
-    size_t hourmin_separator = tag.rfind(':', minsec_separator-1);
+    size_t hourmin_separator = tag.rfind(':', minsec_separator - 1);
     if((second_separator == std::string_view::npos) || (minsec_separator == std::string_view::npos))
     {
         // We don't have the required separators for seconds-milliseconds and minutes-seconds
@@ -228,16 +226,14 @@ bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
     std::optional<uint64_t> maybe_min = strtoint<uint64_t>(min_str);
     std::optional<uint64_t> maybe_hour = strtoint<uint64_t>(hour_str);
 
-    if(!maybe_subsec.has_value() ||
-       !maybe_sec.has_value() ||
-       !maybe_min.has_value())
+    if(!maybe_subsec.has_value() || !maybe_sec.has_value() || !maybe_min.has_value())
     {
         // The substrings that should contain positive integers, don't.
         return false;
     }
 
     double subsec_coefficient = 1.0;
-    for(size_t i=0; i<subsec_str.length(); i++)
+    for(size_t i = 0; i < subsec_str.length(); i++)
     {
         subsec_coefficient *= 0.1;
     }
@@ -245,10 +241,10 @@ bool try_parse_timestamp(std::string_view tag, double& out_timestamp)
     double timestamp = 0;
     timestamp += double(maybe_subsec.value()) * subsec_coefficient;
     timestamp += double(maybe_sec.value());
-    timestamp += double(maybe_min.value())*60.0;
+    timestamp += double(maybe_min.value()) * 60.0;
     if(maybe_hour.has_value())
     {
-        timestamp += double(maybe_hour.value())*3600.0;
+        timestamp += double(maybe_hour.value()) * 3600.0;
     }
     out_timestamp = timestamp;
     return true;
@@ -267,13 +263,13 @@ static LineTimeParseResult parse_time_from_line(std::string_view line)
         std::string_view tag = line.substr(index, tag_length);
 
         double timestamp = -1.0;
-        if(try_parse_timestamp(tag, timestamp))
+        if(parsers::lrc::try_parse_timestamp(tag, timestamp))
         {
-            return {true, timestamp, index + tag_length};
+            return { true, timestamp, index + tag_length };
         }
         else
         {
-            // If we find something that is not a well-formed timestamp then stop and just 
+            // If we find something that is not a well-formed timestamp then stop and just
             break;
         }
     }
@@ -283,7 +279,7 @@ static LineTimeParseResult parse_time_from_line(std::string_view line)
     //       the non-tag string correctly and without `index` here we'll include the last
     //       tag (if any) in that string (which is wrong, since we want to ignore metadata
     //       tags such as title and artist).
-    return {false, 0.0, index};
+    return { false, 0.0, index };
 }
 
 static ParsedLineContents parse_line_times(std::string_view line)
@@ -305,24 +301,25 @@ static ParsedLineContents parse_line_times(std::string_view line)
         }
     }
 
-    return {result, std::string(line.substr(index).data(), line.size()-index)};
+    return { result, std::string(line.substr(index).data(), line.size() - index) };
 }
 
-std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricDataLine>& input)
+static std::vector<LyricDataLine> collapse_concurrent_lines(const std::vector<LyricDataLine>& input)
 {
-    return alg::collapse(input, [](const LyricDataLine& lhs, const LyricDataLine& rhs)
-    {
-        if((lhs.timestamp == DBL_MAX) || (lhs.timestamp != rhs.timestamp))
-        {
-            return std::pair{lhs, std::optional{rhs}};
-        }
+    return alg::collapse(input,
+                         [](const LyricDataLine& lhs, const LyricDataLine& rhs)
+                         {
+                             if((lhs.timestamp == DBL_MAX) || (lhs.timestamp != rhs.timestamp))
+                             {
+                                 return std::pair { lhs, std::optional { rhs } };
+                             }
 
-        LyricDataLine combined = {lhs.text + _T('\n') + rhs.text, lhs.timestamp};
-        return std::pair{combined, std::optional<LyricDataLine>{}};
-    });
+                             LyricDataLine combined = { lhs.text + _T('\n') + rhs.text, lhs.timestamp };
+                             return std::pair { combined, std::optional<LyricDataLine> {} };
+                         });
 }
 
-LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text` is assumed to be utf-8
+LyricData parsers::lrc::parse(const LyricDataCommon& metadata, std::string_view text) // `text` is assumed to be utf-8
 {
     LOG_INFO("Parsing LRC lyric text...");
 
@@ -332,13 +329,11 @@ LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text
     double timestamp_offset = 0.0;
 
     size_t line_start_index = 0;
-    while (line_start_index < text.length())
+    while(line_start_index < text.length())
     {
         size_t line_end_index = line_start_index;
-        while ((line_end_index < text.length()) &&
-            (text[line_end_index] != '\0') &&
-            (text[line_end_index] != '\n') &&
-            (text[line_end_index] != '\r'))
+        while((line_end_index < text.length()) && (text[line_end_index] != '\0') && (text[line_end_index] != '\n')
+              && (text[line_end_index] != '\r'))
         {
             line_end_index++;
         }
@@ -350,23 +345,22 @@ LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text
             //       We don't want to process them so just skip past them. Ordinarily we'd do this
             //       just once at the start of the file but I've seen files with BOMs at the start
             //       of random lines in the file, so just check every line.
-            if((text[line_start_index] == '\u00EF') &&
-               (text[line_start_index+1] == '\u00BB') &&
-               (text[line_start_index+2] == '\u00BF'))
+            if((text[line_start_index] == '\u00EF') && (text[line_start_index + 1] == '\u00BB')
+               && (text[line_start_index + 2] == '\u00BF'))
             {
                 line_start_index += 3;
                 line_bytes -= 3;
             }
         }
 
-        const std::string_view line_view {text.data() + line_start_index, line_bytes};
+        const std::string_view line_view { text.data() + line_start_index, line_bytes };
         ParsedLineContents parse_output = parse_line_times(line_view);
         if(parse_output.timestamps.size() > 0)
         {
             tag_section_passed = true;
             for(double timestamp : parse_output.timestamps)
             {
-                lines.push_back({to_tstring(parse_output.line), timestamp});
+                lines.push_back({ to_tstring(parse_output.line), timestamp });
             }
         }
         else
@@ -386,19 +380,17 @@ LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text
                 if(maybe_offset.has_value())
                 {
                     timestamp_offset = maybe_offset.value();
-                    LOG_INFO("Found LRC offset: %dms", int(timestamp_offset*1000.0));
+                    LOG_INFO("Found LRC offset: %dms", int(timestamp_offset * 1000.0));
                 }
             }
             else
             {
                 tag_section_passed |= (line_bytes > 0);
-                lines.push_back({to_tstring(line_view), DBL_MAX});
+                lines.push_back({ to_tstring(line_view), DBL_MAX });
             }
         }
 
-        if ((line_end_index + 1 < text.length()) &&
-            (text[line_end_index] == '\r') &&
-            (text[line_end_index + 1] == '\n'))
+        if((line_end_index + 1 < text.length()) && (text[line_end_index] == '\r') && (text[line_end_index + 1] == '\n'))
         {
             line_start_index = line_end_index + 2;
         }
@@ -408,10 +400,9 @@ LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text
         }
     }
 
-    std::stable_sort(lines.begin(), lines.end(), [](const LyricDataLine& a, const LyricDataLine& b)
-    {
-        return a.timestamp < b.timestamp;
-    });
+    std::stable_sort(lines.begin(),
+                     lines.end(),
+                     [](const LyricDataLine& a, const LyricDataLine& b) { return a.timestamp < b.timestamp; });
     lines = collapse_concurrent_lines(lines);
 
     LyricData result(metadata);
@@ -421,7 +412,7 @@ LyricData parse(const LyricDataCommon& metadata, std::string_view text) // `text
     return result;
 }
 
-std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
+std::tstring parsers::lrc::expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 {
     LOG_INFO("Expanding lyric text...");
     std::tstring expanded_text;
@@ -449,14 +440,15 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
             //       However if two lines in an lrc file have identical timestamps, then we merge them
             //       during parsing. In that case we need to split them out again here.
             size_t start_index = 0;
-            while(start_index <= in_line.text.length()) // This is specifically less-or-equal so that empty lines do not get ignored and show up in the editor
+            while(start_index <= in_line.text.length()) // This is specifically less-or-equal so that empty lines do
+                                                        // not get ignored and show up in the editor
             {
                 size_t end_index = std::min(in_line.text.length(), in_line.text.find('\n', start_index));
                 size_t length = end_index - start_index;
                 std::tstring out_text(&in_line.text.c_str()[start_index], length);
                 out_lines.push_back({ out_text, in_line.timestamp });
 
-                start_index = end_index+1;
+                start_index = end_index + 1;
             }
         }
 
@@ -464,14 +456,16 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
         {
             std::vector<std::pair<size_t, LyricDataLine>> indexed_lines = alg::enumerate(std::move(out_lines));
 
-            const auto lexicographic_sort = [](const auto& lhs, const auto& rhs){ return lhs.second.text < rhs.second.text; };
+            const auto lexicographic_sort = [](const auto& lhs, const auto& rhs)
+            { return lhs.second.text < rhs.second.text; };
             std::stable_sort(indexed_lines.begin(), indexed_lines.end(), lexicographic_sort);
             decltype(indexed_lines)::iterator equal_begin = indexed_lines.begin();
 
             while(equal_begin != indexed_lines.end())
             {
                 decltype(indexed_lines)::iterator equal_end = equal_begin + 1;
-                while((equal_end != indexed_lines.end()) && (equal_begin->second.text == equal_end->second.text) && (equal_end->second.timestamp != DBL_MAX))
+                while((equal_end != indexed_lines.end()) && (equal_begin->second.text == equal_end->second.text)
+                      && (equal_end->second.timestamp != DBL_MAX))
                 {
                     equal_end++;
                 }
@@ -479,14 +473,15 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
                 // NOTE: We don't need to move equal_begin back one because we don't add
                 //       the first timestamp to the string. That'll happen as part of the
                 //       normal printing below.
-                for(auto iter=equal_end-1; iter!=equal_begin; iter--)
+                for(auto iter = equal_end - 1; iter != equal_begin; iter--)
                 {
-                    equal_begin->second.text = to_tstring(parsers::lrc::print_timestamp(iter->second.timestamp)) + equal_begin->second.text;
+                    equal_begin->second.text = to_tstring(parsers::lrc::print_timestamp(iter->second.timestamp))
+                                               + equal_begin->second.text;
                 }
-                equal_begin = indexed_lines.erase(equal_begin+1, equal_end);
+                equal_begin = indexed_lines.erase(equal_begin + 1, equal_end);
             }
 
-            const auto index_sort = [](const auto& lhs, const auto& rhs){ return lhs.first < rhs.first; };
+            const auto index_sort = [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; };
             std::sort(indexed_lines.begin(), indexed_lines.end(), index_sort);
             out_lines = alg::denumerate(indexed_lines);
         }
@@ -510,9 +505,10 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
             assert(line.timestamp == DBL_MAX);
             if(line.text.empty())
             {
-                // NOTE: In the lyric editor, we automatically select the next line after synchronising the current one.
-                //       If the new-selected line has no timestamp and is empty then visually there will be no selection, which is a little confusing.
-                //       To avoid this we add a space to such lines when loading the lyrics, which will be removed when we shrink the text for saving.
+                // NOTE: In the lyric editor, we auto-select the next line after synchronising the current one.
+                //       If the new-selected line has no timestamp and is empty then visually there will be no
+                //       selection, which is a little confusing. To avoid this we add a space to such lines when
+                //       loading the lyrics, which will be removed when we shrink the text for saving.
                 expanded_text += _T(" ");
             }
             else
@@ -525,9 +521,6 @@ std::tstring expand_text(const LyricData& data, bool merge_equivalent_lrc_lines)
 
     return expanded_text;
 }
-
-} // namespace parsers::lrc
-
 
 // ============
 // Tests
@@ -604,19 +597,21 @@ MVTF_TEST(lrcparse_parsing_duplicates_lines_with_multiple_timestamps)
 MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps)
 {
     LyricData input = {};
-    input.lines.push_back({_T("line1Part1\nline1Part2"), 149.75});
-    input.lines.push_back({_T("line2Part1\nline2Part2\nline2Part3"), 153.09});
+    input.lines.push_back({ _T("line1Part1\nline1Part2"), 149.75 });
+    input.lines.push_back({ _T("line2Part1\nline2Part2\nline2Part3"), 153.09 });
 
     const std::tstring output = parsers::lrc::expand_text(input, false);
-    ASSERT(output == _T("[02:29.75]line1Part1\r\n[02:29.75]line1Part2\r\n[02:33.09]line2Part1\r\n[02:33.09]line2Part2\r\n[02:33.09]line2Part3\r\n"));
+    ASSERT(output
+           == _T("[02:29.75]line1Part1\r\n[02:29.75]line1Part2\r\n[02:33.09]line2Part1\r\n[02:33.09]line2Part2\r\n[02:")
+              _T("33.09]line2Part3\r\n"));
 }
 
 MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps_and_then_merges_matching_lines)
 {
     // Checks for the timestamp-modifying part of https://github.com/jacquesh/foo_openlyrics/issues/354
     LyricData input = {};
-    input.lines.push_back({_T("linePart1\nlinePart2"), 149.75});
-    input.lines.push_back({_T("linePart1\nlinePart2\nlinePart3"), 153.09});
+    input.lines.push_back({ _T("linePart1\nlinePart2"), 149.75 });
+    input.lines.push_back({ _T("linePart1\nlinePart2\nlinePart3"), 153.09 });
 
     const std::tstring output = parsers::lrc::expand_text(input, true);
     ASSERT(output == _T("[02:29.75][02:33.09]linePart1\r\n[02:29.75][02:33.09]linePart2\r\n[02:33.09]linePart3\r\n"));
@@ -625,7 +620,7 @@ MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps_and_then_merg
 MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps_in_their_original_order)
 {
     LyricData input = {};
-    input.lines.push_back({_T("lineBBBB\nlineAAAA"), 149.75});
+    input.lines.push_back({ _T("lineBBBB\nlineAAAA"), 149.75 });
     // These lines should remain in their given order, even though this is not lexicographic order,
     // which the code might conceivably change if it involved a sort to check for equivalent lines
 
@@ -636,22 +631,24 @@ MVTF_TEST(lrcparse_expanding_splits_lines_with_matching_timestamps_in_their_orig
 MVTF_TEST(lrcparse_expanding_does_not_merge_matching_lines_when_not_requested)
 {
     LyricData input = {};
-    input.lines.push_back({_T("thebestline"), 5.0});
-    input.lines.push_back({_T("thebestline"), 10.0});
-    input.lines.push_back({_T("anotherline"), 12.0});
-    input.lines.push_back({_T("anotherline"), 14.0});
+    input.lines.push_back({ _T("thebestline"), 5.0 });
+    input.lines.push_back({ _T("thebestline"), 10.0 });
+    input.lines.push_back({ _T("anotherline"), 12.0 });
+    input.lines.push_back({ _T("anotherline"), 14.0 });
 
     const std::tstring output = parsers::lrc::expand_text(input, false);
-    ASSERT(output == _T("[00:05.00]thebestline\r\n[00:10.00]thebestline\r\n[00:12.00]anotherline\r\n[00:14.00]anotherline\r\n"));
+    ASSERT(
+        output
+        == _T("[00:05.00]thebestline\r\n[00:10.00]thebestline\r\n[00:12.00]anotherline\r\n[00:14.00]anotherline\r\n"));
 }
 
 MVTF_TEST(lrcparse_expanding_merges_matching_lines)
 {
     LyricData input = {};
-    input.lines.push_back({_T("thebestline"), 5.0});
-    input.lines.push_back({_T("thebestline"), 10.0});
-    input.lines.push_back({_T("anotherline"), 12.0});
-    input.lines.push_back({_T("anotherline"), 14.0});
+    input.lines.push_back({ _T("thebestline"), 5.0 });
+    input.lines.push_back({ _T("thebestline"), 10.0 });
+    input.lines.push_back({ _T("anotherline"), 12.0 });
+    input.lines.push_back({ _T("anotherline"), 14.0 });
 
     const std::tstring output = parsers::lrc::expand_text(input, true);
     ASSERT(output == _T("[00:05.00][00:10.00]thebestline\r\n[00:12.00][00:14.00]anotherline\r\n"));
@@ -660,15 +657,17 @@ MVTF_TEST(lrcparse_expanding_merges_matching_lines)
 MVTF_TEST(lrcparse_expanding_merges_matching_lines_with_matching_timestamps)
 {
     LyricData input = {};
-    input.lines.push_back({_T("thebestline-part1"), 5.0});
-    input.lines.push_back({_T("thebestline-part2"), 5.0});
-    input.lines.push_back({_T("anotherline-part1"), 10.0});
-    input.lines.push_back({_T("anotherline-part2"), 10.0});
-    input.lines.push_back({_T("thebestline-part1"), 15.0});
-    input.lines.push_back({_T("thebestline-part2"), 15.0});
+    input.lines.push_back({ _T("thebestline-part1"), 5.0 });
+    input.lines.push_back({ _T("thebestline-part2"), 5.0 });
+    input.lines.push_back({ _T("anotherline-part1"), 10.0 });
+    input.lines.push_back({ _T("anotherline-part2"), 10.0 });
+    input.lines.push_back({ _T("thebestline-part1"), 15.0 });
+    input.lines.push_back({ _T("thebestline-part2"), 15.0 });
 
     const std::tstring output = parsers::lrc::expand_text(input, true);
-    ASSERT(output == _T("[00:05.00][00:15.00]thebestline-part1\r\n[00:05.00][00:15.00]thebestline-part2\r\n[00:10.00]anotherline-part1\r\n[00:10.00]anotherline-part2\r\n"));
+    ASSERT(output
+           == _T("[00:05.00][00:15.00]thebestline-part1\r\n[00:05.00][00:15.00]thebestline-part2\r\n[00:10.00]")
+              _T("anotherline-part1\r\n[00:10.00]anotherline-part2\r\n"));
 }
 
 MVTF_TEST(lrcparse_expanding_merges_matching_lines_in_timestamp_order)
@@ -677,40 +676,40 @@ MVTF_TEST(lrcparse_expanding_merges_matching_lines_in_timestamp_order)
     // This is the result of std::sort not being std::stable_sort, so it depends on std::sort doing "unstable" things
     // which is not really something that is easily controlled from outside std::sort
     LyricData input = {};
-    input.lines.push_back({_T(""), 0.0});
-    input.lines.push_back({_T("13"), 0.83});
-    input.lines.push_back({_T("14"), 10.79});
-    input.lines.push_back({_T("15"), 18.31});
-    input.lines.push_back({_T(""), 20.96});
-    input.lines.push_back({_T("16"), 35.27});
-    input.lines.push_back({_T("17"), 44.97});
-    input.lines.push_back({_T("18"), 50.21});
-    input.lines.push_back({_T(""), 54.53});
-    input.lines.push_back({_T("19"), 54.66});
-    input.lines.push_back({_T("20"), 60.05});
-    input.lines.push_back({_T("21"), 64.40});
-    input.lines.push_back({_T("22"), 69.90});
-    input.lines.push_back({_T(""), 75.51});
-    input.lines.push_back({_T("23"), 79.39});
-    input.lines.push_back({_T("24"), 89.12});
-    input.lines.push_back({_T("1"), 94.28});
-    input.lines.push_back({_T(""), 98.51});
-    input.lines.push_back({_T("2"), 98.72});
-    input.lines.push_back({_T("3"), 104.10});
-    input.lines.push_back({_T("4"), 108.52});
-    input.lines.push_back({_T("22"), 113.96});
-    input.lines.push_back({_T(""), 119.64});
-    input.lines.push_back({_T("5"), 137.93});
-    input.lines.push_back({_T("6"), 148.06});
-    input.lines.push_back({_T("7"), 154.95});
-    input.lines.push_back({_T(""), 161.98});
-    input.lines.push_back({_T("20"), 167.83});
-    input.lines.push_back({_T(""), 172.02});
-    input.lines.push_back({_T("8"), 172.14});
-    input.lines.push_back({_T("9"), 177.64});
-    input.lines.push_back({_T("10"), 182.76});
-    input.lines.push_back({_T("11"), 186.76});
-    input.lines.push_back({_T(""), 189.80});
+    input.lines.push_back({ _T(""), 0.0 });
+    input.lines.push_back({ _T("13"), 0.83 });
+    input.lines.push_back({ _T("14"), 10.79 });
+    input.lines.push_back({ _T("15"), 18.31 });
+    input.lines.push_back({ _T(""), 20.96 });
+    input.lines.push_back({ _T("16"), 35.27 });
+    input.lines.push_back({ _T("17"), 44.97 });
+    input.lines.push_back({ _T("18"), 50.21 });
+    input.lines.push_back({ _T(""), 54.53 });
+    input.lines.push_back({ _T("19"), 54.66 });
+    input.lines.push_back({ _T("20"), 60.05 });
+    input.lines.push_back({ _T("21"), 64.40 });
+    input.lines.push_back({ _T("22"), 69.90 });
+    input.lines.push_back({ _T(""), 75.51 });
+    input.lines.push_back({ _T("23"), 79.39 });
+    input.lines.push_back({ _T("24"), 89.12 });
+    input.lines.push_back({ _T("1"), 94.28 });
+    input.lines.push_back({ _T(""), 98.51 });
+    input.lines.push_back({ _T("2"), 98.72 });
+    input.lines.push_back({ _T("3"), 104.10 });
+    input.lines.push_back({ _T("4"), 108.52 });
+    input.lines.push_back({ _T("22"), 113.96 });
+    input.lines.push_back({ _T(""), 119.64 });
+    input.lines.push_back({ _T("5"), 137.93 });
+    input.lines.push_back({ _T("6"), 148.06 });
+    input.lines.push_back({ _T("7"), 154.95 });
+    input.lines.push_back({ _T(""), 161.98 });
+    input.lines.push_back({ _T("20"), 167.83 });
+    input.lines.push_back({ _T(""), 172.02 });
+    input.lines.push_back({ _T("8"), 172.14 });
+    input.lines.push_back({ _T("9"), 177.64 });
+    input.lines.push_back({ _T("10"), 182.76 });
+    input.lines.push_back({ _T("11"), 186.76 });
+    input.lines.push_back({ _T(""), 189.80 });
 
     const std::tstring output = parsers::lrc::expand_text(input, true);
     const TCHAR* expected = _T(
@@ -744,9 +743,9 @@ MVTF_TEST(lrcparse_expanding_merges_matching_lines_in_timestamp_order)
 MVTF_TEST(lrcparse_expanding_places_untimestamped_lines_at_the_end_with_no_timestamp)
 {
     LyricData input = {};
-    input.lines.push_back({_T("timeline1"), 1.0});
-    input.lines.push_back({_T("timeline2"), 2.0});
-    input.lines.push_back({_T("untimed"), DBL_MAX});
+    input.lines.push_back({ _T("timeline1"), 1.0 });
+    input.lines.push_back({ _T("timeline2"), 2.0 });
+    input.lines.push_back({ _T("untimed"), DBL_MAX });
 
     const std::tstring output = parsers::lrc::expand_text(input, true);
     ASSERT(output == _T("[00:01.00]timeline1\r\n[00:02.00]timeline2\r\nuntimed\r\n"));
@@ -755,7 +754,7 @@ MVTF_TEST(lrcparse_expanding_places_untimestamped_lines_at_the_end_with_no_times
 MVTF_TEST(lrcparse_parseoffset_parses_positive_values)
 {
     const std::string_view input = "[offset:1234]";
-    const std::optional<double> output = parsers::lrc::try_parse_offset_tag(input);
+    const std::optional<double> output = try_parse_offset_tag(input);
     ASSERT(output.has_value());
     ASSERT(output.value() == 1.234);
 }
@@ -763,7 +762,7 @@ MVTF_TEST(lrcparse_parseoffset_parses_positive_values)
 MVTF_TEST(lrcparse_parseoffset_parses_negative_values)
 {
     const std::string_view input = "[offset:-567]";
-    const std::optional<double> output = parsers::lrc::try_parse_offset_tag(input);
+    const std::optional<double> output = try_parse_offset_tag(input);
     ASSERT(output.has_value());
     ASSERT(output.value() == -0.567);
 }

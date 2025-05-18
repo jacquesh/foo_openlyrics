@@ -23,12 +23,16 @@ LyricSearchParams::LyricSearchParams(const metadb_v2_rec_t& track_info)
     }
 }
 
-LyricSearchParams::LyricSearchParams(std::string in_artist, std::string in_album, std::string in_title, std::optional<int> in_duration_sec)
+LyricSearchParams::LyricSearchParams(std::string in_artist,
+                                     std::string in_album,
+                                     std::string in_title,
+                                     std::optional<int> in_duration_sec)
     : artist(std::move(in_artist))
     , album(std::move(in_album))
     , title(std::move(in_title))
     , duration_sec(in_duration_sec)
-{}
+{
+}
 
 static std::vector<LyricSourceBase*> g_lyric_sources;
 
@@ -67,13 +71,10 @@ std::string LyricSourceRemote::urlencode(std::string_view input)
     std::string result;
     result.reserve(inlen * 3);
 
-    for(size_t i=0; i<inlen; i++)
+    for(size_t i = 0; i < inlen; i++)
     {
-        if(pfc::char_is_ascii_alphanumeric(input[i]) ||
-            (input[i] == '-') ||
-            (input[i] == '_') ||
-            (input[i] == '.') ||
-            (input[i] == '~'))
+        if(pfc::char_is_ascii_alphanumeric(input[i]) || (input[i] == '-') || (input[i] == '_') || (input[i] == '.')
+           || (input[i] == '~'))
         {
             result += input[i];
         }
@@ -111,13 +112,20 @@ bool LyricSourceRemote::is_local() const
     return false;
 }
 
-std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& track_info, abort_callback& abort)
+std::vector<LyricDataRaw> LyricSourceRemote::search(metadb_handle_ptr /*track*/,
+                                                    const metadb_v2_rec_t& track_info,
+                                                    abort_callback& abort)
 {
     const LyricSearchParams params(track_info);
     return search(params, abort);
 }
 
-std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/, const metadb_v2_rec_t& /*track_info*/, bool /*is_timestamped*/, std::string_view /*lyrics*/, bool /*allow_ovewrite*/, abort_callback& /*abort*/)
+std::string LyricSourceRemote::save(metadb_handle_ptr /*track*/,
+                                    const metadb_v2_rec_t& /*track_info*/,
+                                    bool /*is_timestamped*/,
+                                    std::string_view /*lyrics*/,
+                                    bool /*allow_ovewrite*/,
+                                    abort_callback& /*abort*/)
 {
     LOG_WARN("Cannot save lyrics to a remote source");
     assert(false);
@@ -189,8 +197,7 @@ void LyricSourceRemote::add_all_text_to_string(std::string& output, const pugi::
         case pugi::node_comment:
         case pugi::node_pi:
         case pugi::node_declaration:
-        case pugi::node_doctype:
-            return;
+        case pugi::node_doctype: return;
 
         case pugi::node_document:
         case pugi::node_element:
@@ -206,7 +213,8 @@ void LyricSourceRemote::add_all_text_to_string(std::string& output, const pugi::
             {
                 add_all_text_to_string(output, child);
             }
-        } break;
+        }
+        break;
 
         case pugi::node_pcdata:
         case pugi::node_cdata:
@@ -223,6 +231,7 @@ void LyricSourceRemote::add_all_text_to_string(std::string& output, const pugi::
             std::replace(node_text.begin(), node_text.end(), '\n', ' ');
 
             output += node_text;
-        } break;
+        }
+        break;
     }
 }

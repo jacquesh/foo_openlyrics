@@ -23,19 +23,35 @@ constexpr int RESULT_LIMIT = 3;
 
 class LrclibLyricsSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("LRCLIB"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("LRCLIB");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
-    bool supports_upload() const final { return true; }
+    bool supports_upload() const final
+    {
+        return true;
+    }
     void upload(LyricData lyrics, abort_callback& abort) final;
 
 private:
     bool parse_lyric_result(cJSON* json_result, std::vector<LyricDataRaw>& output); // Returns success
-    std::vector<LyricDataRaw> search_for_lyrics(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort);
-    std::vector<LyricDataRaw> get_lyrics(std::string_view artist, std::string_view album, std::string_view title, int duration_sec, abort_callback& abort);
+    std::vector<LyricDataRaw> search_for_lyrics(std::string_view artist,
+                                                std::string_view album,
+                                                std::string_view title,
+                                                abort_callback& abort);
+    std::vector<LyricDataRaw> get_lyrics(std::string_view artist,
+                                         std::string_view album,
+                                         std::string_view title,
+                                         int duration_sec,
+                                         abort_callback& abort);
 };
 static const LyricSourceFactory<LrclibLyricsSource> src_factory;
 
@@ -89,7 +105,8 @@ bool LrclibLyricsSource::parse_lyric_result(cJSON* json_result, std::vector<Lyri
     const std::string source_path = std::string(g_api_url) + "get/" + std::to_string(json_id->valueint);
 
     cJSON* json_syncedlyrics = cJSON_GetObjectItem(json_result, "syncedLyrics");
-    if((json_syncedlyrics != nullptr) && (json_syncedlyrics->type == cJSON_String) && (strlen(json_syncedlyrics->valuestring) > 0))
+    if((json_syncedlyrics != nullptr) && (json_syncedlyrics->type == cJSON_String)
+       && (strlen(json_syncedlyrics->valuestring) > 0))
     {
         LOG_INFO("Successfully retrieved synced lyrics from %s", source_path.c_str());
         LyricDataRaw data = {};
@@ -104,7 +121,8 @@ bool LrclibLyricsSource::parse_lyric_result(cJSON* json_result, std::vector<Lyri
     }
 
     cJSON* json_plainlyrics = cJSON_GetObjectItem(json_result, "plainLyrics");
-    if((json_plainlyrics != nullptr) && (json_plainlyrics->type == cJSON_String) && (strlen(json_plainlyrics->valuestring) > 0))
+    if((json_plainlyrics != nullptr) && (json_plainlyrics->type == cJSON_String)
+       && (strlen(json_plainlyrics->valuestring) > 0))
     {
         LOG_INFO("Successfully retrieved unsynced lyrics from %s", source_path.c_str());
         LyricDataRaw data = {};
@@ -121,7 +139,10 @@ bool LrclibLyricsSource::parse_lyric_result(cJSON* json_result, std::vector<Lyri
     return true;
 }
 
-std::vector<LyricDataRaw> LrclibLyricsSource::search_for_lyrics(std::string_view artist, std::string_view album, std::string_view title, abort_callback& abort)
+std::vector<LyricDataRaw> LrclibLyricsSource::search_for_lyrics(std::string_view artist,
+                                                                std::string_view album,
+                                                                std::string_view title,
+                                                                abort_callback& abort)
 {
     std::string url = std::string(g_api_url) + "search";
     url += "?artist_name=" + urlencode(artist);
@@ -133,7 +154,8 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search_for_lyrics(std::string_view
     try
     {
         http_request::ptr request = http_client::get()->create_request("GET");
-        request->add_header("User-Agent", "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
+        request->add_header("User-Agent",
+                            "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
     }
@@ -169,20 +191,25 @@ std::vector<LyricDataRaw> LrclibLyricsSource::search_for_lyrics(std::string_view
     return results;
 }
 
-std::vector<LyricDataRaw> LrclibLyricsSource::get_lyrics(std::string_view artist, std::string_view album, std::string_view title, int duration_sec, abort_callback& abort)
+std::vector<LyricDataRaw> LrclibLyricsSource::get_lyrics(std::string_view artist,
+                                                         std::string_view album,
+                                                         std::string_view title,
+                                                         int duration_sec,
+                                                         abort_callback& abort)
 {
     std::string url = std::string(g_api_url) + "get";
     url += "?artist_name=" + urlencode(artist);
     url += "&album_name=" + urlencode(album);
     url += "&track_name=" + urlencode(title);
-    url += "&duration="+std::to_string(duration_sec);
+    url += "&duration=" + std::to_string(duration_sec);
     LOG_INFO("Retrieving lyrics from %s", url.c_str());
 
     pfc::string8 content;
     try
     {
         http_request::ptr request = http_client::get()->create_request("GET");
-        request->add_header("User-Agent", "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
+        request->add_header("User-Agent",
+                            "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
     }
@@ -239,7 +266,8 @@ static std::optional<UploadChallenge> get_challenge(abort_callback& abort)
     try
     {
         http_request::ptr request = http_client::get()->create_request("POST");
-        request->add_header("User-Agent", "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
+        request->add_header("User-Agent",
+                            "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
     }
@@ -285,10 +313,12 @@ static std::optional<UploadChallenge> get_challenge(abort_callback& abort)
 // Otherwise false.`
 static bool is_hash_less_or_equal(const uint8_t (&hash)[32], const uint8_t (&target)[32])
 {
-    for(size_t i=0; i<sizeof(hash); i++)
+    for(size_t i = 0; i < sizeof(hash); i++)
     {
-        if(hash[i] > target[i]) return false;
-        else if(hash[i] < target[i]) break;
+        if(hash[i] > target[i])
+            return false;
+        else if(hash[i] < target[i])
+            break;
     }
     return true;
 }
@@ -302,26 +332,25 @@ static bool decode_target_hex_string(const std::string& target, uint8_t (&buffer
     }
 
     static uint8_t hexvals[] = {
-        0,1,2,3,4,5,6,7,8,9, //Digits
-        0,0,0,0,0,0,0,       // Special characters
-        10,11,12,13,14,15,   // A-F
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // G-Z
-        0,0,0,0,0,0,         // Special characters
-        10,11,12,13,14,15,   // a-f
+        0,  1,  2,  3,  4,  5,  6, 7, 8, 9, // Digits
+        0,  0,  0,  0,  0,  0,  0, // Special characters
+        10, 11, 12, 13, 14, 15, // A-F
+        0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // G-Z
+        0,  0,  0,  0,  0,  0, // Special characters
+        10, 11, 12, 13, 14, 15, // a-f
     };
     static_assert(sizeof(hexvals) == 'f' - '0' + 1); // `hexvals` is the correct length
-    for(size_t i=0; i<32; i++)
+    for(size_t i = 0; i < 32; i++)
     {
-        const char hi_nibble = target[2*i];
-        const char lo_nibble = target[2*i+1];
+        const char hi_nibble = target[2 * i];
+        const char lo_nibble = target[2 * i + 1];
         if((hi_nibble < '0') || (hi_nibble > 'f') || (lo_nibble < '0') || (lo_nibble > 'f'))
         {
             return false;
         }
         const uint8_t hi_hex = hexvals[hi_nibble - '0'];
         const uint8_t lo_hex = hexvals[lo_nibble - '0'];
-        if((hi_nibble != '0') && (hi_hex == 0) ||
-            ((lo_nibble != '0') && (lo_hex == 0)))
+        if((hi_nibble != '0') && (hi_hex == 0) || ((lo_nibble != '0') && (lo_hex == 0)))
         {
             return false;
         }
@@ -355,7 +384,8 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
     const size_t nonce_capacity = sizeof(combined_input) - prefix_len;
 
     uint64_t nonce = 0;
-    while(true) {
+    while(true)
+    {
         const size_t nonce_len = (size_t)snprintf(nonce_start_ptr, nonce_capacity, "%llu", nonce);
         const size_t combined_len = prefix_len + nonce_len;
 
@@ -363,7 +393,8 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
         sha.add_data((uint8_t*)&combined_input[0], combined_len);
         sha.finalise(hash_buffer);
 
-        if(is_hash_less_or_equal(hash_buffer, target_buffer)) {
+        if(is_hash_less_or_equal(hash_buffer, target_buffer))
+        {
             break;
         }
         if(sha.m_error)
@@ -384,12 +415,12 @@ static uint64_t solve_challenge(const UploadChallenge& challenge, abort_callback
     QueryPerformanceCounter(&end_time);
     LARGE_INTEGER freq = {};
     QueryPerformanceFrequency(&freq);
-    const float elapsed_sec = float(end_time.QuadPart - start_time.QuadPart)/float(freq.QuadPart);
+    const float elapsed_sec = float(end_time.QuadPart - start_time.QuadPart) / float(freq.QuadPart);
     LOG_INFO("Solved challenge SHA256(%s) < %s with nonce %llu in %.2fs",
-            challenge.prefix.c_str(),
-            challenge.target.c_str(),
-            nonce,
-            elapsed_sec);
+             challenge.prefix.c_str(),
+             challenge.target.c_str(),
+             nonce,
+             elapsed_sec);
 
     return nonce;
 }
@@ -399,7 +430,9 @@ static void upload_lyrics(LyricData lyrics, const UploadChallenge& challenge, ui
     if(!lyrics.duration_sec.has_value())
     {
         LOG_WARN("Cannot upload lyrics for %s/%s/%s because it is missing a duration",
-                lyrics.artist.c_str(), lyrics.album.c_str(), lyrics.title.c_str());
+                 lyrics.artist.c_str(),
+                 lyrics.album.c_str(),
+                 lyrics.title.c_str());
         return;
     }
     const double lyric_track_duration = lyrics.duration_sec.value();
@@ -440,7 +473,8 @@ static void upload_lyrics(LyricData lyrics, const UploadChallenge& challenge, ui
         http_client::get()->create_request("POST")->cast(post);
         assert(post.is_valid());
 
-        post->add_header("User-Agent", "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
+        post->add_header("User-Agent",
+                         "foo_openlyrics v" OPENLYRICS_VERSION " (https://github.com/jacquesh/foo_openlyrics)");
         post->add_header("X-Publish-Token", token_buffer);
         post->set_post_data(json_str, strlen(json_str), "application/json");
         file_ptr response_file = post->run_ex(url.c_str(), abort);
@@ -494,9 +528,9 @@ static void upload_lyrics(LyricData lyrics, const UploadChallenge& challenge, ui
     }
 
     LOG_WARN("Failed to upload lyrics to LRCLIB with error code %d/%s: %s",
-            json_code->valueint,
-            json_name->valuestring,
-            json_msg->valuestring);
+             json_code->valueint,
+             json_name->valuestring,
+             json_msg->valuestring);
     cJSON_Delete(json);
 }
 
@@ -512,28 +546,41 @@ void LrclibLyricsSource::upload(LyricData lyrics, abort_callback& abort)
     upload_lyrics(std::move(lyrics), challenge, nonce, abort);
 }
 
-
 // ============
 // Tests
 // ============
 #if MVTF_TESTS_ENABLED
 MVTF_TEST(lrclib_equal_hashes_are_less_or_equal)
 {
-    uint8_t value[32] = {0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    uint8_t value[32] = { 0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                          0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00,
+                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     ASSERT(is_hash_less_or_equal(value, value));
 }
 
 MVTF_TEST(lrclib_less_hashes_are_less_or_equal)
 {
-    uint8_t hash[32] = {0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    uint8_t trgt[32] = {0x01, 0x02, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    uint8_t hash[32] = {
+        0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    uint8_t trgt[32] = {
+        0x01, 0x02, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
     ASSERT(is_hash_less_or_equal(hash, trgt));
 }
 
 MVTF_TEST(lrclib_greater_hashes_are_NOT_less_or_equal)
 {
-    uint8_t hash[32] = {0x01, 0x02, 0x03, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    uint8_t trgt[32] = {0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    uint8_t hash[32] = {
+        0x01, 0x02, 0x03, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    uint8_t trgt[32] = {
+        0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
     ASSERT(!is_hash_less_or_equal(hash, trgt));
 }
 

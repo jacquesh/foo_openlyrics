@@ -15,7 +15,7 @@ static std::string_view trim_surrounding(std::string_view str, std::string_view 
     {
         return "";
     }
-    size_t len = (last_non_trimset+1) - first_non_trimset;
+    size_t len = (last_non_trimset + 1) - first_non_trimset;
     return str.substr(first_non_trimset, len);
 }
 
@@ -74,7 +74,7 @@ metadb_v2_rec_t get_full_metadata(metadb_handle_ptr track)
     // always have data for non-standard tags like lyrics when running in fb2k pre-v2.
     // This function can be removed if we migrate to targetting FB2K SDK version 81 or higher.
 #if FOOBAR2000_TARGET_VERSION >= 81
-	return static_cast<const metadb_handle_v2*>(track)->query_v2();
+    return static_cast<const metadb_handle_v2*>(track)->query_v2();
 #else
     metadb_handle_v2::ptr track_v2;
     if(track->cast(track_v2))
@@ -105,19 +105,19 @@ int string_edit_distance(const std::string_view strA, const std::string_view str
     int row_count = static_cast<int>(strA.length());
     int row_len = static_cast<int>(strB.length());
 
-    int* prev_row = new int[row_len+1];
-    int* cur_row = new int[row_len+1];
-    for(int i=0; i<row_len+1; i++)
+    int* prev_row = new int[row_len + 1];
+    int* cur_row = new int[row_len + 1];
+    for(int i = 0; i < row_len + 1; i++)
     {
         prev_row[i] = i;
     }
 
-    for(int row=0; row<row_count; row++)
+    for(int row = 0; row < row_count; row++)
     {
         cur_row[0] = row + 1;
-        for(int i=0; i<row_len; i++)
+        for(int i = 0; i < row_len; i++)
         {
-            int delete_cost = prev_row[i+1] + 1;
+            int delete_cost = prev_row[i + 1] + 1;
             int insert_cost = cur_row[i] + 1;
             int subst_cost;
 
@@ -132,7 +132,7 @@ int string_edit_distance(const std::string_view strA, const std::string_view str
                 subst_cost = prev_row[i] + 1;
             }
 
-            cur_row[i+1] = std::min(std::min(delete_cost, insert_cost), subst_cost);
+            cur_row[i + 1] = std::min(std::min(delete_cost, insert_cost), subst_cost);
         }
 
         int* tmp = cur_row;
@@ -198,7 +198,7 @@ std::string track_metadata(const file_info& track_info, std::string_view key)
         err_msg += "metadata tag ";
         err_msg += key;
         err_msg += " appears multiple times for ";
-        const char* const err_tags[] = {"artist", "album", "title"};
+        const char* const err_tags[] = { "artist", "album", "title" };
         for(const char* err_tag : err_tags)
         {
             err_msg += "/";
@@ -213,7 +213,7 @@ std::string track_metadata(const file_info& track_info, std::string_view key)
         }
         err_msg += ". Only the first value will be used of: ";
 
-        for(size_t i=0; i<value_count; i++)
+        for(size_t i = 0; i < value_count; i++)
         {
             err_msg += "/";
             err_msg += track_info.meta_enum_value(value_index, i);
@@ -231,13 +231,13 @@ std::optional<int> track_duration_in_seconds(const metadb_v2_rec_t& track)
     if(track.info != nullptr)
     {
         double track_len = track.info->info().get_length();
-        if(track_len > 1.0) {
+        if(track_len > 1.0)
+        {
             return int(track_len);
         }
     }
     return {};
 }
-
 
 bool track_is_remote(metadb_handle_ptr track)
 {
@@ -261,7 +261,7 @@ bool starts_with_ignore_case(std::string_view input, std::string_view prefix)
         return false;
     }
 
-    for(size_t i=0; i<prefix.length(); i++)
+    for(size_t i = 0; i < prefix.length(); i++)
     {
         const char input_char = static_cast<char>(std::tolower(static_cast<unsigned char>(input[i])));
         const char prefix_char = static_cast<char>(std::tolower(static_cast<unsigned char>(prefix[i])));

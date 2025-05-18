@@ -16,4 +16,3 @@ namespace metrics
     void log_searched_for_lyrics_for_a_remote_track();
     void log_hidden_search();
 }
-

@@ -21,10 +21,10 @@ protected:
 
 struct cfg_auto_string : public cfg_string, public cfg_auto_property
 {
-    cfg_auto_string(const GUID& guid, int control_id, const char* default_value) :
-        cfg_string(guid, default_value),
-        m_control_id(control_id),
-        m_default_value(default_value)
+    cfg_auto_string(const GUID& guid, int control_id, const char* default_value)
+        : cfg_string(guid, default_value)
+        , m_control_id(control_id)
+        , m_default_value(default_value)
     {
     }
 
@@ -45,10 +45,10 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
         LRESULT text_length_result = SendDlgItemMessage(m_hWnd, m_control_id, WM_GETTEXTLENGTH, 0, 0);
         if(text_length_result < 0) return;
         int text_length = (int)text_length_result;
-        TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
-        UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
+        TCHAR* text_buffer = new TCHAR[text_length + 1]; // +1 for null-terminator
+        UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length + 1);
 
-        std::string ui_string = from_tstring(std::tstring_view{text_buffer, chars_copied});
+        std::string ui_string = from_tstring(std::tstring_view { text_buffer, chars_copied });
         set_string(pfc::string8(ui_string.c_str(), ui_string.length()));
 
         delete[] text_buffer;
@@ -62,11 +62,11 @@ struct cfg_auto_string : public cfg_string, public cfg_auto_property
             return true;
         }
         int text_length = (int)text_length_result;
-        TCHAR* text_buffer = new TCHAR[text_length+1]; // +1 for null-terminator
-        UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length+1);
+        TCHAR* text_buffer = new TCHAR[text_length + 1]; // +1 for null-terminator
+        UINT chars_copied = GetDlgItemText(m_hWnd, m_control_id, text_buffer, text_length + 1);
 
-        std::string ui_string = from_tstring(std::tstring_view{text_buffer, chars_copied});
-        bool changed = (ui_string != std::string_view{get_ptr(), get_length()});
+        std::string ui_string = from_tstring(std::tstring_view { text_buffer, chars_copied });
+        bool changed = (ui_string != std::string_view { get_ptr(), get_length() });
 
         delete[] text_buffer;
         return changed;
@@ -90,10 +90,10 @@ private:
 template<typename TInt>
 struct cfg_auto_int_t : public cfg_int_t<TInt>, public cfg_auto_property
 {
-    cfg_auto_int_t(const GUID& guid, int control_id, TInt default_value) :
-        cfg_int_t<TInt>(guid, default_value),
-        m_control_id(control_id),
-        m_default_value(default_value)
+    cfg_auto_int_t(const GUID& guid, int control_id, TInt default_value)
+        : cfg_int_t<TInt>(guid, default_value)
+        , m_control_id(control_id)
+        , m_default_value(default_value)
     {
     }
 
@@ -129,13 +129,18 @@ typedef cfg_auto_int_t<t_int32> cfg_auto_int;
 
 struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
 {
-    cfg_auto_ranged_int(const GUID& guid, int control_id, int min_value, int max_value, int increment, int default_value) :
-        cfg_int_t<int>(guid, default_value),
-        m_control_id(control_id),
-        m_min_value(min_value),
-        m_max_value(max_value),
-        m_increment(increment),
-        m_default_value(default_value)
+    cfg_auto_ranged_int(const GUID& guid,
+                        int control_id,
+                        int min_value,
+                        int max_value,
+                        int increment,
+                        int default_value)
+        : cfg_int_t<int>(guid, default_value)
+        , m_control_id(control_id)
+        , m_min_value(min_value)
+        , m_max_value(max_value)
+        , m_increment(increment)
+        , m_default_value(default_value)
     {
         assert(min_value % increment == 0);
         assert(max_value % increment == 0);
@@ -148,8 +153,8 @@ struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
 
     void Initialise(HWND container) override
     {
-        SendDlgItemMessage(container, m_control_id, TBM_SETRANGEMIN, FALSE, m_min_value/m_increment);
-        SendDlgItemMessage(container, m_control_id, TBM_SETRANGEMAX, TRUE, m_max_value/m_increment);
+        SendDlgItemMessage(container, m_control_id, TBM_SETRANGEMIN, FALSE, m_min_value / m_increment);
+        SendDlgItemMessage(container, m_control_id, TBM_SETRANGEMAX, TRUE, m_max_value / m_increment);
         cfg_auto_property::Initialise(container);
     }
 
@@ -158,12 +163,12 @@ struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
         int value = cfg_int_t<int>::get_value();
         if(value < m_min_value) value = m_min_value;
         if(value > m_max_value) value = m_max_value;
-        SendDlgItemMessage(m_hWnd, m_control_id, TBM_SETPOS, TRUE, value/m_increment);
+        SendDlgItemMessage(m_hWnd, m_control_id, TBM_SETPOS, TRUE, value / m_increment);
     }
 
     void ResetToDefault() override
     {
-        SendDlgItemMessage(m_hWnd, m_control_id, TBM_SETPOS, TRUE, m_default_value/m_increment);
+        SendDlgItemMessage(m_hWnd, m_control_id, TBM_SETPOS, TRUE, m_default_value / m_increment);
     }
 
     void Apply() override
@@ -185,14 +190,21 @@ struct cfg_auto_ranged_int : public cfg_int_t<int>, public cfg_auto_property
         return value * m_increment;
     }
 
-    int get_min_value() const { return m_min_value; }
-    int get_max_value() const { return m_max_value; }
+    int get_min_value() const
+    {
+        return m_min_value;
+    }
+    int get_max_value() const
+    {
+        return m_max_value;
+    }
 
 private:
     int m_control_id;
     int m_min_value;
     int m_max_value;
-    int m_increment; // The size of the increments within the range that represent allowed values. E.g if this is 10 then the next value after 10 is 20, not 11.
+    int m_increment; // The size of the increments within the range that represent allowed values. E.g if this is 10
+                     // then the next value after 10 is 20, not 11.
     int m_default_value;
 };
 
@@ -204,10 +216,10 @@ private:
 //       of the combo are equivalent to the true & false values of the flag).
 struct cfg_auto_bool : private cfg_int_t<int>, public cfg_auto_property
 {
-    cfg_auto_bool(const GUID& guid, int control_id, bool default_value) :
-        cfg_int_t<int>(guid, default_value ? 1 : 0),
-        m_control_id(control_id),
-        m_default_value(default_value)
+    cfg_auto_bool(const GUID& guid, int control_id, bool default_value)
+        : cfg_int_t<int>(guid, default_value ? 1 : 0)
+        , m_control_id(control_id)
+        , m_default_value(default_value)
     {
     }
 
@@ -256,11 +268,14 @@ struct cfg_auto_combo_option
 template<typename TEnum, int IOptionCount>
 struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
 {
-    cfg_auto_combo(const GUID& guid, int control_id, TEnum default_value, const cfg_auto_combo_option<TEnum> (&options)[IOptionCount]) :
-        cfg_int_t<int>(guid, static_cast<int>(default_value)),
-        m_control_id(control_id),
-        m_options(options),
-        m_default_value(default_value)
+    cfg_auto_combo(const GUID& guid,
+                   int control_id,
+                   TEnum default_value,
+                   const cfg_auto_combo_option<TEnum> (&options)[IOptionCount])
+        : cfg_int_t<int>(guid, static_cast<int>(default_value))
+        , m_control_id(control_id)
+        , m_options(options)
+        , m_default_value(default_value)
     {
     }
 
@@ -276,15 +291,23 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
 
     void Initialise(HWND container) override
     {
-        for(int i=0; i<IOptionCount; i++)
+        for(int i = 0; i < IOptionCount; i++)
         {
             const cfg_auto_combo_option<TEnum>& option = m_options[i];
-            LRESULT add_result = SendDlgItemMessage(container, m_control_id, CB_ADDSTRING, 0, (LPARAM)option.display_string);
+            LRESULT add_result = SendDlgItemMessage(container,
+                                                    m_control_id,
+                                                    CB_ADDSTRING,
+                                                    0,
+                                                    (LPARAM)option.display_string);
             assert(add_result != CB_ERR);
             assert(add_result != CB_ERRSPACE);
 
             static_assert(sizeof(LPARAM) >= sizeof(int), "LPARAM must have enough space to store the enum");
-            LRESULT set_result = SendDlgItemMessage(container, m_control_id, CB_SETITEMDATA, add_result, (LPARAM)option.config_value);
+            LRESULT set_result = SendDlgItemMessage(container,
+                                                    m_control_id,
+                                                    CB_SETITEMDATA,
+                                                    add_result,
+                                                    (LPARAM)option.config_value);
             assert(set_result != CB_ERR);
         }
 
@@ -295,7 +318,7 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
     {
         int saved_logical_value = cfg_int_t<int>::get_value();
 
-        for(int ui_index=0; ui_index<IOptionCount; ui_index++)
+        for(int ui_index = 0; ui_index < IOptionCount; ui_index++)
         {
             LRESULT item_logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
             assert(item_logical_value != CB_ERR);
@@ -315,7 +338,7 @@ struct cfg_auto_combo : private cfg_int_t<int>, public cfg_auto_property
 
     void ResetToDefault() override
     {
-        for(int ui_index=0; ui_index<IOptionCount; ui_index++)
+        for(int ui_index = 0; ui_index < IOptionCount; ui_index++)
         {
             LRESULT item_logical_value = SendDlgItemMessage(m_hWnd, m_control_id, CB_GETITEMDATA, ui_index, 0);
             assert(item_logical_value != CB_ERR);
@@ -369,16 +392,18 @@ struct cfg_auto_colour : private cfg_int_t<uint32_t>, public cfg_auto_property
 {
 private:
     static inline COLORREF g_custom_colours[16] = {
-        RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
-        RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255), RGB(255,255,255),
+        RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255),
+        RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255),
+        RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255),
+        RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255), RGB(255, 255, 255),
     };
 
 public:
-    cfg_auto_colour(const GUID& guid, int control_id, COLORREF default_value) :
-        cfg_int_t<uint32_t>(guid, static_cast<uint32_t>(default_value)),
-        m_control_id(control_id),
-        m_default_value(default_value),
-        m_brush(nullptr)
+    cfg_auto_colour(const GUID& guid, int control_id, COLORREF default_value)
+        : cfg_int_t<uint32_t>(guid, static_cast<uint32_t>(default_value))
+        , m_control_id(control_id)
+        , m_default_value(default_value)
+        , m_brush(nullptr)
     {
     }
 
@@ -406,7 +431,7 @@ public:
         colourOpts.lStructSize = sizeof(colourOpts);
         colourOpts.hwndOwner = m_hWnd;
         colourOpts.rgbResult = brush.lbColor;
-        colourOpts.lpCustColors = g_custom_colours; 
+        colourOpts.lpCustColors = g_custom_colours;
         colourOpts.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
         BOOL colour_selected = ChooseColor(&colourOpts);
         if(!colour_selected)
@@ -472,8 +497,8 @@ class auto_preferences_page_instance : public preferences_page_instance
 {
 public:
     template<int N>
-    auto_preferences_page_instance(preferences_page_callback::ptr callback, cfg_auto_property* (&auto_props)[N]) :
-        m_callback(callback)
+    auto_preferences_page_instance(preferences_page_callback::ptr callback, cfg_auto_property* (&auto_props)[N])
+        : m_callback(callback)
     {
         m_auto_properties.reserve(N);
         for(cfg_auto_property* prop : auto_props)
@@ -495,7 +520,7 @@ public:
     t_uint32 get_state() override
     {
         t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
-        if (has_changed()) state |= preferences_state::changed;
+        if(has_changed()) state |= preferences_state::changed;
         return state;
     }
     void apply() override
@@ -504,7 +529,8 @@ public:
         {
             prop->Apply();
         }
-        on_ui_interaction(); // our dialog content has not changed but the flags have - our currently shown values now match the settings so the apply button can be disabled
+        on_ui_interaction(); // our dialog content has not changed but the flags have - our currently shown values now
+                             // match the settings so the apply button can be disabled
     }
     void reset() override
     {
@@ -526,7 +552,7 @@ public:
 
     void on_ui_interaction()
     {
-        //tell the host that our state has changed to enable/disable the apply button appropriately.
+        // tell the host that our state has changed to enable/disable the apply button appropriately.
         m_callback->on_state_changed();
     }
 

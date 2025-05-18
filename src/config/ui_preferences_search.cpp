@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
-#include "resource.h"
-#include "foobar2000/helpers/atl-misc.h"
 #include "foobar2000/SDK/coreDarkMode.h"
+#include "foobar2000/helpers/atl-misc.h"
+#include "resource.h"
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -11,32 +11,39 @@
 #include "ui_util.h"
 #include "win32_util.h"
 
+// clang-format off: GUIDs should be one line
 const GUID GUID_PREFERENCES_PAGE_SEARCH = { 0xf835ba65, 0x9a56, 0x4c0f, { 0xb1, 0x23, 0x8, 0x53, 0x67, 0x97, 0x4e, 0xed } };
 
 static const GUID GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS = { 0x2cbdf6c3, 0xdb8c, 0x43d4, { 0xb5, 0x40, 0x76, 0xc0, 0x4a, 0x39, 0xa7, 0xc7 } };
 static const GUID GUID_CFG_SEARCH_SKIP_FILTER = { 0x4c6e3dac, 0xb668, 0x4056, { 0x8c, 0xb7, 0x52, 0x89, 0x1a, 0x57, 0x1f, 0x3a } };
 static const GUID GUID_CFG_SEARCH_PREFERRED_LYRIC_TYPE = { 0x66b4edf6, 0x7995, 0x4d52, { 0xa9, 0xa, 0x12, 0xdf, 0xf7, 0xa, 0x11, 0xa2 } };
 static const GUID GUID_CFG_SEARCH_WITHOUT_LYRIC_PANELS = { 0x3d29b9eb, 0x4454, 0x4798, { 0x9b, 0x33, 0x4b, 0xb5, 0xbf, 0x44, 0x4a, 0x7f } };
+// clang-format on
 
-static cfg_auto_combo_option<LyricType> preferred_lyric_type_options[] =
-{
-    {_T("Synced"), LyricType::Synced},
-    {_T("Unsynced"), LyricType::Unsynced}
-};
+static cfg_auto_combo_option<LyricType> preferred_lyric_type_options[] = { { _T("Synced"), LyricType::Synced },
+                                                                           { _T("Unsynced"), LyricType::Unsynced } };
 
-static cfg_auto_bool       cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS, IDC_SEARCH_EXCLUDE_BRACKETS, true);
-static cfg_auto_string     cfg_search_skip_filter(GUID_CFG_SEARCH_SKIP_FILTER, IDC_SEARCH_SKIP_FILTER_STR, "$if($strstr($lower(%genre%),instrumental),skip,)$if($strstr($lower(%genre%),classical),skip,)");
-static cfg_auto_combo<LyricType, 2> cfg_search_preferred_lyric_type(GUID_CFG_SEARCH_PREFERRED_LYRIC_TYPE, IDC_SEARCH_PREFERRED_TYPE, LyricType::Synced, preferred_lyric_type_options);
-static cfg_auto_bool       cfg_search_without_lyric_panels(GUID_CFG_SEARCH_WITHOUT_LYRIC_PANELS, IDC_SEARCH_WITHOUT_PANELS, false);
+static cfg_auto_bool cfg_search_exclude_trailing_brackets(GUID_CFG_SEARCH_EXCLUDE_TRAILING_BRACKETS,
+                                                          IDC_SEARCH_EXCLUDE_BRACKETS,
+                                                          true);
+static cfg_auto_string cfg_search_skip_filter(GUID_CFG_SEARCH_SKIP_FILTER,
+                                              IDC_SEARCH_SKIP_FILTER_STR,
+                                              "$if($strstr($lower(%genre%),instrumental),skip,)$if($strstr($lower(%"
+                                              "genre%),classical),skip,)");
+static cfg_auto_combo<LyricType, 2> cfg_search_preferred_lyric_type(GUID_CFG_SEARCH_PREFERRED_LYRIC_TYPE,
+                                                                    IDC_SEARCH_PREFERRED_TYPE,
+                                                                    LyricType::Synced,
+                                                                    preferred_lyric_type_options);
+static cfg_auto_bool cfg_search_without_lyric_panels(GUID_CFG_SEARCH_WITHOUT_LYRIC_PANELS,
+                                                     IDC_SEARCH_WITHOUT_PANELS,
+                                                     false);
 
-static cfg_auto_property* g_searching_auto_properties[] =
-{
+static cfg_auto_property* g_searching_auto_properties[] = {
     &cfg_search_exclude_trailing_brackets,
     &cfg_search_skip_filter,
     &cfg_search_preferred_lyric_type,
     &cfg_search_without_lyric_panels,
 };
-
 
 bool preferences::searching::exclude_trailing_brackets()
 {
@@ -63,22 +70,30 @@ bool preferences::searching::raw::is_skip_filter_default()
     return (cfg_search_skip_filter.get_stringview() == cfg_search_skip_filter.get_default());
 }
 
-class PreferencesSearching : public CDialogImpl<PreferencesSearching>, public auto_preferences_page_instance, private play_callback_impl_base
+class PreferencesSearching : public CDialogImpl<PreferencesSearching>,
+                             public auto_preferences_page_instance,
+                             private play_callback_impl_base
 {
 public:
-    // Constructor - invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
-    PreferencesSearching(preferences_page_callback::ptr callback) : auto_preferences_page_instance(callback, g_searching_auto_properties) {}
+    // Invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
+    PreferencesSearching(preferences_page_callback::ptr callback)
+        : auto_preferences_page_instance(callback, g_searching_auto_properties)
+    {
+    }
 
     // Dialog resource ID - Required by WTL/Create()
-    enum {IDD = IDD_PREFERENCES_SEARCHING};
+    enum
+    {
+        IDD = IDD_PREFERENCES_SEARCHING
+    };
 
     BEGIN_MSG_MAP_EX(PreferencesSearching)
-        MSG_WM_INITDIALOG(OnInitDialog)
-        COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SEARCH_WITHOUT_PANELS, BN_CLICKED, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SEARCH_PREFERRED_TYPE, CBN_SELCHANGE, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_SEARCH_SKIP_FILTER_STR, EN_CHANGE, OnSkipFilterFormatChange)
-        NOTIFY_HANDLER_EX(IDC_SEARCH_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
+    MSG_WM_INITDIALOG(OnInitDialog)
+    COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_SEARCH_WITHOUT_PANELS, BN_CLICKED, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_SEARCH_PREFERRED_TYPE, CBN_SELCHANGE, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_SEARCH_SKIP_FILTER_STR, EN_CHANGE, OnSkipFilterFormatChange)
+    NOTIFY_HANDLER_EX(IDC_SEARCH_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
     END_MSG_MAP()
 
 private:
@@ -133,9 +148,9 @@ void PreferencesSearching::UpdateSkipFilterPreview()
     }
 
     const size_t format_text_length = (size_t)format_text_length_result;
-    TCHAR* format_text_buffer = new TCHAR[format_text_length+1]; // +1 for null-terminator
-    GetDlgItemText(IDC_SEARCH_SKIP_FILTER_STR, format_text_buffer, int(format_text_length+1));
-    const std::string format_text = from_tstring(std::tstring_view{format_text_buffer, format_text_length});
+    TCHAR* format_text_buffer = new TCHAR[format_text_length + 1]; // +1 for null-terminator
+    GetDlgItemText(IDC_SEARCH_SKIP_FILTER_STR, format_text_buffer, int(format_text_length + 1));
+    const std::string format_text = from_tstring(std::tstring_view { format_text_buffer, format_text_length });
     delete[] format_text_buffer;
 
     titleformat_object::ptr format_script;
@@ -183,12 +198,20 @@ LRESULT PreferencesSearching::OnSyntaxHelpClicked(NMHDR* /*notify_msg*/)
 class PreferencesSearchImpl : public preferences_page_impl<PreferencesSearching>
 {
 public:
-    const char* get_name() final { return "Searching"; }
-    GUID get_guid() final { return GUID_PREFERENCES_PAGE_SEARCH; }
-    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_ROOT; }
+    const char* get_name() final
+    {
+        return "Searching";
+    }
+    GUID get_guid() final
+    {
+        return GUID_PREFERENCES_PAGE_SEARCH;
+    }
+    GUID get_parent_guid() final
+    {
+        return GUID_PREFERENCES_PAGE_ROOT;
+    }
 };
 static preferences_page_factory_t<PreferencesSearchImpl> g_preferences_page_search_factory;
-
 
 static void fix_skip_filter_default_on_init()
 {

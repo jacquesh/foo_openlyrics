@@ -13,12 +13,19 @@ constexpr int RESULT_LIMIT = 3;
 // The Genius API client access key used by MusicBee.
 // For some unknown reason when we request song data using *this* API key, we get lyrics,
 // but when we request song data using our own API key, we don't always get lyrics.
-constexpr auto API_KEY_HEADER = "Authorization: Bearer ZTejoT_ojOEasIkT9WrMBhBQOz6eYKK5QULCMECmOhvwqjRZ6WbpamFe3geHnvp3";
+constexpr auto API_KEY_HEADER =
+    "Authorization: Bearer ZTejoT_ojOEasIkT9WrMBhBQOz6eYKK5QULCMECmOhvwqjRZ6WbpamFe3geHnvp3";
 
 class GeniusComSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Genius.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Genius.com");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -30,7 +37,8 @@ static std::string remove_chars_for_url(const std::string_view input)
     std::string transliterated = from_tstring(normalise_utf8(to_tstring(input)));
 
     std::string output;
-    output.reserve(transliterated.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
+    // We add a bit to allow for one or two & or @ replacements without re-allocation
+    output.reserve(transliterated.length() + 3);
     for(char c : transliterated)
     {
         if(pfc::char_is_ascii_alphanumeric(c))
@@ -69,7 +77,7 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -78,9 +86,10 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
     }
 
     std::vector<LyricDataRaw> song_metadata;
-    {   // Parser gets its own scope
+    { // Parser gets its own scope
         cJSON* json = cJSON_Parse(content.c_str());
-        if (json == nullptr) {
+        if(json == nullptr)
+        {
             LOG_WARN("Failed to parse genius.com search result %s", content.c_str());
             cJSON_Delete(json);
             return {};
@@ -89,7 +98,8 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
         const cJSON* search_response = cJSON_GetObjectItem(json, "response");
         const cJSON* search_hits = cJSON_GetObjectItem(search_response, "hits");
 
-        if (!cJSON_IsArray(search_hits)) {
+        if(!cJSON_IsArray(search_hits))
+        {
             LOG_INFO("Received genius.com search result but the hits list was malformed: %s", content.c_str());
             cJSON_Delete(json);
             return {};
@@ -97,9 +107,11 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
 
         int results = 0;
         const cJSON* search_hit = nullptr;
-        cJSON_ArrayForEach(search_hit, search_hits) {
+        cJSON_ArrayForEach(search_hit, search_hits)
+        {
             results++;
-            if (results > RESULT_LIMIT) {
+            if(results > RESULT_LIMIT)
+            {
                 break;
             }
 
@@ -109,8 +121,10 @@ std::vector<LyricDataRaw> GeniusComSource::search(const LyricSearchParams& param
             // "artist_names" returns a list of all the artists involved, properly attributed
             const cJSON* search_artist = cJSON_GetObjectItem(search_result, "artist_names");
 
-            if (!cJSON_IsString(search_artist) || !cJSON_IsString(search_title) || !cJSON_IsString(search_path)) {
-                LOG_WARN("Received genius.com search result but the search hit data was malformed: %s", content.c_str());
+            if(!cJSON_IsString(search_artist) || !cJSON_IsString(search_title) || !cJSON_IsString(search_path))
+            {
+                LOG_WARN("Received genius.com search result but the search hit data was malformed: %s",
+                         content.c_str());
                 cJSON_Delete(json);
                 return {};
             }
@@ -142,9 +156,9 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
-    catch (const std::exception& e)
+    catch(const std::exception& e)
     {
         LOG_WARN("Failed to retrieve genius.com song data from %s: %s", url.c_str(), e.what());
         return false;
@@ -152,9 +166,10 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
 
     LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
 
-    {   // Parser gets its own scope
+    { // Parser gets its own scope
         cJSON* json = cJSON_Parse(content.c_str());
-        if (json == nullptr) {
+        if(json == nullptr)
+        {
             LOG_WARN("Received genius.com API response but content was malformed: %s", content.c_str());
             cJSON_Delete(json);
             return false;
@@ -165,10 +180,12 @@ bool GeniusComSource::lookup(LyricDataRaw& data, abort_callback& abort)
         const cJSON* song_lyrics = cJSON_GetObjectItem(song_song, "lyrics");
         const cJSON* song_lyrics_plain = cJSON_GetObjectItem(song_lyrics, "plain");
 
-        if (cJSON_IsString(song_lyrics_plain)) {
+        if(cJSON_IsString(song_lyrics_plain))
+        {
             data.text_bytes = string_to_raw_bytes(std::string_view(song_lyrics_plain->valuestring));
         }
-        else {
+        else
+        {
             LOG_WARN("Received genius.com song result but the lyrics data was malformed: %s", content.c_str());
             cJSON_Delete(json);
             return false;

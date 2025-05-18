@@ -14,8 +14,14 @@ static const GUID src_guid = { 0xe6b4d51b, 0x6016, 0x494f, { 0x80, 0xb2, 0xf5, 0
 class LetrasSource : public LyricSourceRemote
 {
 public:
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("letras.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("letras.com");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -68,7 +74,7 @@ std::vector<LyricDataRaw> LetrasSource::search(const LyricSearchParams& params, 
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -116,7 +122,7 @@ std::vector<LyricDataRaw> LetrasSource::search(const LyricSearchParams& params, 
 
         const LyricData parsed = parsers::lrc::parse(result, lyric_text);
         result.type = parsed.IsTimestamped() ? LyricType::Synced : LyricType::Unsynced;
-        return {std::move(result)};
+        return { std::move(result) };
     }
 }
 

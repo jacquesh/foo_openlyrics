@@ -14,8 +14,14 @@ static const GUID src_guid = { 0x79959787, 0xd75e, 0x4643, { 0xa2, 0x43, 0x6a, 0
 class LyricsifySource : public LyricSourceRemote
 {
 public:
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Lyricsify.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Lyricsify.com");
+    }
 
     std::string extract_lyrics_from_page(pfc::string8 page_content) const;
 
@@ -69,7 +75,8 @@ std::vector<LyricDataRaw> LyricsifySource::search(const LyricSearchParams& param
     http_request::ptr request = http_client::get()->create_request("GET");
 
     // Without a User-Agent we sometimes only get partial lyrics back
-    request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0");
+    request->add_header("User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0");
 
     const std::string url_artist = transform_tag_for_url(params.artist);
     const std::string url_title = transform_tag_for_url(params.title);
@@ -81,7 +88,7 @@ std::vector<LyricDataRaw> LyricsifySource::search(const LyricSearchParams& param
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -109,7 +116,7 @@ std::vector<LyricDataRaw> LyricsifySource::search(const LyricSearchParams& param
 
         const LyricData parsed = parsers::lrc::parse(result, trimmed_text);
         result.type = parsed.IsTimestamped() ? LyricType::Synced : LyricType::Unsynced;
-        return {std::move(result)};
+        return { std::move(result) };
     }
 }
 
@@ -138,16 +145,15 @@ MVTF_TEST(lyricsify_tag_spaces_replaced_with_dash)
 
 MVTF_TEST(lyrisify_extracts_lyrics_from_page_content)
 {
-    const pfc::string8 input = 
-        "<body>"
-        "<div class=\"main-container\">"
-        "<div class=\"main-page\">"
-        "<div class=\"lyrics_1234\">"
-        "<div id=\"lyrics_1234_details\">"
-        "line1<br>line2"
-        "</div>"
-        "<div id=\"lyrics_1234_lyricsonly\"></div>"
-        "</div></div></div></body>";
+    const pfc::string8 input = "<body>"
+                               "<div class=\"main-container\">"
+                               "<div class=\"main-page\">"
+                               "<div class=\"lyrics_1234\">"
+                               "<div id=\"lyrics_1234_details\">"
+                               "line1<br>line2"
+                               "</div>"
+                               "<div id=\"lyrics_1234_lyricsonly\"></div>"
+                               "</div></div></div></body>";
     LyricSourceFactory<LyricsifySource> factory;
     const std::string output = factory.get_static_instance().extract_lyrics_from_page(input);
     ASSERT(output == "line1\r\nline2");

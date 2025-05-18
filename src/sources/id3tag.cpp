@@ -6,18 +6,37 @@
 #include "tag_util.h"
 
 static const GUID src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+
+// clang-format off: GUIDs should be one line
 static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+// clang-format on
 
 class ID3TagLyricSource : public LyricSourceBase
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Metadata tags"); }
-    bool is_local() const final { return true; }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Metadata tags");
+    }
+    bool is_local() const final
+    {
+        return true;
+    }
 
-    std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track,
+                                     const metadb_v2_rec_t& track_info,
+                                     abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
-    std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track,
+                     const metadb_v2_rec_t& track_info,
+                     bool is_timestamped,
+                     std::string_view lyrics,
+                     bool allow_overwrite,
+                     abort_callback& abort) final;
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
 
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
@@ -25,7 +44,9 @@ class ID3TagLyricSource : public LyricSourceBase
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& /*abort*/)
+std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track,
+                                                    const metadb_v2_rec_t& track_info,
+                                                    abort_callback& /*abort*/)
 {
     if(track_info.info == nullptr)
     {
@@ -53,7 +74,7 @@ std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track, con
 
         std::string text;
         size_t value_count = info.meta_enum_value_count(lyric_value_index);
-        for(size_t i=0; i<value_count; i++)
+        for(size_t i = 0; i < value_count; i++)
         {
             const char* value = info.meta_enum_value(lyric_value_index, i);
             text += value;
@@ -80,7 +101,12 @@ bool ID3TagLyricSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/
     return false;
 }
 
-std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyric_view, bool allow_overwrite, abort_callback& abort)
+std::string ID3TagLyricSource::save(metadb_handle_ptr track,
+                                    const metadb_v2_rec_t& track_info,
+                                    bool is_timestamped,
+                                    std::string_view lyric_view,
+                                    bool allow_overwrite,
+                                    abort_callback& abort)
 {
     // We can't save lyrics for remote tracks to metadata (because we don't have a file to save
     // the metadata into). Redirect to saving to localfiles if we find ourselves attempting to
@@ -108,12 +134,16 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
     track->get_full_info_ref(abort);
 
     std::string lyrics(lyric_view);
-    const auto update_lyric_tag = [](metadb_handle_ptr track, const std::string& tag_name, const std::string& lyrics, bool allow_overwrite)
+    const auto update_lyric_tag =
+        [](metadb_handle_ptr track, const std::string& tag_name, const std::string& lyrics, bool allow_overwrite)
     {
         struct MetaCompletionLogger : public completion_notify
         {
             const std::string metatag;
-            MetaCompletionLogger(std::string_view tag) : metatag(tag) {}
+            MetaCompletionLogger(std::string_view tag)
+                : metatag(tag)
+            {
+            }
             void on_completion(unsigned int result_code) final
             {
                 if(result_code == metadb_io::update_info_success)
@@ -127,7 +157,8 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
             }
         };
 
-        const auto update_meta_tag = [tag_name, lyrics, allow_overwrite](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
+        const auto update_meta_tag =
+            [tag_name, lyrics, allow_overwrite](trackRef /*location*/, t_filestats /*stats*/, file_info& info)
         {
             t_size tag_index = info.meta_find_ex(tag_name.data(), tag_name.length());
             if(!allow_overwrite && (tag_index != pfc::infinite_size))
@@ -159,7 +190,8 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track, const metadb_v2_rec
     }
     else
     {
-        fb2k::inMainThread2([update_lyric_tag, track, tag_name, lyrics, allow_overwrite]() { update_lyric_tag(track, tag_name, lyrics, allow_overwrite); });
+        fb2k::inMainThread2([update_lyric_tag, track, tag_name, lyrics, allow_overwrite]()
+                            { update_lyric_tag(track, tag_name, lyrics, allow_overwrite); });
     }
 
     return tag_name;
@@ -172,7 +204,10 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
         struct MetaRemovalCompletionLogger : public completion_notify
         {
             std::string metatag;
-            MetaRemovalCompletionLogger(std::string_view tag) : metatag(tag) {}
+            MetaRemovalCompletionLogger(std::string_view tag)
+                : metatag(tag)
+            {
+            }
             void on_completion(unsigned int result_code) final
             {
                 if(result_code == metadb_io::update_info_success)
@@ -211,7 +246,8 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
             track->get_full_info_ref(fb2k::mainAborter());
 
             service_ptr_t<file_info_filter> updater = file_info_filter::create(update_meta_tag);
-            service_ptr_t<MetaRemovalCompletionLogger> completion = fb2k::service_new<MetaRemovalCompletionLogger>(path);
+            service_ptr_t<MetaRemovalCompletionLogger> completion = fb2k::service_new<MetaRemovalCompletionLogger>(
+                path);
             service_ptr_t<metadb_io_v2> meta_io = metadb_io_v2::get();
             meta_io->update_info_async(pfc::list_single_ref_t<metadb_handle_ptr>(track),
                                        updater,
@@ -244,9 +280,7 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
 std::tstring ID3TagLyricSource::get_file_path(metadb_handle_ptr track, const LyricData& lyrics)
 {
     const char* path = track->get_path();
-    if((lyrics.source_id == src_guid) ||
-       (lyrics.save_source.has_value() && (lyrics.save_source.value() == src_guid))
-      )
+    if((lyrics.source_id == src_guid) || (lyrics.save_source.has_value() && (lyrics.save_source.value() == src_guid)))
     {
         return to_tstring(std::string_view(path, strlen(path)));
     }

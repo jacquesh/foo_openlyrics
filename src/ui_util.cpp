@@ -64,4 +64,3 @@ metadb_handle_ptr get_format_preview_track()
 
     return preview_track;
 }
-

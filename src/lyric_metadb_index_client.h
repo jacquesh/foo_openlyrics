@@ -2,9 +2,9 @@
 
 #include <guiddef.h>
 
+#include "foobar2000/SDK/initquit.h"
 #include "foobar2000/SDK/metadb_handle.h"
 #include "foobar2000/SDK/metadb_index.h"
-#include "foobar2000/SDK/initquit.h"
 
 struct lyric_metadb_index_client : metadb_index_client
 {
@@ -14,4 +14,6 @@ struct lyric_metadb_index_client : metadb_index_client
 
     metadb_index_hash transform(const file_info& info, const playable_location& /*location*/) override;
 };
-#define DECLARE_OPENLYRICS_METADB_INDEX(index_name, index_guid) FB2K_ON_INIT_STAGE([](){ lyric_metadb_index_client::setup_metadb_index(index_name, index_guid); }, init_stages::before_config_read)
+#define DECLARE_OPENLYRICS_METADB_INDEX(index_name, index_guid)                                                        \
+    FB2K_ON_INIT_STAGE([]() { lyric_metadb_index_client::setup_metadb_index(index_name, index_guid); },                \
+                       init_stages::before_config_read)

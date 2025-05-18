@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
-#include <ShObjIdl_core.h>
-#include "resource.h"
-#include "foobar2000/helpers/atl-misc.h"
 #include "foobar2000/SDK/coreDarkMode.h"
+#include "foobar2000/helpers/atl-misc.h"
+#include "resource.h"
+#include <ShObjIdl_core.h>
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -13,28 +13,35 @@
 #include "tag_util.h"
 #include "ui_util.h"
 
+// clang-format off: GUIDs should be one line
 static const GUID GUID_PREFERENCES_PAGE_SRC_LOCALFILES = { 0x9f2e83b6, 0xccc3, 0x4033, { 0xb5, 0x84, 0xf3, 0x84, 0x2d, 0xad, 0xfb, 0x40 } };
 
 static const GUID GUID_CFG_SAVE_DIR_CLASS = { 0xcf49878d, 0xe2ea, 0x4682, { 0x98, 0xb, 0x8f, 0xc1, 0xf3, 0x80, 0x46, 0x7b } };
 static const GUID GUID_CFG_SAVE_FILENAME_FORMAT = { 0x1f7a3804, 0x7147, 0x4b64, { 0x9d, 0x51, 0x4c, 0xdd, 0x90, 0xa7, 0x6d, 0xd6 } };
 static const GUID GUID_CFG_SAVE_PATH_CUSTOM = { 0x84ac099b, 0xa00b, 0x4713, { 0x8f, 0x1c, 0x30, 0x7e, 0x31, 0xc0, 0xa1, 0xdf } };
+// clang-format on
 
-static cfg_auto_combo_option<SaveDirectoryClass> save_dir_class_options[] =
-{
-    {_T("foobar2000 configuration directory"), SaveDirectoryClass::ConfigDirectory},
-    {_T("Same directory as the track"), SaveDirectoryClass::TrackFileDirectory},
-    {_T("Custom directory"), SaveDirectoryClass::Custom},
+static cfg_auto_combo_option<SaveDirectoryClass> save_dir_class_options[] = {
+    { _T("foobar2000 configuration directory"), SaveDirectoryClass::ConfigDirectory },
+    { _T("Same directory as the track"), SaveDirectoryClass::TrackFileDirectory },
+    { _T("Custom directory"), SaveDirectoryClass::Custom },
 };
 
-static cfg_auto_combo<SaveDirectoryClass, 3> cfg_save_dir_class(GUID_CFG_SAVE_DIR_CLASS, IDC_SAVE_DIRECTORY_CLASS, SaveDirectoryClass::ConfigDirectory, save_dir_class_options);
+static cfg_auto_combo<SaveDirectoryClass, 3> cfg_save_dir_class(GUID_CFG_SAVE_DIR_CLASS,
+                                                                IDC_SAVE_DIRECTORY_CLASS,
+                                                                SaveDirectoryClass::ConfigDirectory,
+                                                                save_dir_class_options);
 
-// Default to replacing all invalid visible characters as per https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-static cfg_auto_string                       cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT, IDC_SAVE_FILENAME_FORMAT, "$replace([%artist% - ][%title%],/,-,\\,-,<,-,>,-,:,-,\",-,|,-,?,-,*,-)");
+// Default to replacing all invalid visible characters as per
+// https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+static cfg_auto_string cfg_save_filename_format(GUID_CFG_SAVE_FILENAME_FORMAT,
+                                                IDC_SAVE_FILENAME_FORMAT,
+                                                "$replace([%artist% - "
+                                                "][%title%],/,-,\\,-,<,-,>,-,:,-,\",-,|,-,?,-,*,-)");
 
-static cfg_auto_string                       cfg_save_path_custom(GUID_CFG_SAVE_PATH_CUSTOM, IDC_SAVE_CUSTOM_PATH, "C:\\Lyrics\\%artist%");
+static cfg_auto_string cfg_save_path_custom(GUID_CFG_SAVE_PATH_CUSTOM, IDC_SAVE_CUSTOM_PATH, "C:\\Lyrics\\%artist%");
 
-static cfg_auto_property* g_root_auto_properties[] =
-{
+static cfg_auto_property* g_root_auto_properties[] = {
     &cfg_save_dir_class,
     &cfg_save_filename_format,
     &cfg_save_path_custom,
@@ -50,11 +57,13 @@ static bool trim_bad_trailing_directory_chars(pfc::string8& path)
     pfc::string parent = pfc::io::path::getParent(path);
     if(parent == "file://\\\\")
     {
-        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a network filesystem).
-        // filesystem::g_exists fails (at least in SDK version 20200728 with fb2k version 1.6.7) on a path like that.
-        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just return here
-        // as if it does and then either the existence checks further down the path tree will fail, or the actual file write will fail.
-        // Both are guarded against IO failure, so that'd be fine (we'd just do slightly more work).
+        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a
+        // network filesystem). filesystem::g_exists fails (at least in SDK version 20200728 with fb2k version 1.6.7) on
+        // a path like that.
+        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just
+        // return here as if it does and then either the existence checks further down the path tree will fail, or the
+        // actual file write will fail. Both are guarded against IO failure, so that'd be fine (we'd just do slightly
+        // more work).
         return false;
     }
 
@@ -68,11 +77,9 @@ static bool trim_bad_trailing_directory_chars(pfc::string8& path)
     {
         pfc::string filename = pfc::io::path::getFileName(path);
         while(!filename.is_empty()
-            && ((filename[filename.length()-1] == ' ')
-                || filename[filename.length()-1] == '.')
-            )
+              && ((filename[filename.length() - 1] == ' ') || filename[filename.length() - 1] == '.'))
         {
-            filename.truncate(filename.length()-1);
+            filename.truncate(filename.length() - 1);
         }
 
         path = parent;
@@ -124,7 +131,8 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
             dir_class_name = "ConfigDirectory";
             formatted_directory = core_api::get_profile_path();
             formatted_directory += "\\lyrics\\";
-        } break;
+        }
+        break;
 
         case SaveDirectoryClass::TrackFileDirectory:
         {
@@ -133,7 +141,8 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
             pfc::string tmp = path;
             tmp = pfc::io::path::getParent(tmp);
             formatted_directory = pfc::string8(tmp.c_str(), tmp.length());
-        } break;
+        }
+        break;
 
         case SaveDirectoryClass::Custom:
         {
@@ -154,18 +163,20 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
                 LOG_WARN("Failed to format save path using format: %s", path_format_str);
                 return "";
             }
-        } break;
+        }
+        break;
 
         case SaveDirectoryClass::DEPRECATED_None:
-        default:
-            LOG_WARN("Unrecognised save path class: %d", (int)dir_class);
-            return "";
+        default: LOG_WARN("Unrecognised save path class: %d", (int)dir_class); return "";
     }
 
     pfc::string8 result = formatted_directory;
     result.add_filename(formatted_name);
     trim_bad_trailing_directory_chars(result);
-    LOG_INFO("Save file name format '%s' with directory class '%s' evaluated to '%s'", name_format_str, dir_class_name.c_str(), result.c_str());
+    LOG_INFO("Save file name format '%s' with directory class '%s' evaluated to '%s'",
+             name_format_str,
+             dir_class_name.c_str(),
+             result.c_str());
 
     if(formatted_directory.is_empty() || formatted_name.is_empty())
     {
@@ -181,23 +192,30 @@ SaveDirectoryClass preferences::saving::raw::directory_class()
     return cfg_save_dir_class.get_value();
 }
 
-
-class PreferencesSrcLocalfiles : public CDialogImpl<PreferencesSrcLocalfiles>, public auto_preferences_page_instance, private play_callback_impl_base
+class PreferencesSrcLocalfiles : public CDialogImpl<PreferencesSrcLocalfiles>,
+                                 public auto_preferences_page_instance,
+                                 private play_callback_impl_base
 {
 public:
-    // Constructor - invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
-    PreferencesSrcLocalfiles(preferences_page_callback::ptr callback) : auto_preferences_page_instance(callback, g_root_auto_properties) {}
+    // Invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
+    PreferencesSrcLocalfiles(preferences_page_callback::ptr callback)
+        : auto_preferences_page_instance(callback, g_root_auto_properties)
+    {
+    }
 
     // Dialog resource ID - Required by WTL/Create()
-    enum {IDD = IDD_PREFERENCES_SRC_LOCALFILES};
+    enum
+    {
+        IDD = IDD_PREFERENCES_SRC_LOCALFILES
+    };
 
     BEGIN_MSG_MAP_EX(PreferencesSrcLocalfiles)
-        MSG_WM_INITDIALOG(OnInitDialog)
-        COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
-        COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH_BROWSE, BN_CLICKED, OnCustomPathBrowse)
-        NOTIFY_HANDLER_EX(IDC_SAVE_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
+    MSG_WM_INITDIALOG(OnInitDialog)
+    COMMAND_HANDLER_EX(IDC_SAVE_FILENAME_FORMAT, EN_CHANGE, OnSaveNameFormatChange)
+    COMMAND_HANDLER_EX(IDC_SAVE_DIRECTORY_CLASS, CBN_SELCHANGE, OnDirectoryClassChange)
+    COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH, EN_CHANGE, OnCustomPathFormatChange)
+    COMMAND_HANDLER_EX(IDC_SAVE_CUSTOM_PATH_BROWSE, BN_CLICKED, OnCustomPathBrowse)
+    NOTIFY_HANDLER_EX(IDC_SAVE_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
     END_MSG_MAP()
 
 private:
@@ -328,9 +346,9 @@ void PreferencesSrcLocalfiles::UpdateFormatPreview(int edit_id, int preview_id)
     if(format_text_length_result > 0)
     {
         size_t format_text_length = (size_t)format_text_length_result;
-        TCHAR* format_text_buffer = new TCHAR[format_text_length+1]; // +1 for null-terminator
-        GetDlgItemText(edit_id, format_text_buffer, int(format_text_length+1));
-        std::string format_text = from_tstring(std::tstring_view{format_text_buffer, format_text_length});
+        TCHAR* format_text_buffer = new TCHAR[format_text_length + 1]; // +1 for null-terminator
+        GetDlgItemText(edit_id, format_text_buffer, int(format_text_length + 1));
+        std::string format_text = from_tstring(std::tstring_view { format_text_buffer, format_text_length });
         delete[] format_text_buffer;
 
         titleformat_object::ptr format_script;
@@ -389,12 +407,20 @@ void PreferencesSrcLocalfiles::SetCustomPathEnabled()
     }
 }
 
-
 class PreferencesSrcLocalfilesImpl : public preferences_page_impl<PreferencesSrcLocalfiles>
 {
 public:
-    const char* get_name() final { return "Local files"; }
-    GUID get_guid() final { return GUID_PREFERENCES_PAGE_SRC_LOCALFILES; }
-    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_SEARCH_SOURCES; }
+    const char* get_name() final
+    {
+        return "Local files";
+    }
+    GUID get_guid() final
+    {
+        return GUID_PREFERENCES_PAGE_SRC_LOCALFILES;
+    }
+    GUID get_parent_guid() final
+    {
+        return GUID_PREFERENCES_PAGE_SEARCH_SOURCES;
+    }
 };
 static preferences_page_factory_t<PreferencesSrcLocalfilesImpl> g_preferences_page_factory;

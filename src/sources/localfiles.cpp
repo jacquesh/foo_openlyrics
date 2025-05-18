@@ -10,21 +10,39 @@ static const GUID src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0
 
 class LocalFileSource : public LyricSourceBase
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Local files"); }
-    bool is_local() const final { return true; }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Local files");
+    }
+    bool is_local() const final
+    {
+        return true;
+    }
 
-    std::vector<LyricDataRaw> search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort) final;
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track,
+                                     const metadb_v2_rec_t& track_info,
+                                     abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
-    std::string save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort) final;
+    std::string save(metadb_handle_ptr track,
+                     const metadb_v2_rec_t& track_info,
+                     bool is_timestamped,
+                     std::string_view lyrics,
+                     bool allow_overwrite,
+                     abort_callback& abort) final;
     bool delete_persisted(metadb_handle_ptr track, const std::string& path) final;
 
     std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final;
 };
 static const LyricSourceFactory<LocalFileSource> src_factory;
 
-std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, abort_callback& abort)
+std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track,
+                                                  const metadb_v2_rec_t& track_info,
+                                                  abort_callback& abort)
 {
     std::string file_path_prefix = preferences::saving::filename(track, track_info);
 
@@ -35,7 +53,7 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, const
     }
 
     std::vector<LyricDataRaw> output;
-    for(LyricType type : {LyricType::Synced, LyricType::Unsynced})
+    for(LyricType type : { LyricType::Synced, LyricType::Unsynced })
     {
         std::string file_path = file_path_prefix;
         file_path += (type == LyricType::Synced) ? ".lrc" : ".txt";
@@ -43,7 +61,7 @@ std::vector<LyricDataRaw> LocalFileSource::search(metadb_handle_ptr track, const
 
         try
         {
-            if (filesystem::g_exists(file_path.c_str(), abort))
+            if(filesystem::g_exists(file_path.c_str(), abort))
             {
                 LyricDataRaw result = {};
                 result.source_id = id();
@@ -107,11 +125,13 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
     pfc::string parent = pfc::io::path::getParent(dir_path);
     if(parent == "file://\\\\")
     {
-        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a network filesystem).
+        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a
+        // network filesystem).
         // filesystem::g_exists fails (at least in SDK version 20200728 with fb2k version 1.6.7) on a path like that.
-        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just return here
-        // as if it does and then either the existence checks further down the path tree will fail, or the actual file write will fail.
-        // Both are guarded against IO failure, so that'd be fine (we'd just do slightly more work).
+        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just
+        // return here as if it does and then either the existence checks further down the path tree will fail, or the
+        // actual file write will fail. Both are guarded against IO failure, so that'd be fine (we'd just do slightly
+        // more work).
         return;
     }
 
@@ -124,7 +144,12 @@ static void ensure_dir_exists(const pfc::string& dir_path, abort_callback& abort
     filesystem::g_create_directory(dir_path.c_str(), abort);
 }
 
-std::string LocalFileSource::save(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, bool is_timestamped, std::string_view lyrics, bool allow_overwrite, abort_callback& abort)
+std::string LocalFileSource::save(metadb_handle_ptr track,
+                                  const metadb_v2_rec_t& track_info,
+                                  bool is_timestamped,
+                                  std::string_view lyrics,
+                                  bool allow_overwrite,
+                                  abort_callback& abort)
 {
     LOG_INFO("Saving lyrics to a local file...");
     std::string output_path_str = preferences::saving::filename(track, track_info);
@@ -151,9 +176,9 @@ std::string LocalFileSource::save(metadb_handle_ptr track, const metadb_v2_rec_t
         return output_path_str;
     }
 
-    TCHAR temp_path_str[MAX_PATH+1];
-    DWORD temp_path_str_len = GetTempPath(MAX_PATH+1, temp_path_str);
-    std::string tmp_path = from_tstring(std::tstring_view{temp_path_str, temp_path_str_len});
+    TCHAR temp_path_str[MAX_PATH + 1];
+    DWORD temp_path_str_len = GetTempPath(MAX_PATH + 1, temp_path_str);
+    std::string tmp_path = from_tstring(std::tstring_view { temp_path_str, temp_path_str_len });
     tmp_path += std::string_view(output_file_name.c_str(), output_file_name.length());
 
     {
@@ -171,7 +196,9 @@ std::string LocalFileSource::save(metadb_handle_ptr track, const metadb_v2_rec_t
     }
     else
     {
-        LOG_WARN("Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems", tmp_path.c_str(), output_path.c_str());
+        LOG_WARN("Cannot save lyrics file. Temp path (%s) and output path (%s) are on different filesystems",
+                 tmp_path.c_str(),
+                 output_path.c_str());
     }
 
     return output_path_str;

@@ -12,8 +12,14 @@ static const GUID src_guid = { 0x6f0de3a9, 0xc824, 0x429f, { 0x8e, 0x26, 0x6c, 0
 
 class BandcampSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Bandcamp"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Bandcamp");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -62,7 +68,7 @@ static std::string remove_title_url_chars(const std::string_view input)
 std::vector<LyricDataRaw> BandcampSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
     std::vector<LyricDataRaw> result;
-    for(int page_index=1; page_index<8; page_index++)
+    for(int page_index = 1; page_index < 8; page_index++)
     {
         http_request::ptr request = http_client::get()->create_request("GET");
 
@@ -80,7 +86,7 @@ std::vector<LyricDataRaw> BandcampSource::search(const LyricSearchParams& params
         {
             file_ptr response_file = request->run(url.c_str(), abort);
             response_file->read_string_raw(content, abort);
-            // NOTE: We're assuming here that the response is encoded in UTF-8 
+            // NOTE: We're assuming here that the response is encoded in UTF-8
         }
         catch(const std::exception& e)
         {

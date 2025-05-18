@@ -11,8 +11,14 @@ static const GUID src_guid = { 0xaac13215, 0xe32e, 0x4667, { 0xac, 0xd7, 0x1f, 0
 
 class NetEaseLyricsSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("NetEase Online Music"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("NetEase Online Music");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -69,7 +75,7 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
     }
 
     std::vector<LyricDataRaw> output;
-    for(int song_index=0; song_index<song_arr_len; song_index++)
+    for(int song_index = 0; song_index < song_arr_len; song_index++)
     {
         cJSON* song_item = cJSON_GetArrayItem(song_arr, song_index);
         if((song_item == nullptr) || (song_item->type != cJSON_Object))
@@ -127,7 +133,7 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
         cJSON* duration_item = cJSON_GetObjectItem(song_item, "duration");
         if((duration_item != nullptr) && (duration_item->type == cJSON_Number))
         {
-            result_duration_sec = duration_item->valueint/1000; // Given duration is in milliseconds
+            result_duration_sec = duration_item->valueint / 1000; // Given duration is in milliseconds
         }
 
         LyricDataRaw data = {};
@@ -146,7 +152,8 @@ std::vector<LyricDataRaw> NetEaseLyricsSource::parse_song_ids(cJSON* json)
 
 std::vector<LyricDataRaw> NetEaseLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
-    const std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(params.artist) + '+' + urlencode(params.title) + "&type=1&offset=0&sub=false&limit=5";
+    const std::string url = std::string(BASE_URL) + "/search/get?s=" + urlencode(params.artist) + '+'
+                            + urlencode(params.title) + "&type=1&offset=0&sub=false&limit=5";
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;

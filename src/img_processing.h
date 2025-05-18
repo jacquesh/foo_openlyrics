@@ -19,9 +19,9 @@ struct Image
 
     Image() = default;
     Image(Image&& other);
-    Image& operator =(Image&& other);
+    Image& operator=(Image&& other);
     Image(const Image&) = delete;
-    Image& operator =(const Image&) = delete;
+    Image& operator=(const Image&) = delete;
     ~Image();
     bool valid() const;
 };
@@ -33,7 +33,12 @@ std::optional<Image> load_image(const char* file_path);
 std::optional<Image> decode_image(const void* input_buffer, size_t input_buffer_length);
 
 Image generate_background_colour(int width, int height, RGBAColour colour);
-Image generate_background_colour(int width, int height, RGBAColour topleft, RGBAColour topright, RGBAColour botleft, RGBAColour botright);
+Image generate_background_colour(int width,
+                                 int height,
+                                 RGBAColour topleft,
+                                 RGBAColour topright,
+                                 RGBAColour botleft,
+                                 RGBAColour botright);
 Image lerp_image(const Image& lhs, const Image& rhs, double t);
 Image lerp_offset_image(const Image& full_img, const Image& offset_img, CPoint offset, double t);
 Image resize_image(const Image& input, int out_width, int out_height);

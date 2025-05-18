@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-typedef int(*mvtf_func)();
+typedef int (*mvtf_func)();
 int main(int argc, char** argv)
 {
     if(argc == 1)
@@ -29,7 +29,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const char* main_name =  "run_mvtf_tests";
+    const char* main_name = "run_mvtf_tests";
     mvtf_func mvtf_main = (mvtf_func)GetProcAddress(lib, main_name);
     if(mvtf_main == nullptr)
     {
@@ -38,9 +38,12 @@ int main(int argc, char** argv)
     }
 
     int result = mvtf_main();
-    if(result == 0) {
+    if(result == 0)
+    {
         printf("All tests passed\n");
-    } else {
+    }
+    else
+    {
         printf("Some tests failed\n");
     }
     return result;

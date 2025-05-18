@@ -1,11 +1,11 @@
 #include "stdafx.h"
 
-#include <windows.h>
 #include <bcrypt.h>
+#include <windows.h>
 
 #include <assert.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "hash_utils.h"
 #include "mvtf/mvtf.h"
@@ -16,34 +16,34 @@ Sha256Context::Sha256Context()
     , m_internal_storage(nullptr)
     , m_error(false)
 {
-    m_error = m_error ||
-              FAILED(BCryptOpenAlgorithmProvider((BCRYPT_ALG_HANDLE*)&m_algorithm_handle,
-                                                 BCRYPT_SHA256_ALGORITHM,
-                                                 nullptr,
-                                                 BCRYPT_HASH_REUSABLE_FLAG));
+    m_error = m_error
+              || FAILED(BCryptOpenAlgorithmProvider((BCRYPT_ALG_HANDLE*)&m_algorithm_handle,
+                                                    BCRYPT_SHA256_ALGORITHM,
+                                                    nullptr,
+                                                    BCRYPT_HASH_REUSABLE_FLAG));
 
     // BCryptGetProperty wants to output the number of bytes written to the output buffer.
     // This parameter is meant to be optional but we get failures without it.
     ULONG get_property_bytes_written = 0;
     DWORD hash_obj_len = 0;
-    m_error = m_error ||
-              FAILED(BCryptGetProperty((BCRYPT_ALG_HANDLE)m_algorithm_handle,
-                                       BCRYPT_OBJECT_LENGTH,
-                                       (PBYTE)&hash_obj_len,
-                                       sizeof(hash_obj_len),
-                                       &get_property_bytes_written,
-                                       0));
+    m_error = m_error
+              || FAILED(BCryptGetProperty((BCRYPT_ALG_HANDLE)m_algorithm_handle,
+                                          BCRYPT_OBJECT_LENGTH,
+                                          (PBYTE)&hash_obj_len,
+                                          sizeof(hash_obj_len),
+                                          &get_property_bytes_written,
+                                          0));
     m_internal_storage = malloc(hash_obj_len);
     assert(m_internal_storage != nullptr);
 
-    m_error = m_error ||
-              FAILED(BCryptCreateHash((BCRYPT_ALG_HANDLE)m_algorithm_handle,
-                                      (BCRYPT_HASH_HANDLE*)&m_hash_handle,
-                                      (UCHAR*)m_internal_storage,
-                                      hash_obj_len,
-                                      nullptr,
-                                      0,
-                                      BCRYPT_HASH_REUSABLE_FLAG));
+    m_error = m_error
+              || FAILED(BCryptCreateHash((BCRYPT_ALG_HANDLE)m_algorithm_handle,
+                                         (BCRYPT_HASH_HANDLE*)&m_hash_handle,
+                                         (UCHAR*)m_internal_storage,
+                                         hash_obj_len,
+                                         nullptr,
+                                         0,
+                                         BCRYPT_HASH_REUSABLE_FLAG));
 }
 
 Sha256Context::~Sha256Context()
@@ -75,7 +75,6 @@ void Sha256Context::finalise(uint8_t (&output)[32])
         m_error = FAILED(BCryptFinishHash(m_hash_handle, output, sizeof(output), 0));
     }
 }
-
 
 // ============
 // Tests

@@ -5,7 +5,8 @@
 #include "ui_extension.h"
 #pragma warning(pop)
 
-#define UIE_SHIM_PANEL_FACTORY(TypeName) ui_extension::window_factory<uie_shim_panel< TypeName >> g_uie_shim_panel##TypeName;
+#define UIE_SHIM_PANEL_FACTORY(TypeName)                                                                               \
+    ui_extension::window_factory<uie_shim_panel<TypeName>> g_uie_shim_panel##TypeName;
 
 template<typename TPanel>
 class uie_shim_colour_client : public columns_ui::colours::client
@@ -74,10 +75,10 @@ template<typename TPanel>
 class uie_shim_instance_callback_impl : public ui_element_instance_callback_v3
 {
 public:
-    uie_shim_instance_callback_impl() :
-        colours(TPanel::g_get_guid()),
-        font_uie(nullptr),
-        font_generation(0)
+    uie_shim_instance_callback_impl()
+        : colours(TPanel::g_get_guid())
+        , font_uie(nullptr)
+        , font_generation(0)
     {
         standard_api_create_t(font_manager);
     }
@@ -90,10 +91,26 @@ public:
     void on_min_max_info_change() override {}
     void on_alt_pressed(bool /*p_state*/) override {}
     void request_replace(service_ptr_t<class ui_element_instance> /*p_item*/) override {}
-    bool request_activation(service_ptr_t<class ui_element_instance> /*p_item*/) { return false; }
-    bool is_edit_mode_enabled() { return false; }
-    bool is_elem_visible(service_ptr_t<class ui_element_instance> /*elem*/) { return true; }
-    t_size notify(ui_element_instance* /*source*/, const GUID& /*what*/, t_size /*param1*/, const void* /*param2*/, t_size /*param2size*/) { return 0; }
+    bool request_activation(service_ptr_t<class ui_element_instance> /*p_item*/)
+    {
+        return false;
+    }
+    bool is_edit_mode_enabled()
+    {
+        return false;
+    }
+    bool is_elem_visible(service_ptr_t<class ui_element_instance> /*elem*/)
+    {
+        return true;
+    }
+    t_size notify(ui_element_instance* /*source*/,
+                  const GUID& /*what*/,
+                  t_size /*param1*/,
+                  const void* /*param2*/,
+                  t_size /*param2size*/)
+    {
+        return 0;
+    }
 
     bool query_color(const GUID& guid, t_ui_color& out_colour) override
     {
@@ -150,9 +167,18 @@ template<typename TPanel>
 class uie_shim_panel : public ui_extension::window
 {
 public:
-    void get_category(pfc::string_base& out) const override { out = "Panels"; }
-    unsigned int get_type() const override { return ui_extension::type_panel; }
-    bool is_available(const ui_extension::window_host_ptr& /*p_host*/) const override { return true; }
+    void get_category(pfc::string_base& out) const override
+    {
+        out = "Panels";
+    }
+    unsigned int get_type() const override
+    {
+        return ui_extension::type_panel;
+    }
+    bool is_available(const ui_extension::window_host_ptr& /*p_host*/) const override
+    {
+        return true;
+    }
 
     const GUID& get_extension_guid() const override
     {
@@ -230,7 +256,9 @@ public:
     }
 
 private:
-    class TPanelImpl : public ui_element_impl_withpopup<TPanel> {};
+    class TPanelImpl : public ui_element_impl_withpopup<TPanel>
+    {
+    };
 
     ui_element_instance::ptr instance = nullptr;
     ui_element_config::ptr config = nullptr;

@@ -41,8 +41,11 @@ private:
 
 #ifdef STRINGSPLIT_IMPLEMENTATION
 string_split::string_split(std::string_view source, std::string_view delimiter)
-    : m_source(source), m_delimiter(delimiter), m_failed(false)
-{}
+    : m_source(source)
+    , m_delimiter(delimiter)
+    , m_failed(false)
+{
+}
 
 std::string_view string_split::next()
 {

@@ -25,19 +25,28 @@ int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char
         start_index = 1;
     }
 
-    int bytes_required = WideCharToMultiByte(codepage, WC_ERR_INVALID_CHARS,
-                                             wide.data() + start_index, int(wide.length() - start_index),
-                                             nullptr, 0, nullptr, nullptr);
+    int bytes_required = WideCharToMultiByte(codepage,
+                                             WC_ERR_INVALID_CHARS,
+                                             wide.data() + start_index,
+                                             int(wide.length() - start_index),
+                                             nullptr,
+                                             0,
+                                             nullptr,
+                                             nullptr);
     if(bytes_required <= 0)
     {
         return 0;
     }
 
     out_buffer.resize(bytes_required);
-    int bytes_written = WideCharToMultiByte(codepage, WC_ERR_INVALID_CHARS,
-                                            wide.data() + start_index, int(wide.length() - start_index),
-                                            out_buffer.data(), bytes_required,
-                                            nullptr, nullptr);
+    int bytes_written = WideCharToMultiByte(codepage,
+                                            WC_ERR_INVALID_CHARS,
+                                            wide.data() + start_index,
+                                            int(wide.length() - start_index),
+                                            out_buffer.data(),
+                                            bytes_required,
+                                            nullptr,
+                                            nullptr);
     assert(bytes_written == bytes_required);
     return bytes_written;
 }
@@ -45,18 +54,24 @@ int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char
 int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wchar_t>& out_buffer)
 {
     assert(narrow.length() <= INT_MAX);
-    int chars_required = MultiByteToWideChar(codepage, MB_ERR_INVALID_CHARS,
-                                             narrow.data(), int(narrow.length()),
-                                             nullptr, 0);
+    int chars_required = MultiByteToWideChar(codepage,
+                                             MB_ERR_INVALID_CHARS,
+                                             narrow.data(),
+                                             int(narrow.length()),
+                                             nullptr,
+                                             0);
     if(chars_required <= 0)
     {
         return 0;
     }
 
     out_buffer.resize(chars_required);
-    int chars_written = MultiByteToWideChar(codepage, MB_ERR_INVALID_CHARS,
-                                                 narrow.data(), int(narrow.length()),
-                                                 out_buffer.data(), chars_required);
+    int chars_written = MultiByteToWideChar(codepage,
+                                            MB_ERR_INVALID_CHARS,
+                                            narrow.data(),
+                                            int(narrow.length()),
+                                            out_buffer.data(),
+                                            chars_required);
     assert(chars_written == chars_required);
     return chars_written;
 }
@@ -76,12 +91,12 @@ std::tstring to_tstring(std::string_view string)
 
 std::tstring to_tstring(const std::string& string)
 {
-    return to_tstring(std::string_view{string});
+    return to_tstring(std::string_view { string });
 }
 
 std::tstring to_tstring(const pfc::string8& string)
 {
-    return to_tstring(std::string_view{string.c_str(), string.length()});
+    return to_tstring(std::string_view { string.c_str(), string.length() });
 }
 
 std::string from_tstring(std::tstring_view string)
@@ -123,7 +138,7 @@ std::tstring normalise_utf8(std::tstring_view input)
         return std::tstring(input.data(), input.length());
     }
 
-    const int buffer_size = required_bytes+1;
+    const int buffer_size = required_bytes + 1;
     TCHAR* buffer = new TCHAR[buffer_size];
     int normalised_bytes = NormalizeString(NormalizationKD, input.data(), (int)input.length(), buffer, buffer_size);
     if(normalised_bytes <= 0)
@@ -145,8 +160,11 @@ bool hr_success(HRESULT result, const char* filename, int line_number)
     {
         _com_error err(result);
         std::string err_msg = from_tstring(std::tstring_view(err.ErrorMessage()));
-        LOG_WARN("HRESULT indicated failure @ %s:%d: 0x%x %s", filename, line_number, uint32_t(result), err_msg.c_str());
+        LOG_WARN("HRESULT indicated failure @ %s:%d: 0x%x %s",
+                 filename,
+                 line_number,
+                 uint32_t(result),
+                 err_msg.c_str());
     }
     return success;
 }
-

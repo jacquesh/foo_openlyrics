@@ -10,8 +10,14 @@ static const GUID src_guid = { 0x4b0b5722, 0x3a84, 0x4b8e, { 0x82, 0x7a, 0x26, 0
 
 class QQMusicLyricsSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("QQ Music"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("QQ Music");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -40,7 +46,7 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json) const
     if((result_obj == nullptr) || (result_obj->type != cJSON_Object))
     {
         LOG_INFO("No valid 'data' property available");
-        return {}; 
+        return {};
     }
     cJSON* song_obj = cJSON_GetObjectItem(result_obj, "song");
     if((song_obj == nullptr) || (song_obj->type != cJSON_Object))
@@ -64,7 +70,7 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json) const
     }
 
     std::vector<LyricDataRaw> output;
-    for(int song_index=0; song_index<song_arr_len; song_index++)
+    for(int song_index = 0; song_index < song_arr_len; song_index++)
     {
         cJSON* song_item = cJSON_GetArrayItem(song_arr, song_index);
         if((song_item == nullptr) || (song_item->type != cJSON_Object))
@@ -109,7 +115,8 @@ std::vector<LyricDataRaw> QQMusicLyricsSource::parse_song_ids(cJSON* json) const
 
 std::vector<LyricDataRaw> QQMusicLyricsSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
-    std::string url = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?inCharset=utf-8&outCharset=utf-8&key=" + urlencode(params.artist) + '+' + urlencode(params.title);
+    std::string url = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?inCharset=utf-8&outCharset=utf-8&key="
+                      + urlencode(params.artist) + '+' + urlencode(params.title);
     LOG_INFO("Querying for song ID from %s...", url.c_str());
 
     pfc::string8 content;
@@ -141,7 +148,9 @@ bool QQMusicLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
         return false;
     }
 
-    std::string url = "http://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&inCharset=utf-8&outCharset=utf-8&songmid=" + data.lookup_id;
+    std::string url = "http://c.y.qq.com/lyric/fcgi-bin/"
+                      "fcg_query_lyric_new.fcg?g_tk=5381&format=json&inCharset=utf-8&outCharset=utf-8&songmid="
+                      + data.lookup_id;
     data.source_path = url;
     LOG_INFO("Get QQMusic lyrics for song ID %s from %s...", data.lookup_id.c_str(), url.c_str());
 
@@ -177,4 +186,3 @@ bool QQMusicLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
 
     return success;
 }
-

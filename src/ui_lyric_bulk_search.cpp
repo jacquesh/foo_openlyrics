@@ -1,15 +1,15 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
-#include "resource.h"
-#include "foobar2000/helpers/atl-misc.h"
 #include "foobar2000/SDK/coreDarkMode.h"
+#include "foobar2000/helpers/atl-misc.h"
+#include "resource.h"
 #pragma warning(pop)
 
 #include "logging.h"
-#include "metrics.h"
 #include "lyric_io.h"
 #include "lyric_metadata.h"
+#include "metrics.h"
 #include "tag_util.h"
 #include "win32_util.h"
 
@@ -20,17 +20,20 @@ class BulkLyricSearch : public CDialogImpl<BulkLyricSearch>
 {
 public:
     // Dialog resource ID
-    enum { IDD = IDD_BULK_SEARCH };
+    enum
+    {
+        IDD = IDD_BULK_SEARCH
+    };
 
     BulkLyricSearch(const std::vector<metadb_handle_ptr>& tracks_to_search);
     ~BulkLyricSearch() override;
 
     BEGIN_MSG_MAP(BulkLyricSearch)
-        MSG_WM_INITDIALOG(OnInitDialog)
-        MSG_WM_DESTROY(OnDestroyDialog)
-        MSG_WM_CLOSE(OnClose)
-        MSG_WM_TIMER(OnTimer)
-        COMMAND_HANDLER_EX(IDC_BULKSEARCH_CLOSE, BN_CLICKED, OnCancel)
+    MSG_WM_INITDIALOG(OnInitDialog)
+    MSG_WM_DESTROY(OnDestroyDialog)
+    MSG_WM_CLOSE(OnClose)
+    MSG_WM_TIMER(OnTimer)
+    COMMAND_HANDLER_EX(IDC_BULKSEARCH_CLOSE, BN_CLICKED, OnCancel)
     END_MSG_MAP()
 
     void add_tracks(const std::vector<metadb_handle_ptr>& tracks_to_search);
@@ -68,9 +71,7 @@ BulkLyricSearch::BulkLyricSearch(const std::vector<metadb_handle_ptr>& tracks_to
     add_tracks(tracks_to_search);
 }
 
-BulkLyricSearch::~BulkLyricSearch()
-{
-}
+BulkLyricSearch::~BulkLyricSearch() {}
 
 BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
@@ -80,7 +81,7 @@ BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     // TODO: We can't enable dark mode for this dialog because it adds items to a list
     //       after initialisation and that causes failures in the darkmode code, which doesn't
     //       fully support list UIs.
-    //m_dark.AddDialogWithControls(m_hWnd);
+    // m_dark.AddDialogWithControls(m_hWnd);
 
     LVCOLUMN title_column = {};
     title_column.mask = LVCF_TEXT | LVCF_FMT | LVCF_WIDTH;
@@ -112,7 +113,7 @@ BOOL BulkLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     add_tracks_to_ui(m_tracks_to_search);
 
     UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 0, nullptr);
-    if (result != BULK_SEARCH_UPDATE_TIMER)
+    if(result != BULK_SEARCH_UPDATE_TIMER)
     {
         LOG_WARN("Unexpected timer result when starting bulk search update timer");
     }
@@ -159,7 +160,7 @@ void BulkLyricSearch::add_tracks(const std::vector<metadb_handle_ptr>& tracks_to
     new_tracks.reserve(track_count);
     for(metadb_handle_ptr handle : tracks_to_search)
     {
-        new_tracks.push_back(TrackAndInfo{handle, {}});
+        new_tracks.push_back(TrackAndInfo { handle, {} });
     }
 
     metadb_v2::ptr meta;
@@ -172,14 +173,12 @@ void BulkLyricSearch::add_tracks(const std::vector<metadb_handle_ptr>& tracks_to
             track_info_query_list.add_item(handle);
         }
         const auto fill_track_info = [&new_tracks](size_t idx, const metadb_v2_rec_t& rec)
-        {
-            new_tracks[idx].track_info = rec;
-        };
+        { new_tracks[idx].track_info = rec; };
         meta->queryMultiParallel_(track_info_query_list, fill_track_info);
     }
     else
     {
-        for(size_t i=0; i<track_count; i++)
+        for(size_t i = 0; i < track_count; i++)
         {
             new_tracks[i].track_info = get_full_metadata(tracks_to_search[i]);
         }
@@ -202,11 +201,14 @@ void BulkLyricSearch::add_tracks(const std::vector<metadb_handle_ptr>& tracks_to
             subitem_status.iItem = m_next_search_index;
             subitem_status.iSubItem = 2;
             subitem_status.pszText = _T("Searching...");
-            LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, m_next_search_index, (LPARAM)&subitem_status);
+            LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST,
+                                                         LVM_SETITEMTEXT,
+                                                         m_next_search_index,
+                                                         (LPARAM)&subitem_status);
             assert(status_success);
 
             UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 0, nullptr);
-            if (result != BULK_SEARCH_UPDATE_TIMER)
+            if(result != BULK_SEARCH_UPDATE_TIMER)
             {
                 LOG_WARN("Unexpected timer result when starting bulk search update timer");
             }
@@ -225,7 +227,8 @@ void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_trac
 
         LVITEM item = {};
         item.mask = LVIF_TEXT;
-        item.iItem = (int)m_tracks_to_search.size(); // As long as this is greater than the current length it'll go at the end
+        item.iItem = (int)m_tracks_to_search
+                         .size(); // As long as this is greater than the current length it'll go at the end
         item.pszText = const_cast<TCHAR*>(ui_title.c_str());
         LRESULT item_index = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_INSERTITEM, 0, (LPARAM)&item);
         assert(item_index >= 0);
@@ -236,7 +239,10 @@ void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_trac
         subitem_artist.iItem = int(item_index);
         subitem_artist.iSubItem = 1;
         subitem_artist.pszText = const_cast<TCHAR*>(ui_artist.c_str());
-        LRESULT artist_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_artist);
+        LRESULT artist_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST,
+                                                     LVM_SETITEMTEXT,
+                                                     item_index,
+                                                     (LPARAM)&subitem_artist);
         assert(artist_success);
 
         const TCHAR* status_string = ((item_index == 0) ? _T("Searching...") : _T(""));
@@ -245,7 +251,10 @@ void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_trac
         subitem_status.iItem = int(item_index);
         subitem_status.iSubItem = 2;
         subitem_status.pszText = const_cast<TCHAR*>(status_string);
-        LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_status);
+        LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST,
+                                                     LVM_SETITEMTEXT,
+                                                     item_index,
+                                                     (LPARAM)&subitem_status);
         assert(status_success);
     }
 
@@ -257,8 +266,8 @@ void BulkLyricSearch::add_tracks_to_ui(const std::vector<TrackAndInfo>& new_trac
 void BulkLyricSearch::update_status_text()
 {
     TCHAR buffer[64] = {};
-    const size_t buffer_len = sizeof(buffer)/sizeof(buffer[0]);
-    _sntprintf_s(buffer, buffer_len, _T("Searching %d/%zu"), m_next_search_index+1, m_tracks_to_search.size());
+    const size_t buffer_len = sizeof(buffer) / sizeof(buffer[0]);
+    _sntprintf_s(buffer, buffer_len, _T("Searching %d/%zu"), m_next_search_index + 1, m_tracks_to_search.size());
     SetDlgItemText(IDC_BULKSEARCH_STATUS, buffer);
 }
 
@@ -274,7 +283,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         io::search_for_lyrics(m_child_search.value(), false);
 
         UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 16, nullptr);
-        if (result != BULK_SEARCH_UPDATE_TIMER)
+        if(result != BULK_SEARCH_UPDATE_TIMER)
         {
             LOG_WARN("Unexpected timer result when starting bulk search update timer to check for results");
         }
@@ -292,12 +301,8 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
     std::optional<LyricData> lyrics;
     if(update.has_result())
     {
-        lyrics = io::process_available_lyric_update({
-            update.get_result(),
-            update.get_track(),
-            update.get_track_info(),
-            update.get_type()
-        });
+        lyrics = io::process_available_lyric_update(
+            { update.get_result(), update.get_track(), update.get_track_info(), update.get_type() });
     }
     m_child_search.reset();
 
@@ -316,7 +321,10 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         subitem_status.iItem = m_next_search_index;
         subitem_status.iSubItem = 2;
         subitem_status.pszText = const_cast<TCHAR*>(status_text);
-        LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, m_next_search_index, (LPARAM)&subitem_status);
+        LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST,
+                                                     LVM_SETITEMTEXT,
+                                                     m_next_search_index,
+                                                     (LPARAM)&subitem_status);
         assert(status_success);
 
         m_next_search_index++;
@@ -341,7 +349,10 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
         subitem_status.iItem = m_next_search_index;
         subitem_status.iSubItem = 2;
         subitem_status.pszText = _T("Searching...");
-        LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST, LVM_SETITEMTEXT, m_next_search_index, (LPARAM)&subitem_status);
+        LRESULT status_success = SendDlgItemMessageW(IDC_BULKSEARCH_LIST,
+                                                     LVM_SETITEMTEXT,
+                                                     m_next_search_index,
+                                                     (LPARAM)&subitem_status);
         assert(status_success);
 
         update_status_text();
@@ -360,7 +371,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
 
         assert(!m_child_search.has_value());
         UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, sleep_ms, nullptr);
-        if (result != BULK_SEARCH_UPDATE_TIMER)
+        if(result != BULK_SEARCH_UPDATE_TIMER)
         {
             LOG_WARN("Unexpected timer result when starting bulk search update timer to check for results");
         }
@@ -387,7 +398,9 @@ HWND SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
     HWND result = nullptr;
     try
     {
-        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<BulkLyricSearch>>(core_api::get_main_window(), tracks_to_search);
+        auto new_window = new CWindowAutoLifetime<ImplementModelessTracking<BulkLyricSearch>>(
+            core_api::get_main_window(),
+            tracks_to_search);
         g_active_bulk_search_panel = new_window;
         result = new_window->m_hWnd;
     }
@@ -397,4 +410,3 @@ HWND SpawnBulkLyricSearch(std::vector<metadb_handle_ptr> tracks_to_search)
     }
     return result;
 }
-

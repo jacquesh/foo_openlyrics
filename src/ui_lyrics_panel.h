@@ -31,26 +31,26 @@ public:
     void on_album_art_retrieved(album_art_data::ptr art_data);
 
     BEGIN_MSG_MAP_EX(LyricPanel)
-        MSG_WM_CREATE(OnWindowCreate)
-        MSG_WM_DESTROY(OnWindowDestroy)
+    MSG_WM_CREATE(OnWindowCreate)
+    MSG_WM_DESTROY(OnWindowDestroy)
 
-        MSG_WM_NCCALCSIZE(OnNonClientCalcSize)
-        MSG_WM_NCHITTEST(OnNonClientHitTest)
-        MSG_WM_NCMOUSEMOVE(OnNonClientMouseMove)
-        MSG_WM_NCMOUSELEAVE(OnNonClientMouseLeave)
-        MSG_WM_MOUSELEAVE(OnMouseLeave)
+    MSG_WM_NCCALCSIZE(OnNonClientCalcSize)
+    MSG_WM_NCHITTEST(OnNonClientHitTest)
+    MSG_WM_NCMOUSEMOVE(OnNonClientMouseMove)
+    MSG_WM_NCMOUSELEAVE(OnNonClientMouseLeave)
+    MSG_WM_MOUSELEAVE(OnMouseLeave)
 
-        MSG_WM_MOVE(OnWindowMove)
-        MSG_WM_SIZE(OnWindowResize)
-        MSG_WM_TIMER(OnTimer)
-        MSG_WM_ERASEBKGND(OnEraseBkgnd)
-        MSG_WM_PAINT(OnPaint)
-        MSG_WM_CONTEXTMENU(OnContextMenu)
-        MSG_WM_LBUTTONDBLCLK(OnDoubleClick)
-        MSG_WM_MOUSEWHEEL(OnMouseWheel)
-        MSG_WM_MOUSEMOVE(OnMouseMove)
-        MSG_WM_LBUTTONDOWN(OnLMBDown)
-        MSG_WM_LBUTTONUP(OnLMBUp)
+    MSG_WM_MOVE(OnWindowMove)
+    MSG_WM_SIZE(OnWindowResize)
+    MSG_WM_TIMER(OnTimer)
+    MSG_WM_ERASEBKGND(OnEraseBkgnd)
+    MSG_WM_PAINT(OnPaint)
+    MSG_WM_CONTEXTMENU(OnContextMenu)
+    MSG_WM_LBUTTONDBLCLK(OnDoubleClick)
+    MSG_WM_MOUSEWHEEL(OnMouseWheel)
+    MSG_WM_MOUSEMOVE(OnMouseMove)
+    MSG_WM_LBUTTONDOWN(OnLMBDown)
+    MSG_WM_LBUTTONUP(OnLMBUp)
     END_MSG_MAP()
 
 protected:
@@ -81,10 +81,11 @@ private:
     LRESULT OnMouseWheel(UINT virtualKeys, short rotation, CPoint point);
 
     void StartTimer();
+
 protected: // TODO: Only protected to support the external window
     void StopTimer();
-private:
 
+private:
     void DrawNoLyrics(HDC dc, CRect client_area);
     void DrawUntimedLyrics(HDC dc, CRect client_area);
     void DrawTimestampedLyrics(HDC dc, CRect client_area);
@@ -96,8 +97,8 @@ protected: // TODO: Only protected to support the external window
         double track_length;
     };
     PlaybackTimeInfo get_playback_time();
-private:
 
+private:
     bool m_timerRunning = false;
     UINT_PTR m_panel_update_timer;
 
@@ -105,6 +106,7 @@ protected: // TODO: These two are only protected to support the external window
     LyricData m_lyrics;
     metadb_handle_ptr m_now_playing; // TODO: metadb_handle_v2 when we move to requiring fb2k v2.0
     metadb_v2_rec_t m_now_playing_info;
+
 private:
     double m_now_playing_time_offset = 0.0;
 
@@ -120,6 +122,7 @@ private:
     now_playing_album_art_notify* m_albumart_listen_handle = nullptr;
     Image m_albumart_original = {};
     Image m_custom_img_original = {};
+
 protected: // TODO: Only protected to support the external window
     Image m_background_img = {};
     // TODO: We should consolidate the panel implementations:

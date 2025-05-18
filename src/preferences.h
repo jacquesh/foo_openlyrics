@@ -12,87 +12,87 @@ extern const GUID GUID_PREFERENCES_PAGE_SEARCH_SOURCES;
 enum class SaveMethod : int
 {
     DEPRECATED_None = 0,
-    LocalFile       = 1,
-    Id3Tag          = 2
+    LocalFile = 1,
+    Id3Tag = 2
 };
 
 enum class SaveDirectoryClass : int
 {
-    DEPRECATED_None    = 0,
-    ConfigDirectory    = 1,
+    DEPRECATED_None = 0,
+    ConfigDirectory = 1,
     TrackFileDirectory = 2,
-    Custom             = 3
+    Custom = 3
 };
 
 enum class AutoSaveStrategy : int
 {
-    Never        = 0,
-    Always       = 1,
-    OnlySynced   = 2,
+    Never = 0,
+    Always = 1,
+    OnlySynced = 2,
     OnlyUnsynced = 3,
 };
 
 enum class LineScrollType : int
 {
     Automatic = 0,
-    Manual    = 1,
+    Manual = 1,
 };
 
 enum class AutoEditType : int
 {
-    Unknown                     = 0,
+    Unknown = 0,
     // CreateInstrumental       = 1, // Deprecated
-    ReplaceHtmlEscapedChars     = 2,
-    RemoveRepeatedSpaces        = 3,
-    RemoveRepeatedBlankLines    = 4,
-    RemoveAllBlankLines         = 5,
-    ResetCapitalisation         = 6,
-    FixMalformedTimestamps      = 7,
-    RemoveTimestamps            = 8,
+    ReplaceHtmlEscapedChars = 2,
+    RemoveRepeatedSpaces = 3,
+    RemoveRepeatedBlankLines = 4,
+    RemoveAllBlankLines = 5,
+    ResetCapitalisation = 6,
+    FixMalformedTimestamps = 7,
+    RemoveTimestamps = 8,
     RemoveSurroundingWhitespace = 9,
 };
 
 enum class BackgroundFillType : int
 {
-    Default     = 0,
+    Default = 0,
     SolidColour = 1,
-    Gradient    = 2,
+    Gradient = 2,
 };
 
 enum class BackgroundImageType : int
 {
-    None        = 0,
-    AlbumArt    = 1,
+    None = 0,
+    AlbumArt = 1,
     CustomImage = 2,
 };
 
 enum class PastTextColourType : int
 {
     BlendBackground = 0,
-    SameAsMainText  = 1,
-    Custom          = 2,
+    SameAsMainText = 1,
+    Custom = 2,
     SameAsHighlight = 3,
 };
 
 enum class TextAlignment : int
 {
     MidCentre = 0,
-    MidLeft   = 1,
-    MidRight  = 2,
+    MidLeft = 1,
+    MidRight = 2,
     TopCentre = 3,
-    TopLeft   = 4,
-    TopRight  = 5,
+    TopLeft = 4,
+    TopRight = 5,
 };
 
-enum class LyricType : int 
+enum class LyricType : int
 {
     Unsynced = 0,
-    Synced   = 1,
+    Synced = 1,
 };
 
 enum class UploadStrategy : int
 {
-    Never  = 0,
+    Never = 0,
     OnEdit = 1,
 };
 

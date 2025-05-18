@@ -1,26 +1,27 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
-#include "resource.h"
-#include "foobar2000/helpers/atl-misc.h"
 #include "foobar2000/SDK/coreDarkMode.h"
+#include "foobar2000/helpers/atl-misc.h"
+#include "resource.h"
 #pragma warning(pop)
 
 #include "logging.h"
+#include "lyric_io.h"
 #include "metrics.h"
 #include "parsers.h"
-#include "lyric_io.h"
 #include "sources/lyric_source.h"
 #include "tag_util.h"
 #include "ui_hooks.h"
 #include "win32_util.h"
 
-
+// clang-format off: GUIDs should be one line
 static const GUID GUID_CFG_TITLE_COLUMN_WIDTH = { 0x18d967fe, 0xad07, 0x464c, { 0x82, 0xf8, 0xbc, 0xeb, 0x1d, 0x67, 0xa5, 0x84 } };
 static const GUID GUID_CFG_ALBUM_COLUMN_WIDTH = { 0x7ac61807, 0x57a2, 0x4880, { 0xba, 0x6d, 0xb2, 0x35, 0xf9, 0x88, 0x5a, 0x60 } };
 static const GUID GUID_CFG_ARTIST_COLUMN_WIDTH = { 0xdebf2d4e, 0xfb93, 0x4a3f, { 0xb6, 0x3e, 0x84, 0x3f, 0x89, 0xa9, 0x86, 0xba } };
 static const GUID GUID_CFG_SOURCE_COLUMN_WIDTH = { 0x44350ccb, 0xf62a, 0x4d47, { 0x9a, 0xeb, 0x5a, 0x7a, 0xc4, 0xce, 0x75, 0xa1 } };
 static const GUID GUID_CFG_TIMESTAMPED_COLUMN_WIDTH = { 0xe99dc1c7, 0x7224, 0x4b4d, { 0x8e, 0xd1, 0x90, 0xae, 0x51, 0xbb, 0x6b, 0xa2 } };
+// clang-format on
 
 // Without enforcing a minimum width, we could end up with columns being 0px wide
 // (either as a result of user resizing or a bug that breaks the width persistence).
@@ -37,21 +38,24 @@ class ManualLyricSearch : public CDialogImpl<ManualLyricSearch>
 {
 public:
     // Dialog resource ID
-    enum { IDD = IDD_MANUAL_SEARCH };
+    enum
+    {
+        IDD = IDD_MANUAL_SEARCH
+    };
 
     ManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info);
     ~ManualLyricSearch() override;
 
     BEGIN_MSG_MAP_EX(LyricEditor)
-        MSG_WM_INITDIALOG(OnInitDialog)
-        MSG_WM_DESTROY(OnDestroyDialog)
-        MSG_WM_CLOSE(OnClose)
-        MSG_WM_TIMER(OnTimer)
-        MSG_WM_NOTIFY(OnNotify)
-        COMMAND_HANDLER_EX(IDC_MANUALSEARCH_SEARCH, BN_CLICKED, OnSearchRequested)
-        COMMAND_HANDLER_EX(IDC_MANUALSEARCH_CANCEL, BN_CLICKED, OnCancel)
-        COMMAND_HANDLER_EX(IDC_MANUALSEARCH_OK, BN_CLICKED, OnOK)
-        COMMAND_HANDLER_EX(IDC_MANUALSEARCH_APPLY, BN_CLICKED, OnApply)
+    MSG_WM_INITDIALOG(OnInitDialog)
+    MSG_WM_DESTROY(OnDestroyDialog)
+    MSG_WM_CLOSE(OnClose)
+    MSG_WM_TIMER(OnTimer)
+    MSG_WM_NOTIFY(OnNotify)
+    COMMAND_HANDLER_EX(IDC_MANUALSEARCH_SEARCH, BN_CLICKED, OnSearchRequested)
+    COMMAND_HANDLER_EX(IDC_MANUALSEARCH_CANCEL, BN_CLICKED, OnCancel)
+    COMMAND_HANDLER_EX(IDC_MANUALSEARCH_OK, BN_CLICKED, OnOK)
+    COMMAND_HANDLER_EX(IDC_MANUALSEARCH_APPLY, BN_CLICKED, OnApply)
     END_MSG_MAP()
 
 private:
@@ -82,15 +86,13 @@ private:
 
 static const UINT_PTR MANUAL_SEARCH_UPDATE_TIMER = 7917213;
 
-ManualLyricSearch::ManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info) :
-    m_track(track),
-    m_track_info(track_info)
+ManualLyricSearch::ManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info)
+    : m_track(track)
+    , m_track_info(track_info)
 {
 }
 
-ManualLyricSearch::~ManualLyricSearch()
-{
-}
+ManualLyricSearch::~ManualLyricSearch() {}
 
 BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
@@ -98,7 +100,7 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     // TODO: We can't enable dark mode for this dialog because it adds items to a list
     //       after initialisation and that causes failures in the darkmode code, which doesn't
     //       fully support list UIs.
-    //m_dark.AddDialogWithControls(m_hWnd);
+    // m_dark.AddDialogWithControls(m_hWnd);
     m_sort_column_index = -1;
 
     LVCOLUMN title_column = {};
@@ -138,11 +140,17 @@ BOOL ManualLyricSearch::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     timestamped_column.fmt = LVCFMT_LEFT;
     timestamped_column.pszText = _T("Is timestamped?");
     timestamped_column.cx = std::max(MIN_COLUMN_WIDTH_PX, cfg_timestamped_column_width.get_value());
-    LRESULT timestamped_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTCOLUMN, 4, (LPARAM)&timestamped_column);
+    LRESULT timestamped_index = SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST,
+                                                   LVM_INSERTCOLUMN,
+                                                   4,
+                                                   (LPARAM)&timestamped_column);
     assert(timestamped_index >= 0);
 
     SetDlgItemText(IDC_MANUALSEARCH_PROGRESS, _T("Searching..."));
-    SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+    SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST,
+                       LVM_SETEXTENDEDLISTVIEWSTYLE,
+                       LVS_EX_FULLROWSELECT,
+                       LVS_EX_FULLROWSELECT);
 
     std::string artist = track_metadata(m_track_info, "artist");
     std::string album = track_metadata(m_track_info, "album");
@@ -168,7 +176,7 @@ void ManualLyricSearch::OnDestroyDialog()
     LVCOLUMN column_data = {};
     column_data.mask = LVCF_TEXT | LVCF_WIDTH;
     column_data.pszText = title_buffer;
-    column_data.cchTextMax = sizeof(title_buffer)/sizeof(title_buffer[0]);
+    column_data.cchTextMax = sizeof(title_buffer) / sizeof(title_buffer[0]);
 
     ListView_GetColumn(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), 0, &column_data);
     assert(std::tstring_view(column_data.pszText) == _T("Title"));
@@ -240,12 +248,11 @@ static int CALLBACK column_sort_fn(LPARAM lparam1, LPARAM lparam2, LPARAM sort_d
                 LOG_ERROR("No source available for search result");
                 return -1;
             }
-        } break;
+        }
+        break;
         case 4: return order_factor * (int(item1->IsTimestamped()) - int(item2->IsTimestamped()));
 
-        default:
-            LOG_ERROR("Unexpected sort column index %d", sort_column_index);
-            return 0;
+        default: LOG_ERROR("Unexpected sort column index %d", sort_column_index); return 0;
     }
 }
 
@@ -264,9 +271,7 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
             NMLISTVIEW* list = (NMLISTVIEW*)notify;
             const int selected_column_index = list->iSubItem;
             HWND header = ListView_GetHeader(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST));
-            HDITEM header_item = {
-                .mask = HDI_FORMAT
-            };
+            HDITEM header_item = { .mask = HDI_FORMAT };
             if(selected_column_index == m_sort_column_index)
             {
                 m_sort_ascending = !m_sort_ascending;
@@ -291,7 +296,8 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
             }
             int sort_data = (m_sort_column_index & 0xFF) | ((m_sort_ascending ? 1 : 0) << 8);
             SendDlgItemMessage(IDC_MANUALSEARCH_RESULTLIST, LVM_SORTITEMS, sort_data, (LPARAM)column_sort_fn);
-        } break;
+        }
+        break;
 
         case LVN_ITEMCHANGED:
         {
@@ -313,20 +319,23 @@ LRESULT ManualLyricSearch::OnNotify(int /*idCtrl*/, LPNMHDR notify)
             {
                 SetDlgItemText(IDC_MANUALSEARCH_PREVIEW, _T(""));
             }
-        } break;
+        }
+        break;
 
         case NM_DBLCLK:
         {
             // The currently-selected item has already been selected (on the first click)
             // so this will just apply it as the "accepted" option
             OnOK(0, 0, nullptr);
-        } break;
+        }
+        break;
 
         default:
         {
             SetMsgHandled(FALSE);
             return 0;
-        } break;
+        }
+        break;
     }
 
     return 0;
@@ -354,18 +363,18 @@ void ManualLyricSearch::start_search()
     TCHAR ui_artist[128] = {};
     TCHAR ui_album[128] = {};
     TCHAR ui_title[128] = {};
-    UINT ui_artist_len = GetDlgItemText(IDC_MANUALSEARCH_ARTIST, ui_artist, sizeof(ui_artist)/sizeof(ui_artist[0]));
-    UINT ui_album_len = GetDlgItemText(IDC_MANUALSEARCH_ALBUM, ui_album, sizeof(ui_album)/sizeof(ui_album[0]));
-    UINT ui_title_len = GetDlgItemText(IDC_MANUALSEARCH_TITLE, ui_title, sizeof(ui_title)/sizeof(ui_title[0]));
+    UINT ui_artist_len = GetDlgItemText(IDC_MANUALSEARCH_ARTIST, ui_artist, sizeof(ui_artist) / sizeof(ui_artist[0]));
+    UINT ui_album_len = GetDlgItemText(IDC_MANUALSEARCH_ALBUM, ui_album, sizeof(ui_album) / sizeof(ui_album[0]));
+    UINT ui_title_len = GetDlgItemText(IDC_MANUALSEARCH_TITLE, ui_title, sizeof(ui_title) / sizeof(ui_title[0]));
 
-    std::string artist = from_tstring(std::tstring_view{ui_artist, ui_artist_len});
-    std::string album = from_tstring(std::tstring_view{ui_album, ui_album_len});
-    std::string title = from_tstring(std::tstring_view{ui_title, ui_title_len});
+    std::string artist = from_tstring(std::tstring_view { ui_artist, ui_artist_len });
+    std::string album = from_tstring(std::tstring_view { ui_album, ui_album_len });
+    std::string title = from_tstring(std::tstring_view { ui_title, ui_title_len });
     io::search_for_all_lyrics(m_child_search.value(), artist, album, title);
 
     GetDlgItem(IDC_MANUALSEARCH_SEARCH).EnableWindow(false);
     UINT_PTR result = SetTimer(MANUAL_SEARCH_UPDATE_TIMER, 16, nullptr);
-    if (result != MANUAL_SEARCH_UPDATE_TIMER)
+    if(result != MANUAL_SEARCH_UPDATE_TIMER)
     {
         LOG_WARN("Unexpected timer result when starting manual search update timer");
     }
@@ -467,10 +476,14 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
 
         LVITEM item = {};
         item.mask = LVIF_TEXT | LVIF_PARAM;
-        item.iItem = (int)m_all_lyrics.size(); // Technically the resulting index will be 1 less than this, but as long as this is greater than the current length it'll go at the end
+        item.iItem = (int)m_all_lyrics.size(); // Technically the resulting index will be 1 less than this, but as long
+                                               // as this is greater than the current length it'll go at the end
         item.pszText = const_cast<TCHAR*>(ui_title.c_str());
         item.lParam = (LPARAM)&lyrics;
-        const LRESULT item_index_result = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_INSERTITEM, 0, (LPARAM)&item);
+        const LRESULT item_index_result = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST,
+                                                              LVM_INSERTITEM,
+                                                              0,
+                                                              (LPARAM)&item);
         assert(item_index_result >= 0);
         assert(item_index_result <= INT_MAX);
         const int item_index = int(item_index_result);
@@ -480,7 +493,10 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_album.iItem = item_index;
         subitem_album.iSubItem = 1;
         subitem_album.pszText = const_cast<TCHAR*>(ui_album.c_str());
-        LRESULT album_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_album);
+        LRESULT album_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST,
+                                                    LVM_SETITEMTEXT,
+                                                    item_index,
+                                                    (LPARAM)&subitem_album);
         assert(album_success);
 
         LVITEM subitem_artist = {};
@@ -488,7 +504,10 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_artist.iItem = item_index;
         subitem_artist.iSubItem = 2;
         subitem_artist.pszText = const_cast<TCHAR*>(ui_artist.c_str());
-        LRESULT artist_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_artist);
+        LRESULT artist_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST,
+                                                     LVM_SETITEMTEXT,
+                                                     item_index,
+                                                     (LPARAM)&subitem_artist);
         assert(artist_success);
 
         LVITEM subitem_source = {};
@@ -496,7 +515,10 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_source.iItem = item_index;
         subitem_source.iSubItem = 3;
         subitem_source.pszText = const_cast<TCHAR*>(source_name.c_str());
-        LRESULT source_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_source);
+        LRESULT source_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST,
+                                                     LVM_SETITEMTEXT,
+                                                     item_index,
+                                                     (LPARAM)&subitem_source);
         assert(source_success);
 
         LVITEM subitem_timestamped = {};
@@ -504,13 +526,19 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         subitem_timestamped.iItem = item_index;
         subitem_timestamped.iSubItem = 4;
         subitem_timestamped.pszText = const_cast<TCHAR*>(lyrics.IsTimestamped() ? _T("Yes") : _T("No"));
-        LRESULT timestamped_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST, LVM_SETITEMTEXT, item_index, (LPARAM)&subitem_timestamped);
+        LRESULT timestamped_success = SendDlgItemMessageW(IDC_MANUALSEARCH_RESULTLIST,
+                                                          LVM_SETITEMTEXT,
+                                                          item_index,
+                                                          (LPARAM)&subitem_timestamped);
         assert(timestamped_success);
 
         bool is_first_entry = (m_all_lyrics.size() == 1);
         if(is_first_entry)
         {
-            ListView_SetItemState(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST), item_index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+            ListView_SetItemState(GetDlgItem(IDC_MANUALSEARCH_RESULTLIST),
+                                  item_index,
+                                  LVIS_FOCUSED | LVIS_SELECTED,
+                                  LVIS_FOCUSED | LVIS_SELECTED);
         }
     }
 
@@ -539,4 +567,3 @@ HWND SpawnManualLyricSearch(metadb_handle_ptr track, metadb_v2_rec_t track_info)
     }
     return result;
 }
-

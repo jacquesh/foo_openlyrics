@@ -12,8 +12,14 @@ static const GUID src_guid = { 0x5901c128, 0xc67f, 0x4eec, { 0x8f, 0x10, 0x47, 0
 
 class DarkLyricsSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("DarkLyrics.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("DarkLyrics.com");
+    }
 
     void add_subsection_text_to_string(std::string& output, pugi::xml_node node) const;
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
@@ -91,7 +97,7 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(const LyricSearchParams& para
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -149,7 +155,7 @@ std::vector<LyricDataRaw> DarkLyricsSource::search(const LyricSearchParams& para
         result.title = params.title;
         result.type = LyricType::Unsynced;
         result.text_bytes = string_to_raw_bytes(trimmed_text);
-        return {std::move(result)};
+        return { std::move(result) };
     }
 }
 

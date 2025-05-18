@@ -13,8 +13,14 @@ static const GUID src_guid = { 0xa7735112, 0x5ef6, 0x4f53, { 0xa7, 0xe5, 0x5b, 0
 
 class LyricfindSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("LyricFind.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("LyricFind.com");
+    }
 
     std::optional<LyricDataRaw> extract_lyrics_from_page(std::string_view url, pfc::string8 page_content) const;
 
@@ -28,7 +34,8 @@ static std::string transform_chars_for_url(const std::string_view input)
     std::string transliterated = from_tstring(normalise_utf8(to_tstring(input)));
 
     std::string output;
-    output.reserve(transliterated.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
+    // We add a bit to allow for one or two & or @ replacements without re-allocation
+    output.reserve(transliterated.length() + 3);
     for(char c : transliterated)
     {
         if(pfc::char_is_ascii_alphanumeric(c))
@@ -64,16 +71,17 @@ std::optional<int> try_parse_duration_seconds(std::string_view tag)
     int min = 0;
     std::from_chars_result sec_result = std::from_chars(sec_str.data(), sec_str.data() + sec_str.length(), sec);
     std::from_chars_result min_result = std::from_chars(min_str.data(), min_str.data() + min_str.length(), min);
-    if((sec_result.ec != std::errc{}) || (min_result.ec != std::errc{}))
+    if((sec_result.ec != std::errc {}) || (min_result.ec != std::errc {}))
     {
         return {};
     }
 
-    const int result = min*60 + sec;
-    return {result};
+    const int result = min * 60 + sec;
+    return { result };
 }
 
-std::optional<LyricDataRaw> LyricfindSource::extract_lyrics_from_page(std::string_view url, pfc::string8 page_content) const
+std::optional<LyricDataRaw> LyricfindSource::extract_lyrics_from_page(std::string_view url,
+                                                                      pfc::string8 page_content) const
 {
     std::string json_str;
     pugi::xml_document doc;
@@ -174,7 +182,7 @@ std::optional<LyricDataRaw> LyricfindSource::extract_lyrics_from_page(std::strin
     result.type = LyricType::Unsynced;
     result.duration_sec = try_parse_duration_seconds(json_duration->valuestring);
     result.text_bytes = string_to_raw_bytes(json_lyrics->valuestring);
-    return {result};
+    return { result };
 }
 
 std::vector<LyricDataRaw> LyricfindSource::search(const LyricSearchParams& params, abort_callback& abort)
@@ -190,11 +198,12 @@ std::vector<LyricDataRaw> LyricfindSource::search(const LyricSearchParams& param
         auto request = http_client::get()->create_request("GET");
 
         // Without these we get 403s back
-        request->add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0");
+        request->add_header("User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0");
 
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -210,7 +219,7 @@ std::vector<LyricDataRaw> LyricfindSource::search(const LyricSearchParams& param
     }
 
     LOG_INFO("Successfully retrieved lyrics from %s", url.c_str());
-    return {std::move(result.value())};
+    return { std::move(result.value()) };
 }
 
 bool LyricfindSource::lookup(LyricDataRaw& /*data*/, abort_callback& /*abort*/)

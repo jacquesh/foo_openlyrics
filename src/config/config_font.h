@@ -15,4 +15,3 @@ public:
     const LOGFONT& get_value();
     bool operator==(const LOGFONT& other);
 };
-

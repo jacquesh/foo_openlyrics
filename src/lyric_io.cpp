@@ -37,9 +37,8 @@ static bool is_upload_duplicated_after_a_delay(LyricSearchParams params)
     std::vector<UploadQueueEntry>::iterator existing_iter = g_upload_queue.end();
     for(auto iter = g_upload_queue.begin(); iter != g_upload_queue.end(); iter++)
     {
-        if((iter->params.artist == params.artist) &&
-            (iter->params.album == params.album) &&
-            (iter->params.title == params.title))
+        if((iter->params.artist == params.artist) && (iter->params.album == params.album)
+           && (iter->params.title == params.title))
         {
             if(iter->upload_id == upload_id)
             {
@@ -63,7 +62,10 @@ static bool is_upload_duplicated_after_a_delay(LyricSearchParams params)
     return other_uploads_exist;
 }
 
-bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite)
+bool io::save_lyrics(metadb_handle_ptr track,
+                     const metadb_v2_rec_t& track_info,
+                     LyricData& lyrics,
+                     bool allow_overwrite)
 {
     // NOTE: We require that saving happens on the main thread because the ID3 tag updates can
     //       only happen on the main thread.
@@ -76,10 +78,16 @@ bool io::save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info,
         return false;
     }
 
-    const std::string text = from_tstring(parsers::lrc::expand_text(lyrics, preferences::saving::merge_equivalent_lrc_lines()));
+    const std::string text = from_tstring(
+        parsers::lrc::expand_text(lyrics, preferences::saving::merge_equivalent_lrc_lines()));
     try
     {
-        std::string output_path = source->save(track, track_info, lyrics.IsTimestamped(), text, allow_overwrite, fb2k::mainAborter());
+        std::string output_path = source->save(track,
+                                               track_info,
+                                               lyrics.IsTimestamped(),
+                                               text,
+                                               allow_overwrite,
+                                               fb2k::mainAborter());
         lyrics.save_path = output_path;
         lyrics.save_source = source->id();
         clear_search_avoidance(track_info); // Clear here so that we will always find saved lyrics
@@ -105,14 +113,14 @@ static void ensure_windows_newlines(std::string& str)
             break;
         }
 
-        if((next_index == 0) || (str[next_index-1] != '\r'))
+        if((next_index == 0) || (str[next_index - 1] != '\r'))
         {
             char cr = '\r';
             str.insert(next_index, 1, cr);
             replace_count++;
         }
 
-        prev_index = next_index+1;
+        prev_index = next_index + 1;
     }
 }
 
@@ -127,9 +135,12 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
     };
 
     assert(text_bytes.size() < INT_MAX);
-    int utf8success = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
-                                          (char*)text_bytes.data(), (int)text_bytes.size(),
-                                          nullptr, 0);
+    int utf8success = MultiByteToWideChar(CP_UTF8,
+                                          MB_ERR_INVALID_CHARS,
+                                          (char*)text_bytes.data(),
+                                          (int)text_bytes.size(),
+                                          nullptr,
+                                          0);
     if(utf8success > 0)
     {
         // The input bytes are already valid UTF8, so we don't need to do any converting back-and-forth with wide chars
@@ -140,8 +151,9 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
     std::vector<char> narrow_tmp;
     std::vector<WCHAR> wide_tmp;
 
-    constexpr size_t wchar_per_byte = sizeof(wchar_t)/sizeof(uint8_t);
-    const std::wstring_view bytes_as_widestr = std::wstring_view((wchar_t*)text_bytes.data(), text_bytes.size()/wchar_per_byte);
+    constexpr size_t wchar_per_byte = sizeof(wchar_t) / sizeof(uint8_t);
+    const std::wstring_view bytes_as_widestr = std::wstring_view((wchar_t*)text_bytes.data(),
+                                                                 text_bytes.size() / wchar_per_byte);
     int narrow_bytes = wide_to_narrow_string(CP_UTF8, bytes_as_widestr, narrow_tmp);
     if(narrow_bytes > 0)
     {
@@ -150,6 +162,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
         return result;
     }
 
+    // clang-format off: Don't put each of these on their own line
     UINT codepages[] = { CP_ACP, CP_OEMCP,
         037, 437, 500, 708, 709, 710, 720, 737, 775, 850, 852, 855, 857, 858, 860,
         861, 862, 863, 864, 865, 866, 869, 870, 874, 875, 932, 936, 949, 950, 1026,
@@ -163,6 +176,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
         28599, 28603, 28605, 29001, 38598, 50930, 50931, 50933, 50935, 50936, 50937, 50939,
         51932, 51936, 51949, 51950, 52936, 54936
     };
+    // clang-format on
 
     for(UINT cp : codepages)
     {
@@ -174,10 +188,18 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
         int utf16_chars = narrow_to_wide_string(cp, narrow_str, wide_tmp);
         if(utf16_chars <= 0)
         {
-            LOG_WARN("Failed to convert to codepage %u/%s%s: %d/%s", cp, info.CodePageName, current_locale_str, GetLastError(), GetLastErrorString());
+            LOG_WARN("Failed to convert to codepage %u/%s%s: %d/%s",
+                     cp,
+                     info.CodePageName,
+                     current_locale_str,
+                     GetLastError(),
+                     GetLastErrorString());
             continue;
         }
-        LOG_INFO("Successfully converted %d chars to UTF-16 using codepage %s%s", utf16_chars, info.CodePageName, current_locale_str);
+        LOG_INFO("Successfully converted %d chars to UTF-16 using codepage %s%s",
+                 utf16_chars,
+                 info.CodePageName,
+                 current_locale_str);
 
         const std::wstring_view wide_str = std::wstring_view(wide_tmp.data(), utf16_chars);
         int utf8_bytes = wide_to_narrow_string(CP_UTF8, wide_str, narrow_tmp);
@@ -208,10 +230,15 @@ static std::string decode_raw_lyric_bytes_to_text(const LyricDataRaw& raw)
     return text;
 }
 
-static void sort_source_results(std::vector<LyricDataRaw>& results, std::string_view artist, std::string_view album, std::string_view title, LyricType preferred_type)
+static void sort_source_results(std::vector<LyricDataRaw>& results,
+                                std::string_view artist,
+                                std::string_view album,
+                                std::string_view title,
+                                LyricType preferred_type)
 {
     // Returns true if `lhs` is "strictly more desirable" than `rhs`
-    const auto compare_search_results = [&artist, &album, &title, preferred_type](const LyricDataRaw& lhs, const LyricDataRaw& rhs) -> bool
+    const auto compare_search_results = [&artist, &album, &title, preferred_type](const LyricDataRaw& lhs,
+                                                                                  const LyricDataRaw& rhs) -> bool
     {
         // If they're not the same, we always have to return, to ensure that the ordering is correctly maintained.
         // This function returns true iff lhs is *strictly* more desirable/ordered before rhs, which means we can't
@@ -232,8 +259,7 @@ static void sort_source_results(std::vector<LyricDataRaw>& results, std::string_
         // Only sort based on album if the track and both lyrics have album data
         const int dist_album_lhs = string_edit_distance(album, lhs.album);
         const int dist_album_rhs = string_edit_distance(album, rhs.album);
-        if(!album.empty() && !lhs.album.empty() && !rhs.album.empty() &&
-            (dist_album_lhs != dist_album_rhs))
+        if(!album.empty() && !lhs.album.empty() && !rhs.album.empty() && (dist_album_lhs != dist_album_rhs))
         {
             return (dist_album_lhs < dist_album_rhs);
         }
@@ -261,7 +287,10 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
     const std::string tag_artist = track_metadata(handle.get_track_info(), "artist");
     const std::string tag_album = track_metadata(handle.get_track_info(), "album");
     const std::string tag_title = track_metadata(handle.get_track_info(), "title");
-    LOG_INFO("Searching for lyrics for artist='%s', album='%s', title='%s'...", tag_artist.c_str(), tag_album.c_str(), tag_title.c_str());
+    LOG_INFO("Searching for lyrics for artist='%s', album='%s', title='%s'...",
+             tag_artist.c_str(),
+             tag_album.c_str(),
+             tag_title.c_str());
 
     // If there are no identifying tags and it's not already a local-only search, then
     // make it one because we have no way of finding the right track on any remote sources
@@ -286,7 +315,8 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
         std::string friendly_name = from_tstring(source->friendly_name());
         if(local_only && !source->is_local())
         {
-            LOG_INFO("Current search is only considering local sources and %s is not marked as local, skipping...", friendly_name.c_str());
+            LOG_INFO("Current search is only considering local sources and %s is not marked as local, skipping...",
+                     friendly_name.c_str());
             continue;
         }
         handle.set_progress("Searching " + friendly_name + "...");
@@ -297,27 +327,34 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
             {
                 handle.set_remote_source_searched();
             }
-            std::vector<LyricDataRaw> search_results = source->search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
-            sort_source_results(search_results, tag_artist, tag_album, tag_title, preferences::searching::preferred_lyric_type());
+            std::vector<LyricDataRaw> search_results = source->search(handle.get_track(),
+                                                                      handle.get_track_info(),
+                                                                      handle.get_checked_abort());
+            sort_source_results(search_results,
+                                tag_artist,
+                                tag_album,
+                                tag_title,
+                                preferences::searching::preferred_lyric_type());
 
             for(LyricDataRaw& result : search_results)
             {
                 // NOTE: Some sources don't return an album so we ignore album data if the source didn't give us any.
                 //       Similarly, the local tag data might not contain an album, in which case we shouldn't reject
                 //       candidates because they have non-empty album data.
-                bool tag_match = (result.album.empty() || tag_album.empty() || tag_values_match(tag_album, result.album)) &&
-                                 tag_values_match(tag_artist, result.artist) &&
-                                 tag_values_match(tag_title, result.title);
+                bool tag_match = (result.album.empty() || tag_album.empty()
+                                  || tag_values_match(tag_album, result.album))
+                                 && tag_values_match(tag_artist, result.artist)
+                                 && tag_values_match(tag_title, result.title);
                 if(!tag_match)
                 {
                     LOG_INFO("Rejected %s search result %s/%s/%s due to tag mismatch: %s/%s/%s",
-                            friendly_name.c_str(),
-                            tag_artist.c_str(),
-                            tag_album.c_str(),
-                            tag_title.c_str(),
-                            result.artist.c_str(),
-                            result.album.c_str(),
-                            result.title.c_str());
+                             friendly_name.c_str(),
+                             tag_artist.c_str(),
+                             tag_album.c_str(),
+                             tag_title.c_str(),
+                             result.artist.c_str(),
+                             result.album.c_str(),
+                             result.title.c_str());
                     continue;
                 }
 
@@ -353,7 +390,8 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
                     }
                     else
                     {
-                        LOG_INFO("Look up for lyrics from source %s returned an empty result, ignoring...", friendly_name.c_str());
+                        LOG_INFO("Look up for lyrics from source %s returned an empty result, ignoring...",
+                                 friendly_name.c_str());
                     }
                 }
             }
@@ -402,12 +440,12 @@ void io::search_for_lyrics(LyricSearchHandle& handle, bool local_only)
         metrics::log_searched_for_lyrics_for_a_remote_track();
     }
 
-    fb2k::splitTask([&handle, local_only](){
-        internal_search_for_lyrics(handle, local_only);
-    });
+    fb2k::splitTask([&handle, local_only]() { internal_search_for_lyrics(handle, local_only); });
 }
 
-static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle, LyricSourceBase* source, const LyricSearchParams& params)
+static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle,
+                                                       LyricSourceBase* source,
+                                                       const LyricSearchParams& params)
 {
     std::string friendly_name = from_tstring(source->friendly_name());
     handle.set_started();
@@ -474,7 +512,10 @@ static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle
     handle.set_complete();
 }
 
-static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, std::string album, std::string title)
+static void internal_search_for_all_lyrics(LyricSearchHandle& handle,
+                                           std::string artist,
+                                           std::string album,
+                                           std::string title)
 {
     LOG_INFO("Searching for lyrics using custom parameters...");
     assert(handle.get_type() != LyricUpdate::Type::AutoSearch);
@@ -484,12 +525,7 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
     //       and by definition this function only returns after all the search tasks have completed.
     //       So it's safe for those tasks to reference this from other threads without
     //       worrying about mutating shared state or this reference's lifetime expiring.
-    const LyricSearchParams params(
-        std::move(artist),
-        std::move(album),
-        std::move(title),
-        {} // No duration
-    );
+    const LyricSearchParams params(std::move(artist), std::move(album), std::move(title), {}); // No duration
 
     // NOTE: It is crucial that this is a std::list so that inserting new items or removing old ones
     //       does not re-allocate the entire list and invalidate earlier pointers. We pass references
@@ -508,17 +544,19 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
             continue;
         }
 
-        source_handles.emplace_back(handle.get_type(), handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
+        source_handles.emplace_back(handle.get_type(),
+                                    handle.get_track(),
+                                    handle.get_track_info(),
+                                    handle.get_checked_abort());
         LyricSearchHandle& src_handle = source_handles.back();
 
-        fb2k::splitTask([&src_handle, source, &params](){
-            internal_search_for_all_lyrics_from_source(src_handle, source, params);
-        });
+        fb2k::splitTask([&src_handle, source, &params]()
+                        { internal_search_for_all_lyrics_from_source(src_handle, source, params); });
     }
 
     while(!source_handles.empty())
     {
-        for(auto iter=source_handles.begin(); iter!=source_handles.end(); /*omitted*/)
+        for(auto iter = source_handles.begin(); iter != source_handles.end(); /*omitted*/)
         {
             LyricSearchHandle& src_handle = *iter;
 
@@ -551,17 +589,20 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle, std::strin
 
 void io::search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, std::string album, std::string title)
 {
-    fb2k::splitTask([&handle, artist, album, title](){
-        internal_search_for_all_lyrics(handle, artist, album, title);
-    });
+    fb2k::splitTask([&handle, artist, album, title]()
+                    { internal_search_for_all_lyrics(handle, artist, album, title); });
 }
 
-static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStrategy autosave, LyricUpdate::Type update_type, bool is_timestamped)
+static bool should_lyric_update_be_saved(bool loaded_from_local_src,
+                                         AutoSaveStrategy autosave,
+                                         LyricUpdate::Type update_type,
+                                         bool is_timestamped)
 {
-    const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always) ||
-                                           ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped) ||
-                                           ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped);
-    const bool should_autosave = ((update_type == LyricUpdate::Type::AutoSearch) && is_configured_to_autosave && !loaded_from_local_src);
+    const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always)
+                                           || ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped)
+                                           || ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped);
+    const bool should_autosave = ((update_type == LyricUpdate::Type::AutoSearch) && is_configured_to_autosave
+                                  && !loaded_from_local_src);
 
     const bool is_a_user_edit = (update_type == LyricUpdate::Type::Edit);
     const bool user_requested_search = ((update_type == LyricUpdate::Type::ManualSearch) && !loaded_from_local_src);
@@ -570,22 +611,26 @@ static bool should_lyric_update_be_saved(bool loaded_from_local_src, AutoSaveStr
     //       `should_autosave && (is_edit || !loaded_from_local_src)`
     //       This makes all the behaviour consistent in the sense that the *only* time it will
     //       save if you set auto-save to "never" is when you explicitly click the "Save" button
-    //       in the context menu. However as a user pointed out (here: https://github.com/jacquesh/foo_openlyrics/issues/18)
-    //       this doesn't really make sense. If you make an edit then you almost certainly want
+    //       in the context menu. However as a user pointed out, this doesn't really make sense
+    //       (here: https://github.com/jacquesh/foo_openlyrics/issues/18).
+    //       If you make an edit then you almost certainly want
     //       to save your edits (and if you just made them then you can always undo them).
-    const bool should_save = should_autosave || is_a_user_edit || user_requested_search; // Don't save to the source we just loaded from
+    const bool should_save = should_autosave || is_a_user_edit
+                             || user_requested_search; // Don't save to the source we just loaded from
     return should_save;
 }
 
 static bool save_overwrite_allowed(LyricUpdate::Type update_type)
 {
-    const bool allow_overwrite = (update_type == LyricUpdate::Type::Edit) || (update_type == LyricUpdate::Type::ManualSearch);
+    const bool allow_overwrite = (update_type == LyricUpdate::Type::Edit)
+                                 || (update_type == LyricUpdate::Type::ManualSearch);
     return allow_overwrite;
 }
 
 static bool should_auto_edits_be_applied(bool loaded_from_local_src, LyricUpdate::Type update_type)
 {
-    const bool was_search = (update_type == LyricUpdate::Type::AutoSearch) || (update_type == LyricUpdate::Type::ManualSearch);
+    const bool was_search = (update_type == LyricUpdate::Type::AutoSearch)
+                            || (update_type == LyricUpdate::Type::ManualSearch);
     const bool should_auto_edit = was_search && !loaded_from_local_src;
     return should_auto_edit;
 }
@@ -621,35 +666,38 @@ static void try_publish_update(LyricData lyrics, const metadb_v2_rec_t& track_in
             continue;
         }
 
-        fb2k::splitTask([lyrics, remote_src, params = LyricSearchParams(track_info)]() {
-            try
+        fb2k::splitTask(
+            [lyrics, remote_src, params = LyricSearchParams(track_info)]()
             {
-                const bool is_duplicate = is_upload_duplicated_after_a_delay(params);
-                if(is_duplicate)
+                try
                 {
-                    LOG_INFO("Skipping lyric upload for %s/%s/%s because there is a more recent upload pending for that track",
-                            params.artist.c_str(),
-                            params.album.c_str(),
-                            params.artist.c_str());
-                    return;
-                }
+                    const bool is_duplicate = is_upload_duplicated_after_a_delay(params);
+                    if(is_duplicate)
+                    {
+                        LOG_INFO("Skipping lyric upload for %s/%s/%s because there is a more recent upload pending for "
+                                 "that track",
+                                 params.artist.c_str(),
+                                 params.album.c_str(),
+                                 params.artist.c_str());
+                        return;
+                    }
 
-                std::vector<LyricDataRaw> existing_lyrics = remote_src->search(params, fb2k::mainAborter());
-                if(!existing_lyrics.empty())
+                    std::vector<LyricDataRaw> existing_lyrics = remote_src->search(params, fb2k::mainAborter());
+                    if(!existing_lyrics.empty())
+                    {
+                        // For now we only upload if the source doesn't have *any* lyrics for this track
+                        // TODO: Check if its the same sort of lyrics (IE upload lrc if we only have unsynced)
+                        return;
+                    }
+
+                    remote_src->upload(lyrics, fb2k::mainAborter());
+                    metrics::log_used_lyric_upload();
+                }
+                catch(std::exception& ex)
                 {
-                    // For now we only upload if the source doesn't have *any* lyrics for this track
-                    // TODO: Check if its the same sort of lyrics (IE upload lrc if we only have unsynced)
-                    return;
+                    LOG_WARN("Aborting lyric upload due to exception: %s", ex.what());
                 }
-
-                remote_src->upload(lyrics, fb2k::mainAborter());
-                metrics::log_used_lyric_upload();
-            }
-            catch(std::exception& ex)
-            {
-                LOG_WARN("Aborting lyric upload due to exception: %s", ex.what());
-            }
-        });
+            });
     }
 }
 
@@ -665,7 +713,10 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
     const bool loaded_from_local_src = ((source != nullptr) && source->is_local());
     const AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
 
-    const bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update.type, update.lyrics.IsTimestamped());
+    const bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
+                                                          autosave,
+                                                          update.type,
+                                                          update.lyrics.IsTimestamped());
     if(should_save)
     {
         try
@@ -675,7 +726,9 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
             {
                 for(AutoEditType type : preferences::editing::automated_auto_edits())
                 {
-                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type, update.lyrics, update.track_info);
+                    std::optional<LyricData> maybe_lyrics = auto_edit::RunAutoEdit(type,
+                                                                                   update.lyrics,
+                                                                                   update.track_info);
                     if(maybe_lyrics.has_value())
                     {
                         update.lyrics = std::move(maybe_lyrics.value());
@@ -686,9 +739,8 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
             const bool allow_overwrite = save_overwrite_allowed(update.type);
             io::save_lyrics(update.track, update.track_info, update.lyrics, allow_overwrite);
 
-            if((preferences::upload::lrclib_upload_strategy() == UploadStrategy::OnEdit) &&
-                (update.type == LyricUpdate::Type::Edit) &&
-                update.lyrics.IsTimestamped())
+            if((preferences::upload::lrclib_upload_strategy() == UploadStrategy::OnEdit)
+               && (update.type == LyricUpdate::Type::Edit) && update.lyrics.IsTimestamped())
             {
                 try_publish_update(update.lyrics, update.track_info);
             }
@@ -701,13 +753,13 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
     else
     {
         LOG_INFO("Skipping lyric save. Type: %d, Local: %s, Timestamped: %s, Autosave: %d",
-                int(update.type),
-                loaded_from_local_src ? "yes" : "no",
-                update.lyrics.IsTimestamped() ? "yes" : "no",
-                int(autosave));
+                 int(update.type),
+                 loaded_from_local_src ? "yes" : "no",
+                 update.lyrics.IsTimestamped() ? "yes" : "no",
+                 int(autosave));
     }
 
-    return {std::move(update.lyrics)};
+    return { std::move(update.lyrics) };
 }
 
 bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
@@ -748,17 +800,20 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     }
 }
 
-LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort) :
-    m_track(track),
-    m_track_info(track_info),
-    m_type(type),
-    m_mutex({}),
-    m_lyrics(),
-    m_abort(abort),
-    m_complete(nullptr),
-    m_status(Status::Created),
-    m_progress(),
-    m_searched_remote_sources(false)
+LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type,
+                                     metadb_handle_ptr track,
+                                     metadb_v2_rec_t track_info,
+                                     abort_callback& abort)
+    : m_track(track)
+    , m_track_info(track_info)
+    , m_type(type)
+    , m_mutex({})
+    , m_lyrics()
+    , m_abort(abort)
+    , m_complete(nullptr)
+    , m_status(Status::Created)
+    , m_progress()
+    , m_searched_remote_sources(false)
 {
     assert(type != LyricUpdate::Type::Unknown); // Caller must specify a valid type
     assert(type != LyricUpdate::Type::Edit); // Caller cannot specify a non-search type for a search handle
@@ -768,16 +823,16 @@ LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr t
     assert(m_complete != nullptr);
 }
 
-LyricSearchHandle::LyricSearchHandle(LyricSearchHandle&& other) :
-    m_track(other.m_track),
-    m_type(other.m_type),
-    m_mutex(),
-    m_lyrics(std::move(other.m_lyrics)),
-    m_abort(other.m_abort),
-    m_complete(nullptr),
-    m_status(other.m_status),
-    m_progress(std::move(other.m_progress)),
-    m_searched_remote_sources(other.m_searched_remote_sources)
+LyricSearchHandle::LyricSearchHandle(LyricSearchHandle&& other)
+    : m_track(other.m_track)
+    , m_type(other.m_type)
+    , m_mutex()
+    , m_lyrics(std::move(other.m_lyrics))
+    , m_abort(other.m_abort)
+    , m_complete(nullptr)
+    , m_status(other.m_status)
+    , m_progress(std::move(other.m_progress))
+    , m_searched_remote_sources(other.m_searched_remote_sources)
 {
     other.m_status = Status::Closed;
     InitializeCriticalSection(&m_mutex);
@@ -944,17 +999,16 @@ void LyricSearchHandle::set_complete()
 // Tests
 // ============
 #if MVTF_TESTS_ENABLED
-static const AutoSaveStrategy g_all_save_strategies[] =
-{
+static const AutoSaveStrategy g_all_save_strategies[] = {
     AutoSaveStrategy::Never,
     AutoSaveStrategy::Always,
     AutoSaveStrategy::OnlySynced,
-    AutoSaveStrategy::OnlyUnsynced
+    AutoSaveStrategy::OnlyUnsynced,
 };
-static const LyricUpdate::Type g_search_update_types[] =  // NOTE: Most tests assume that all update types are either a search type or "Edit"
-{
+// NOTE: Most tests assume that all update types are either a search type or "Edit"
+static const LyricUpdate::Type g_search_update_types[] = {
     LyricUpdate::Type::AutoSearch,
-    LyricUpdate::Type::ManualSearch
+    LyricUpdate::Type::ManualSearch,
 };
 
 MVTF_TEST(autoedits_dont_apply_to_edit_results)
@@ -974,7 +1028,7 @@ MVTF_TEST(autoedits_do_apply_to_search_results_only_from_remote_sources)
     for(LyricUpdate::Type update_type : g_search_update_types)
     {
         const bool applied_remote = should_auto_edits_be_applied(false, update_type);
-        const bool applied_local =  should_auto_edits_be_applied(true, update_type);
+        const bool applied_local = should_auto_edits_be_applied(true, update_type);
         ASSERT(applied_remote);
         ASSERT(!applied_local);
     }
@@ -1030,7 +1084,10 @@ MVTF_TEST(saving_always_save_edit_updates)
         {
             for(bool is_timestamped : all_bools)
             {
-                bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+                bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
+                                                                autosave,
+                                                                update_type,
+                                                                is_timestamped);
                 ASSERT(should_save);
             }
         }
@@ -1051,7 +1108,10 @@ MVTF_TEST(saving_never_save_search_results_loaded_from_local_sources)
         {
             for(bool is_timestamped : all_bools)
             {
-                bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+                bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
+                                                                autosave,
+                                                                update_type,
+                                                                is_timestamped);
                 ASSERT(!should_save);
             }
         }
@@ -1071,7 +1131,10 @@ MVTF_TEST(saving_always_save_manual_search_updates_from_remote_sources)
     {
         for(bool is_timestamped : all_bools)
         {
-            bool should_save = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, is_timestamped);
+            bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
+                                                            autosave,
+                                                            update_type,
+                                                            is_timestamped);
             ASSERT(should_save);
         }
     }
@@ -1112,7 +1175,7 @@ MVTF_TEST(saving_only_save_synced_autosearch_results_with_save_strategy_onlysync
     const AutoSaveStrategy autosave = AutoSaveStrategy::OnlySynced;
 
     bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
-    bool save_unsynced =  should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
+    bool save_unsynced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
     ASSERT(save_synced);
     ASSERT(!save_unsynced);
 }
@@ -1124,7 +1187,7 @@ MVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyun
     const AutoSaveStrategy autosave = AutoSaveStrategy::OnlyUnsynced;
 
     bool save_synced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, true);
-    bool save_unsynced =  should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
+    bool save_unsynced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
     ASSERT(!save_synced);
     ASSERT(save_unsynced);
 }

@@ -20,7 +20,7 @@
 // See:
 // * https://stackoverflow.com/questions/78598141/first-stdmutexlock-crashes-in-application-built-with-latest-visual-studio
 // * https://github.com/microsoft/STL/issues/4730
-#define _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR 
+#define _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
 
 #include <foobar2000/helpers/foobar2000+atl.h>
 

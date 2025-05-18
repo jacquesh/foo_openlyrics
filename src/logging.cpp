@@ -35,9 +35,9 @@ void openlyrics_logging::printf(openlyrics_logging::Level lvl, const char* fmt, 
     }
     else
     {
-        char* long_buffer = new char[required_bytes+1]; // +1 for null terminator
+        char* long_buffer = new char[required_bytes + 1]; // +1 for null terminator
         va_start(varargs, fmt);
-        const int printed_bytes = vsnprintf(long_buffer, required_bytes+1, fmt, varargs);
+        const int printed_bytes = vsnprintf(long_buffer, required_bytes + 1, fmt, varargs);
         va_end(varargs);
 
         assert(printed_bytes == required_bytes);

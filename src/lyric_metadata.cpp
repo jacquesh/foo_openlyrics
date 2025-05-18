@@ -7,7 +7,10 @@
 #include "lyric_metadb_index_client.h"
 #include "sources/lyric_source.h"
 
+// clang-format off: GUIDs should be one line
 static const GUID GUID_METADBINDEX_LYRIC_METADATA = { 0x88da8d97, 0xb450, 0x4ff4, { 0xa8, 0x81, 0xf6, 0xf6, 0xad, 0x38, 0x36, 0xc1 } };
+// clang-format on
+
 DECLARE_OPENLYRICS_METADB_INDEX("lyric metadata", GUID_METADBINDEX_LYRIC_METADATA);
 static constexpr size_t MAX_METADATA_BYTES = 4096;
 
@@ -27,7 +30,10 @@ class lyric_metadb_index_maintenance : public metadb_io_edit_callback_v2
 {
     void on_edited(metadb_handle_list_cref /*items*/, t_infosref /*before*/, t_infosref /*after*/) override {}
 
-    void on_edited_v2(metadb_handle_list_cref /*items*/, t_infosref /*before*/, t_infosref after, t_infosref beforeInMetadb) override
+    void on_edited_v2(metadb_handle_list_cref /*items*/,
+                      t_infosref /*before*/,
+                      t_infosref after,
+                      t_infosref beforeInMetadb) override
     {
         auto meta_index = metadb_index_manager_v2::get();
         char data_buffer[MAX_METADATA_BYTES] = {};
@@ -35,7 +41,7 @@ class lyric_metadb_index_maintenance : public metadb_io_edit_callback_v2
         metadb_index_transaction::ptr trans = meta_index->begin_transaction();
 
         assert(beforeInMetadb.size() == after.size());
-        for(size_t i=0; i<beforeInMetadb.size(); i++)
+        for(size_t i = 0; i < beforeInMetadb.size(); i++)
         {
             metadb_index_hash before_hash = lyric_metadb_index_client::hash(*beforeInMetadb[i]);
             metadb_index_hash after_hash = lyric_metadb_index_client::hash(*after[i]);
@@ -90,7 +96,9 @@ static lyric_metadata load_lyric_metadata(const metadb_v2_rec_t& track_info)
         }
         else
         {
-            LOG_WARN("Unexpected version number %u returned for lyric metadata consisting of %zu bytes", result.version, data_bytes);
+            LOG_WARN("Unexpected version number %u returned for lyric metadata consisting of %zu bytes",
+                     result.version,
+                     data_bytes);
         }
         return result;
     }
@@ -137,7 +145,7 @@ void lyric_metadata_log_retrieved(const metadb_v2_rec_t& track_info, const Lyric
         return;
     }
 
-    assert(lyrics.source_id != GUID{});
+    assert(lyrics.source_id != GUID {});
     metadata.first_retrieval_source = lyrics.source_id;
     metadata.first_retrieval_timestamp = pfc::fileTimeNow();
     metadata.first_retrieval_path = lyrics.source_path;
@@ -153,9 +161,7 @@ std::string get_lyric_metadata_string(const LyricData& lyrics, const metadb_v2_r
     LyricSourceBase* src = LyricSourceBase::get(lyrics.source_id);
     if(src != nullptr)
     {
-        result += std::format("Retrieved from {} @ {}\n",
-                              from_tstring(src->friendly_name()),
-                              lyrics.source_path);
+        result += std::format("Retrieved from {} @ {}\n", from_tstring(src->friendly_name()), lyrics.source_path);
     }
 
     if(lyrics.save_source.has_value())
@@ -163,9 +169,7 @@ std::string get_lyric_metadata_string(const LyricData& lyrics, const metadb_v2_r
         LyricSourceBase* saved_src = LyricSourceBase::get(lyrics.save_source.value());
         if(saved_src != nullptr)
         {
-            result += std::format("Saved to {} @ {}\n",
-                                  from_tstring(saved_src->friendly_name()),
-                                  lyrics.save_path);
+            result += std::format("Saved to {} @ {}\n", from_tstring(saved_src->friendly_name()), lyrics.save_path);
         }
     }
 

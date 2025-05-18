@@ -12,8 +12,14 @@ static const GUID src_guid = { 0x5153d050, 0x387d, 0x47ec, { 0x93, 0x50, 0xd5, 0
 
 class SonglyricsSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("SongLyrics.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("SongLyrics.com");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -25,7 +31,8 @@ static std::string remove_chars_for_url(const std::string_view input)
     std::string transliterated = from_tstring(normalise_utf8(to_tstring(input)));
 
     std::string output;
-    output.reserve(transliterated.length() + 3); // We add a bit to allow for one or two & or @ replacements without re-allocation
+    // We add a bit to allow for one or two & or @ replacements without re-allocation
+    output.reserve(transliterated.length() + 3);
     for(char c : transliterated)
     {
         if(pfc::char_is_ascii_alphanumeric(c))
@@ -71,7 +78,7 @@ std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& para
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {

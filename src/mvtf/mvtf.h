@@ -13,7 +13,10 @@
 
 #ifndef NDEBUG
 #define MVTF_TESTS_ENABLED 1
-#define MVTF_TEST(TEST_NAME) MVTF_TEST_FUNCTION_TYPE TEST_NAME; static int mvtf_test_##TEST_NAME = mvtf_register_function(&TEST_NAME, #TEST_NAME); void TEST_NAME(int* mvtf_error_count)
+#define MVTF_TEST(TEST_NAME)                                                                                           \
+    MVTF_TEST_FUNCTION_TYPE TEST_NAME;                                                                                 \
+    static int mvtf_test_##TEST_NAME = mvtf_register_function(&TEST_NAME, #TEST_NAME);                                 \
+    void TEST_NAME(int* mvtf_error_count)
 
 #else // Tests are *not* enabled
 // static functions that aren't called/referenced anywhere should be removed during compilation.
@@ -23,8 +26,23 @@
 #endif
 
 // TODO: Do a debugbreak if the debugger is attached?
-#define ASSERT(CONDITION) do{if(!(CONDITION)){ *mvtf_error_count = *mvtf_error_count + 1; return; }}while(false)
-#define CHECK(CONDITION) do{if(!(CONDITION)){ *mvtf_error_count = *mvtf_error_count + 1; }}while(false)
+#define ASSERT(CONDITION)                                                                                              \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if(!(CONDITION))                                                                                               \
+        {                                                                                                              \
+            *mvtf_error_count = *mvtf_error_count + 1;                                                                 \
+            return;                                                                                                    \
+        }                                                                                                              \
+    } while(false)
+#define CHECK(CONDITION)                                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if(!(CONDITION))                                                                                               \
+        {                                                                                                              \
+            *mvtf_error_count = *mvtf_error_count + 1;                                                                 \
+        }                                                                                                              \
+    } while(false)
 
 typedef void(MVTF_TEST_FUNCTION_TYPE)(int*);
 
@@ -46,7 +64,8 @@ static mvtf_function_metadata* mvtf_test_functions = nullptr;
 int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name)
 {
     // TODO: Only realloc when we reach a new power of 2 in the test count, to minimise reallocs
-    mvtf_test_functions = (mvtf_function_metadata*)realloc(mvtf_test_functions, sizeof(*mvtf_test_functions) * (mvtf_test_count+1));
+    mvtf_test_functions = (mvtf_function_metadata*)realloc(mvtf_test_functions,
+                                                           sizeof(*mvtf_test_functions) * (mvtf_test_count + 1));
     mvtf_test_functions[mvtf_test_count] = { ptr, name };
     mvtf_test_count++;
     return mvtf_test_count;
@@ -54,10 +73,7 @@ int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name)
 
 static int sort_by_name(const void* lhs_void, const void* rhs_void)
 {
-    return strcmp(
-            ((const mvtf_function_metadata*)lhs_void)->name,
-            ((const mvtf_function_metadata*)rhs_void)->name
-        );
+    return strcmp(((const mvtf_function_metadata*)lhs_void)->name, ((const mvtf_function_metadata*)rhs_void)->name);
 }
 
 extern "C" __declspec(dllexport) int run_mvtf_tests()
@@ -67,7 +83,7 @@ extern "C" __declspec(dllexport) int run_mvtf_tests()
     LARGE_INTEGER start_time = {};
     QueryPerformanceCounter(&start_time);
     qsort(mvtf_test_functions, mvtf_test_count, sizeof(*mvtf_test_functions), sort_by_name);
-    for(int i=0; i<mvtf_test_count; i++)
+    for(int i = 0; i < mvtf_test_count; i++)
     {
         int error_count = 0;
         mvtf_test_functions[i].ptr(&error_count);
@@ -75,11 +91,11 @@ extern "C" __declspec(dllexport) int run_mvtf_tests()
         const char* status_str = "";
         if(error_count == 0)
         {
-            status_str = "\033[32m" "PASSED" "\033[39m";
+            status_str = "\033[32mPASSED\033[39m";
         }
         else
         {
-            status_str = "\033[31m" "FAILED" "\033[39m";
+            status_str = "\033[31mFAILED\033[39m";
             return_code = 1;
         }
         printf("[%s] %s\n", status_str, mvtf_test_functions[i].name);

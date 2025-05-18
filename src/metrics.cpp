@@ -22,20 +22,28 @@
 #include "sources/lyric_source.h"
 #include "ui_hooks.h"
 
+// clang-format off: GUIDs should be one line
 static const GUID GUID_METRICS_FIRST_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH = { 0x6ce22b14, 0x3237, 0x4afb, { 0x9d, 0x66, 0xe8, 0xe9, 0x9b, 0xa4, 0xee, 0xe6 } };
 static const GUID GUID_METRICS_CURRENT_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH = { 0xe827d9b6, 0x681a, 0x4d99, { 0xa5, 0xaa, 0x41, 0xcf, 0xef, 0xf2, 0xf, 0x18 } };
 static const GUID GUID_METRICS_CURRENT_VERSION = { 0x922ab2fa, 0x5b, 0x4971, { 0x9b, 0x78, 0xf5, 0xc5, 0x57, 0x30, 0xc1, 0x32 } };
 static const GUID GUID_METRICS_GENERATION = { 0xf2d97e96, 0x38ab, 0x4e5e, { 0x83, 0x7c, 0xe3, 0x3b, 0x5a, 0x82, 0x43, 0xca } };
+// clang-format on
 
-static cfg_int_t<uint64_t> cfg_metrics_first_version_install_date_days_since_unix_epoch(GUID_METRICS_FIRST_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
-static cfg_int_t<uint64_t> cfg_metrics_current_version_install_date_days_since_unix_epoch(GUID_METRICS_CURRENT_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH, 0);
+static cfg_int_t<uint64_t> cfg_metrics_first_version_install_date_days_since_unix_epoch(
+    GUID_METRICS_FIRST_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH,
+    0);
+static cfg_int_t<uint64_t> cfg_metrics_current_version_install_date_days_since_unix_epoch(
+    GUID_METRICS_CURRENT_VERSION_INSTALL_DATE_DAYS_SINCE_UNIX_EPOCH,
+    0);
 static cfg_string cfg_metrics_current_version(GUID_METRICS_CURRENT_VERSION, "");
 static cfg_int_t<uint64_t> cfg_metrics_generation(GUID_METRICS_GENERATION, 0);
 
 // The metrics "generation", which tells us whether or not we need to send a new batch of metrics.
 // Manually bump this when a new round of metrics collection is desired.
 constexpr uint64_t current_metrics_generation = 3;
-constexpr std::chrono::year_month_day last_metrics_collection_day = {std::chrono::year(2025), std::chrono::month(01), std::chrono::day(01)};
+constexpr std::chrono::year_month_day last_metrics_collection_day = { std::chrono::year(2025),
+                                                                      std::chrono::month(01),
+                                                                      std::chrono::day(01) };
 
 class FeatureTracker;
 std::vector<FeatureTracker*> g_all_feature_trackers;
@@ -82,7 +90,7 @@ public:
     void log_usage()
     {
         const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
-        const uint64_t days_since_unix_epoch  = std::chrono::floor<std::chrono::days>(since_unix_epoch).count();
+        const uint64_t days_since_unix_epoch = std::chrono::floor<std::chrono::days>(since_unix_epoch).count();
 
         if(m_last_used < days_since_unix_epoch)
         {
@@ -106,7 +114,9 @@ protected:
     void set_data_raw(stream_reader* p_stream, size_t bytes_available, abort_callback& p_abort) override
     {
         uint64_t temp_last_used;
-        p_stream->read_lendian_t(temp_last_used, p_abort); //alter member data only on success, this will throw an exception when something isn't right
+        p_stream->read_lendian_t(
+            temp_last_used,
+            p_abort); // alter member data only on success, this will throw an exception when something isn't right
         m_last_used = temp_last_used;
 
         if(bytes_available >= 24)
@@ -123,16 +133,20 @@ protected:
 
 #define DECLARE_FEATURETRACKER(FTNAME, ...) static FeatureTracker featuretrack_##FTNAME(#FTNAME, __VA_ARGS__)
 DECLARE_FEATURETRACKER(bulksearch, { 0x10f5f5c1, 0x472d, 0x4bc6, { 0xa4, 0xb4, 0x70, 0x54, 0x85, 0x0f, 0xc5, 0xe2 } });
-DECLARE_FEATURETRACKER(manualsearch, { 0x452cd5bf, 0x4c0c, 0x4814, { 0x8f, 0x4e, 0x1b, 0xda, 0x2f, 0x53, 0x4c, 0x6a } });
+DECLARE_FEATURETRACKER(manualsearch,
+                       { 0x452cd5bf, 0x4c0c, 0x4814, { 0x8f, 0x4e, 0x1b, 0xda, 0x2f, 0x53, 0x4c, 0x6a } });
 DECLARE_FEATURETRACKER(lyriceditor, { 0x3304c89e, 0xec50, 0x4af1, { 0xa1, 0xa0, 0x21, 0xe3, 0xfd, 0xea, 0x12, 0x32 } });
 DECLARE_FEATURETRACKER(autoedit, { 0xb1df2480, 0xde3a, 0x49ec, { 0xbf, 0xd, 0x7d, 0x39, 0x31, 0xc8, 0x41, 0x24 } });
-DECLARE_FEATURETRACKER(markinstrumental, { 0x12253c20, 0x9324, 0x4095, { 0x89, 0xb8, 0x3e, 0xc8, 0x3f, 0x13, 0xf8, 0x23 } });
+DECLARE_FEATURETRACKER(markinstrumental,
+                       { 0x12253c20, 0x9324, 0x4095, { 0x89, 0xb8, 0x3e, 0xc8, 0x3f, 0x13, 0xf8, 0x23 } });
 DECLARE_FEATURETRACKER(showlyrics, { 0xa6665198, 0xd2d1, 0x44ac, { 0xa8, 0xde, 0x1c, 0x6c, 0xb5, 0xbe, 0x0d, 0x81 } });
-DECLARE_FEATURETRACKER(externalwindow, { 0xf426ac64, 0x4aa7, 0x403a, { 0x97, 0x64, 0xff, 0x62, 0x51, 0xcb, 0xe6, 0x73 } });
+DECLARE_FEATURETRACKER(externalwindow,
+                       { 0xf426ac64, 0x4aa7, 0x403a, { 0x97, 0x64, 0xff, 0x62, 0x51, 0xcb, 0xe6, 0x73 } });
 DECLARE_FEATURETRACKER(manualscroll, { 0x3b751894, 0x9163, 0x4902, { 0x8d, 0x65, 0x3, 0x10, 0x35, 0x21, 0xb5, 0x4d } });
 DECLARE_FEATURETRACKER(lyricupload, { 0xf4975820, 0x23c, 0x44e6, { 0x8d, 0x30, 0xf1, 0xb8, 0x63, 0x2a, 0x8c, 0x46 } });
 DECLARE_FEATURETRACKER(remotetrack, { 0xa0cbfda0, 0x99c3, 0x4be7, { 0x86, 0xf0, 0x8e, 0xb2, 0xd1, 0x48, 0x89, 0x9 } });
-DECLARE_FEATURETRACKER(hiddensearch, { 0xf056ae7c, 0xae9c, 0x45de, { 0x82, 0xb3, 0x72, 0x99, 0x4d, 0xba, 0xff, 0x41 } });
+DECLARE_FEATURETRACKER(hiddensearch,
+                       { 0xf056ae7c, 0xae9c, 0x45de, { 0x82, 0xb3, 0x72, 0x99, 0x4d, 0xba, 0xff, 0x41 } });
 
 void metrics::log_used_bulk_search()
 {
@@ -193,7 +207,7 @@ static const char* get_windows_version_string()
 {
     // NOTE: There is no `IsWindows11OrGreater()` function
     if(IsWindows10OrGreater()) return "10+";
-    if(IsWindows8Point1OrGreater()) return "8.1"; 
+    if(IsWindows8Point1OrGreater()) return "8.1";
     if(IsWindows8OrGreater()) return "8.0";
     if(IsWindows7SP1OrGreater()) return "7.1";
     if(IsWindows7OrGreater()) return "7.0";
@@ -233,9 +247,9 @@ static std::string get_openlyrics_dll_hash(abort_callback& abort)
     sha.finalise(hash_out);
 
     char out[1024] = {};
-    for(size_t i=0; i<sizeof(hash_out); i++)
+    for(size_t i = 0; i < sizeof(hash_out); i++)
     {
-        snprintf(&out[2*i], sizeof(out)-2*i, "%02x", hash_out[i]);
+        snprintf(&out[2 * i], sizeof(out) - 2 * i, "%02x", hash_out[i]);
     }
     return out;
 }
@@ -282,13 +296,19 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode, size_t num
         cJSON* json_ol = cJSON_AddObjectToObject(json, "openlyrics");
 
         const std::string hash_str = get_openlyrics_dll_hash(abort);
-        const std::chrono::year_month_day install_ymd{std::chrono::sys_days{std::chrono::days(cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value())}};
+        const std::chrono::year_month_day install_ymd { std::chrono::sys_days {
+            std::chrono::days(cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value()) } };
         char install_ymd_str[64] = {};
-        snprintf(install_ymd_str, sizeof(install_ymd_str), "%02d-%02u-%02u", int(install_ymd.year()), unsigned int(install_ymd.month()), unsigned int(install_ymd.day()));
+        snprintf(install_ymd_str,
+                 sizeof(install_ymd_str),
+                 "%02d-%02u-%02u",
+                 int(install_ymd.year()),
+                 unsigned int(install_ymd.month()),
+                 unsigned int(install_ymd.day()));
 
         cJSON_AddStringToObject(json_ol, "version", OPENLYRICS_VERSION);
         cJSON_AddStringToObject(json_ol, "library_hash", hash_str.c_str());
-        cJSON_AddStringToObject(json_ol, "first_installed",install_ymd_str);
+        cJSON_AddStringToObject(json_ol, "first_installed", install_ymd_str);
         cJSON_AddNumberToObject(json_ol, "num_visible_panels", double(number_of_visible_lyric_panels));
     }
 
@@ -326,10 +346,14 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode, size_t num
         const std::string auto_edit_str = get_auto_edits();
         const std::string save_src_name = get_source_name(preferences::saving::save_source());
         cJSON_AddBoolToObject(json_cfg, "search_exclude_brackets", preferences::searching::exclude_trailing_brackets());
-        cJSON_AddBoolToObject(json_cfg, "is_skip_filter_default", preferences::searching::raw::is_skip_filter_default());
+        cJSON_AddBoolToObject(json_cfg,
+                              "is_skip_filter_default",
+                              preferences::searching::raw::is_skip_filter_default());
         cJSON_AddStringToObject(json_cfg, "search_auto_edits", auto_edit_str.c_str());
         cJSON_AddNumberToObject(json_cfg, "preferred_lyric_type", int(preferences::searching::preferred_lyric_type()));
-        cJSON_AddBoolToObject(json_cfg, "search_without_lyric_panels", preferences::searching::should_search_without_panels());
+        cJSON_AddBoolToObject(json_cfg,
+                              "search_without_lyric_panels",
+                              preferences::searching::should_search_without_panels());
 
         // Save settings
         cJSON_AddNumberToObject(json_cfg, "autosave_strategy", int(preferences::saving::autosave_strategy()));
@@ -402,7 +426,8 @@ public:
     void on_init(ctx_t /*p_wnd*/) override
     {
         LOG_INFO("Initiating pre-collection metrics flow...");
-        m_is_dark_mode = fb2k::isDarkMode(); // In fb2k v2 beta 31 and earlier, isDarkMode() should only be called from the main/UI thread.
+        m_is_dark_mode = fb2k::isDarkMode(); // In fb2k v2 beta 31 and earlier, isDarkMode() should only be called from
+                                             // the main/UI thread.
         m_num_visible_lyric_panels = num_visible_lyric_panels(); // This needs to be done from the main thread
     }
 
@@ -434,7 +459,14 @@ public:
 
         popup_message_v3::query_t query = {};
         query.title = "OpenLyrics metrics";
-        query.msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to inform which features are added or enhanced, as well as potentially which features get removed (e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information will be used exclusively to inform foo_openlyrics' development and will never be sold or used for marketing (by anybody).\n\nYou can click 'Retry' to view the exact data that would be submitted.";
+        query
+            .msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively "
+                   "direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, "
+                   "once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to "
+                   "inform which features are added or enhanced, as well as potentially which features get removed "
+                   "(e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information "
+                   "will be used exclusively to inform foo_openlyrics' development and will never be sold or used for "
+                   "marketing (by anybody).\n\nYou can click 'Retry' to view the exact data that would be submitted.";
         query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo | popup_message_v3::buttonRetry;
         query.defButton = popup_message_v3::buttonNo;
         query.icon = popup_message_v3::iconQuestion;
@@ -449,9 +481,7 @@ public:
             }
             else if(popup_result == popup_message_v3::buttonYes)
             {
-                fb2k::splitTask([metrics = this->m_metrics](){
-                    submit_metrics(metrics);
-                });
+                fb2k::splitTask([metrics = this->m_metrics]() { submit_metrics(metrics); });
 
                 popup_message_v3::query_t thank_query = {};
                 thank_query.title = "OpenLyrics metrics";
@@ -467,7 +497,8 @@ public:
 static void send_metrics_on_init()
 {
     const auto since_unix_epoch = std::chrono::system_clock::now().time_since_epoch();
-    const uint64_t days_since_unix_epoch = static_cast<uint64_t>(std::chrono::floor<std::chrono::days>(since_unix_epoch).count());
+    const uint64_t days_since_unix_epoch = static_cast<uint64_t>(
+        std::chrono::floor<std::chrono::days>(since_unix_epoch).count());
     if(cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value() == 0)
     {
         cfg_metrics_first_version_install_date_days_since_unix_epoch = days_since_unix_epoch;
@@ -488,8 +519,12 @@ static void send_metrics_on_init()
     // Immediately after install is also the least useful time to collect metrics since new users
     // will not have had the opportunity to change any configuration yet.
     const uint64_t min_days_of_delay_after_install = 14;
-    const uint64_t min_days_since_first_install = min_days_of_delay_after_install + cfg_metrics_first_version_install_date_days_since_unix_epoch.get_value();
-    const uint64_t min_days_since_last_install = min_days_of_delay_after_install + cfg_metrics_current_version_install_date_days_since_unix_epoch.get_value();
+    const uint64_t min_days_since_first_install = min_days_of_delay_after_install
+                                                  + cfg_metrics_first_version_install_date_days_since_unix_epoch
+                                                        .get_value();
+    const uint64_t min_days_since_last_install = min_days_of_delay_after_install
+                                                 + cfg_metrics_current_version_install_date_days_since_unix_epoch
+                                                       .get_value();
     if((days_since_unix_epoch < min_days_since_first_install) || (days_since_unix_epoch < min_days_since_last_install))
     {
         return;
@@ -498,7 +533,8 @@ static void send_metrics_on_init()
     // Set an end-date after which we don't prompt for metrics anymore (at least not for this generation).
     // This prevents us from prompting new users for metrics collection forever, long
     // after we've turned off the collection server.
-    const std::chrono::year_month_day current_day = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
+    const std::chrono::year_month_day current_day = std::chrono::floor<std::chrono::days>(
+        std::chrono::system_clock::now());
     if(current_day > last_metrics_collection_day)
     {
         return;
@@ -512,7 +548,8 @@ static void send_metrics_on_init()
     cfg_metrics_generation = current_metrics_generation;
 
     bool kickoff_success = threaded_process::g_run_modeless(new service_impl_t<AsyncMetricsCollectionAndSubmission>(),
-                                                            threaded_process::flag_show_abort | threaded_process::flag_show_delayed,
+                                                            threaded_process::flag_show_abort
+                                                                | threaded_process::flag_show_delayed,
                                                             core_api::get_main_window(),
                                                             "Preparing metrics for OpenLyrics...");
     if(kickoff_success)

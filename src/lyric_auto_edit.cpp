@@ -10,13 +10,8 @@
 static std::optional<LyricData> ReplaceHtmlEscapedChars(const LyricData& lyrics)
 {
     std::string text = from_tstring(parsers::lrc::expand_text(lyrics, false));
-    std::pair<std::string_view, char> replacements[] =
-    {
-        {"&amp;", '&'},
-        {"&lt;", '<'},
-        {"&gt;", '>'},
-        {"&quot;", '"'},
-        {"&apos;", '\''},
+    std::pair<std::string_view, char> replacements[] = {
+        { "&amp;", '&' }, { "&lt;", '<' }, { "&gt;", '>' }, { "&quot;", '"' }, { "&apos;", '\'' },
     };
 
     size_t replace_count = 0;
@@ -37,7 +32,7 @@ static std::optional<LyricData> ReplaceHtmlEscapedChars(const LyricData& lyrics)
 
     if(replace_count > 0)
     {
-        return {parsers::lrc::parse(lyrics, text)};
+        return { parsers::lrc::parse(lyrics, text) };
     }
     else
     {
@@ -59,7 +54,7 @@ static std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics)
             // NOTE: If the line was empty we would not enter this loop.
             //       We subtract 1 from the length to avoid overflowing when next_space == npos == (size_t)-1
             assert(line.text.length() > 0);
-            if(next_space > line.text.length()-1)
+            if(next_space > line.text.length() - 1)
             {
                 break;
             }
@@ -80,7 +75,7 @@ static std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics)
 
     if(spaces_erased > 0)
     {
-        return {std::move(new_lyrics)};
+        return { std::move(new_lyrics) };
     }
     else
     {
@@ -93,7 +88,7 @@ static std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics
     size_t lines_removed = 0;
     bool previous_blank = true;
     LyricData new_lyrics = lyrics;
-    for(auto iter=new_lyrics.lines.begin(); iter != new_lyrics.lines.end(); /*Omitted*/)
+    for(auto iter = new_lyrics.lines.begin(); iter != new_lyrics.lines.end(); /*Omitted*/)
     {
         size_t first_non_space = iter->text.find_first_not_of(' ');
         bool is_blank = (first_non_space == std::tstring::npos);
@@ -112,7 +107,7 @@ static std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics
 
     if(lines_removed > 0)
     {
-        return {std::move(new_lyrics)};
+        return { std::move(new_lyrics) };
     }
     else
     {
@@ -141,7 +136,7 @@ static std::optional<LyricData> RemoveAllBlankLines(const LyricData& lyrics)
 
     if(lines_removed > 0)
     {
-        return {std::move(new_lyrics)};
+        return { std::move(new_lyrics) };
     }
     else
     {
@@ -168,7 +163,7 @@ static std::optional<LyricData> ResetCapitalisation(const LyricData& lyrics)
             }
         }
 
-        for(size_t i=1; i<line.text.length(); i++)
+        for(size_t i = 1; i < line.text.length(); i++)
         {
             if(line.text[i] <= 255)
             {
@@ -189,7 +184,7 @@ static std::optional<LyricData> ResetCapitalisation(const LyricData& lyrics)
 
     if(edit_count > 0)
     {
-        return {std::move(new_lyrics)};
+        return { std::move(new_lyrics) };
     }
     else
     {
@@ -203,7 +198,7 @@ static std::optional<LyricData> FixMalformedTimestamps(const LyricData& lyrics)
     {
         if((tag.length() < 10) || // Tag isn't long enough to contain a timestamp
            (tag[0] != '[') || // Tag doesn't start with a bracket
-           (tag[tag.length()-1] != ']')) // Tag doesn't end with a bracket
+           (tag[tag.length() - 1] != ']')) // Tag doesn't end with a bracket
         {
             return false;
         }
@@ -215,10 +210,11 @@ static std::optional<LyricData> FixMalformedTimestamps(const LyricData& lyrics)
             return false;
         }
 
-        size_t last_nondecimal_index = tag.find_last_not_of("1234567890.", tag.length()-2);
+        size_t last_nondecimal_index = tag.find_last_not_of("1234567890.", tag.length() - 2);
         if(last_nondecimal_index == std::string_view::npos)
         {
-            return false; // No non-decimal characters, this really shouldn't happen since we've checked tag[0]=='[' above.
+            return false; // No non-decimal characters, this really shouldn't happen since we've checked tag[0]=='['
+                          // above.
         }
 
         char replaced_char = tag[last_nondecimal_index];
@@ -247,19 +243,19 @@ static std::optional<LyricData> FixMalformedTimestamps(const LyricData& lyrics)
         {
             break;
         }
-        std::string_view tag {text.c_str() + current_index, end_index - current_index + 1};
+        std::string_view tag { text.c_str() + current_index, end_index - current_index + 1 };
         changed |= fix_decimal_separator(tag);
 
         if(changed)
         {
             change_count++;
         }
-        current_index = text.find('[', current_index+1);
+        current_index = text.find('[', current_index + 1);
     }
 
     if(change_count > 0)
     {
-        return {parsers::lrc::parse(lyrics, text)};
+        return { parsers::lrc::parse(lyrics, text) };
     }
     else
     {
@@ -276,7 +272,7 @@ static std::optional<LyricData> RemoveTimestamps(const LyricData& lyrics)
 
     LyricData new_lyrics = lyrics;
     new_lyrics.RemoveTimestamps();
-    return {new_lyrics};
+    return { new_lyrics };
 }
 
 static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyrics)
@@ -307,10 +303,10 @@ static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyr
             }
             else
             {
-                line.text.erase(inclusive_trimmed_end+1, exclusive_line_end-inclusive_trimmed_end-1);
+                line.text.erase(inclusive_trimmed_end + 1, exclusive_line_end - inclusive_trimmed_end - 1);
                 if(trimmed_start < exclusive_line_end)
                 {
-                    line.text.erase(line_start, trimmed_start-line_start);
+                    line.text.erase(line_start, trimmed_start - line_start);
                 }
             }
             if((line_start != trimmed_start) || (inclusive_line_end != inclusive_trimmed_end))
@@ -329,7 +325,7 @@ static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyr
 
     if(edit_count > 0)
     {
-        return {new_lyrics};
+        return { new_lyrics };
     }
     else
     {
@@ -337,7 +333,9 @@ static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyr
     }
 }
 
-std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type, const LyricData& lyrics, const metadb_v2_rec_t& track_info)
+std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type,
+                                                const LyricData& lyrics,
+                                                const metadb_v2_rec_t& track_info)
 {
     std::optional<LyricData> result;
     switch(type)
@@ -389,7 +387,7 @@ MVTF_TEST(autoedit_fixmalformedtimestamps_corrects_decimal_separator_from_colon_
 MVTF_TEST(autoedit_removesurroundingwhitespace_leaves_already_trimmed_lyrics_unchanged)
 {
     LyricData input = {};
-    input.lines.push_back({_T("This is an already-trimmed lyric line"), DBL_MAX});
+    input.lines.push_back({ _T("This is an already-trimmed lyric line"), DBL_MAX });
 
     std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
 
@@ -399,7 +397,8 @@ MVTF_TEST(autoedit_removesurroundingwhitespace_leaves_already_trimmed_lyrics_unc
 MVTF_TEST(autoedit_removesurroundingwhitespace_leaves_already_trimmed_multiline_lyrics_unchanged)
 {
     LyricData input = {};
-    input.lines.push_back({_T("This is an already-trimmed lyric line\nThat has had concurrent lines collapsed"), 1.0});
+    input.lines.push_back(
+        { _T("This is an already-trimmed lyric line\nThat has had concurrent lines collapsed"), 1.0 });
 
     std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
 
@@ -409,10 +408,10 @@ MVTF_TEST(autoedit_removesurroundingwhitespace_leaves_already_trimmed_multiline_
 MVTF_TEST(autoedit_removesurroundingwhitespace_trims_surrounding_whitespace)
 {
     LyricData input = {};
-    input.lines.push_back({_T("This line has trailing whitespace   "), DBL_MAX});
-    input.lines.push_back({_T(" This line has leading whitespace"), DBL_MAX});
-    input.lines.push_back({_T("This line has no surrounding whitespace"), DBL_MAX});
-    input.lines.push_back({_T("  This line has both surrounding whitespaces "), DBL_MAX});
+    input.lines.push_back({ _T("This line has trailing whitespace   "), DBL_MAX });
+    input.lines.push_back({ _T(" This line has leading whitespace"), DBL_MAX });
+    input.lines.push_back({ _T("This line has no surrounding whitespace"), DBL_MAX });
+    input.lines.push_back({ _T("  This line has both surrounding whitespaces "), DBL_MAX });
 
     std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
 
@@ -427,8 +426,8 @@ MVTF_TEST(autoedit_removesurroundingwhitespace_trims_surrounding_whitespace)
 MVTF_TEST(autoedit_removesurroundingwhitespace_trims_lines_that_are_only_whitespace)
 {
     LyricData input = {};
-    input.lines.push_back({_T("  "), DBL_MAX}); // This line is only whitespace
-    input.lines.push_back({_T("Next line is only whitespace\n  \nSee?"), DBL_MAX});
+    input.lines.push_back({ _T("  "), DBL_MAX }); // This line is only whitespace
+    input.lines.push_back({ _T("Next line is only whitespace\n  \nSee?"), DBL_MAX });
 
     std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
 
@@ -441,8 +440,8 @@ MVTF_TEST(autoedit_removesurroundingwhitespace_trims_lines_that_are_only_whitesp
 MVTF_TEST(autoedit_removesurroundingwhitespace_trims_surrounding_whitespace_from_collapsed_lines)
 {
     LyricData input = {};
-    input.lines.push_back({_T("This line has trailing whitespace   \n This line has leading whitespace"), 1.0});
-    input.lines.push_back({_T("One line followed by \n\n A whole empty line"), 2.0});
+    input.lines.push_back({ _T("This line has trailing whitespace   \n This line has leading whitespace"), 1.0 });
+    input.lines.push_back({ _T("One line followed by \n\n A whole empty line"), 2.0 });
 
     std::optional<LyricData> output = RemoveSurroundingWhitespace(input);
 

@@ -14,4 +14,3 @@ struct Sha256Context
     void add_data(uint8_t* buffer, size_t buffer_len);
     void finalise(uint8_t (&output)[32]);
 };
-

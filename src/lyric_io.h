@@ -11,7 +11,8 @@ struct LyricUpdate
         Unknown,
         AutoSearch, // The result of a search initiated automatically, whose result should be automatically processed
         ManualSearch, // The result of a search initiated manually by the user
-        InternalSearch, // The result of a search initiated by and for the internal working of openlyrics, transparent to the user
+        InternalSearch, // The result of a search initiated by and for the internal working of openlyrics, transparent
+                        // to the user
         Edit, // The result of an edit by the user
     };
 
@@ -24,7 +25,10 @@ struct LyricUpdate
 class LyricSearchHandle
 {
 public:
-    LyricSearchHandle(LyricUpdate::Type type, metadb_handle_ptr track, metadb_v2_rec_t track_info, abort_callback& abort);
+    LyricSearchHandle(LyricUpdate::Type type,
+                      metadb_handle_ptr track,
+                      metadb_v2_rec_t track_info,
+                      abort_callback& abort);
     LyricSearchHandle(const LyricSearchHandle& other) = delete;
     LyricSearchHandle(LyricSearchHandle&& other);
     ~LyricSearchHandle();
@@ -77,10 +81,12 @@ namespace io
 
     std::optional<LyricData> process_available_lyric_update(LyricUpdate update);
 
-    // Updates the lyric data with the ID of the source used for saving, as well as the persistence path that it reports.
+    // Updates the lyric data with the ID of the source used for saving, as well as the persistence path.
     // Returns a success flag
-    bool save_lyrics(metadb_handle_ptr track, const metadb_v2_rec_t& track_info, LyricData& lyrics, bool allow_overwrite);
+    bool save_lyrics(metadb_handle_ptr track,
+                     const metadb_v2_rec_t& track_info,
+                     LyricData& lyrics,
+                     bool allow_overwrite);
 
     bool delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics);
 }
-

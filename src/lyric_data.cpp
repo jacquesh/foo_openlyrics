@@ -2,9 +2,15 @@
 
 #include "lyric_data.h"
 
-LyricDataRaw::LyricDataRaw(LyricDataCommon common) : LyricDataCommon(common) {}
+LyricDataRaw::LyricDataRaw(LyricDataCommon common)
+    : LyricDataCommon(common)
+{
+}
 
-LyricData::LyricData(LyricDataCommon common) : LyricDataCommon(common) {}
+LyricData::LyricData(LyricDataCommon common)
+    : LyricDataCommon(common)
+{
+}
 
 bool LyricData::IsTimestamped() const
 {

@@ -11,8 +11,14 @@ static const GUID src_guid = { 0xa7ac869e, 0xa867, 0x49e6, { 0x97, 0x9e, 0x7b, 0
 
 class MetalArchivesSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Metal-Archives.com"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Metal-Archives.com");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
@@ -55,7 +61,7 @@ std::vector<LyricDataRaw> MetalArchivesSource::parse_song_ids(cJSON* json) const
 
     std::vector<LyricDataRaw> output;
     const int result_arr_len = cJSON_GetArraySize(result_arr);
-    for(int song_index=0; song_index<result_arr_len; song_index++)
+    for(int song_index = 0; song_index < result_arr_len; song_index++)
     {
         const cJSON* song_arr = cJSON_GetArrayItem(result_arr, song_index);
         if((song_arr == nullptr) || (song_arr->type != cJSON_Array))
@@ -74,10 +80,9 @@ std::vector<LyricDataRaw> MetalArchivesSource::parse_song_ids(cJSON* json) const
         const cJSON* album_item = cJSON_GetArrayItem(song_arr, 1);
         const cJSON* title_item = cJSON_GetArrayItem(song_arr, 3);
         const cJSON* lyrics_item = cJSON_GetArrayItem(song_arr, 4);
-        if((artist_item == nullptr) || (artist_item->type != cJSON_String)
-            || (album_item == nullptr) || (album_item->type != cJSON_String)
-            || (title_item == nullptr) || (title_item->type != cJSON_String)
-            || (lyrics_item == nullptr) || (lyrics_item->type != cJSON_String))
+        if((artist_item == nullptr) || (artist_item->type != cJSON_String) || (album_item == nullptr)
+           || (album_item->type != cJSON_String) || (title_item == nullptr) || (title_item->type != cJSON_String)
+           || (lyrics_item == nullptr) || (lyrics_item->type != cJSON_String))
         {
             throw new std::runtime_error("Unexpected data-field format, the page format may have changed");
         }
@@ -139,7 +144,7 @@ std::vector<LyricDataRaw> MetalArchivesSource::search(const LyricSearchParams& p
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -172,7 +177,7 @@ bool MetalArchivesSource::lookup(LyricDataRaw& data, abort_callback& abort)
     {
         file_ptr response_file = request->run(url.c_str(), abort);
         response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8 
+        // NOTE: We're assuming here that the response is encoded in UTF-8
     }
     catch(const std::exception& e)
     {
@@ -183,7 +188,8 @@ bool MetalArchivesSource::lookup(LyricDataRaw& data, abort_callback& abort)
     const pugi::xml_document lyric_doc = load_html(content.c_str());
     const std::string lyric_text = collect_all_text_to_string(lyric_doc);
 
-    if(lyric_text == "(lyrics not available)") {
+    if(lyric_text == "(lyrics not available)")
+    {
         return false;
     }
 

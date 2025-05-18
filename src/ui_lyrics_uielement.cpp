@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
-#include <libPPUI/win32_op.h>
-#include <foobar2000/helpers/BumpableElem.h>
 #include <foobar2000/SDK/metadb_info_container_impl.h>
+#include <foobar2000/helpers/BumpableElem.h>
+#include <libPPUI/win32_op.h>
 #pragma warning(pop)
 
 #include "logging.h"
@@ -11,8 +11,11 @@
 #include "ui_lyrics_panel.h"
 #include "uie_shim_panel.h"
 
-namespace {
+namespace
+{
+    // clang-format off: GUIDs should be one line
     static const GUID GUID_LYRICS_PANEL = { 0x6e24d0be, 0xad68, 0x4bc9,{ 0xa0, 0x62, 0x2e, 0xc7, 0xb3, 0x53, 0xd5, 0xbd } };
+    // clang-format on
 
     // There is (as far as I'm aware) no way to access fb2k's default fonts & colours from outside
     // a ui_element instance. We need those values elsewhere though, so that we can do things like
@@ -33,7 +36,7 @@ namespace {
     class LyricPanelUiElement : public ui_element_instance, public LyricPanel
     {
     public:
-        LyricPanelUiElement(ui_element_config::ptr,ui_element_instance_callback_ptr p_callback);
+        LyricPanelUiElement(ui_element_config::ptr, ui_element_instance_callback_ptr p_callback);
 
         HWND get_wnd() override;
         void initialize_window(HWND parent);
@@ -46,9 +49,9 @@ namespace {
 
         static GUID g_get_guid();
         static GUID g_get_subclass();
-        static void g_get_name(pfc::string_base & out);
+        static void g_get_name(pfc::string_base& out);
         static ui_element_config::ptr g_get_default_configuration();
-        static const char * g_get_description();
+        static const char* g_get_description();
 
     private:
         ui_element_config::ptr m_config;
@@ -61,19 +64,43 @@ namespace {
         const ui_element_instance_callback_ptr m_callback;
     };
 
-    HWND LyricPanelUiElement::get_wnd() { return *this; }
-    void LyricPanelUiElement::set_configuration(ui_element_config::ptr config) { m_config = config; }
-    ui_element_config::ptr LyricPanelUiElement::get_configuration() { return m_config; }
+    HWND LyricPanelUiElement::get_wnd()
+    {
+        return *this;
+    }
+    void LyricPanelUiElement::set_configuration(ui_element_config::ptr config)
+    {
+        m_config = config;
+    }
+    ui_element_config::ptr LyricPanelUiElement::get_configuration()
+    {
+        return m_config;
+    }
 
-    GUID LyricPanelUiElement::g_get_guid() { return GUID_LYRICS_PANEL; }
-    GUID LyricPanelUiElement::g_get_subclass() { return ui_element_subclass_utility; }
-    ui_element_config::ptr LyricPanelUiElement::g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
-    void LyricPanelUiElement::g_get_name(pfc::string_base & out) { out = "OpenLyrics Panel"; }
-    const char * LyricPanelUiElement::g_get_description() { return "Displays lyrics for the currently-playing track."; }
+    GUID LyricPanelUiElement::g_get_guid()
+    {
+        return GUID_LYRICS_PANEL;
+    }
+    GUID LyricPanelUiElement::g_get_subclass()
+    {
+        return ui_element_subclass_utility;
+    }
+    ui_element_config::ptr LyricPanelUiElement::g_get_default_configuration()
+    {
+        return ui_element_config::g_create_empty(g_get_guid());
+    }
+    void LyricPanelUiElement::g_get_name(pfc::string_base& out)
+    {
+        out = "OpenLyrics Panel";
+    }
+    const char* LyricPanelUiElement::g_get_description()
+    {
+        return "Displays lyrics for the currently-playing track.";
+    }
 
-    LyricPanelUiElement::LyricPanelUiElement(ui_element_config::ptr config, ui_element_instance_callback_ptr p_callback) :
-        m_config(config),
-        m_callback(p_callback)
+    LyricPanelUiElement::LyricPanelUiElement(ui_element_config::ptr config, ui_element_instance_callback_ptr p_callback)
+        : m_config(config)
+        , m_callback(p_callback)
     {
         recompute_fonts();
         recompute_colours();
@@ -84,7 +111,9 @@ namespace {
     {
         const _U_RECT rect = nullptr;
         const TCHAR* window_name = nullptr;
-        const DWORD style = WS_CHILD | /*WS_VISIBLE |*/ WS_CLIPCHILDREN | WS_CLIPSIBLINGS; // Copied from atlwin.h's CControlWinTraits, used because we're implement CWindowImpl<>
+        const DWORD style =
+            WS_CHILD | /*WS_VISIBLE |*/ WS_CLIPCHILDREN
+            | WS_CLIPSIBLINGS; // Copied from atlwin.h's CControlWinTraits, used because we're implement CWindowImpl<>
 
         // NOTE: We specifically need to exclude the WS_VISIBLE style (which causes the window
         //       to be created already-visible) because including it results in ColumnsUI
@@ -139,8 +168,11 @@ namespace {
         g_defaultui_highlight_colour = m_callback->query_std_color(ui_color_highlight);
     }
 
-    // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands. Use ui_element_impl instead if you don't want that.
-    class LyricPanelImpl : public ui_element_impl_withpopup<LyricPanelUiElement> {};
+    // ui_element_impl_withpopup autogenerates standalone version of our component and proper menu commands.
+    // Use ui_element_impl instead if you don't want that.
+    class LyricPanelImpl : public ui_element_impl_withpopup<LyricPanelUiElement>
+    {
+    };
     FB2K_SERVICE_FACTORY(LyricPanelImpl)
     UIE_SHIM_PANEL_FACTORY(LyricPanelUiElement)
 

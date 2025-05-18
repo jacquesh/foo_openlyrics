@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
 #pragma warning(push, 0)
-#include <ShObjIdl_core.h>
-#include "resource.h"
-#include "foobar2000/helpers/atl-misc.h"
 #include "foobar2000/SDK/coreDarkMode.h"
+#include "foobar2000/helpers/atl-misc.h"
+#include "resource.h"
+#include <ShObjIdl_core.h>
 #pragma warning(pop)
 
 #include "config/config_auto.h"
@@ -13,6 +13,7 @@
 #include "preferences.h"
 #include "ui_hooks.h"
 
+// clang-format off: GUIDs should be one line
 static const GUID GUID_PREFERENCES_PAGE_DISPLAY_BACKGROUND = { 0xd4c823dc, 0xe71, 0x4c5c, { 0xad, 0x27, 0xcb, 0xf1, 0xd4, 0x78, 0x41, 0x4b } };
 
 static const GUID GUID_CFG_BACKGROUND_COLOUR_TYPE = { 0x13da3237, 0xaa1d, 0x4065, { 0x82, 0xb0, 0xe4, 0x3, 0x31, 0xe0, 0x69, 0x5b } };
@@ -27,54 +28,79 @@ static const GUID GUID_CFG_BACKGROUND_GRADIENT_BR = { 0x3c71b4fa, 0xe5a4, 0x46c6
 static const GUID GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO = { 0xb031bbce, 0xdb0c, 0x468f, { 0x9f, 0x64, 0xf1, 0xe8, 0xd, 0x5f, 0x2, 0x3c } };
 static const GUID GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH = { 0xc8ef264b, 0xa679, 0x4a63, { 0x99, 0x6, 0xc2, 0x5b, 0xff, 0x49, 0xe, 0x86 } };
 static const GUID GUID_CFG_BACKGROUND_EXTERNALWIN_OPACITY = { 0xd7937a05, 0xbf33, 0x4647, { 0x8b, 0x24, 0xf4, 0x88, 0xb6, 0xc0, 0xca, 0x76 } };
+// clang-format on
 
-static const COLORREF cfg_background_colour_default = RGB(255,255,255);
-static const COLORREF cfg_background_gradient_tl_default = RGB( 11, 145, 255);
+static const COLORREF cfg_background_colour_default = RGB(255, 255, 255);
+static const COLORREF cfg_background_gradient_tl_default = RGB(11, 145, 255);
 static const COLORREF cfg_background_gradient_tr_default = RGB(166, 215, 255);
 static const COLORREF cfg_background_gradient_bl_default = RGB(100, 185, 255);
 static const COLORREF cfg_background_gradient_br_default = RGB(255, 255, 255);
 
-static const cfg_auto_combo_option<BackgroundFillType> g_background_fill_options[] =
-{
-    {_T("Default"), BackgroundFillType::Default},
-    {_T("Solid colour"), BackgroundFillType::SolidColour},
-    {_T("Gradient"), BackgroundFillType::Gradient},
+static const cfg_auto_combo_option<BackgroundFillType> g_background_fill_options[] = {
+    { _T("Default"), BackgroundFillType::Default },
+    { _T("Solid colour"), BackgroundFillType::SolidColour },
+    { _T("Gradient"), BackgroundFillType::Gradient },
 };
 
-static const cfg_auto_combo_option<BackgroundImageType> g_background_image_options[] =
-{
-    {_T("None"), BackgroundImageType::None},
-    {_T("Album art"), BackgroundImageType::AlbumArt},
-    {_T("Custom image"), BackgroundImageType::CustomImage},
+static const cfg_auto_combo_option<BackgroundImageType> g_background_image_options[] = {
+    { _T("None"), BackgroundImageType::None },
+    { _T("Album art"), BackgroundImageType::AlbumArt },
+    { _T("Custom image"), BackgroundImageType::CustomImage },
 };
 
-static cfg_auto_combo<BackgroundFillType, 3>   cfg_background_fill_type(GUID_CFG_BACKGROUND_MODE, IDC_BACKGROUND_FILL_TYPE, BackgroundFillType::Default, g_background_fill_options);
-static cfg_auto_combo<BackgroundImageType, 3>  cfg_background_image_type(GUID_CFG_BACKGROUND_COLOUR_TYPE, IDC_BACKGROUND_IMAGE_TYPE, BackgroundImageType::None, g_background_image_options);
-static cfg_auto_colour                         cfg_background_colour(GUID_CFG_BACKGROUND_COLOUR, IDC_BACKGROUND_COLOUR, cfg_background_colour_default);
-static cfg_auto_colour                         cfg_background_gradient_TL(GUID_CFG_BACKGROUND_GRADIENT_TL, IDC_BACKGROUND_GRADIENT_TL, cfg_background_gradient_tl_default);
-static cfg_auto_colour                         cfg_background_gradient_TR(GUID_CFG_BACKGROUND_GRADIENT_TR, IDC_BACKGROUND_GRADIENT_TR, cfg_background_gradient_tr_default);
-static cfg_auto_colour                         cfg_background_gradient_BL(GUID_CFG_BACKGROUND_GRADIENT_BL, IDC_BACKGROUND_GRADIENT_BL, cfg_background_gradient_bl_default);
-static cfg_auto_colour                         cfg_background_gradient_BR(GUID_CFG_BACKGROUND_GRADIENT_BR, IDC_BACKGROUND_GRADIENT_BR, cfg_background_gradient_br_default);
-static cfg_auto_ranged_int                     cfg_background_image_opacity(GUID_CFG_BACKGROUND_IMAGE_OPACITY, IDC_BACKGROUND_IMG_OPACITY, 0, 100, 1, 16);
-static cfg_auto_ranged_int                     cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS, IDC_BACKGROUND_BLUR_SLIDER, 0, 32, 1, 6); // This cannot allow a value greater than 127 or we will overflow the 16-bit integer accumulators used in blurring
-static cfg_auto_bool                           cfg_background_maintain_img_aspect_ratio(GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, true);
-static cfg_auto_string                         cfg_background_custom_img_path(GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH, IDC_BACKGROUND_CUSTOM_IMG_PATH, "");
-static cfg_auto_bool                           cfg_background_externalwin_opaque(GUID_CFG_BACKGROUND_EXTERNALWIN_OPACITY , IDC_BACKGROUND_EXTWIN_OPAQUE, false);
+static cfg_auto_combo<BackgroundFillType, 3> cfg_background_fill_type(GUID_CFG_BACKGROUND_MODE,
+                                                                      IDC_BACKGROUND_FILL_TYPE,
+                                                                      BackgroundFillType::Default,
+                                                                      g_background_fill_options);
+static cfg_auto_combo<BackgroundImageType, 3> cfg_background_image_type(GUID_CFG_BACKGROUND_COLOUR_TYPE,
+                                                                        IDC_BACKGROUND_IMAGE_TYPE,
+                                                                        BackgroundImageType::None,
+                                                                        g_background_image_options);
+static cfg_auto_colour cfg_background_colour(GUID_CFG_BACKGROUND_COLOUR,
+                                             IDC_BACKGROUND_COLOUR,
+                                             cfg_background_colour_default);
+static cfg_auto_colour cfg_background_gradient_TL(GUID_CFG_BACKGROUND_GRADIENT_TL,
+                                                  IDC_BACKGROUND_GRADIENT_TL,
+                                                  cfg_background_gradient_tl_default);
+static cfg_auto_colour cfg_background_gradient_TR(GUID_CFG_BACKGROUND_GRADIENT_TR,
+                                                  IDC_BACKGROUND_GRADIENT_TR,
+                                                  cfg_background_gradient_tr_default);
+static cfg_auto_colour cfg_background_gradient_BL(GUID_CFG_BACKGROUND_GRADIENT_BL,
+                                                  IDC_BACKGROUND_GRADIENT_BL,
+                                                  cfg_background_gradient_bl_default);
+static cfg_auto_colour cfg_background_gradient_BR(GUID_CFG_BACKGROUND_GRADIENT_BR,
+                                                  IDC_BACKGROUND_GRADIENT_BR,
+                                                  cfg_background_gradient_br_default);
+static cfg_auto_ranged_int cfg_background_image_opacity(GUID_CFG_BACKGROUND_IMAGE_OPACITY,
+                                                        IDC_BACKGROUND_IMG_OPACITY,
+                                                        0,
+                                                        100,
+                                                        1,
+                                                        16);
+static cfg_auto_ranged_int cfg_background_blur_radius(GUID_CFG_BACKGROUND_BLUR_RADIUS,
+                                                      IDC_BACKGROUND_BLUR_SLIDER,
+                                                      0,
+                                                      32,
+                                                      1,
+                                                      6); // This cannot allow a value greater than 127 or we will
+                                                          // overflow the 16-bit integer accumulators used in blurring
+static cfg_auto_bool cfg_background_maintain_img_aspect_ratio(GUID_CFG_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO,
+                                                              IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO,
+                                                              true);
+static cfg_auto_string cfg_background_custom_img_path(GUID_CFG_BACKGROUND_CUSTOM_IMAGE_PATH,
+                                                      IDC_BACKGROUND_CUSTOM_IMG_PATH,
+                                                      "");
+static cfg_auto_bool cfg_background_externalwin_opaque(GUID_CFG_BACKGROUND_EXTERNALWIN_OPACITY,
+                                                       IDC_BACKGROUND_EXTWIN_OPAQUE,
+                                                       false);
 
-static cfg_auto_property* g_display_auto_properties[] =
-{
-    &cfg_background_fill_type,
-    &cfg_background_image_type,
-    &cfg_background_colour,
-    &cfg_background_gradient_TL,
-    &cfg_background_gradient_TR,
-    &cfg_background_gradient_BL,
-    &cfg_background_gradient_BR,
-    &cfg_background_image_opacity,
-    &cfg_background_blur_radius,
-    &cfg_background_maintain_img_aspect_ratio,
-    &cfg_background_custom_img_path,
-    &cfg_background_externalwin_opaque,
+static cfg_auto_property* g_display_auto_properties[] = {
+    &cfg_background_fill_type,       &cfg_background_image_type,
+    &cfg_background_colour,          &cfg_background_gradient_TL,
+    &cfg_background_gradient_TR,     &cfg_background_gradient_BL,
+    &cfg_background_gradient_BR,     &cfg_background_image_opacity,
+    &cfg_background_blur_radius,     &cfg_background_maintain_img_aspect_ratio,
+    &cfg_background_custom_img_path, &cfg_background_externalwin_opaque,
 };
 
 //
@@ -123,7 +149,7 @@ bool preferences::background::maintain_img_aspect_ratio()
 
 double preferences::background::image_opacity()
 {
-    return double(cfg_background_image_opacity.get_value())/100.0;
+    return double(cfg_background_image_opacity.get_value()) / 100.0;
 }
 
 int preferences::background::blur_radius()
@@ -149,35 +175,38 @@ bool preferences::background::external_window_opaque()
 class PreferencesDisplayBg : public CDialogImpl<PreferencesDisplayBg>, public auto_preferences_page_instance
 {
 public:
-    // Constructor - invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
+    // Invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
     PreferencesDisplayBg(preferences_page_callback::ptr callback);
     ~PreferencesDisplayBg() override;
 
     // Dialog resource ID - Required by WTL/Create()
-    enum {IDD = IDD_PREFERENCES_DISPLAY_BACKGROUND};
+    enum
+    {
+        IDD = IDD_PREFERENCES_DISPLAY_BACKGROUND
+    };
 
     void apply() override;
     void reset() override;
     bool has_changed() override;
 
-    //WTL message map
+    // WTL message map
     BEGIN_MSG_MAP_EX(PreferencesDisplayBg)
-        MSG_WM_INITDIALOG(OnInitDialog)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR, BN_CLICKED, OnColourChangeRequest)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_TL, BN_CLICKED, OnColourChangeRequest)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_TR, BN_CLICKED, OnColourChangeRequest)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BL, BN_CLICKED, OnColourChangeRequest)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BR, BN_CLICKED, OnColourChangeRequest)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_IMAGE_TYPE, CBN_SELCHANGE, OnImageTypeChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_FILL_TYPE, CBN_SELCHANGE, OnFillTypeChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_BLUR_SLIDER, WM_HSCROLL, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_IMG_OPACITY, WM_HSCROLL, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, BN_CLICKED, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_BROWSE, BN_CLICKED, OnCustomImageBrowse)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_PATH, EN_CHANGE, OnUIChange)
-        COMMAND_HANDLER_EX(IDC_BACKGROUND_EXTWIN_OPAQUE, BN_CLICKED, OnUIChange)
-        MSG_WM_HSCROLL(OnSliderMoved)
-        MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
+    MSG_WM_INITDIALOG(OnInitDialog)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_COLOUR, BN_CLICKED, OnColourChangeRequest)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_TL, BN_CLICKED, OnColourChangeRequest)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_TR, BN_CLICKED, OnColourChangeRequest)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BL, BN_CLICKED, OnColourChangeRequest)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_GRADIENT_BR, BN_CLICKED, OnColourChangeRequest)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_IMAGE_TYPE, CBN_SELCHANGE, OnImageTypeChange)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_FILL_TYPE, CBN_SELCHANGE, OnFillTypeChange)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_BLUR_SLIDER, WM_HSCROLL, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_IMG_OPACITY, WM_HSCROLL, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_MAINTAIN_IMG_ASPECT_RATIO, BN_CLICKED, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_BROWSE, BN_CLICKED, OnCustomImageBrowse)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_CUSTOM_IMG_PATH, EN_CHANGE, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_BACKGROUND_EXTWIN_OPAQUE, BN_CLICKED, OnUIChange)
+    MSG_WM_HSCROLL(OnSliderMoved)
+    MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
     END_MSG_MAP()
 
 private:
@@ -196,14 +225,12 @@ private:
     fb2k::CCoreDarkModeHooks m_dark;
 };
 
-PreferencesDisplayBg::PreferencesDisplayBg(preferences_page_callback::ptr callback) :
-    auto_preferences_page_instance(callback, g_display_auto_properties)
+PreferencesDisplayBg::PreferencesDisplayBg(preferences_page_callback::ptr callback)
+    : auto_preferences_page_instance(callback, g_display_auto_properties)
 {
 }
 
-PreferencesDisplayBg::~PreferencesDisplayBg()
-{
-}
+PreferencesDisplayBg::~PreferencesDisplayBg() {}
 
 void PreferencesDisplayBg::apply()
 {
@@ -249,7 +276,8 @@ void PreferencesDisplayBg::OnColourChangeRequest(UINT, int control_id, CWindow)
             {
                 changed = cfg_background_colour.SelectNewColour();
             }
-        } break;
+        }
+        break;
 
         case IDC_BACKGROUND_GRADIENT_TL:
         {
@@ -257,28 +285,32 @@ void PreferencesDisplayBg::OnColourChangeRequest(UINT, int control_id, CWindow)
             {
                 changed = cfg_background_gradient_TL.SelectNewColour();
             }
-        } break;
+        }
+        break;
         case IDC_BACKGROUND_GRADIENT_TR:
         {
             if(fill_type == BackgroundFillType::Gradient)
             {
                 changed = cfg_background_gradient_TR.SelectNewColour();
             }
-        } break;
+        }
+        break;
         case IDC_BACKGROUND_GRADIENT_BL:
         {
             if(fill_type == BackgroundFillType::Gradient)
             {
                 changed = cfg_background_gradient_BL.SelectNewColour();
             }
-        } break;
+        }
+        break;
         case IDC_BACKGROUND_GRADIENT_BR:
         {
             if(fill_type == BackgroundFillType::Gradient)
             {
                 changed = cfg_background_gradient_BR.SelectNewColour();
             }
-        } break;
+        }
+        break;
     }
 
     if(changed)
@@ -389,7 +421,8 @@ LRESULT PreferencesDisplayBg::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
             {
                 return (LRESULT)cfg_background_colour.get_brush_handle();
             }
-        } break;
+        }
+        break;
 
         case IDC_BACKGROUND_GRADIENT_TL:
         {
@@ -397,7 +430,8 @@ LRESULT PreferencesDisplayBg::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
             {
                 return (LRESULT)cfg_background_gradient_TL.get_brush_handle();
             }
-        } break;
+        }
+        break;
 
         case IDC_BACKGROUND_GRADIENT_TR:
         {
@@ -405,7 +439,8 @@ LRESULT PreferencesDisplayBg::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
             {
                 return (LRESULT)cfg_background_gradient_TR.get_brush_handle();
             }
-        } break;
+        }
+        break;
 
         case IDC_BACKGROUND_GRADIENT_BL:
         {
@@ -413,7 +448,8 @@ LRESULT PreferencesDisplayBg::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
             {
                 return (LRESULT)cfg_background_gradient_BL.get_brush_handle();
             }
-        } break;
+        }
+        break;
 
         case IDC_BACKGROUND_GRADIENT_BR:
         {
@@ -421,7 +457,8 @@ LRESULT PreferencesDisplayBg::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
             {
                 return (LRESULT)cfg_background_gradient_BR.get_brush_handle();
             }
-        } break;
+        }
+        break;
     }
 
     return FALSE;
@@ -429,13 +466,11 @@ LRESULT PreferencesDisplayBg::ColourButtonPreDraw(UINT, WPARAM, LPARAM lparam)
 
 void PreferencesDisplayBg::RepaintColours()
 {
-    int ids_to_repaint[] = {
-        IDC_BACKGROUND_COLOUR,
-        IDC_BACKGROUND_GRADIENT_TL,
-        IDC_BACKGROUND_GRADIENT_TR,
-        IDC_BACKGROUND_GRADIENT_BL,
-        IDC_BACKGROUND_GRADIENT_BR
-    };
+    int ids_to_repaint[] = { IDC_BACKGROUND_COLOUR,
+                             IDC_BACKGROUND_GRADIENT_TL,
+                             IDC_BACKGROUND_GRADIENT_TR,
+                             IDC_BACKGROUND_GRADIENT_BL,
+                             IDC_BACKGROUND_GRADIENT_BR };
     for(int id : ids_to_repaint)
     {
         CWindow handle = GetDlgItem(id);
@@ -467,8 +502,17 @@ void PreferencesDisplayBg::SetImageFieldsEnabled()
 class PreferencesDisplayBgImpl : public preferences_page_impl<PreferencesDisplayBg>
 {
 public:
-    const char* get_name() final { return "Background"; }
-    GUID get_guid() final { return GUID_PREFERENCES_PAGE_DISPLAY_BACKGROUND; }
-    GUID get_parent_guid() final { return GUID_PREFERENCES_PAGE_ROOT; }
+    const char* get_name() final
+    {
+        return "Background";
+    }
+    GUID get_guid() final
+    {
+        return GUID_PREFERENCES_PAGE_DISPLAY_BACKGROUND;
+    }
+    GUID get_parent_guid() final
+    {
+        return GUID_PREFERENCES_PAGE_ROOT;
+    }
 };
 static preferences_page_factory_t<PreferencesDisplayBgImpl> g_preferences_page_display_factory;

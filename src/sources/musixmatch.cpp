@@ -11,15 +11,26 @@ static const GUID src_guid = { 0xf94ba31a, 0x7b33, 0x49e4, { 0x81, 0x9b, 0x0, 0x
 
 class MusixmatchLyricsSource : public LyricSourceRemote
 {
-    const GUID& id() const final { return src_guid; }
-    std::tstring_view friendly_name() const final { return _T("Musixmatch"); }
+    const GUID& id() const final
+    {
+        return src_guid;
+    }
+    std::tstring_view friendly_name() const final
+    {
+        return _T("Musixmatch");
+    }
 
     std::vector<LyricDataRaw> search(const LyricSearchParams& params, abort_callback& abort) final;
     bool lookup(LyricDataRaw& data, abort_callback& abort) final;
 
 private:
     std::vector<LyricDataRaw> get_song_ids(const LyricSearchParams& params, abort_callback& abort) const;
-    bool get_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const;
+    bool get_lyrics(LyricDataRaw& data,
+                    int64_t track_id,
+                    abort_callback& abort,
+                    const char* method,
+                    const char* body_entry_name,
+                    const char* text_entry_name) const;
     bool get_unsynced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
     bool get_synced_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort) const;
 };
@@ -28,7 +39,8 @@ static const LyricSourceFactory<MusixmatchLyricsSource> src_factory;
 static const char* g_api_url = "https://apic-desktop.musixmatch.com/ws/1.1/";
 static const char* g_common_params = "user_language=en&app_id=web-desktop-app-v1.0";
 
-std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearchParams& params, abort_callback& abort) const
+std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearchParams& params,
+                                                               abort_callback& abort) const
 {
     const std::string_view apikey = preferences::searching::musixmatch_api_key();
     std::string url = std::string(g_api_url) + "track.search?" + g_common_params + "&subtitle_format=lrc";
@@ -37,7 +49,7 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
     url += "&q_track=" + urlencode(params.title);
     url += "&usertoken=";
     LOG_INFO("Querying for track ID from %s", url.c_str());
-    url +=  apikey; // Add this after logging so we don't log sensitive info
+    url += apikey; // Add this after logging so we don't log sensitive info
 
     pfc::string8 content;
     try
@@ -88,13 +100,9 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
         cJSON* json_trackid = cJSON_GetObjectItem(json_tracktrack, "commontrack_id");
         cJSON* json_duration = cJSON_GetObjectItem(json_tracktrack, "track_length");
 
-        if(!cJSON_IsString(json_artist) ||
-            !cJSON_IsString(json_album) ||
-            !cJSON_IsString(json_title) ||
-            !cJSON_IsNumber(json_haslyrics) ||
-            !cJSON_IsNumber(json_hassubtitles) ||
-            !cJSON_IsNumber(json_trackid) ||
-            !cJSON_IsNumber(json_duration))
+        if(!cJSON_IsString(json_artist) || !cJSON_IsString(json_album) || !cJSON_IsString(json_title)
+           || !cJSON_IsNumber(json_haslyrics) || !cJSON_IsNumber(json_hassubtitles) || !cJSON_IsNumber(json_trackid)
+           || !cJSON_IsNumber(json_duration))
         {
             LOG_WARN("Received musixmatch search result but track info was malformed: %s", content.c_str());
             break;
@@ -125,12 +133,18 @@ std::vector<LyricDataRaw> MusixmatchLyricsSource::get_song_ids(const LyricSearch
     return results;
 }
 
-bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, abort_callback& abort, const char* method, const char* body_entry_name, const char* text_entry_name) const
+bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data,
+                                        int64_t track_id,
+                                        abort_callback& abort,
+                                        const char* method,
+                                        const char* body_entry_name,
+                                        const char* text_entry_name) const
 {
     assert(data.source_id == id());
 
     const std::string_view apikey = preferences::searching::musixmatch_api_key();
-    std::string url = std::string(g_api_url) + method + "?" + g_common_params + "&commontrack_id=" + std::to_string(track_id) + "&usertoken=";
+    std::string url = std::string(g_api_url) + method + "?" + g_common_params
+                      + "&commontrack_id=" + std::to_string(track_id) + "&usertoken=";
     LOG_INFO("Get Musixmatch lyrics from %s", url.c_str());
     url += apikey; // Add this after logging so we don't log sensitive info
     data.source_path = url;
@@ -139,7 +153,8 @@ bool MusixmatchLyricsSource::get_lyrics(LyricDataRaw& data, int64_t track_id, ab
     try
     {
         http_request::ptr request = http_client::get()->create_request("GET");
-        request->add_header("cookie", "AWSELBCORS=0; AWSELB=0"); // NOTE: See the comment on the cookie in the track ID query
+        request->add_header("cookie",
+                            "AWSELBCORS=0; AWSELB=0"); // NOTE: See the comment on the cookie in the track ID query
 
         file_ptr response_file = request->run(url.c_str(), abort);
 
@@ -224,7 +239,8 @@ std::string musixmatch_get_token(abort_callback& abort)
     try
     {
         http_request::ptr request = http_client::get()->create_request("GET");
-        request->add_header("cookie", "AWSELBCORS=0; AWSELB=0"); // NOTE: See the comment on the cookie in the track ID query
+        request->add_header("cookie",
+                            "AWSELBCORS=0; AWSELB=0"); // NOTE: See the comment on the cookie in the track ID query
 
         file_ptr response_file = request->run(url.c_str(), abort);
 

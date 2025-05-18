@@ -6,14 +6,16 @@
 #include "lyric_metadb_index_client.h"
 #include "preferences.h"
 
+// clang-format off: GUIDs should be one line
 static const GUID GUID_METADBINDEX_LYRIC_HISTORY = { 0x915bee72, 0xfd1d, 0x4cf8, { 0x90, 0xd4, 0x8e, 0x2c, 0x18, 0xfd, 0x5, 0xbf } };
+// clang-format on
 DECLARE_OPENLYRICS_METADB_INDEX("lyric search history", GUID_METADBINDEX_LYRIC_HISTORY);
 
 // Much like preferences, these constants must be preserved forever because they get
 // persisted in the search avoidance database on the user's machine.
 enum AvoidanceFlags : uint32_t
 {
-    None               = 0,
+    None = 0,
     MarkedInstrumental = 1 << 0,
 };
 
@@ -107,8 +109,10 @@ SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, co
     }
 
     const bool expected_to_fail = (avoidance.failed_searches > 3);
-    const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week) < filetimestamp_from_system_timer());
-    const bool same_generation = (avoidance.search_config_generation == preferences::searching::source_config_generation());
+    const bool trial_period_expired = ((avoidance.first_fail_time + system_time_periods::week)
+                                       < filetimestamp_from_system_timer());
+    const bool same_generation = (avoidance.search_config_generation
+                                  == preferences::searching::source_config_generation());
     const bool has_repeated_failures = (same_generation && expected_to_fail && trial_period_expired);
     if(has_repeated_failures)
     {

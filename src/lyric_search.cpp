@@ -47,7 +47,8 @@ private:
     friend void initiate_lyrics_autosearch(metadb_handle_ptr, metadb_v2_rec_t, bool);
     friend std::optional<std::string> get_autosearch_progress_message();
 };
-namespace {
+namespace
+{
     static initquit_factory_t<LyricAutosearchManager> g_lyric_autosearch_manager;
 }
 
@@ -70,15 +71,20 @@ std::optional<std::string> get_autosearch_progress_message()
 // ==============================================
 void LyricAutosearchManager::on_init()
 {
-    play_callback_manager::get()->register_callback(this, flag_on_playback_new_track | flag_on_playback_stop | flag_on_playback_dynamic_info_track, false);
+    play_callback_manager::get()->register_callback(this,
+                                                    flag_on_playback_new_track | flag_on_playback_stop
+                                                        | flag_on_playback_dynamic_info_track,
+                                                    false);
 
-    fb2k::splitTask([this](){
-        while(!fb2k::mainAborter().is_aborting())
+    fb2k::splitTask(
+        [this]()
         {
-            check_for_available_updates();
-            Sleep(50);
-        }
-    });
+            while(!fb2k::mainAborter().is_aborting())
+            {
+                check_for_available_updates();
+                Sleep(50);
+            }
+        });
 }
 
 void LyricAutosearchManager::on_quit()
@@ -97,12 +103,10 @@ void LyricAutosearchManager::check_for_available_updates()
         const bool didnt_find_anything = (!has_result && is_complete);
         if(has_result)
         {
-            LyricUpdate update = {
-                handle->get_result(),
-                handle->get_track(),
-                handle->get_track_info(),
-                handle->get_type()
-            };
+            LyricUpdate update = { handle->get_result(),
+                                   handle->get_track(),
+                                   handle->get_track_info(),
+                                   handle->get_type() };
             announce_lyric_update(std::move(update));
         }
 
@@ -114,32 +118,36 @@ void LyricAutosearchManager::check_for_available_updates()
     };
 
     m_handle_mutex.lock();
-    auto new_end = std::remove_if(m_search_handles.begin(),
-                                  m_search_handles.end(),
-                                  is_search_complete);
+    auto new_end = std::remove_if(m_search_handles.begin(), m_search_handles.end(), is_search_complete);
     m_search_handles.erase(new_end, m_search_handles.end());
     m_handle_mutex.unlock();
 }
 
-void LyricAutosearchManager::initiate_search(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
+void LyricAutosearchManager::initiate_search(metadb_handle_ptr track,
+                                             metadb_v2_rec_t track_info,
+                                             bool ignore_search_avoidance)
 {
     const SearchAvoidanceReason avoid_reason = ignore_search_avoidance
-                                               ? SearchAvoidanceReason::Allowed
-                                               : search_avoidance_allows_search(track, track_info);
+                                                   ? SearchAvoidanceReason::Allowed
+                                                   : search_avoidance_allows_search(track, track_info);
     const bool search_local_only = (avoid_reason != SearchAvoidanceReason::Allowed);
     // NOTE: We also track a generation counter that increments every time you change the search config
     //       so that if you don't find lyrics with some active sources and then add more, it'll search
     //       again at least once, possibly finding something if there are new active sources.
     if(search_local_only)
     {
-        LOG_INFO("Search avoidance skipped remote sources for this track: %s", search_avoid_reason_to_string(avoid_reason));
+        LOG_INFO("Search avoidance skipped remote sources for this track: %s",
+                 search_avoid_reason_to_string(avoid_reason));
     }
 
-    auto handle = std::make_unique<LyricSearchHandle>(LyricUpdate::Type::AutoSearch, track, track_info, fb2k::mainAborter());
+    auto handle = std::make_unique<LyricSearchHandle>(LyricUpdate::Type::AutoSearch,
+                                                      track,
+                                                      track_info,
+                                                      fb2k::mainAborter());
     io::search_for_lyrics(*handle, search_local_only);
 
     m_handle_mutex.lock();
-    m_search_handles.push_back({std::move(handle), avoid_reason});
+    m_search_handles.push_back({ std::move(handle), avoid_reason });
     m_handle_mutex.unlock();
 
     if(IsIconic(core_api::get_main_window()) || (num_visible_lyric_panels() == 0))
@@ -162,8 +170,8 @@ std::optional<std::string> LyricAutosearchManager::get_progress_message()
         for(const SearchTracker& tracker : m_search_handles)
         {
             assert(tracker.handle != nullptr);
-            if((tracker.handle->get_type() == LyricUpdate::Type::AutoSearch) &&
-                (tracker.handle->get_track() == now_playing))
+            if((tracker.handle->get_type() == LyricUpdate::Type::AutoSearch)
+               && (tracker.handle->get_track() == now_playing))
             {
                 return tracker.handle->get_progress();
             }
@@ -180,18 +188,19 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
     const bool track_changed = (track != m_last_played_track);
     m_last_played_track = track;
 
-    const bool search_postponed_for_dynamic_info = track_is_remote(track); // If this is an internet radio then don't search until we get dynamic track info
-    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0) &&
-                                               !preferences::searching::should_search_without_panels();
-    const bool should_search = track_changed &&
-                               !search_postponed_for_dynamic_info &&
-                               !search_prevented_by_no_panels;
+    const bool search_postponed_for_dynamic_info = track_is_remote(
+        track); // If this is an internet radio then don't search until we get dynamic track info
+    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0)
+                                               && !preferences::searching::should_search_without_panels();
+    const bool should_search = track_changed && !search_postponed_for_dynamic_info && !search_prevented_by_no_panels;
     if(!should_search)
     {
         LOG_INFO("Skipping new-playback search. %s, %s, %s",
-                track_changed ? "The track has changed" : "The track didn't change",
-                search_postponed_for_dynamic_info ? "the search is being postponed waiting for dynamic info" : "we're not waiting for dynamic track info",
-                search_prevented_by_no_panels ? "there are no visible openlyrics panels" : "there are openlyrics panels available");
+                 track_changed ? "The track has changed" : "The track didn't change",
+                 search_postponed_for_dynamic_info ? "the search is being postponed waiting for dynamic info"
+                                                   : "we're not waiting for dynamic track info",
+                 search_prevented_by_no_panels ? "there are no visible openlyrics panels"
+                                               : "there are openlyrics panels available");
         return;
     }
 
@@ -200,8 +209,8 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 
 void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& info)
 {
-    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0) &&
-                                               !preferences::searching::should_search_without_panels();
+    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0)
+                                               && !preferences::searching::should_search_without_panels();
     const bool should_search = !search_prevented_by_no_panels;
     if(!should_search)
     {
@@ -216,7 +225,8 @@ void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& inf
     }
 
     // NOTE: This is not called when we start playing tracks that are not remote/internet radio
-    service_ptr_t<metadb_info_container_const_impl> info_container_impl = new service_impl_t<metadb_info_container_const_impl>();
+    service_ptr_t<metadb_info_container_const_impl> info_container_impl =
+        new service_impl_t<metadb_info_container_const_impl>();
     info_container_impl->m_info = info;
 
     metadb_v2_rec_t meta_record = {};

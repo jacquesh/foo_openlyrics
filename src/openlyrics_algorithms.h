@@ -13,7 +13,8 @@ namespace alg
     // The first first value in the pair is always used in the resulting sequence.
     // The second value will be ignored if it is None and will be used in the resulting sequence otherwise.
     // When a single value is returned, that value will be the first argument for the following call to `op`.
-    // When two values are returned, the first is added to the resulting sequence and the second will be the first argument in the following call to `op`.
+    // When two values are returned, the first is added to the resulting sequence and the second will be the first
+    // argument in the following call to `op`.
     template<typename T, typename TOperation>
     std::vector<T> collapse(const std::vector<T>& input, TOperation op)
     {
@@ -49,7 +50,7 @@ namespace alg
         size_t index = 0;
         for(TVal& value : input)
         {
-            output.push_back({index, std::move(value)});
+            output.push_back({ index, std::move(value) });
             index++;
         }
         return output;
