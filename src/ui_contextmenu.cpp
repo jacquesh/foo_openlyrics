@@ -287,7 +287,7 @@ public:
                         }
                         search_avoidance_force_by_mark_instrumental(track, track_info);
                     }
-                    LOG_INFO("Finished marking %d tracks as instrumental with %d failures", int(failure_count));
+                    LOG_INFO("Finished marking %d tracks as instrumental with %d failures", int(track_count), int(failure_count));
 
                     fb2k::inMainThread2(
                         [failure_count, track_count]()

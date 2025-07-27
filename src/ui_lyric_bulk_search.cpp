@@ -12,6 +12,7 @@
 #include "metrics.h"
 #include "tag_util.h"
 #include "win32_util.h"
+#include "metadb_index_search_avoidance.h"
 
 class BulkLyricSearch;
 static BulkLyricSearch* g_active_bulk_search_panel = nullptr;
@@ -279,8 +280,16 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
 
         const TrackAndInfo& track = m_tracks_to_search[m_next_search_index];
         m_child_search.emplace(LyricUpdate::Type::ManualSearch, track.track, track.track_info, m_child_abort);
-
-        io::search_for_lyrics(m_child_search.value(), false);
+        const SearchAvoidanceReason avoid_reason = false // todo change
+                                                       ? SearchAvoidanceReason::Allowed
+                                                       : search_avoidance_allows_search(track.track, track.track_info);
+        const bool search_local_only = (avoid_reason != SearchAvoidanceReason::Allowed);
+        if(search_local_only)
+        {
+            LOG_INFO("Search avoidance skipped remote sources for this track: %s",
+                     search_avoid_reason_to_string(avoid_reason));
+        }
+        io::search_for_lyrics(m_child_search.value(), search_local_only);
 
         UINT_PTR result = SetTimer(BULK_SEARCH_UPDATE_TIMER, 16, nullptr);
         if(result != BULK_SEARCH_UPDATE_TIMER)
