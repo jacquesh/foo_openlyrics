@@ -44,7 +44,7 @@ class ID3TagLyricSource : public LyricSourceBase
 
 static const LyricSourceFactory<ID3TagLyricSource> src_factory;
 
-std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr track,
+std::vector<LyricDataRaw> ID3TagLyricSource::search(metadb_handle_ptr /*track*/,
                                                     const metadb_v2_rec_t& track_info,
                                                     abort_callback& /*abort*/)
 {
