@@ -57,6 +57,7 @@ enum class BackgroundFillType : int
     Default = 0,
     SolidColour = 1,
     Gradient = 2,
+    AverageImageColor = 3,
 };
 
 enum class BackgroundImageType : int

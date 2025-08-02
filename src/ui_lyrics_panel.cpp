@@ -173,6 +173,21 @@ void LyricPanel::compute_background_image()
                                                    botleft,
                                                    botright);
         }
+    break;
+
+    case BackgroundFillType::AverageImageColor:
+    {
+        RGBAColour colour = from_colorref(defaultui::background_colour());
+        if(img_type == BackgroundImageType::AlbumArt)
+        {
+            colour = compute_average_colour(m_albumart_original);
+        }
+        else if(img_type == BackgroundImageType::CustomImage)
+        {
+            colour = compute_average_colour(m_custom_img_original);
+        }
+        bg_colour = generate_background_colour(client_rect.Width(), client_rect.Height(), colour);
+    }
         break;
     }
 
