@@ -143,6 +143,7 @@ void LyricPanel::compute_background_image()
     }
 
     Image bg_colour = {};
+    const BackgroundImageType img_type = preferences::background::image_type();
     switch(preferences::background::fill_type())
     {
         case BackgroundFillType::Default:
@@ -174,9 +175,23 @@ void LyricPanel::compute_background_image()
                                                    botright);
         }
         break;
+
+        case BackgroundFillType::AverageImageColor:
+        {
+            RGBAColour colour = from_colorref(defaultui::background_colour());
+            if(img_type == BackgroundImageType::AlbumArt)
+            {
+                colour = compute_average_colour(m_albumart_original);
+            }
+            else if(img_type == BackgroundImageType::CustomImage)
+            {
+                colour = compute_average_colour(m_custom_img_original);
+            }
+            bg_colour = generate_background_colour(client_rect.Width(), client_rect.Height(), colour);
+        }
+        break;
     }
 
-    const BackgroundImageType img_type = preferences::background::image_type();
     if(img_type == BackgroundImageType::None)
     {
         m_background_img = std::move(bg_colour);

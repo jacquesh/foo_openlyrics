@@ -370,6 +370,41 @@ void transpose_image_noalloc(int width, int height, const uint8_t* in_pixels, ui
             }
         }
     }
+
+RGBAColour compute_average_colour(const Image& img)
+{
+    if(!img.valid())
+    {
+        return {};
+    }
+
+    uint64_t total_r = 0;
+    uint64_t total_g = 0;
+    uint64_t total_b = 0;
+
+    for(int y=0; y<img.height; y++)
+    {
+        for(int x=0; x<img.width; x++)
+        {
+            uint8_t* px = img.pixels + (y * img.width + x) * 4;
+            total_r += px[0];
+            total_g += px[1];
+            total_b += px[2];
+        }
+    }
+
+    const uint64_t num_pixels = img.width * img.height;
+    if(num_pixels == 0)
+    {
+        return {};
+    }
+
+    uint8_t avg_r = (uint8_t)(total_r / num_pixels);
+    uint8_t avg_g = (uint8_t)(total_g / num_pixels);
+    uint8_t avg_b = (uint8_t)(total_b / num_pixels);
+
+    return {avg_r, avg_g, avg_b, 255};
+}
 }
 Image transpose_image(const Image& img)
 {
@@ -526,6 +561,37 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
         }
     }
 }
+
+RGBAColour compute_average_colour(const Image& img)
+{
+    if(!img.valid())
+    {
+        return {};
+    }
+
+    uint64_t total_r = 0;
+    uint64_t total_g = 0;
+    uint64_t total_b = 0;
+
+    for(int y=0; y<img.height; y++)
+    {
+        for(int x=0; x<img.width; x++)
+        {
+            uint8_t* px = img.pixels + (y * img.width + x) * 4;
+            total_r += px[0];
+            total_g += px[1];
+            total_b += px[2];
+        }
+    }
+
+    const uint64_t num_pixels = img.width * img.height;
+    uint8_t avg_r = (uint8_t)(total_r / num_pixels);
+    uint8_t avg_g = (uint8_t)(total_g / num_pixels);
+    uint8_t avg_b = (uint8_t)(total_b / num_pixels);
+
+    return {avg_r, avg_g, avg_b, 255};
+}
+
 static Image image_boxblur_linear_horizontal(const Image& img, int radius)
 {
     uint8_t* pixels = (uint8_t*)malloc(img.width * img.height * 4);
