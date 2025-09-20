@@ -193,7 +193,7 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
     const bool should_search = track_changed && !search_postponed_for_dynamic_info;
     if(!should_search)
     {
-        LOG_INFO("Skipping new-playback search. %s, %s, %s",
+        LOG_INFO("Skipping new-playback search. %s, %s",
                  track_changed ? "The track has changed" : "The track didn't change",
                  search_postponed_for_dynamic_info ? "the search is being postponed waiting for dynamic info"
                                                    : "we're not waiting for dynamic track info");
