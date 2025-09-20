@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "lyric_metadb_index_client.h"
 #include "preferences.h"
+#include "ui_hooks.h"
 
 // clang-format off: GUIDs should be one line
 static const GUID GUID_METADBINDEX_LYRIC_HISTORY = { 0x915bee72, 0xfd1d, 0x4cf8, { 0x90, 0xd4, 0x8e, 0x2c, 0x18, 0xfd, 0x5, 0xbf } };
@@ -102,6 +103,11 @@ SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, co
         return SearchAvoidanceReason::MatchesSkipFilter;
     }
 
+    if((num_visible_lyric_panels() == 0) && !preferences::searching::should_search_without_panels())
+    {
+        return SearchAvoidanceReason::NoVisiblePanels;
+    }
+
     lyric_search_avoidance avoidance = load_search_avoidance(track_info);
     if((avoidance.flags & AvoidanceFlags::MarkedInstrumental) != 0)
     {
@@ -182,6 +188,7 @@ const char* search_avoid_reason_to_string(SearchAvoidanceReason reason)
         case SearchAvoidanceReason::RepeatedFailures: return "Repeated failures";
         case SearchAvoidanceReason::MarkedInstrumental: return "Marked instrumental";
         case SearchAvoidanceReason::MatchesSkipFilter: return "Matches skip filter";
+        case SearchAvoidanceReason::NoVisiblePanels: return "No visible OpenLyrics panels";
         default: return "<Unrecognised reason>";
     }
 }

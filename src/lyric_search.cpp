@@ -150,7 +150,7 @@ void LyricAutosearchManager::initiate_search(metadb_handle_ptr track,
     m_search_handles.push_back({ std::move(handle), avoid_reason });
     m_handle_mutex.unlock();
 
-    if(IsIconic(core_api::get_main_window()) || (num_visible_lyric_panels() == 0))
+    if(IsIconic(core_api::get_main_window()) || (avoid_reason == SearchAvoidanceReason::NoVisiblePanels))
     {
         metrics::log_hidden_search();
     }
@@ -190,17 +190,13 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 
     const bool search_postponed_for_dynamic_info = track_is_remote(
         track); // If this is an internet radio then don't search until we get dynamic track info
-    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0)
-                                               && !preferences::searching::should_search_without_panels();
-    const bool should_search = track_changed && !search_postponed_for_dynamic_info && !search_prevented_by_no_panels;
+    const bool should_search = track_changed && !search_postponed_for_dynamic_info;
     if(!should_search)
     {
         LOG_INFO("Skipping new-playback search. %s, %s, %s",
                  track_changed ? "The track has changed" : "The track didn't change",
                  search_postponed_for_dynamic_info ? "the search is being postponed waiting for dynamic info"
-                                                   : "we're not waiting for dynamic track info",
-                 search_prevented_by_no_panels ? "there are no visible openlyrics panels"
-                                               : "there are openlyrics panels available");
+                                                   : "we're not waiting for dynamic track info");
         return;
     }
 
@@ -209,14 +205,6 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 
 void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& info)
 {
-    const bool search_prevented_by_no_panels = (num_visible_lyric_panels() == 0)
-                                               && !preferences::searching::should_search_without_panels();
-    const bool should_search = !search_prevented_by_no_panels;
-    if(!should_search)
-    {
-        return;
-    }
-
     service_ptr_t<playback_control> playback = playback_control::get();
     metadb_handle_ptr track;
     if(!playback->get_now_playing(track))

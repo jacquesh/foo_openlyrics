@@ -8,6 +8,7 @@ enum class SearchAvoidanceReason
     RepeatedFailures,
     MarkedInstrumental,
     MatchesSkipFilter,
+    NoVisiblePanels,
 };
 
 SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info);
