@@ -6,10 +6,13 @@
 # sqlite3: https://www.sqlite.org/index.html
 
 mkdir metrics_data/csv
-foreach($name in Get-ChildItem "metrics_data") {
-    $flattened_pairs = jq -r 'tostream | select(length==2) | (.[0] | join(\".\")) as $key | .[1] as $value | {\"\($key)\": \"\($value)\"}' metrics_data\$name
+mkdir metrics_data/errors
+foreach($name in Get-ChildItem "metrics_data" -File) {
+    $flattened_pairs = jq -r 'tostream | select(length==2) | (.[0] | join(\"-\")) as $key | .[1] as $value | {\"\($key)\": \"\($value)\"}' metrics_data\$name
     if($LastExitCode -ne 0) {
         echo "Error extracting from input file: $name"
+        Move-Item -Path "metrics_data/$name" -Destination "metrics_data/errors/$name"
+        continue
     }
 
     $csvified_data = $flattened_pairs | jq -r -s '. | reduce .[] as $item ({}; . + $item) | to_entries | (map(.key)), (map(.value)) | @csv'
@@ -17,7 +20,7 @@ foreach($name in Get-ChildItem "metrics_data") {
         echo "Error reducing from input file: $name"
     }
 
-    Write-Output $csvified_data | Out-File metrics_data/csv/$name.csv -encoding utf8
+    Write-Output $csvified_data | Out-File ./metrics_data/csv/$name.csv -encoding utf8
 }
 
 $all_csvs = Get-ChildItem "metrics_data/csv"

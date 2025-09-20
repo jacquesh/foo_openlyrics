@@ -12,6 +12,7 @@ Release/
 
 releases/
 metrics/metrics_data/
+metrics/.venv
 
 3rdparty/pugixml-1.12.1/scripts/vs2022/
 3rdparty/tidy-html5-5.8.0/cmakebuilddir/**/
