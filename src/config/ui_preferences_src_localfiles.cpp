@@ -151,10 +151,7 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
         case SaveDirectoryClass::TrackFileDirectory:
         {
             dir_class_name = "TrackFileDirectory";
-            const char* path = track->get_path();
-            pfc::string tmp = path;
-            tmp = pfc::io::path::getParent(tmp);
-            formatted_directory = pfc::string8(tmp.c_str(), tmp.length());
+            formatted_directory = pfc::io::path::getParent(track->get_path());
         }
         break;
 
@@ -184,25 +181,31 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
         default: LOG_WARN("Unrecognised save path class: %d", (int)dir_class); return "";
     }
 
-    pfc::string8 result = formatted_directory;
-    result.add_filename(formatted_name);
+    pfc::string8 formatted_path = formatted_directory;
+    formatted_path.add_filename(formatted_name);
+
+    pfc::string8 native_path;
+    filesystem::g_get_native_path(formatted_path, native_path);
 
     // Trim after adding the filename so that we correctly trim directories created because
-    // the "filename" included a path separator (e.g to create artist directories)
-    trim_bad_path_directory_chars(result);
+    // the "filename" included a path separator (e.g to create artist directories).
+    // Also trim after retrieving the native path because when running a portable fb2k installation,
+    // it can return relative paths of the form "file-relative://./dir/file" and trimming that would
+    // remove the `.//`which the trim would cause the `get_native_path` call to fail.
+    trim_bad_path_directory_chars(native_path);
 
     LOG_INFO("Save file name format '%s' with directory class '%s' evaluated to '%s'",
              name_format_str,
              dir_class_name.c_str(),
-             result.c_str());
+             native_path.c_str());
 
     if(formatted_directory.is_empty() || formatted_name.is_empty())
     {
-        LOG_WARN("Invalid save path: %s", result.c_str());
+        LOG_WARN("Invalid save path: %s", native_path.c_str());
         return "";
     }
 
-    return std::string(result.c_str(), result.length());
+    return std::string(native_path.c_str(), native_path.length());
 }
 
 SaveDirectoryClass preferences::saving::raw::directory_class()

@@ -279,10 +279,12 @@ bool ID3TagLyricSource::delete_persisted(metadb_handle_ptr track, const std::str
 
 std::tstring ID3TagLyricSource::get_file_path(metadb_handle_ptr track, const LyricData& lyrics)
 {
-    const char* path = track->get_path();
+    pfc::string8 native_path;
+    filesystem::g_get_native_path(track->get_path(), native_path);
+
     if((lyrics.source_id == src_guid) || (lyrics.save_source.has_value() && (lyrics.save_source.value() == src_guid)))
     {
-        return to_tstring(std::string_view(path, strlen(path)));
+        return to_tstring(std::string_view(native_path.c_str(), native_path.length()));
     }
     {
         LOG_WARN("Attempt to get lyric file path for lyrics that were neither saved nor loaded from metadata tags");

@@ -39,6 +39,7 @@ namespace
                "  - This behaviour is intentional on directories but not file names\n"
                "  - Users with existing lyric files that have had trailing dots or spaces\n"
                "    removed may need to rename those files for OpenLyrics to find them.\n"
+               " - Fix being unable to load or save some file paths from portable fb2k\n"
                "\n";
         out += "Version 1.12 (2025-02-21):\n"
                "- Migrate the genius.com source from web scraping to using the API\n"
