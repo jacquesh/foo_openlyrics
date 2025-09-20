@@ -17,8 +17,8 @@ jobs:
         with:
           style: 'file'  # Use .clang-format config file
 
-      - name: Fail if clang-format reports any issues
-        if: steps.linter.outputs.checks-failed > 0 }}
+      - name: Fail if clang reports any issues
+        if: ${{ steps.linter.outputs.checks-failed > 0 }}
         run: |
           echo "All user-visible changes must include an appropriate addition to the changelog"
           exit 1
