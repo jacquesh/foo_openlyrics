@@ -34,6 +34,12 @@ namespace
         out += "\nChangelog:\n";
         // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
         // "\n";
+        out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+               "- Fix automatic removal of trailing dots and spaces from lyric filenames\n"
+               "  - This behaviour is intentional on directories but not file names\n"
+               "  - Users with existing lyric files that have had trailing dots or spaces\n"
+               "    removed may need to rename those files for OpenLyrics to find them.\n"
+               "\n";
         out += "Version 1.12 (2025-02-21):\n"
                "- Migrate the genius.com source from web scraping to using the API\n"
                "- Enforce a limit on the number of search results returned from LRCLib\n"

@@ -9,6 +9,7 @@
 
 #include "config/config_auto.h"
 #include "logging.h"
+#include "mvtf/mvtf.h"
 #include "preferences.h"
 #include "tag_util.h"
 #include "ui_util.h"
@@ -52,44 +53,57 @@ static cfg_auto_property* g_root_auto_properties[] = {
 // explorer won't even navigate into it.
 // We therefore avoid these problems entirely by just removing trailing spaces and dots
 // from all directory names in paths that we write to.
-static bool trim_bad_trailing_directory_chars(pfc::string8& path)
+// Note that this function assumes the input is a directory and will trim the leaf node
+// of the input if necessary.
+// Returns true iff the given path was modified.
+static bool trim_bad_trailing_directory_chars(pfc::string8& dir_path)
 {
-    pfc::string parent = pfc::io::path::getParent(path);
-    if(parent == "file://\\\\")
+    if(dir_path.isEmpty())
     {
-        // If the parent path is "file://\\" then dir_path is something like "file:://\\machine_name" (a path on a
-        // network filesystem). filesystem::g_exists fails (at least in SDK version 20200728 with fb2k version 1.6.7) on
-        // a path like that.
-        // This is fine because we couldn't "create that directory" anyway, if it decided it didn't exist, so we'll just
-        // return here as if it does and then either the existence checks further down the path tree will fail, or the
-        // actual file write will fail. Both are guarded against IO failure, so that'd be fine (we'd just do slightly
-        // more work).
         return false;
     }
 
-    bool parent_modified = false;
-    if(!parent.isEmpty())
+    pfc::string current = pfc::io::path::getFileName(dir_path);
+    bool current_modified = false;
+    while(!current.is_empty() && ((current.last_char() == ' ') || current.last_char() == '.'))
     {
-        parent_modified = trim_bad_trailing_directory_chars(parent);
+        current.truncate_last_char();
+        current_modified = true;
     }
 
-    if(parent_modified || path.endsWith(' ') || path.endsWith('.'))
-    {
-        pfc::string filename = pfc::io::path::getFileName(path);
-        while(!filename.is_empty()
-              && ((filename[filename.length() - 1] == ' ') || filename[filename.length() - 1] == '.'))
-        {
-            filename.truncate(filename.length() - 1);
-        }
+    pfc::string parent = pfc::io::path::getParent(dir_path);
+    const bool parent_modified = trim_bad_trailing_directory_chars(parent);
 
-        path = parent;
-        path.add_filename(filename);
+    if(current_modified || parent_modified)
+    {
+        if(parent.is_empty())
+        {
+            dir_path = current;
+        }
+        else
+        {
+            dir_path = parent;
+            dir_path.add_filename(current);
+        }
         return true;
     }
-    else
+
+    return false;
+}
+
+// Returns true iff the given path was modified.
+static bool trim_bad_path_directory_chars(pfc::string8& file_path)
+{
+    pfc::string parent = pfc::io::path::getParent(file_path);
+    const bool parent_modified = trim_bad_trailing_directory_chars(parent);
+    if(parent_modified)
     {
-        return parent_modified;
+        pfc::string filename = pfc::io::path::getFileName(file_path);
+        file_path = parent;
+        file_path.add_filename(filename);
+        return true;
     }
+    return false;
 }
 
 std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
@@ -172,7 +186,11 @@ std::string preferences::saving::filename(metadb_handle_ptr track, const metadb_
 
     pfc::string8 result = formatted_directory;
     result.add_filename(formatted_name);
-    trim_bad_trailing_directory_chars(result);
+
+    // Trim after adding the filename so that we correctly trim directories created because
+    // the "filename" included a path separator (e.g to create artist directories)
+    trim_bad_path_directory_chars(result);
+
     LOG_INFO("Save file name format '%s' with directory class '%s' evaluated to '%s'",
              name_format_str,
              dir_class_name.c_str(),
@@ -362,6 +380,7 @@ void PreferencesSrcLocalfiles::UpdateFormatPreview(int edit_id, int preview_id)
                 bool format_success = preview_track->format_title(nullptr, formatted, format_script, nullptr);
                 if(format_success)
                 {
+                    trim_bad_path_directory_chars(formatted);
                     std::tstring preview = to_tstring(formatted);
                     preview_item.SetWindowText(preview.c_str());
                 }
@@ -424,3 +443,71 @@ public:
     }
 };
 static preferences_page_factory_t<PreferencesSrcLocalfilesImpl> g_preferences_page_factory;
+
+// ============
+// Tests
+// ============
+#if MVTF_TESTS_ENABLED
+MVTF_TEST(localfiles_trim_bad_path_chars_leaves_acceptable_path_untouched)
+{
+    pfc::string8 input = "C:\\test\\filename";
+    const pfc::string8 expected = input;
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == false);
+    ASSERT(input == expected);
+}
+
+MVTF_TEST(localfiles_trim_bad_path_chars_removes_trailing_space_and_dot_from_directory_names)
+{
+    pfc::string8 input = "C:\\test1.\\test2 \\test3. \\filename";
+    const pfc::string8 expected = "C:\\test1\\test2\\test3\\filename";
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == true);
+    ASSERT(input == expected);
+}
+
+MVTF_TEST(localfiles_trim_bad_path_chars_leaves_trailing_space_in_leaf_file_name)
+{
+    pfc::string8 input = "C:\\test\\filename ";
+    const pfc::string8 expected = input;
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == false);
+    ASSERT(input == expected);
+}
+
+MVTF_TEST(localfiles_trim_bad_path_chars_leaves_trailing_dot_in_leaf_file_name)
+{
+    pfc::string8 input = "C:\\test\\filename.";
+    const pfc::string8 expected = input;
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == false);
+    ASSERT(input == expected);
+}
+
+MVTF_TEST(localfiles_trim_bad_path_chars_removes_a_dir_that_is_entirely_spaces)
+{
+    pfc::string8 input = "C:\\test\\   \\filename.";
+    const pfc::string8 expected = "C:\\test\\filename.";
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == true);
+    ASSERT(input == expected);
+}
+
+MVTF_TEST(localfiles_trim_bad_path_chars_leaves_internal_dots_and_spaces_untouched)
+{
+    pfc::string8 input = "C:\\test dir\\another.test.dir\\filename.";
+    const pfc::string8 expected = input;
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == false);
+    ASSERT(input == expected);
+}
+
+MVTF_TEST(localfiles_trim_bad_path_chars_correctly_trims_the_first_path_element)
+{
+    pfc::string8 input = "pleasetrim.\\filename";
+    const pfc::string8 expected = "pleasetrim\\filename";
+    const bool result = trim_bad_path_directory_chars(input);
+    ASSERT(result == true);
+    ASSERT(input == expected);
+}
+#endif
