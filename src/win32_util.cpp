@@ -5,9 +5,10 @@
 #pragma warning(pop)
 
 #include "logging.h"
+#include "mvtf/mvtf.h"
 #include "win32_util.h"
 
-int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char>& out_buffer)
+size_t wide_to_narrow_string(unsigned int codepage, std::wstring_view wide, std::vector<char>& out_buffer)
 {
     if(wide.empty())
     {
@@ -27,7 +28,7 @@ int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char
 
     int bytes_required = WideCharToMultiByte(codepage,
                                              WC_ERR_INVALID_CHARS,
-                                             wide.data() + start_index,
+                                             &wide[start_index],
                                              int(wide.length() - start_index),
                                              nullptr,
                                              0,
@@ -38,20 +39,21 @@ int wide_to_narrow_string(int codepage, std::wstring_view wide, std::vector<char
         return 0;
     }
 
-    out_buffer.resize(bytes_required);
+    assert(bytes_required > 0);
+    out_buffer.resize((size_t)bytes_required);
     int bytes_written = WideCharToMultiByte(codepage,
                                             WC_ERR_INVALID_CHARS,
-                                            wide.data() + start_index,
+                                            &wide[start_index],
                                             int(wide.length() - start_index),
                                             out_buffer.data(),
                                             bytes_required,
                                             nullptr,
                                             nullptr);
     assert(bytes_written == bytes_required);
-    return bytes_written;
+    return (size_t)bytes_written;
 }
 
-int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wchar_t>& out_buffer)
+size_t narrow_to_wide_string(unsigned int codepage, std::string_view narrow, std::vector<wchar_t>& out_buffer)
 {
     assert(narrow.length() <= INT_MAX);
     int chars_required = MultiByteToWideChar(codepage,
@@ -65,7 +67,8 @@ int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wch
         return 0;
     }
 
-    out_buffer.resize(chars_required);
+    assert(chars_required > 0);
+    out_buffer.resize((size_t)chars_required);
     int chars_written = MultiByteToWideChar(codepage,
                                             MB_ERR_INVALID_CHARS,
                                             narrow.data(),
@@ -73,7 +76,7 @@ int narrow_to_wide_string(int codepage, std::string_view narrow, std::vector<wch
                                             out_buffer.data(),
                                             chars_required);
     assert(chars_written == chars_required);
-    return chars_written;
+    return (size_t)chars_written;
 }
 
 std::tstring to_tstring(std::string_view string)
@@ -138,8 +141,9 @@ std::tstring normalise_utf8(std::tstring_view input)
         return std::tstring(input.data(), input.length());
     }
 
+    assert(required_bytes > 0);
     const int buffer_size = required_bytes + 1;
-    TCHAR* buffer = new TCHAR[buffer_size];
+    TCHAR* buffer = new TCHAR[(size_t)buffer_size];
     int normalised_bytes = NormalizeString(NormalizationKD, input.data(), (int)input.length(), buffer, buffer_size);
     if(normalised_bytes <= 0)
     {
@@ -147,7 +151,8 @@ std::tstring normalise_utf8(std::tstring_view input)
         return std::tstring(input.data(), input.length());
     }
 
-    std::tstring result(buffer, normalised_bytes);
+    assert(normalised_bytes > 0);
+    std::tstring result(buffer, (size_t)normalised_bytes);
     delete[] buffer;
 
     return result;
@@ -168,3 +173,41 @@ bool hr_success(HRESULT result, const char* filename, int line_number)
     }
     return success;
 }
+
+// ============
+// Tests
+// ============
+#if MVTF_TESTS_ENABLED
+MVTF_TEST(win32_string_wide_to_narrow_string_handles_bomless_ascii)
+{
+    std::wstring_view input = L"test string!\nwith a newline :O";
+    std::vector<char> output_buffer;
+    const size_t output_bytes = wide_to_narrow_string(CP_UTF8, input, output_buffer);
+    ASSERT(output_bytes == 30);
+
+    const std::string output = std::string(output_buffer.data(), output_bytes);
+    ASSERT(output == "test string!\nwith a newline :O");
+}
+
+MVTF_TEST(win32_string_wide_to_narrow_string_handles_ascii_with_a_bom)
+{
+    std::wstring_view input = L"\xFFFEtest string!\nwith a newline :O";
+    std::vector<char> output_buffer;
+    const size_t output_bytes = wide_to_narrow_string(CP_UTF8, input, output_buffer);
+    ASSERT(output_bytes == 30);
+
+    const std::string output = std::string(output_buffer.data(), output_bytes);
+    ASSERT(output == "test string!\nwith a newline :O");
+}
+
+MVTF_TEST(win32_string_narrow_to_wide_handles_ascii)
+{
+    std::string_view input = "test string!\nwith a newline :O";
+    std::vector<wchar_t> output_buffer;
+    const size_t output_chars = narrow_to_wide_string(CP_UTF8, input, output_buffer);
+    ASSERT(output_chars == 30);
+
+    const std::wstring output = std::wstring(output_buffer.data(), output_chars);
+    ASSERT(output == L"test string!\nwith a newline :O");
+}
+#endif
