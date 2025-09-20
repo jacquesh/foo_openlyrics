@@ -79,6 +79,8 @@ static int sort_by_name(const void* lhs_void, const void* rhs_void)
 extern "C" __declspec(dllexport) int run_mvtf_tests()
 {
     int return_code = 0;
+    int pass_count = 0;
+    int fail_count = 0;
     printf("Executing %d test functions...\n", mvtf_test_count);
     LARGE_INTEGER start_time = {};
     QueryPerformanceCounter(&start_time);
@@ -92,11 +94,13 @@ extern "C" __declspec(dllexport) int run_mvtf_tests()
         if(error_count == 0)
         {
             status_str = "\033[32mPASSED\033[39m";
+            pass_count++;
         }
         else
         {
             status_str = "\033[31mFAILED\033[39m";
             return_code = 1;
+            fail_count++;
         }
         printf("[%s] %s\n", status_str, mvtf_test_functions[i].name);
     }
@@ -107,7 +111,7 @@ extern "C" __declspec(dllexport) int run_mvtf_tests()
     QueryPerformanceFrequency(&tick_freq);
     uint64_t elapsed_ticks = end_time.QuadPart - start_time.QuadPart;
     double elapsed_sec = double(elapsed_ticks) / double(tick_freq.QuadPart);
-    printf("Test execution completed in %.2fms\n", elapsed_sec * 1000.0);
+    printf("Test execution completed in %.2fms: %d passed, %d failed\n", elapsed_sec * 1000.0, pass_count, fail_count);
     return return_code;
 }
 #endif // MVTF_IMPLEMENTATION
