@@ -154,7 +154,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
     constexpr size_t wchar_per_byte = sizeof(wchar_t) / sizeof(uint8_t);
     const std::wstring_view bytes_as_widestr = std::wstring_view((const wchar_t*)text_bytes.data(),
                                                                  text_bytes.size() / wchar_per_byte);
-    int narrow_bytes = wide_to_narrow_string(CP_UTF8, bytes_as_widestr, narrow_tmp);
+    size_t narrow_bytes = wide_to_narrow_string(CP_UTF8, bytes_as_widestr, narrow_tmp);
     if(narrow_bytes > 0)
     {
         LOG_INFO("Successfully converted %d bytes of UTF-16 into UTF-8", narrow_bytes);
@@ -185,7 +185,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
         const char* current_locale_str = (GetACP() == cp) ? " (current locale code page)" : "";
 
         const std::string_view narrow_str((const char*)text_bytes.data(), text_bytes.size());
-        int utf16_chars = narrow_to_wide_string(cp, narrow_str, wide_tmp);
+        size_t utf16_chars = narrow_to_wide_string(cp, narrow_str, wide_tmp);
         if(utf16_chars <= 0)
         {
             LOG_WARN("Failed to convert to codepage %u/%s%s: %d/%s",
@@ -202,7 +202,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
                  current_locale_str);
 
         const std::wstring_view wide_str = std::wstring_view(wide_tmp.data(), utf16_chars);
-        int utf8_bytes = wide_to_narrow_string(CP_UTF8, wide_str, narrow_tmp);
+        size_t utf8_bytes = wide_to_narrow_string(CP_UTF8, wide_str, narrow_tmp);
         if(utf8_bytes <= 0)
         {
             LOG_WARN("Failed to convert wide string back to UTF8: %d/%s", GetLastError(), GetLastErrorString());
