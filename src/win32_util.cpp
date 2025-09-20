@@ -80,7 +80,7 @@ std::tstring to_tstring(std::string_view string)
 {
 #ifdef UNICODE
     std::vector<wchar_t> tmp_wide;
-    int chars_written = narrow_to_wide_string(CP_UTF8, string, tmp_wide);
+    const size_t chars_written = narrow_to_wide_string(CP_UTF8, string, tmp_wide);
     const std::wstring result = std::wstring(tmp_wide.data(), chars_written);
     return result;
 #else // UNICODE
@@ -103,7 +103,7 @@ std::string from_tstring(std::tstring_view string)
 {
 #ifdef UNICODE
     std::vector<char> tmp_narrow;
-    int bytes_written = wide_to_narrow_string(CP_UTF8, string, tmp_narrow);
+    const size_t bytes_written = wide_to_narrow_string(CP_UTF8, string, tmp_narrow);
     const std::string result = std::string(tmp_narrow.data(), bytes_written);
     return result;
 #else // UNICODE

@@ -59,9 +59,11 @@ Sha256Context::~Sha256Context()
     }
 }
 
-void Sha256Context::add_data(uint8_t* buffer, size_t buffer_len)
+void Sha256Context::add_data(const uint8_t* buffer, size_t buffer_len)
 {
-    m_error = m_error || FAILED(BCryptHashData(m_hash_handle, buffer, (ULONG)buffer_len, 0));
+    // The docs specify that BCryptHashData will not modify the contents of the given pointer.
+    // It's not clear why it doesn't just take a const pointer.
+    m_error = m_error || FAILED(BCryptHashData(m_hash_handle, const_cast<uint8_t*>(buffer), (ULONG)buffer_len, 0));
 }
 
 void Sha256Context::finalise(uint8_t (&output)[32])
@@ -85,7 +87,7 @@ MVTF_TEST(sha256_correctly_hashes_input_text)
     const std::string_view input = "some random example text";
     uint8_t output[32];
     Sha256Context ctx;
-    ctx.add_data((uint8_t*)input.data(), input.length());
+    ctx.add_data((const uint8_t*)input.data(), input.length());
     ctx.finalise(output);
 
     pfc::string8 dumped = pfc::format_hexdump(output, sizeof(output), "");

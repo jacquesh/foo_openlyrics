@@ -137,7 +137,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
     assert(text_bytes.size() < INT_MAX);
     int utf8success = MultiByteToWideChar(CP_UTF8,
                                           MB_ERR_INVALID_CHARS,
-                                          (char*)text_bytes.data(),
+                                          (const char*)text_bytes.data(),
                                           (int)text_bytes.size(),
                                           nullptr,
                                           0);
@@ -145,14 +145,14 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
     {
         // The input bytes are already valid UTF8, so we don't need to do any converting back-and-forth with wide chars
         LOG_INFO("Loaded lyrics already form a valid UTF-8 sequence");
-        return std::string((char*)text_bytes.data(), text_bytes.size());
+        return std::string((const char*)text_bytes.data(), text_bytes.size());
     }
 
     std::vector<char> narrow_tmp;
     std::vector<WCHAR> wide_tmp;
 
     constexpr size_t wchar_per_byte = sizeof(wchar_t) / sizeof(uint8_t);
-    const std::wstring_view bytes_as_widestr = std::wstring_view((wchar_t*)text_bytes.data(),
+    const std::wstring_view bytes_as_widestr = std::wstring_view((const wchar_t*)text_bytes.data(),
                                                                  text_bytes.size() / wchar_per_byte);
     int narrow_bytes = wide_to_narrow_string(CP_UTF8, bytes_as_widestr, narrow_tmp);
     if(narrow_bytes > 0)
@@ -184,7 +184,7 @@ static std::string decode_to_utf8(const std::vector<uint8_t> text_bytes)
         GetCPInfoExA(cp, 0, &info);
         const char* current_locale_str = (GetACP() == cp) ? " (current locale code page)" : "";
 
-        const std::string_view narrow_str((char*)text_bytes.data(), text_bytes.size());
+        const std::string_view narrow_str((const char*)text_bytes.data(), text_bytes.size());
         int utf16_chars = narrow_to_wide_string(cp, narrow_str, wide_tmp);
         if(utf16_chars <= 0)
         {
