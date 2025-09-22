@@ -43,6 +43,7 @@ Image lerp_image(const Image& lhs, const Image& rhs, double t);
 Image lerp_offset_image(const Image& full_img, const Image& offset_img, CPoint offset, double t);
 Image resize_image(const Image& input, int out_width, int out_height);
 Image transpose_image(const Image& input);
+RGBAColour compute_average_colour(const Image& img);
 Image blur_image(const Image& input, int radius);
 
 void toggle_image_rgba_bgra_inplace(Image& img);
