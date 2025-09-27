@@ -246,10 +246,9 @@ public:
     {
         if(instance == nullptr)
         {
-            pfc::string8 name;
-            get_name(name);
-            LOG_ERROR("Attempt to get handle for UIE panel '%s' when no such panel exists", name.c_str());
-            return {};
+            // The columns-UI SDK docs mandate that we return nullptr if the window has not been created.
+            // https://columns-ui-sdk.readthedocs.io/en/v8.0.0/panel/window.html#_CPPv4NK3uie6window7get_wndEv
+            return nullptr;
         }
 
         return instance->get_wnd();
