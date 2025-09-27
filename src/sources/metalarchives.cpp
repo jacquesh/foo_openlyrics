@@ -4,6 +4,7 @@
 #include "cJSON.h"
 #include "pugixml.hpp"
 
+#include "http.h"
 #include "logging.h"
 #include "lyric_source.h"
 
@@ -128,8 +129,6 @@ std::vector<LyricDataRaw> MetalArchivesSource::parse_song_ids(cJSON* json) const
 
 std::vector<LyricDataRaw> MetalArchivesSource::search(const LyricSearchParams& params, abort_callback& abort)
 {
-    http_request::ptr request = http_client::get()->create_request("GET");
-
     const std::string url_artist = urlencode(params.artist);
     const std::string url_album = urlencode(params.album);
     const std::string url_title = urlencode(params.title);
@@ -139,20 +138,15 @@ std::vector<LyricDataRaw> MetalArchivesSource::search(const LyricSearchParams& p
     url += "&songTitle=" + url_title;
     LOG_INFO("Querying for lyrics from %s...", url.c_str());
 
-    pfc::string8 content;
-    try
+    // NOTE: We're assuming here that the response is encoded in UTF-8
+    const http::Result result = http::get_http2(url, abort);
+    if(!result.is_success())
     {
-        file_ptr response_file = request->run(url.c_str(), abort);
-        response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8
-    }
-    catch(const std::exception& e)
-    {
-        LOG_WARN("Failed to download metal-archives.com page %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to download metal-archives.com page %s: %s", url.c_str(), result.error_message.c_str());
         return {};
     }
 
-    cJSON* json = cJSON_ParseWithLength(content.c_str(), content.get_length());
+    cJSON* json = cJSON_ParseWithLength(result.response_content.c_str(), result.response_content.length());
     std::vector<LyricDataRaw> song_ids = parse_song_ids(json);
     cJSON_Delete(json);
     LOG_INFO("Retrieved %d tracks from %s", int(song_ids.size()), url.c_str());
@@ -168,24 +162,18 @@ bool MetalArchivesSource::lookup(LyricDataRaw& data, abort_callback& abort)
         return false;
     }
 
-    http_request::ptr request = http_client::get()->create_request("GET");
     std::string url = "https://www.metal-archives.com/release/ajax-view-lyrics/id/" + data.lookup_id;
     LOG_INFO("Looking up lyrics at %s...", url.c_str());
 
-    pfc::string8 content;
-    try
+    // NOTE: We're assuming here that the response is encoded in UTF-8
+    const http::Result result = http::get_http2(url, abort);
+    if(!result.is_success())
     {
-        file_ptr response_file = request->run(url.c_str(), abort);
-        response_file->read_string_raw(content, abort);
-        // NOTE: We're assuming here that the response is encoded in UTF-8
-    }
-    catch(const std::exception& e)
-    {
-        LOG_WARN("Failed to download metal-archives.com page %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to download metal-archives.com page %s: %s", url.c_str(), result.error_message.c_str());
         return false;
     }
 
-    const pugi::xml_document lyric_doc = load_html(content.c_str());
+    const pugi::xml_document lyric_doc = load_html(result.response_content.c_str());
     const std::string lyric_text = collect_all_text_to_string(lyric_doc);
 
     if(lyric_text == "(lyrics not available)")

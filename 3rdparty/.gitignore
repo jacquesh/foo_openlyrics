@@ -1,2 +1,5 @@
+tidy-html5-5.8.0/cmakebuilddir/**/
+pugixml-1.12.1/scripts/vs2022/
 curl-8.16.0/
-nghttp2-1.67.1.tar.gz/
+nghttp2-1.67.1/
+
