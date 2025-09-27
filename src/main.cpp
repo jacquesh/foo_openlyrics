@@ -28,6 +28,7 @@ namespace
         // "\n";
         out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
                "- Enable searching local sources with no visible panels by default\n"
+               "- Add some clarifying help to the 'Exclude trailing brackets' search option\n"
                "- Fix automatic removal of trailing dots and spaces from lyric filenames\n"
                "  - This behaviour is intentional on directories but not file names\n"
                "  - Users with existing lyric files that have had trailing dots or spaces\n"

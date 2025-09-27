@@ -203,8 +203,8 @@ IDD_PREFERENCES_SEARCHING DIALOGEX 0, 0, 332, 288
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
 BEGIN
-    CONTROL         "Exclude text in brackets at the end of artist/album names and track titles (for internet searches)",IDC_SEARCH_EXCLUDE_BRACKETS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,4,313,10
+    CONTROL         "Exclude text in brackets at the end of artist/album names and track titles",IDC_SEARCH_EXCLUDE_BRACKETS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,4,257,10
     LTEXT           "Filter format:",IDC_STATIC,7,195,41,8
     EDITTEXT        IDC_SEARCH_SKIP_FILTER_STR,55,192,268,14,ES_AUTOHSCROLL
     CONTROL         "<a>Syntax help</a>",IDC_SEARCH_SYNTAX_HELP,"SysLink",WS_TABSTOP,0,261,39,9
@@ -218,6 +218,7 @@ BEGIN
     LTEXT           "Preferred lyric type:",IDC_STATIC,7,26,61,8
     CONTROL         "Automatically search remote sources for lyrics when a new track starts, even when there are no visible openlyrics panels on the UI",IDC_SEARCH_WITHOUT_PANELS,
                     "Button",BS_AUTOCHECKBOX | BS_TOP | BS_MULTILINE | WS_TABSTOP,7,44,242,20
+    PUSHBUTTON      "?",IDC_SEARCHING_EXCLUDE_HELP,306,2,14,14
 END
 
 IDD_PREFERENCES_UPLOADING DIALOGEX 0, 0, 332, 288

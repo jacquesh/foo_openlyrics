@@ -91,6 +91,7 @@ public:
     MSG_WM_INITDIALOG(OnInitDialog)
     COMMAND_HANDLER_EX(IDC_SEARCH_EXCLUDE_BRACKETS, BN_CLICKED, OnUIChange)
     COMMAND_HANDLER_EX(IDC_SEARCH_WITHOUT_PANELS, BN_CLICKED, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_SEARCHING_EXCLUDE_HELP, BN_CLICKED, OnSearchingBracketExcludeHelpClicked)
     COMMAND_HANDLER_EX(IDC_SEARCH_PREFERRED_TYPE, CBN_SELCHANGE, OnUIChange)
     COMMAND_HANDLER_EX(IDC_SEARCH_SKIP_FILTER_STR, EN_CHANGE, OnSkipFilterFormatChange)
     NOTIFY_HANDLER_EX(IDC_SEARCH_SYNTAX_HELP, NM_CLICK, OnSyntaxHelpClicked)
@@ -103,6 +104,7 @@ private:
     void OnUIChange(UINT, int, CWindow);
     void OnSkipFilterFormatChange(UINT, int, CWindow);
     LRESULT OnSyntaxHelpClicked(NMHDR*);
+    LRESULT OnSearchingBracketExcludeHelpClicked(UINT, int, CWindow);
 
     void UpdateSkipFilterPreview();
 
@@ -192,6 +194,24 @@ void PreferencesSearching::OnSkipFilterFormatChange(UINT, int, CWindow)
 LRESULT PreferencesSearching::OnSyntaxHelpClicked(NMHDR* /*notify_msg*/)
 {
     standard_commands::main_titleformat_help();
+    return 0;
+}
+
+LRESULT PreferencesSearching::OnSearchingBracketExcludeHelpClicked(UINT, int, CWindow)
+{
+    popup_message_v3::query_t query = {};
+    query.title = "Bracket exclusion help";
+    query.msg = "When this option is enabled, any trailing brackets and the text they surround will be removed "
+                "when constructing a search query.\n\n"
+                "For example, if the title of an album is 'Cool Songs (Deluxe Edition)', the value used for searching "
+                " will instead just be 'Cool Songs'\n\n"
+                "The following types of brackets are supported for removal: (), [], {}\n\n"
+                "Note that this applies only to searches against remote/internet lyric sources.\n"
+                "Exclusions will not apply to local files.";
+    query.buttons = popup_message_v3::buttonOK;
+    query.defButton = popup_message_v3::buttonOK;
+    query.icon = popup_message_v3::iconInformation;
+    popup_message_v3::get()->show_query_modal(query);
     return 0;
 }
 
