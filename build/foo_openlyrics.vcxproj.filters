@@ -272,6 +272,9 @@
     <ClInclude Include="..\src\string_split.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\openlyrics_version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\foo_openlyrics.rc">

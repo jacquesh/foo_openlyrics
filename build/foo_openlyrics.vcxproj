@@ -99,7 +99,7 @@
       <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-$(Platform).lib;$(OutDir)libcurl.lib;$(OutDir)nghttp2.lib;bcrypt.lib;Crypt32.lib;d2d1.lib;d3d11.lib;dwrite.lib;dxguid.lib;Iphlpapi.lib;Secur32.lib;windowscodecs.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version_generated.h
 pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
@@ -130,7 +130,7 @@ pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version_generated.h
 pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
@@ -158,7 +158,7 @@ pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
       <AdditionalDependencies>$(SolutionDir)/../3rdparty/foo_SDK/foobar2000/shared/shared-$(Platform).lib;$(OutDir)libcurl.lib;$(OutDir)nghttp2.lib;bcrypt.lib;Crypt32.lib;d2d1.lib;d3d11.lib;dwrite.lib;dxguid.lib;Iphlpapi.lib;Secur32.lib;windowscodecs.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version_generated.h
 pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
@@ -201,7 +201,7 @@ pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+      <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version_generated.h
 pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
@@ -300,6 +300,7 @@ pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
     <ClInclude Include="..\src\metadb_index_search_avoidance.h" />
     <ClInclude Include="..\src\mvtf\mvtf.h" />
     <ClInclude Include="..\src\openlyrics_algorithms.h" />
+    <ClInclude Include="..\src\openlyrics_version.h" />
     <ClInclude Include="..\src\parsers.h" />
     <ClInclude Include="..\src\preferences.h" />
     <ClInclude Include="..\src\resource.h" />
