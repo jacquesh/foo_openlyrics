@@ -100,6 +100,7 @@
     </Link>
     <PreBuildEvent>
       <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -130,6 +131,7 @@
     </ClCompile>
     <PreBuildEvent>
       <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -157,6 +159,7 @@
     </Link>
     <PreBuildEvent>
       <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -199,6 +202,7 @@
     </Link>
     <PreBuildEvent>
       <Command>pwsh $(SolutionDir)generate_version_header.ps1 -output_path $(TargetDir)generated\openlyrics_version.h
+pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
