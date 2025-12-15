@@ -103,7 +103,6 @@ bool io::save_lyrics(metadb_handle_ptr track,
 
 static void ensure_windows_newlines(std::string& str)
 {
-    int replace_count = 0;
     size_t prev_index = 0;
     while(true)
     {
@@ -117,7 +116,6 @@ static void ensure_windows_newlines(std::string& str)
         {
             char cr = '\r';
             str.insert(next_index, 1, cr);
-            replace_count++;
         }
 
         prev_index = next_index + 1;
