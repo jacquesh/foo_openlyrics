@@ -36,6 +36,7 @@ namespace
                "- Fix being unable to load or save some file paths from portable fb2k\n"
                "- Fix requests to Metal-Archives all returning 403\n"
                "- Fix the logs sometimes being spammed with warnings about missing UIE panels\n"
+               "- Fix an assortment of log lines that could be a little misleading\n"
                "\n";
         out += "Version 1.12 (2025-02-21):\n"
                "- Migrate the genius.com source from web scraping to using the API\n"

@@ -82,7 +82,7 @@ std::vector<LyricDataRaw> SonglyricsSource::search(const LyricSearchParams& para
     }
     catch(const std::exception& e)
     {
-        LOG_WARN("Failed to download genius.com page %s: %s", url.c_str(), e.what());
+        LOG_WARN("Failed to download songlyrics.com page %s: %s", url.c_str(), e.what());
         return {};
     }
 

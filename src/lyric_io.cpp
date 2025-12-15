@@ -345,7 +345,8 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
                                  && tag_values_match(tag_title, result.title);
                 if(!tag_match)
                 {
-                    LOG_INFO("Rejected %s search result %s/%s/%s due to tag mismatch: %s/%s/%s",
+                    LOG_INFO("Rejected %s search result for tag mismatch: Local track has %s/%s/%s while search result "
+                             "has %s/%s/%s",
                              friendly_name.c_str(),
                              tag_artist.c_str(),
                              tag_album.c_str(),
