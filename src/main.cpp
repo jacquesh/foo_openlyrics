@@ -35,7 +35,7 @@ namespace
                "    removed may need to rename those files for OpenLyrics to find them.\n"
                "- Fix being unable to load or save some file paths from portable fb2k\n"
                "- Fix requests to Metal-Archives all returning 403\n"
-               "- Fix the logs sometimes being spammed with warnings about missing UIE panels\n"
+               "- Fix logs sometimes being spammed with warnings about missing UIE panels\n"
                "- Fix an assortment of log lines that could be a little misleading\n"
                "- Fix possible log spam during startup\n"
                "  - There is now an extra level of 'debug logging' that uses the existence\n"
