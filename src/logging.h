@@ -45,10 +45,4 @@ namespace openlyrics_logging
     };
 
     void printf(Level lvl, const char* fmt, ...);
-
-    struct LogDisabler
-    {
-        LogDisabler();
-        ~LogDisabler();
-    };
 }
