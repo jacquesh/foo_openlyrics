@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "logging.h"
+#include "mvtf/mvtf.h"
 #include "preferences.h"
 
 enum class VerboseLogConfig
@@ -16,6 +17,15 @@ static std::atomic<bool> g_config_read_complete = false;
 // format specifiers. In particular it doesn't support 64-bit integers or floats.
 void openlyrics_logging::printf(openlyrics_logging::Level lvl, const char* fmt, ...)
 {
+#ifdef MVTF_TESTS_ENABLED
+    // The verbose-log file path check fails when running tests because the fb2k API isn't available.
+    // We don't need logs in unit tests anyway so just ignore all log calls in that case.
+    if(mvtf_is_running_tests())
+    {
+        return;
+    }
+#endif
+
     if(!g_config_read_complete && (lvl == Level::Info))
     {
         if(g_verbose_logs == VerboseLogConfig::Unknown)

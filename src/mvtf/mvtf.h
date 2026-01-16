@@ -53,6 +53,7 @@ typedef struct
 } mvtf_function_metadata;
 
 int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name);
+bool mvtf_is_running_tests();
 
 #if defined(MVTF_IMPLEMENTATION) && MVTF_TESTS_ENABLED
 #include <stdio.h> // printf
@@ -60,6 +61,7 @@ int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name);
 
 static int mvtf_test_count = 0;
 static mvtf_function_metadata* mvtf_test_functions = nullptr;
+static bool mvtf_running_tests = false;
 
 int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name)
 {
@@ -69,6 +71,11 @@ int mvtf_register_function(MVTF_TEST_FUNCTION_TYPE* ptr, const char* name)
     mvtf_test_functions[mvtf_test_count] = { ptr, name };
     mvtf_test_count++;
     return mvtf_test_count;
+}
+
+bool mvtf_is_running_tests()
+{
+    return mvtf_running_tests;
 }
 
 static int sort_by_name(const void* lhs_void, const void* rhs_void)
@@ -81,6 +88,7 @@ extern "C" __declspec(dllexport) int run_mvtf_tests()
     int return_code = 0;
     int pass_count = 0;
     int fail_count = 0;
+    mvtf_running_tests = true;
     printf("Executing %d test functions...\n", mvtf_test_count);
     LARGE_INTEGER start_time = {};
     QueryPerformanceCounter(&start_time);
