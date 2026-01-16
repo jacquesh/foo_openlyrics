@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31.8)
+cmake_minimum_required(VERSION 3.31.6)
 project(foo_openlyrics_cmake)
 
 set(CMAKE_DEBUG_POSTFIX "")
