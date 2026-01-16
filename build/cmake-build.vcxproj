@@ -94,7 +94,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
+      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+
+REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
@@ -123,7 +125,9 @@ cmake --build "%TRIMMED_INTDIR%" --config "$(Configuration)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
+      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+
+REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
@@ -150,7 +154,9 @@ cmake --build "%TRIMMED_INTDIR%" --config "$(Configuration)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
+      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+
+REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
@@ -179,7 +185,9 @@ cmake --build "%TRIMMED_INTDIR%" --config "$(Configuration)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
+      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+
+REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
