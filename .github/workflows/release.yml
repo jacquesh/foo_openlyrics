@@ -14,7 +14,7 @@ jobs:
 
   build-release:
     name: Build Release
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: run-tests
     permissions:
       contents: write  # Needed to allow creating a release
