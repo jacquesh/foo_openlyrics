@@ -36,6 +36,9 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all the history so that `git describe` works to generate the version header
+          fetch-tags: true
 
       - name: Build debug binaries
         run: msbuild /r /m /p:Configuration=Debug /p:Platform=x86 build\foo_openlyrics.sln
@@ -55,6 +58,9 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all the history so that `git describe` works to generate the version header
+          fetch-tags: true
 
       - name: Build debug binaries
         run: msbuild /r /m /p:Configuration=Debug /p:Platform=x64 build\foo_openlyrics.sln
