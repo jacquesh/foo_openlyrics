@@ -158,6 +158,30 @@ std::tstring normalise_utf8(std::tstring_view input)
     return result;
 }
 
+size_t find_first_space(const std::tstring_view str, bool positive, size_t pos)
+{
+    const auto it = std::find_if(std::next(str.begin(), pos),
+                                 str.end(),
+                                 [positive](TCHAR c) { return _istspace(c) > 0 == positive; });
+
+    if(it == str.end()) return std::tstring_view::npos;
+
+    return it - str.begin();
+}
+
+size_t find_last_space(const std::tstring_view str, bool positive, size_t pos)
+{
+    size_t offset = 0;
+    if(pos != std::tstring_view::npos) offset = str.length() - pos - 1;
+
+    const auto it = std::find_if(std::next(str.rbegin(), offset),
+                                 str.rend(),
+                                 [positive](TCHAR c) { return std::_istspace(c) > 0 == positive; });
+    if(it == str.rend()) return std::tstring_view::npos;
+
+    return str.rend() - it - 1;
+}
+
 bool hr_success(HRESULT result, const char* filename, int line_number)
 {
     const bool success = (result == S_OK);
