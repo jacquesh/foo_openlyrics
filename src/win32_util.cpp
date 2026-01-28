@@ -165,25 +165,41 @@ bool is_char_whitespace(TCHAR c)
     return (_istspace(c) > 0) && (c != L'\u00A0') && (c != L'\u202F') && (c != L'\u180E');
 }
 
-size_t find_first_space(const std::tstring_view str, bool positive, size_t pos)
+size_t find_first_whitespace(const std::tstring_view str, size_t pos)
 {
-    const auto it = std::find_if(std::next(str.begin(), pos),
-                                 str.end(),
-                                 [positive](TCHAR c) { return is_char_whitespace(c) == positive; });
+    const auto it = std::find_if(std::next(str.begin(), pos), str.end(), is_char_whitespace);
 
     if(it == str.end()) return std::tstring_view::npos;
 
     return it - str.begin();
 }
 
-size_t find_last_space(const std::tstring_view str, bool positive, size_t pos)
+size_t find_first_nonwhitespace(const std::tstring_view str, size_t pos)
+{
+    const auto it = std::find_if_not(std::next(str.begin(), pos), str.end(), is_char_whitespace);
+
+    if(it == str.end()) return std::tstring_view::npos;
+
+    return it - str.begin();
+}
+
+size_t find_last_whitespace(const std::tstring_view str, size_t pos)
 {
     size_t offset = 0;
     if(pos != std::tstring_view::npos) offset = str.length() - pos - 1;
 
-    const auto it = std::find_if(std::next(str.rbegin(), offset),
-                                 str.rend(),
-                                 [positive](TCHAR c) { return is_char_whitespace(c) == positive; });
+    const auto it = std::find_if(std::next(str.rbegin(), offset), str.rend(), is_char_whitespace);
+    if(it == str.rend()) return std::tstring_view::npos;
+
+    return str.rend() - it - 1;
+}
+
+size_t find_last_nonwhitespace(const std::tstring_view str, size_t pos)
+{
+    size_t offset = 0;
+    if(pos != std::tstring_view::npos) offset = str.length() - pos - 1;
+
+    const auto it = std::find_if_not(std::next(str.rbegin(), offset), str.rend(), is_char_whitespace);
     if(it == str.rend()) return std::tstring_view::npos;
 
     return str.rend() - it - 1;

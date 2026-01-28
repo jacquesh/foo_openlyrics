@@ -428,7 +428,7 @@ static int _WrapSimpleLyricsLineToRect(D2DTextRenderContext& render,
     // We do this once now (before allocating anything dependent on string length)
     // and then since we don't ever move the "end" of the string, we assume that line
     // doesn't end in a space for the rest of the function.
-    size_t last_not_space = find_last_space(line, false);
+    size_t last_not_space = find_last_nonwhitespace(line);
     if(last_not_space == std::tstring_view::npos)
     {
         return line_height; // Our line is exclusively whitespace
