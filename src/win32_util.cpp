@@ -158,11 +158,18 @@ std::tstring normalise_utf8(std::tstring_view input)
     return result;
 }
 
+bool is_char_whitespace(TCHAR c)
+{
+    // U+00A0 and U+202F are non-breaking spaces.
+    // U+180E was classified as a space when microsoft first defined isspace, but was later removed from the standard.
+    return (_istspace(c) > 0) && (c != L'\u00A0') && (c != L'\u202F') && (c != L'\u180E');
+}
+
 size_t find_first_space(const std::tstring_view str, bool positive, size_t pos)
 {
     const auto it = std::find_if(std::next(str.begin(), pos),
                                  str.end(),
-                                 [positive](TCHAR c) { return _istspace(c) > 0 == positive; });
+                                 [positive](TCHAR c) { return is_char_whitespace(c) == positive; });
 
     if(it == str.end()) return std::tstring_view::npos;
 
@@ -176,7 +183,7 @@ size_t find_last_space(const std::tstring_view str, bool positive, size_t pos)
 
     const auto it = std::find_if(std::next(str.rbegin(), offset),
                                  str.rend(),
-                                 [positive](TCHAR c) { return std::_istspace(c) > 0 == positive; });
+                                 [positive](TCHAR c) { return is_char_whitespace(c) == positive; });
     if(it == str.rend()) return std::tstring_view::npos;
 
     return str.rend() - it - 1;

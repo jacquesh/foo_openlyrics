@@ -29,6 +29,7 @@ std::string from_tstring(const std::tstring& string);
 
 std::tstring normalise_utf8(std::tstring_view input);
 
+bool is_char_whitespace(TCHAR c);
 size_t find_first_space(const std::tstring_view str, bool positive = true, size_t pos = 0);
 size_t find_last_space(const std::tstring_view str, bool positive = true, size_t pos = std::tstring_view::npos);
 
