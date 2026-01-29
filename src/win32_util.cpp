@@ -167,6 +167,9 @@ bool is_char_whitespace(TCHAR c)
 
 size_t find_first_whitespace(const std::tstring_view str, size_t pos)
 {
+    // match behavior of std::string_view::find_first_of
+    if(pos >= str.length() || str.empty()) return std::tstring_view::npos;
+
     const auto it = std::find_if(std::next(str.begin(), pos), str.end(), is_char_whitespace);
 
     if(it == str.end()) return std::tstring_view::npos;
@@ -176,6 +179,9 @@ size_t find_first_whitespace(const std::tstring_view str, size_t pos)
 
 size_t find_first_nonwhitespace(const std::tstring_view str, size_t pos)
 {
+    // match behavior of std::string_view::find_first_not_of
+    if(pos >= str.length() || str.empty()) return std::tstring_view::npos;
+
     const auto it = std::find_if_not(std::next(str.begin(), pos), str.end(), is_char_whitespace);
 
     if(it == str.end()) return std::tstring_view::npos;
@@ -185,8 +191,10 @@ size_t find_first_nonwhitespace(const std::tstring_view str, size_t pos)
 
 size_t find_last_whitespace(const std::tstring_view str, size_t pos)
 {
+    if(str.empty()) return std::tstring_view::npos;
+
     size_t offset = 0;
-    if(pos != std::tstring_view::npos) offset = str.length() - pos - 1;
+    if(pos != std::tstring_view::npos && pos < str.length()) offset = str.length() - pos - 1;
 
     const auto it = std::find_if(std::next(str.rbegin(), offset), str.rend(), is_char_whitespace);
     if(it == str.rend()) return std::tstring_view::npos;
@@ -196,8 +204,10 @@ size_t find_last_whitespace(const std::tstring_view str, size_t pos)
 
 size_t find_last_nonwhitespace(const std::tstring_view str, size_t pos)
 {
+    if(str.empty()) return std::tstring_view::npos;
+
     size_t offset = 0;
-    if(pos != std::tstring_view::npos) offset = str.length() - pos - 1;
+    if(pos != std::tstring_view::npos && pos < str.length()) offset = str.length() - pos - 1;
 
     const auto it = std::find_if_not(std::next(str.rbegin(), offset), str.rend(), is_char_whitespace);
     if(it == str.rend()) return std::tstring_view::npos;
