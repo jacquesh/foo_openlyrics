@@ -447,10 +447,10 @@ static int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_vie
     int total_height = 0;
     while(text_outstanding.length() > 0)
     {
-        size_t leading_spaces = text_outstanding.find_first_not_of(_T(' '));
+        size_t leading_spaces = find_first_nonwhitespace(text_outstanding);
         text_outstanding.remove_prefix(std::min(leading_spaces, text_outstanding.size()));
 
-        size_t last_not_space = text_outstanding.find_last_not_of(_T(' '));
+        size_t last_not_space = find_last_nonwhitespace(text_outstanding);
         if(last_not_space != std::tstring_view::npos)
         {
             size_t trailing_spaces = text_outstanding.length() - 1 - last_not_space;
@@ -476,7 +476,7 @@ static int _WrapSimpleLyricsLineToRect(HDC dc, CRect clip_rect, std::tstring_vie
             else
             {
                 assert(chars_to_draw > 0);
-                const int previous_space_index = int(text_outstanding.rfind(' ', chars_to_draw - 1));
+                const int previous_space_index = int(find_last_whitespace(text_outstanding, chars_to_draw - 1));
                 if(previous_space_index == std::tstring::npos)
                 {
                     // There is a single word that doesn't fit on the line

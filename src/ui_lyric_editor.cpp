@@ -326,7 +326,7 @@ void LyricEditor::SelectLineWithTimestampGreaterOrEqual(double threshold_timesta
             line_buffer_len); // EM_GETLINE reads the first word as the number of characters in the buffer
         LRESULT chars_copied = SendDlgItemMessage(IDC_LYRIC_TEXT, EM_GETLINE, i, (LPARAM)line_buffer);
         std::string linestr = from_tstring(std::tstring_view { line_buffer, (size_t)chars_copied });
-        if(linestr.empty() || ((linestr.length() == 1) && (linestr[0] == ' '))) continue;
+        if(linestr.empty() || ((linestr.length() == 1) && is_char_whitespace(linestr[0]))) continue;
         if(parsers::lrc::is_tag_line(linestr)) continue;
 
         double line_timestamp = parsers::lrc::get_line_first_timestamp(linestr);

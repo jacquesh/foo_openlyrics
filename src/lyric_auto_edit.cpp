@@ -49,7 +49,7 @@ static std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics)
         size_t search_start = 0;
         while(search_start < line.text.length())
         {
-            size_t next_space = line.text.find_first_of(_T(' '), search_start);
+            size_t next_space = find_first_whitespace(line.text, search_start);
 
             // NOTE: If the line was empty we would not enter this loop.
             //       We subtract 1 from the length to avoid overflowing when next_space == npos == (size_t)-1
@@ -60,7 +60,7 @@ static std::optional<LyricData> RemoveRepeatedSpaces(const LyricData& lyrics)
             }
 
             size_t erase_start = next_space + 1;
-            size_t erase_end = line.text.find_first_not_of(_T(' '), erase_start);
+            size_t erase_end = find_first_nonwhitespace(line.text, erase_start);
 
             if((erase_end != std::tstring::npos) && (erase_end > erase_start))
             {
@@ -90,7 +90,7 @@ static std::optional<LyricData> RemoveRepeatedBlankLines(const LyricData& lyrics
     LyricData new_lyrics = lyrics;
     for(auto iter = new_lyrics.lines.begin(); iter != new_lyrics.lines.end(); /*Omitted*/)
     {
-        size_t first_non_space = iter->text.find_first_not_of(' ');
+        size_t first_non_space = find_first_nonwhitespace(iter->text);
         bool is_blank = (first_non_space == std::tstring::npos);
         if(is_blank && previous_blank)
         {

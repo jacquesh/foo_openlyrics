@@ -158,6 +158,63 @@ std::tstring normalise_utf8(std::tstring_view input)
     return result;
 }
 
+bool is_char_whitespace(TCHAR c)
+{
+    // U+00A0 and U+202F are non-breaking spaces.
+    // U+180E was classified as a space when microsoft first defined isspace, but was later removed from the standard.
+    return (_istspace(c) > 0) && (c != L'\u00A0') && (c != L'\u202F') && (c != L'\u180E');
+}
+
+size_t find_first_whitespace(const std::tstring_view str, size_t pos)
+{
+    // match behavior of std::string_view::find_first_of
+    if(pos >= str.length() || str.empty()) return std::tstring_view::npos;
+
+    const auto it = std::find_if(std::next(str.begin(), pos), str.end(), is_char_whitespace);
+
+    if(it == str.end()) return std::tstring_view::npos;
+
+    return it - str.begin();
+}
+
+size_t find_first_nonwhitespace(const std::tstring_view str, size_t pos)
+{
+    // match behavior of std::string_view::find_first_not_of
+    if(pos >= str.length() || str.empty()) return std::tstring_view::npos;
+
+    const auto it = std::find_if_not(std::next(str.begin(), pos), str.end(), is_char_whitespace);
+
+    if(it == str.end()) return std::tstring_view::npos;
+
+    return it - str.begin();
+}
+
+size_t find_last_whitespace(const std::tstring_view str, size_t pos)
+{
+    if(str.empty()) return std::tstring_view::npos;
+
+    size_t offset = 0;
+    if(pos != std::tstring_view::npos && pos < str.length()) offset = str.length() - pos - 1;
+
+    const auto it = std::find_if(std::next(str.rbegin(), offset), str.rend(), is_char_whitespace);
+    if(it == str.rend()) return std::tstring_view::npos;
+
+    return str.rend() - it - 1;
+}
+
+size_t find_last_nonwhitespace(const std::tstring_view str, size_t pos)
+{
+    if(str.empty()) return std::tstring_view::npos;
+
+    size_t offset = 0;
+    if(pos != std::tstring_view::npos && pos < str.length()) offset = str.length() - pos - 1;
+
+    const auto it = std::find_if_not(std::next(str.rbegin(), offset), str.rend(), is_char_whitespace);
+    if(it == str.rend()) return std::tstring_view::npos;
+
+    return str.rend() - it - 1;
+}
+
 bool hr_success(HRESULT result, const char* filename, int line_number)
 {
     const bool success = (result == S_OK);
@@ -209,5 +266,122 @@ MVTF_TEST(win32_string_narrow_to_wide_handles_ascii)
 
     const std::wstring output = std::wstring(output_buffer.data(), output_chars);
     ASSERT(output == L"test string!\nwith a newline :O");
+}
+
+MVTF_TEST(win32_is_char_whitespace_true_for_breaking_whitespace)
+{
+    ASSERT(is_char_whitespace(L'\t'));
+    ASSERT(is_char_whitespace(L'\n'));
+    ASSERT(is_char_whitespace(L'\v'));
+    ASSERT(is_char_whitespace(L'\f'));
+    ASSERT(is_char_whitespace(L'\r'));
+    ASSERT(is_char_whitespace(L' '));
+
+    ASSERT(is_char_whitespace(L'\u0085')); // Next line
+    ASSERT(is_char_whitespace(L'\u1680')); // Ogham space mark
+
+    ASSERT(is_char_whitespace(L'\u2000')); // En quad
+    ASSERT(is_char_whitespace(L'\u2001')); // Em quad
+    ASSERT(is_char_whitespace(L'\u2002')); // En space
+    ASSERT(is_char_whitespace(L'\u2003')); // Em space
+    ASSERT(is_char_whitespace(L'\u2004')); // Three-per-em space
+    ASSERT(is_char_whitespace(L'\u2005')); // Four-per-em space
+    ASSERT(is_char_whitespace(L'\u2006')); // Six-per-em space
+    ASSERT(is_char_whitespace(L'\u2007')); // Figure space
+    ASSERT(is_char_whitespace(L'\u2008')); // Punctuation space
+    ASSERT(is_char_whitespace(L'\u2009')); // Thin space
+    ASSERT(is_char_whitespace(L'\u200A')); // Hair space
+
+    ASSERT(is_char_whitespace(L'\u2028')); // Line separator
+    ASSERT(is_char_whitespace(L'\u2029')); // Paragraph separator
+    ASSERT(is_char_whitespace(L'\u205F')); // Medium mathematical space
+    ASSERT(is_char_whitespace(L'\u3000')); // Ideographic space
+
+    ASSERT(!is_char_whitespace(L'\u00A0')); // Non-breaking space
+    ASSERT(!is_char_whitespace(L'\u202F')); // Narrow non-breaking space
+    ASSERT(!is_char_whitespace(L'\u180E')); // Mongolian vowel separator
+    ASSERT(!is_char_whitespace(L'A'));
+    ASSERT(!is_char_whitespace(L'1'));
+    ASSERT(!is_char_whitespace(L'-'));
+}
+
+MVTF_TEST(win32_find_first_whitespace_gives_correct_indices)
+{
+    std::tstring_view input = _T("Test string.\u3000Second sentence.");
+    ASSERT(find_first_whitespace(input) == 4);
+    ASSERT(find_first_whitespace(input, 4) == 4);
+    ASSERT(find_first_whitespace(input, 5) == 12);
+    ASSERT(find_first_whitespace(input, 23) == std::tstring_view::npos);
+    ASSERT(find_first_whitespace(input, 100) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_first_whitespace_empty_string)
+{
+    ASSERT(find_first_whitespace(_T("")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_first_whitespace_no_whitespace)
+{
+    ASSERT(find_last_whitespace(_T("abcdef")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_first_nonwhitespace_gives_correct_indices)
+{
+    std::tstring_view input = _T("   \u3000Test    string.    ");
+    ASSERT(find_first_nonwhitespace(input) == 4);
+    ASSERT(find_first_nonwhitespace(input, 4) == 4);
+    ASSERT(find_first_nonwhitespace(input, 10) == 12);
+    ASSERT(find_first_nonwhitespace(input, 20) == std::tstring_view::npos);
+    ASSERT(find_first_nonwhitespace(input, 100) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_first_nonwhitespace_empty_string)
+{
+    ASSERT(find_first_nonwhitespace(_T("")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_first_nonwhitespace_no_nonwhitespace)
+{
+    ASSERT(find_last_nonwhitespace(_T("   ")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_last_whitespace_gives_correct_indices)
+{
+    std::tstring_view input = _T("Test string.\u3000Second sentence.");
+    ASSERT(find_last_whitespace(input) == 19);
+    ASSERT(find_last_whitespace(input, 19) == 19);
+    ASSERT(find_last_whitespace(input, 15) == 12);
+    ASSERT(find_last_whitespace(input, 2) == std::tstring_view::npos);
+    ASSERT(find_last_whitespace(input, 100) == 19);
+}
+
+MVTF_TEST(win32_find_last_whitespace_empty_string)
+{
+    ASSERT(find_last_whitespace(_T("")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_last_whitespace_no_whitespace)
+{
+    ASSERT(find_last_whitespace(_T("abcdef")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_last_nonwhitespace_gives_correct_indices)
+{
+    std::tstring_view input = _T("   \u3000Test    string.    ");
+    ASSERT(find_last_nonwhitespace(input) == 18);
+    ASSERT(find_last_nonwhitespace(input, 18) == 18);
+    ASSERT(find_last_nonwhitespace(input, 10) == 7);
+    ASSERT(find_last_nonwhitespace(input, 3) == std::tstring_view::npos);
+    ASSERT(find_last_nonwhitespace(input, 100) == 18);
+}
+
+MVTF_TEST(win32_find_last_nonwhitespace_empty_string)
+{
+    ASSERT(find_last_nonwhitespace(_T("")) == std::tstring_view::npos);
+}
+
+MVTF_TEST(win32_find_last_nonwhitespace_no_nonwhitespace)
+{
+    ASSERT(find_last_nonwhitespace(_T("   ")) == std::tstring_view::npos);
 }
 #endif
