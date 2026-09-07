@@ -658,10 +658,10 @@ MVTF_TEST(cjson_parses_source_responses_with_comma_decimal_locale)
             const cJSON* id = cJSON_GetObjectItem(result, "id");
             const cJSON* duration = cJSON_GetObjectItem(result, "duration");
             const cJSON* plain_lyrics = cJSON_GetObjectItem(result, "plainLyrics");
-            lrclib_response_is_valid = cJSON_IsNumber(id) && id->valueint == 1839
-                                        && cJSON_IsNumber(duration) && duration->valuedouble == 183.5
-                                        && cJSON_IsString(plain_lyrics) && plain_lyrics->valuestring != nullptr
-                                        && std::string_view(plain_lyrics->valuestring) == "lrclib lyrics";
+            lrclib_response_is_valid = cJSON_IsNumber(id) && id->valueint == 1839 && cJSON_IsNumber(duration)
+                                       && duration->valuedouble == 183.5 && cJSON_IsString(plain_lyrics)
+                                       && plain_lyrics->valuestring != nullptr
+                                       && std::string_view(plain_lyrics->valuestring) == "lrclib lyrics";
         }
         cJSON_Delete(lrclib_json);
     }
