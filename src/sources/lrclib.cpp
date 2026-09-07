@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include <locale.h>
+
 #include "cJSON.h"
 
 // Don't recompile every time in dev/debug builds
@@ -550,6 +552,128 @@ void LrclibLyricsSource::upload(LyricData lyrics, abort_callback& abort)
 // Tests
 // ============
 #if MVTF_TESTS_ENABLED
+class ScopedNumericLocale
+{
+public:
+    ScopedNumericLocale()
+    {
+        const char* current_locale = setlocale(LC_NUMERIC, nullptr);
+        if(current_locale != nullptr)
+        {
+            m_previous_locale = current_locale;
+        }
+    }
+
+    ~ScopedNumericLocale()
+    {
+        if(!m_previous_locale.empty())
+        {
+            (void)setlocale(LC_NUMERIC, m_previous_locale.c_str());
+        }
+    }
+
+    bool select(const char* locale_name)
+    {
+        return !m_previous_locale.empty() && (setlocale(LC_NUMERIC, locale_name) != nullptr);
+    }
+
+    const std::string& previous_locale() const
+    {
+        return m_previous_locale;
+    }
+
+private:
+    std::string m_previous_locale;
+};
+
+MVTF_TEST(cjson_parses_source_responses_with_comma_decimal_locale)
+{
+    bool genius_response_is_valid = false;
+    bool musixmatch_response_is_valid = false;
+    bool lrclib_response_is_valid = false;
+    std::string previous_locale;
+
+    {
+        ScopedNumericLocale numeric_locale;
+        previous_locale = numeric_locale.previous_locale();
+        ASSERT(!previous_locale.empty());
+        ASSERT(numeric_locale.select("French_France.1252"));
+
+        const lconv* current_locale = localeconv();
+        ASSERT(current_locale != nullptr);
+        ASSERT(current_locale->decimal_point != nullptr);
+        ASSERT(current_locale->decimal_point[0] == ',');
+
+        constexpr std::string_view genius_response =
+            R"json({"meta":{"status":200},"response":{"song":{"duration":183.5,)json"
+            R"json("lyrics":{"plain":"genius lyrics"}}}})json";
+        cJSON* genius_json = cJSON_Parse(genius_response.data());
+        if(cJSON_IsObject(genius_json))
+        {
+            const cJSON* song_response = cJSON_GetObjectItem(genius_json, "response");
+            const cJSON* song = cJSON_GetObjectItem(song_response, "song");
+            const cJSON* duration = cJSON_GetObjectItem(song, "duration");
+            const cJSON* lyrics = cJSON_GetObjectItem(song, "lyrics");
+            const cJSON* plain_lyrics = cJSON_GetObjectItem(lyrics, "plain");
+            genius_response_is_valid = cJSON_IsNumber(duration) && duration->valuedouble == 183.5
+                                       && cJSON_IsString(plain_lyrics) && plain_lyrics->valuestring != nullptr
+                                       && std::string_view(plain_lyrics->valuestring) == "genius lyrics";
+        }
+        cJSON_Delete(genius_json);
+
+        constexpr std::string_view musixmatch_response =
+            R"json({"message":{"body":{"track_list":[{"track":{"artist_name":"The Lonely Island",)json"
+            R"json("album_name":"Incredibad","track_name":"Like a Boss","has_lyrics":1,"has_subtitles":1,)json"
+            R"json("commontrack_id":1839,"track_length":183.5}}]}}})json";
+        cJSON* musixmatch_json = cJSON_ParseWithLength(musixmatch_response.data(), musixmatch_response.length());
+        if(cJSON_IsObject(musixmatch_json))
+        {
+            const cJSON* message = cJSON_GetObjectItem(musixmatch_json, "message");
+            const cJSON* body = cJSON_GetObjectItem(message, "body");
+            const cJSON* track_list = cJSON_GetObjectItem(body, "track_list");
+            if(cJSON_IsArray(track_list) && cJSON_GetArraySize(track_list) == 1)
+            {
+                const cJSON* track_entry = cJSON_GetArrayItem(track_list, 0);
+                const cJSON* track = cJSON_GetObjectItem(track_entry, "track");
+                const cJSON* has_lyrics = cJSON_GetObjectItem(track, "has_lyrics");
+                const cJSON* has_subtitles = cJSON_GetObjectItem(track, "has_subtitles");
+                const cJSON* commontrack_id = cJSON_GetObjectItem(track, "commontrack_id");
+                const cJSON* track_length = cJSON_GetObjectItem(track, "track_length");
+                musixmatch_response_is_valid = cJSON_IsNumber(has_lyrics) && has_lyrics->valueint == 1
+                                               && cJSON_IsNumber(has_subtitles) && has_subtitles->valueint == 1
+                                               && cJSON_IsNumber(commontrack_id) && commontrack_id->valueint == 1839
+                                               && cJSON_IsNumber(track_length) && track_length->valuedouble == 183.5;
+            }
+        }
+        cJSON_Delete(musixmatch_json);
+
+        constexpr std::string_view lrclib_response =
+            R"json([{"trackName":"Like a Boss","artistName":"The Lonely Island",)json"
+            R"json("albumName":"Incredibad","id":1839,"duration":183.5,)json"
+            R"json("plainLyrics":"lrclib lyrics"}])json";
+        cJSON* lrclib_json = cJSON_ParseWithLength(lrclib_response.data(), lrclib_response.length());
+        if(cJSON_IsArray(lrclib_json) && cJSON_GetArraySize(lrclib_json) == 1)
+        {
+            const cJSON* result = cJSON_GetArrayItem(lrclib_json, 0);
+            const cJSON* id = cJSON_GetObjectItem(result, "id");
+            const cJSON* duration = cJSON_GetObjectItem(result, "duration");
+            const cJSON* plain_lyrics = cJSON_GetObjectItem(result, "plainLyrics");
+            lrclib_response_is_valid = cJSON_IsNumber(id) && id->valueint == 1839 && cJSON_IsNumber(duration)
+                                       && duration->valuedouble == 183.5 && cJSON_IsString(plain_lyrics)
+                                       && plain_lyrics->valuestring != nullptr
+                                       && std::string_view(plain_lyrics->valuestring) == "lrclib lyrics";
+        }
+        cJSON_Delete(lrclib_json);
+    }
+
+    const char* restored_locale = setlocale(LC_NUMERIC, nullptr);
+    ASSERT(restored_locale != nullptr);
+    ASSERT(previous_locale == restored_locale);
+    ASSERT(genius_response_is_valid);
+    ASSERT(musixmatch_response_is_valid);
+    ASSERT(lrclib_response_is_valid);
+}
+
 MVTF_TEST(lrclib_equal_hashes_are_less_or_equal)
 {
     uint8_t value[32] = { 0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
