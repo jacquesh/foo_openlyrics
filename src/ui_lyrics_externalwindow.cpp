@@ -959,6 +959,7 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
     const int font_bytes = GetObject(preferences::display::font(), sizeof(logfont), &logfont);
 
     bool success = true;
+    Microsoft::WRL::ComPtr<IDWriteFactory> dwrite_factory = nullptr;
     Microsoft::WRL::ComPtr<IDWriteFontFace1> fontface = nullptr;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush = nullptr;
     Microsoft::WRL::ComPtr<IDWriteTextFormat> text_format = nullptr;
@@ -979,7 +980,6 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         const float font_point_size = -72.0f * float(logfont.lfHeight) / device_dpi;
         render.pixels_per_em = font_point_size * device_dpi * (1.0f / 72.0f);
 
-        Microsoft::WRL::ComPtr<IDWriteFactory> dwrite_factory = nullptr;
         IDWriteGdiInterop* gdi_interop = nullptr; // We don't create this, so don't destroy it
         Microsoft::WRL::ComPtr<IDWriteFont> dwrite_font = nullptr;
         Microsoft::WRL::ComPtr<IDWriteFontFace> dwrite_fontface_0 = nullptr;
@@ -1174,6 +1174,54 @@ void ExternalLyricWindow::OnPaint(CDCHandle)
         else // We have lyrics, but no timestamps
         {
             DrawUntimedLyrics(m_lyrics, render);
+        }
+
+        if(GetTickCount64() < m_offset_osd_expiry)
+        {
+            TCHAR osd_text[64];
+            _sntprintf_s(osd_text, _countof(osd_text), _TRUNCATE, _T("Offset: %+d ms"), m_offset_osd_value_ms);
+
+            const D2D1_SIZE_F canvas_size = render.device->GetSize();
+            Microsoft::WRL::ComPtr<IDWriteTextLayout> osd_layout = nullptr;
+            if(dwrite_factory != nullptr && HR_SUCCESS(dwrite_factory->CreateTextLayout(
+                   osd_text,
+                   (UINT32)_tcslen(osd_text),
+                   text_format.Get(),
+                   canvas_size.width,
+                   canvas_size.height,
+                   osd_layout.GetAddressOf())))
+            {
+                osd_layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                osd_layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+                DWRITE_TEXT_METRICS osd_metrics = {};
+                osd_layout->GetMetrics(&osd_metrics);
+
+                const float padding_x = 8.0f;
+                const float padding_y = 4.0f;
+                const float margin = 10.0f;
+
+                D2D1_RECT_F bg_rect = {};
+                bg_rect.right = canvas_size.width - margin;
+                bg_rect.left = bg_rect.right - osd_metrics.width - (padding_x * 2.0f);
+                bg_rect.top = margin;
+                bg_rect.bottom = bg_rect.top + osd_metrics.height + (padding_y * 2.0f);
+
+                D2D1_ROUNDED_RECT rounded_bg = {};
+                rounded_bg.rect = bg_rect;
+                rounded_bg.radiusX = 6.0f;
+                rounded_bg.radiusY = 6.0f;
+
+                render.brush->SetColor(D2D1::ColorF(0.08f, 0.08f, 0.08f, 0.9f));
+                render.device->FillRoundedRectangle(rounded_bg, render.brush);
+
+                render.brush->SetColor(D2D1::ColorF(0.4f, 0.4f, 0.4f, 1.0f));
+                render.device->DrawRoundedRectangle(rounded_bg, render.brush, 1.0f);
+
+                render.brush->SetColor(D2D1::ColorF(0.95f, 0.95f, 0.95f, 1.0f));
+                D2D1_POINT_2F text_origin = { bg_rect.left + padding_x, bg_rect.top + padding_y };
+                render.device->DrawTextLayout(text_origin, osd_layout.Get(), render.brush);
+            }
         }
 
         HRESULT end_result = m_d2d_dc->EndDraw();

@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "winres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -32,7 +32,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""afxres.h""\r\n"
+    "#include ""winres.h""\r\n"
     "\0"
 END
 
@@ -101,7 +101,7 @@ BEGIN
     LTEXT           "Scroll type:",IDC_STATIC,7,137,36,8
     CONTROL         "Continuous scrolling",IDC_DISPLAY_SCROLL_CONTINUOUS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,157,79,10
-    GROUPBOX        "Other",IDC_STATIC,0,206,326,54
+    GROUPBOX        "Other",IDC_STATIC,0,206,326,72
     LTEXT           "Highlight fade time",IDC_STATIC,7,217,59,8
     CONTROL         "",IDC_DISPLAY_HIGHLIGHT_FADE_TIME,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,83,214,229,15
     CTEXT           "Static",IDC_DISPLAY_HIGHLIGHT_FADE_TIME_PREVIEW,83,231,229,8
@@ -110,6 +110,8 @@ BEGIN
     COMBOBOX        IDC_PAST_FOREGROUND_COLOUR_TYPE,68,89,96,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_TEXT_ALIGNMENT,249,243,65,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Text alignment:",IDC_STATIC,193,244,49,8
+    CONTROL         "Adjust synced lyrics offset with arrow keys",IDC_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,258,180,10
 END
 
 IDD_PREFERENCES_EDIT DIALOGEX 0, 0, 332, 288

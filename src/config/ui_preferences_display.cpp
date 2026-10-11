@@ -30,6 +30,7 @@ static const GUID GUID_CFG_DISPLAY_HIGHLIGHT_FADE_TIME = { 0x63c31bb9, 0x2a83, 0
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOUR = { 0x8189faa4, 0x40f2, 0x464b, { 0x9e, 0xb, 0x53, 0xd2, 0x6, 0x9c, 0x74, 0xc9 } };
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOURTYPE = { 0xc7b2908, 0x2ce2, 0x46e8, { 0xa1, 0x46, 0x51, 0xe2, 0x60, 0x0, 0xde, 0xdc } };
 static const GUID GUID_CFG_DISPLAY_TEXT_ALIGNMENT = { 0xfd228452, 0x6374, 0x4496, { 0xb9, 0xec, 0x19, 0xb9, 0x50, 0x2, 0xb, 0xaa } };
+static const GUID GUID_CFG_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT = { 0xe1c9cd7f, 0xd976, 0x49d3, { 0x9a, 0x7f, 0x39, 0x49, 0x59, 0x1e, 0x4a, 0x31 } };
 // clang-format on
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35, 85, 125);
@@ -109,6 +110,9 @@ static cfg_auto_combo<TextAlignment, 6> cfg_display_text_alignment(GUID_CFG_DISP
                                                                    IDC_TEXT_ALIGNMENT,
                                                                    TextAlignment::MidCentre,
                                                                    g_text_alignment_options);
+static cfg_auto_bool cfg_display_keyboard_offset_adjustment(GUID_CFG_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT,
+                                                            IDC_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT,
+                                                            true);
 
 static cfg_auto_property* g_display_auto_properties[] = {
     &cfg_display_custom_font,      &cfg_display_custom_fg_colour,
@@ -120,6 +124,7 @@ static cfg_auto_property* g_display_auto_properties[] = {
     &cfg_display_scroll_time,      &cfg_display_scroll_type,
 
     &cfg_display_text_alignment,   &cfg_display_highlight_fade_time,
+    &cfg_display_keyboard_offset_adjustment,
 };
 
 //
@@ -237,6 +242,16 @@ LineScrollType preferences::display::scroll_type()
     return cfg_display_scroll_type.get_value();
 }
 
+bool preferences::display::keyboard_offset_adjustment_enabled()
+{
+    return cfg_display_keyboard_offset_adjustment.get_value();
+}
+
+void preferences::display::set_keyboard_offset_adjustment_enabled(bool enabled)
+{
+    cfg_display_keyboard_offset_adjustment.set_value(enabled);
+}
+
 bool preferences::display::raw::font_is_custom()
 {
     return cfg_display_custom_font.get_value();
@@ -280,6 +295,7 @@ public:
     MESSAGE_HANDLER_EX(WM_CTLCOLORBTN, ColourButtonPreDraw)
     COMMAND_HANDLER_EX(IDC_TEXT_ALIGNMENT, CBN_SELCHANGE, OnUIChange)
     COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT, BN_CLICKED, OnUIChange)
     END_MSG_MAP()
 
 private:

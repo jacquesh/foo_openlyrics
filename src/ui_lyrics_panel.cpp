@@ -16,6 +16,7 @@
 #include "math_util.h"
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
+#include "parsers.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
 #include "tag_util.h"
@@ -31,16 +32,22 @@ namespace
     //       timers, and stopping/starting doesn't fail when they conflict
     //       (e.g by having several panels all try to stop the same timer).
     static UINT_PTR PANEL_UPDATE_TIMER = 2304692;
+    static UINT_PTR OFFSET_OSD_TIMER = 5723910;
+    static UINT_PTR OFFSET_SAVE_TIMER = 8405102;
 
     static std::vector<LyricPanel*> g_active_panels;
 }
 
 LyricPanel::LyricPanel()
     : m_panel_update_timer(PANEL_UPDATE_TIMER)
+    , m_offset_osd_timer(OFFSET_OSD_TIMER)
+    , m_offset_save_timer(OFFSET_SAVE_TIMER)
     , m_now_playing(nullptr)
     , m_lyrics()
 {
     PANEL_UPDATE_TIMER++;
+    OFFSET_OSD_TIMER++;
+    OFFSET_SAVE_TIMER++;
 }
 
 void LyricPanel::on_album_art_retrieved(album_art_data::ptr art_data)
@@ -220,6 +227,10 @@ void LyricPanel::compute_background_image()
 void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
 {
     const bool track_changed = (track != m_now_playing);
+    if(track_changed)
+    {
+        CommitOffsetSave();
+    }
     m_now_playing = track;
     m_now_playing_info = get_full_metadata(track);
     m_manual_scroll_distance = 0;
@@ -269,6 +280,8 @@ void LyricPanel::on_playback_dynamic_info_track(const file_info& info)
 
 void LyricPanel::on_playback_stop(play_control::t_stop_reason reason)
 {
+    CommitOffsetSave();
+
     // When starting another track, track-change calculations will all be
     // handled when the new track starts (immediately after this callback).
     if(reason == play_control::t_stop_reason::stop_reason_starting_another)
@@ -352,6 +365,10 @@ LRESULT LyricPanel::OnWindowCreate(LPCREATESTRUCT /*params*/)
 
 void LyricPanel::OnWindowDestroy()
 {
+    CommitOffsetSave();
+    KillTimer(m_offset_osd_timer);
+    KillTimer(m_offset_save_timer);
+
     play_callback_manager::get()->unregister_callback(this);
 
     if(m_back_buffer_bitmap != nullptr) DeleteObject(m_back_buffer_bitmap);
@@ -403,8 +420,20 @@ UINT LyricPanel::OnNonClientHitTest(CPoint /*point*/)
     return 0;
 }
 
-LRESULT LyricPanel::OnTimer(WPARAM /*wParam*/)
+LRESULT LyricPanel::OnTimer(WPARAM wParam)
 {
+    if(wParam == m_offset_osd_timer)
+    {
+        KillTimer(m_offset_osd_timer);
+        m_offset_osd_expiry = 0;
+        Invalidate();
+        return 0;
+    }
+    if(wParam == m_offset_save_timer)
+    {
+        CommitOffsetSave();
+        return 0;
+    }
     Invalidate();
     return 0;
 }
@@ -978,6 +1007,46 @@ void LyricPanel::OnPaint(CDCHandle)
         DrawUntimedLyrics(m_back_buffer, client_rect);
     }
 
+    if(GetTickCount64() < m_offset_osd_expiry)
+    {
+        TCHAR osd_text[64];
+        _sntprintf_s(osd_text, _countof(osd_text), _TRUNCATE, _T("Offset: %+d ms"), m_offset_osd_value_ms);
+
+        HFONT osd_font = preferences::display::font();
+        HFONT old_font = (HFONT)SelectObject(m_back_buffer, osd_font);
+        SetTextAlign(m_back_buffer, TA_TOP | TA_LEFT);
+
+        SIZE text_size = {};
+        GetTextExtentPoint32(m_back_buffer, osd_text, (int)_tcslen(osd_text), &text_size);
+
+        const int padding_x = 8;
+        const int padding_y = 4;
+        const int margin = 10;
+
+        CRect osd_rect;
+        osd_rect.right = client_rect.right - margin;
+        osd_rect.left = osd_rect.right - text_size.cx - (padding_x * 2);
+        osd_rect.top = client_rect.top + margin;
+        osd_rect.bottom = osd_rect.top + text_size.cy + (padding_y * 2);
+
+        HBRUSH bg_brush = CreateSolidBrush(RGB(20, 20, 20));
+        HPEN border_pen = CreatePen(PS_SOLID, 1, RGB(80, 80, 80));
+        HBRUSH old_brush = (HBRUSH)SelectObject(m_back_buffer, bg_brush);
+        HPEN old_pen = (HPEN)SelectObject(m_back_buffer, border_pen);
+
+        RoundRect(m_back_buffer, osd_rect.left, osd_rect.top, osd_rect.right, osd_rect.bottom, 6, 6);
+
+        SetBkMode(m_back_buffer, TRANSPARENT);
+        SetTextColor(m_back_buffer, RGB(240, 240, 240));
+        TextOut(m_back_buffer, osd_rect.left + padding_x, osd_rect.top + padding_y, osd_text, (int)_tcslen(osd_text));
+
+        SelectObject(m_back_buffer, old_brush);
+        SelectObject(m_back_buffer, old_pen);
+        SelectObject(m_back_buffer, old_font);
+        DeleteObject(bg_brush);
+        DeleteObject(border_pen);
+    }
+
     BitBlt(front_buffer,
            client_rect.left,
            client_rect.top,
@@ -1034,6 +1103,8 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             ID_AUTO_REMOVE_SURROUNDING_SPACE,
             ID_DELETE_CURRENT_LYRICS,
             ID_OPEN_EXTERNAL_WINDOW,
+            ID_DISPLAY_TOGGLE_OFFSET_ADJUSTMENT,
+            ID_DISPLAY_RESET_OFFSET,
             ID_CMD_COUNT,
         };
 
@@ -1053,6 +1124,21 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu_edit, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_DELETE_CURRENT_LYRICS, _T("Delete current lyrics"));
 
+        CMenu menu_display = nullptr;
+        WIN32_OP(menu_display.CreatePopupMenu())
+        UINT offset_adj_flags = MF_STRING;
+        if(preferences::display::keyboard_offset_adjustment_enabled())
+        {
+            offset_adj_flags |= MF_CHECKED;
+        }
+        AppendMenu(menu_display, offset_adj_flags, ID_DISPLAY_TOGGLE_OFFSET_ADJUSTMENT, _T("Adjust offset with arrow keys"));
+        UINT reset_offset_flags = MF_STRING | disabled_without_nowplaying | disabled_without_timestamps;
+        if(m_lyrics.timestamp_offset == 0.0)
+        {
+            reset_offset_flags |= MF_GRAYED;
+        }
+        AppendMenu(menu_display, reset_offset_flags, ID_DISPLAY_RESET_OFFSET, _T("Reset offset"));
+
         CMenu menu = nullptr;
         WIN32_OP(menu.CreatePopupMenu())
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
@@ -1062,6 +1148,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_EDIT_LYRICS, _T("Edit lyrics"));
         AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_edit.m_hMenu, _T("Auto-edit lyrics"));
+        AppendMenu(menu, MF_STRING | MF_POPUP, (UINT_PTR)menu_display.m_hMenu, _T("Display"));
         AppendMenu(menu, MF_STRING, ID_OPEN_EXTERNAL_WINDOW, _T("Open external window (experimental)"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_OPEN_FILE_DIR, _T("Open file location"));
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
@@ -1084,6 +1171,8 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         menudesc.Set(ID_AUTO_FIX_MALFORMED_TIMESTAMPS, "Fix timestamps that are slightly malformed so that they're recognised as timestamps and not shown in the text");
         menudesc.Set(ID_AUTO_REMOVE_TIMESTAMPS, "Remove timestamps, changing from synced lyrics to unsynced lyrics");
         menudesc.Set(ID_AUTO_REMOVE_SURROUNDING_SPACE, "Remove excess whitespace surrounding each line of lyrics");
+        menudesc.Set(ID_DISPLAY_TOGGLE_OFFSET_ADJUSTMENT, "Allow adjusting synced lyrics offset using keyboard arrow keys Up/Down after clicking the panel");
+        menudesc.Set(ID_DISPLAY_RESET_OFFSET, "Reset lyrics timing offset back to 0ms");
         // clang-format on
 
         std::optional<LyricData> updated_lyrics;
@@ -1094,6 +1183,32 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                                       nullptr);
         switch(cmd)
         {
+            case ID_DISPLAY_TOGGLE_OFFSET_ADJUSTMENT:
+            {
+                const bool current = preferences::display::keyboard_offset_adjustment_enabled();
+                preferences::display::set_keyboard_offset_adjustment_enabled(!current);
+            }
+            break;
+
+            case ID_DISPLAY_RESET_OFFSET:
+            {
+                if(m_now_playing == nullptr || !m_lyrics.IsTimestamped()) break;
+                m_lyrics.timestamp_offset = 0.0;
+                parsers::lrc::remove_offset_tag(m_lyrics);
+                show_offset_osd(0);
+                for(LyricPanel* panel : g_active_panels)
+                {
+                    if(panel != this)
+                    {
+                        panel->m_lyrics = m_lyrics;
+                        panel->show_offset_osd(0);
+                    }
+                    panel->Invalidate();
+                }
+                TriggerOffsetSave();
+            }
+            break;
+
             case ID_OPEN_EXTERNAL_WINDOW:
             {
                 SpawnExternalLyricWindow();
@@ -1431,6 +1546,7 @@ void LyricPanel::OnMouseMove(UINT /*virtualKeys*/, CPoint point)
 
 void LyricPanel::OnLMBDown(UINT /*virtualKeys*/, CPoint point)
 {
+    SetFocus();
     m_manual_scroll_start = point;
     SetCapture();
 }
@@ -1485,6 +1601,107 @@ LyricPanel::PlaybackTimeInfo LyricPanel::get_playback_time()
     }
 
     return result;
+}
+
+void LyricPanel::OnKillFocus(CWindow /*wndFocus*/)
+{
+    CommitOffsetSave();
+}
+
+void LyricPanel::show_offset_osd(int offset_ms)
+{
+    m_offset_osd_value_ms = offset_ms;
+    m_offset_osd_expiry = GetTickCount64() + 2000;
+    SetTimer(m_offset_osd_timer, 2100, nullptr);
+    Invalidate();
+}
+
+void LyricPanel::TriggerOffsetSave()
+{
+    m_offset_save_pending = true;
+    SetTimer(m_offset_save_timer, 1500, nullptr);
+}
+
+void LyricPanel::CommitOffsetSave()
+{
+    if(!m_offset_save_pending) return;
+    m_offset_save_pending = false;
+    KillTimer(m_offset_save_timer);
+
+    if(m_now_playing == nullptr || m_lyrics.IsEmpty() || !m_lyrics.IsTimestamped())
+    {
+        return;
+    }
+
+    try
+    {
+        const bool allow_overwrite = true;
+        io::save_lyrics(m_now_playing, m_now_playing_info, m_lyrics, allow_overwrite);
+        LOG_INFO("Successfully auto-saved updated lyrics offset");
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("Failed to auto-save lyrics offset: %s", e.what());
+    }
+}
+
+void LyricPanel::OnKeyDown(UINT nChar, UINT /*nRepCnt*/, UINT /*nFlags*/)
+{
+    if(!preferences::display::keyboard_offset_adjustment_enabled())
+    {
+        SetMsgHandled(false);
+        return;
+    }
+
+    if(nChar != VK_UP && nChar != VK_DOWN)
+    {
+        SetMsgHandled(false);
+        return;
+    }
+
+    if(m_now_playing == nullptr || !m_lyrics.IsTimestamped())
+    {
+        SetMsgHandled(false);
+        return;
+    }
+
+    int step_ms = 100;
+    if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
+    {
+        step_ms = 500;
+    }
+    else if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
+    {
+        step_ms = 50;
+    }
+
+    const int delta_ms = (nChar == VK_UP) ? step_ms : -step_ms;
+    int current_offset_ms = static_cast<int>(std::round(m_lyrics.timestamp_offset * 1000.0));
+    current_offset_ms += delta_ms;
+
+    const double new_offset_sec = double(current_offset_ms) / 1000.0;
+    m_lyrics.timestamp_offset = new_offset_sec;
+
+    if(current_offset_ms == 0)
+    {
+        parsers::lrc::remove_offset_tag(m_lyrics);
+    }
+    else
+    {
+        parsers::lrc::set_offset_tag(m_lyrics, new_offset_sec);
+    }
+
+    for(LyricPanel* panel : g_active_panels)
+    {
+        if(panel != this)
+        {
+            panel->m_lyrics = m_lyrics;
+            panel->show_offset_osd(current_offset_ms);
+        }
+        panel->Invalidate();
+    }
+    show_offset_osd(current_offset_ms);
+    TriggerOffsetSave();
 }
 
 void announce_lyric_update(LyricUpdate lyric_update)

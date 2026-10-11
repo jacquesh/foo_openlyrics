@@ -51,6 +51,9 @@ public:
     MSG_WM_MOUSEMOVE(OnMouseMove)
     MSG_WM_LBUTTONDOWN(OnLMBDown)
     MSG_WM_LBUTTONUP(OnLMBUp)
+    MSG_WM_GETDLGCODE(OnGetDlgCode)
+    MSG_WM_KEYDOWN(OnKeyDown)
+    MSG_WM_KILLFOCUS(OnKillFocus)
     END_MSG_MAP()
 
 protected:
@@ -98,9 +101,25 @@ protected: // TODO: Only protected to support the external window
     };
     PlaybackTimeInfo get_playback_time();
 
+    UINT OnGetDlgCode(LPMSG /*lpMsg*/)
+    {
+        return preferences::display::keyboard_offset_adjustment_enabled() ? DLGC_WANTARROWS : 0;
+    }
+    void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+    void OnKillFocus(CWindow wndFocus);
+    void show_offset_osd(int offset_ms);
+    void TriggerOffsetSave();
+    void CommitOffsetSave();
+
+    uint64_t m_offset_osd_expiry = 0;
+    int m_offset_osd_value_ms = 0;
+
 private:
     bool m_timerRunning = false;
     UINT_PTR m_panel_update_timer;
+    UINT_PTR m_offset_osd_timer;
+    UINT_PTR m_offset_save_timer;
+    bool m_offset_save_pending = false;
 
 protected: // TODO: These two are only protected to support the external window
     LyricData m_lyrics;

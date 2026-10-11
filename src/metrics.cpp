@@ -367,6 +367,7 @@ std::string collect_metrics(abort_callback& abort, bool is_dark_mode, size_t num
         cJSON_AddNumberToObject(json_cfg, "scroll_seconds", preferences::display::scroll_time_seconds());
         cJSON_AddNumberToObject(json_cfg, "text_alignment", int(preferences::display::text_alignment()));
         cJSON_AddBoolToObject(json_cfg, "debug_logs_enabled", preferences::display::debug_logs_enabled());
+        cJSON_AddBoolToObject(json_cfg, "keyboard_offset_adjustment", preferences::display::keyboard_offset_adjustment_enabled());
 
         // Background settings
         cJSON_AddNumberToObject(json_cfg, "background_type", int(preferences::background::fill_type()));

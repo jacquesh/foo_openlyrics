@@ -228,6 +228,11 @@ struct cfg_auto_bool : private cfg_int_t<int>, public cfg_auto_property
         return (cfg_int_t<int>::get_value() == 1);
     }
 
+    void set_value(bool val)
+    {
+        cfg_int_t<int>::operator=(val ? 1 : 0);
+    }
+
     void ResetFromSaved() override
     {
         CheckDlgButton(m_hWnd, m_control_id, get_value() ? BST_CHECKED : BST_UNCHECKED);

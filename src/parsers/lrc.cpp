@@ -94,7 +94,9 @@ static std::optional<double> try_parse_offset_tag(std::string_view line)
 
 void parsers::lrc::set_offset_tag(LyricData& lyrics, double offset_seconds)
 {
-    std::string new_tag = "[offset:" + std::to_string(static_cast<int>(offset_seconds * 1000.0)) + "]";
+    lyrics.timestamp_offset = offset_seconds;
+    const int offset_ms = static_cast<int>(std::round(offset_seconds * 1000.0));
+    std::string new_tag = "[offset:" + std::to_string(offset_ms) + "]";
     for(auto iter = lyrics.tags.begin(); iter != lyrics.tags.end(); iter++)
     {
         if(try_parse_offset_tag(*iter).has_value())
@@ -109,6 +111,7 @@ void parsers::lrc::set_offset_tag(LyricData& lyrics, double offset_seconds)
 
 void parsers::lrc::remove_offset_tag(LyricData& lyrics)
 {
+    lyrics.timestamp_offset = 0.0;
     for(auto iter = lyrics.tags.begin(); iter != lyrics.tags.end(); /*omitted*/)
     {
         if(try_parse_offset_tag(*iter).has_value())
@@ -774,5 +777,23 @@ MVTF_TEST(lrcparse_print_timestamp_correctly_rounds_up_when_given_input_very_nea
     // not come from text originally so it's not bound to 2 decimal places of precision.
     const std::string output = parsers::lrc::print_timestamp(5.999);
     ASSERT(output == "[00:06.00]");
+}
+
+MVTF_TEST(lrcparse_set_and_remove_offset_tag)
+{
+    LyricData lyrics = {};
+    parsers::lrc::set_offset_tag(lyrics, 0.25);
+    ASSERT(lyrics.timestamp_offset == 0.25);
+    ASSERT(lyrics.tags.size() == 1);
+    ASSERT(lyrics.tags[0] == "[offset:250]");
+
+    parsers::lrc::set_offset_tag(lyrics, -0.1);
+    ASSERT(lyrics.timestamp_offset == -0.1);
+    ASSERT(lyrics.tags.size() == 1);
+    ASSERT(lyrics.tags[0] == "[offset:-100]");
+
+    parsers::lrc::remove_offset_tag(lyrics);
+    ASSERT(lyrics.timestamp_offset == 0.0);
+    ASSERT(lyrics.tags.empty());
 }
 #endif
