@@ -6,6 +6,8 @@ An open-source lyrics plugin for [foobar2000](https://www.foobar2000.org/) that 
 
 ## Features
 * Buttery-smooth lyric scrolling
+* Real-time keyboard offset adjustments with on-screen display (OSD)
+* Automatic tempo and playback rate compensation for time-stretching DSPs (Tempo Shift)
 * Supports retrieving lyrics from local files, ID3 tags or the internet
 * Customise the font & colours to perfectly suite your layout & theme
 * Supports using album art or any other image as the panel background, with optional transparency and blur

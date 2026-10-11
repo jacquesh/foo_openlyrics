@@ -26,7 +26,9 @@ namespace
         out += "\nChangelog:\n";
         // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
         // "\n";
-        out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+        out += "Version 1.14 (2026-10-11):\n"
+               "- Add real-time lyric timing offset adjustment with arrow keys and OSD\n"
+               "- Add tempo and playback rate compensation for time-stretching DSPs (Tempo Shift)\n"
                "- Better support non-latin whitespace characters for word wrapping\n"
                "- Fix auto-search triggering for missing local files\n"
                "- Fix Musixmatch always returning an invalid result\n"
