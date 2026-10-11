@@ -12,6 +12,8 @@
 #include "lyric_metadata.h"
 #include "metrics.h"
 #include "parsers.h"
+#include "playback_tempo.h"
+#include "preferences.h"
 #include "ui_hooks.h"
 #include "win32_util.h"
 
@@ -66,6 +68,7 @@ private:
     void on_playback_seek(double new_time) override;
     void on_playback_time(double new_time) override;
 
+    double get_current_track_time();
     void update_play_button();
     void update_time_text(double time);
     bool HasContentChanged(size_t* new_length);
@@ -80,6 +83,9 @@ private:
     std::tstring m_input_text;
     metadb_handle_ptr m_track;
     metadb_v2_rec_t m_track_info;
+
+    double m_anchor_output_pos = 0.0;
+    double m_anchor_track_time = 0.0;
 
     HWND m_offset_apply_tooltip;
     HWND m_offset_sync_tooltip;
@@ -138,6 +144,18 @@ static void add_tooltip(HWND control, HWND tooltip, TCHAR* text)
     SendMessage(tooltip, TTM_ADDTOOL, 0, (LPARAM)&tool_info);
 }
 
+double LyricEditor::get_current_track_time()
+{
+    service_ptr_t<playback_control> playback = playback_control::get();
+    double pos = playback->playback_get_position();
+    if(preferences::display::tempo_compensation_enabled())
+    {
+        double mult = get_playback_tempo_multiplier(m_track_info);
+        return m_anchor_track_time + std::max(0.0, pos - m_anchor_output_pos) * mult;
+    }
+    return pos;
+}
+
 BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
 {
     LOG_INFO("Initializing editor window...");
@@ -145,7 +163,9 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
     m_dark.AddDialogWithControls(m_hWnd);
 
     service_ptr_t<playback_control> playback = playback_control::get();
-    update_time_text(playback->playback_get_position());
+    m_anchor_output_pos = playback->playback_get_position();
+    m_anchor_track_time = m_anchor_output_pos;
+    update_time_text(get_current_track_time());
     update_play_button();
     metadb_handle_ptr now_playing = nullptr;
     playback->get_now_playing(now_playing);
@@ -163,7 +183,7 @@ BOOL LyricEditor::OnInitDialog(CWindow /*parent*/, LPARAM /*clientData*/)
         SetDlgItemText(IDC_LYRIC_TEXT, m_input_text.c_str());
 
         bool editing_now_playing = (now_playing == m_track);
-        double playback_time = playback->playback_get_position();
+        double playback_time = get_current_track_time();
         double select_time = editing_now_playing ? playback_time : 0.0;
         SelectLineWithTimestampGreaterOrEqual(select_time);
     }
@@ -272,8 +292,7 @@ void LyricEditor::OnLineSync(UINT /*btn_id*/, int /*notification_type*/, CWindow
     }
 
     LyricData parsed = ParseEditorContents();
-    service_ptr_t<playback_control> playback = playback_control::get();
-    double timestamp = playback->playback_get_position() + parsed.timestamp_offset;
+    double timestamp = get_current_track_time() + parsed.timestamp_offset;
     std::string timestamp_str = parsers::lrc::print_timestamp(timestamp);
     std::tstring timestamp_tstr = to_tstring(timestamp_str);
 
@@ -418,8 +437,7 @@ void LyricEditor::OnOffsetSync(UINT /*btn_id*/, int /*notify_code*/, CWindow /*b
     }
     else
     {
-        service_ptr_t<playback_control> playback = playback_control::get();
-        double current_timestamp = playback->playback_get_position();
+        double current_timestamp = get_current_track_time();
         double required_offset_sec = curr_line_timestamp - current_timestamp;
         parsers::lrc::set_offset_tag(parsed, required_offset_sec);
 
@@ -451,6 +469,8 @@ void LyricEditor::OnOK(UINT /*btn_id*/, int /*notify_code*/, CWindow /*btn*/)
 
 void LyricEditor::on_playback_new_track(metadb_handle_ptr track)
 {
+    m_anchor_output_pos = 0.0;
+    m_anchor_track_time = 0.0;
     bool edit_track_playing = (track == m_track);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_SYNC), edit_track_playing);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_BACK5), edit_track_playing);
@@ -463,6 +483,8 @@ void LyricEditor::on_playback_new_track(metadb_handle_ptr track)
 
 void LyricEditor::on_playback_stop(play_control::t_stop_reason /*reason*/)
 {
+    m_anchor_output_pos = 0.0;
+    m_anchor_track_time = 0.0;
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_SYNC), FALSE);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_BACK5), FALSE);
     ::EnableWindow(GetDlgItem(IDC_LYRIC_EDIT_FWD5), FALSE);
@@ -479,12 +501,14 @@ void LyricEditor::on_playback_pause(bool /*state*/)
 
 void LyricEditor::on_playback_seek(double new_time)
 {
+    m_anchor_output_pos = new_time;
+    m_anchor_track_time = new_time;
     update_time_text(new_time);
 }
 
-void LyricEditor::on_playback_time(double new_time)
+void LyricEditor::on_playback_time(double /*new_time*/)
 {
-    update_time_text(new_time);
+    update_time_text(get_current_track_time());
 }
 
 void LyricEditor::update_time_text(double new_time)

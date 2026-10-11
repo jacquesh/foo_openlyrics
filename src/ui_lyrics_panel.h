@@ -25,6 +25,8 @@ public:
     void on_playback_time(double /*time*/) override {}
     void on_volume_change(float /*new_volume*/) override {}
 
+    void on_tempo_settings_changed();
+
     CRect compute_background_image_rect();
     void load_custom_background_image();
     virtual void compute_background_image(); // TODO: Only virtual to support the external window
@@ -128,6 +130,9 @@ protected: // TODO: These two are only protected to support the external window
 
 private:
     double m_now_playing_time_offset = 0.0;
+    double m_anchor_output_pos = 0.0;
+    double m_anchor_track_time = 0.0;
+    double m_active_tempo_multiplier = 1.0;
 
     SearchAvoidanceReason m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
     uint64_t m_auto_search_avoided_timestamp = 0;
@@ -151,4 +156,5 @@ protected: // TODO: Only protected to support the external window
 
     friend void announce_lyric_update(LyricUpdate);
     friend void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
+    friend void notify_active_panels_tempo_changed();
 };

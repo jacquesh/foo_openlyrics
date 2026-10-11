@@ -160,6 +160,7 @@ namespace preferences
         bool debug_logs_enabled();
         bool keyboard_offset_adjustment_enabled();
         void set_keyboard_offset_adjustment_enabled(bool enabled);
+        bool tempo_compensation_enabled();
 
         namespace raw
         {

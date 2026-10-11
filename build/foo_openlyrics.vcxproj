@@ -279,6 +279,7 @@
     </ClCompile>
     <ClCompile Include="..\src\ui_util.cpp" />
     <ClCompile Include="..\src\win32_util.cpp" />
+    <ClCompile Include="..\src\playback_tempo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\3rdparty\cJSON\cJSON.h" />
@@ -309,6 +310,7 @@
     <ClInclude Include="..\src\uie_shim_panel.h" />
     <ClInclude Include="..\src\ui_hooks.h" />
     <ClInclude Include="..\src\win32_util.h" />
+    <ClInclude Include="..\src\playback_tempo.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\3rdparty\columns_ui-sdk-7.0.0-beta.2\columns_ui-sdk-public.vcxproj">

@@ -112,6 +112,8 @@ BEGIN
     LTEXT           "Text alignment:",IDC_STATIC,193,244,49,8
     CONTROL         "Adjust synced lyrics offset with arrow keys",IDC_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,258,180,10
+    CONTROL         "Compensate for tempo-shifting DSPs (e.g. Tempo Shift)",IDC_DISPLAY_TEMPO_COMPENSATION,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,270,220,10
 END
 
 IDD_PREFERENCES_EDIT DIALOGEX 0, 0, 332, 288

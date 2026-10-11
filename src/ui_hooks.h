@@ -16,6 +16,7 @@ void repaint_all_lyric_panels();
 void recompute_lyric_panel_backgrounds();
 void announce_lyric_update(LyricUpdate update);
 void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReason reason);
+void notify_active_panels_tempo_changed();
 
 // Provides fb2k's default UI parameters, usually only available through UI components.
 // These should be queried just-in-time as the values they return may change if the user

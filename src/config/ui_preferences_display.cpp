@@ -31,6 +31,7 @@ static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOUR = { 0x8189faa4, 0x40f2, 0x464
 static const GUID GUID_CFG_DISPLAY_PASTTEXT_COLOURTYPE = { 0xc7b2908, 0x2ce2, 0x46e8, { 0xa1, 0x46, 0x51, 0xe2, 0x60, 0x0, 0xde, 0xdc } };
 static const GUID GUID_CFG_DISPLAY_TEXT_ALIGNMENT = { 0xfd228452, 0x6374, 0x4496, { 0xb9, 0xec, 0x19, 0xb9, 0x50, 0x2, 0xb, 0xaa } };
 static const GUID GUID_CFG_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT = { 0xe1c9cd7f, 0xd976, 0x49d3, { 0x9a, 0x7f, 0x39, 0x49, 0x59, 0x1e, 0x4a, 0x31 } };
+static const GUID GUID_CFG_DISPLAY_TEMPO_COMPENSATION = { 0x5728a9b2, 0x4f12, 0x4a18, { 0x93, 0x8a, 0xd4, 0x25, 0x19, 0xb8, 0xca, 0xfe } };
 // clang-format on
 
 static const COLORREF cfg_display_fg_colour_default = RGB(35, 85, 125);
@@ -113,6 +114,9 @@ static cfg_auto_combo<TextAlignment, 6> cfg_display_text_alignment(GUID_CFG_DISP
 static cfg_auto_bool cfg_display_keyboard_offset_adjustment(GUID_CFG_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT,
                                                             IDC_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT,
                                                             true);
+static cfg_auto_bool cfg_display_tempo_compensation(GUID_CFG_DISPLAY_TEMPO_COMPENSATION,
+                                                    IDC_DISPLAY_TEMPO_COMPENSATION,
+                                                    true);
 
 static cfg_auto_property* g_display_auto_properties[] = {
     &cfg_display_custom_font,      &cfg_display_custom_fg_colour,
@@ -125,6 +129,7 @@ static cfg_auto_property* g_display_auto_properties[] = {
 
     &cfg_display_text_alignment,   &cfg_display_highlight_fade_time,
     &cfg_display_keyboard_offset_adjustment,
+    &cfg_display_tempo_compensation,
 };
 
 //
@@ -252,6 +257,11 @@ void preferences::display::set_keyboard_offset_adjustment_enabled(bool enabled)
     cfg_display_keyboard_offset_adjustment.set_value(enabled);
 }
 
+bool preferences::display::tempo_compensation_enabled()
+{
+    return cfg_display_tempo_compensation.get_value();
+}
+
 bool preferences::display::raw::font_is_custom()
 {
     return cfg_display_custom_font.get_value();
@@ -296,6 +306,7 @@ public:
     COMMAND_HANDLER_EX(IDC_TEXT_ALIGNMENT, CBN_SELCHANGE, OnUIChange)
     COMMAND_HANDLER_EX(IDC_DISPLAY_SCROLL_TYPE, CBN_SELCHANGE, OnUIChange)
     COMMAND_HANDLER_EX(IDC_DISPLAY_KEYBOARD_OFFSET_ADJUSTMENT, BN_CLICKED, OnUIChange)
+    COMMAND_HANDLER_EX(IDC_DISPLAY_TEMPO_COMPENSATION, BN_CLICKED, OnUIChange)
     END_MSG_MAP()
 
 private:
@@ -338,6 +349,7 @@ void PreferencesDisplay::apply()
     cfg_display_font.set_value(m_font);
 
     auto_preferences_page_instance::apply();
+    notify_active_panels_tempo_changed();
     repaint_all_lyric_panels();
 }
 

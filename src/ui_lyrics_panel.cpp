@@ -17,6 +17,7 @@
 #include "metadb_index_search_avoidance.h"
 #include "metrics.h"
 #include "parsers.h"
+#include "playback_tempo.h"
 #include "preferences.h"
 #include "sources/lyric_source.h"
 #include "tag_util.h"
@@ -235,6 +236,16 @@ void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
     m_now_playing_info = get_full_metadata(track);
     m_manual_scroll_distance = 0;
     m_now_playing_time_offset = 0.0;
+    m_anchor_output_pos = 0.0;
+    m_anchor_track_time = 0.0;
+    if(preferences::display::tempo_compensation_enabled())
+    {
+        m_active_tempo_multiplier = get_playback_tempo_multiplier(m_now_playing_info);
+    }
+    else
+    {
+        m_active_tempo_multiplier = 1.0;
+    }
 
     // NOTE: If playback is paused on startup then this gets called with the paused track,
     //       but playback is paused so we don't actually want to run the timer
@@ -276,6 +287,16 @@ void LyricPanel::on_playback_dynamic_info_track(const file_info& info)
     // just started playback or when the track changes.
     service_ptr_t<playback_control> playback = playback_control::get();
     m_now_playing_time_offset = playback->playback_get_position();
+    m_anchor_output_pos = 0.0;
+    m_anchor_track_time = 0.0;
+    if(preferences::display::tempo_compensation_enabled())
+    {
+        m_active_tempo_multiplier = get_playback_tempo_multiplier(m_now_playing_info);
+    }
+    else
+    {
+        m_active_tempo_multiplier = 1.0;
+    }
 }
 
 void LyricPanel::on_playback_stop(play_control::t_stop_reason reason)
@@ -293,6 +314,9 @@ void LyricPanel::on_playback_stop(play_control::t_stop_reason reason)
     m_now_playing_info = {};
     m_lyrics = {};
     m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
+    m_anchor_output_pos = 0.0;
+    m_anchor_track_time = 0.0;
+    m_active_tempo_multiplier = 1.0;
     StopTimer();
 
     m_albumart_original = {};
@@ -312,9 +336,50 @@ void LyricPanel::on_playback_pause(bool state)
     }
 }
 
-void LyricPanel::on_playback_seek(double /*time*/)
+void LyricPanel::on_playback_seek(double time)
 {
+    m_anchor_output_pos = time - m_now_playing_time_offset;
+    if(m_anchor_output_pos < 0.0)
+    {
+        m_anchor_output_pos = 0.0;
+    }
+    m_anchor_track_time = m_anchor_output_pos;
+
     Invalidate(); // Draw again to update the scroll for the new seek time
+}
+
+void LyricPanel::on_tempo_settings_changed()
+{
+    if(m_now_playing == nullptr)
+    {
+        m_anchor_output_pos = 0.0;
+        m_anchor_track_time = 0.0;
+        m_active_tempo_multiplier = 1.0;
+        return;
+    }
+
+    service_ptr_t<playback_control> playback = playback_control::get();
+    double current_output_pos = playback->playback_get_position() - m_now_playing_time_offset;
+    if(current_output_pos < 0.0)
+    {
+        current_output_pos = 0.0;
+    }
+
+    double current_track_time = m_anchor_track_time + std::max(0.0, current_output_pos - m_anchor_output_pos) * m_active_tempo_multiplier;
+
+    if(preferences::display::tempo_compensation_enabled())
+    {
+        m_active_tempo_multiplier = get_playback_tempo_multiplier(m_now_playing_info);
+    }
+    else
+    {
+        m_active_tempo_multiplier = 1.0;
+    }
+
+    m_anchor_output_pos = current_output_pos;
+    m_anchor_track_time = current_track_time;
+
+    Invalidate();
 }
 
 void LyricPanel::ui_colors_changed()
@@ -1589,11 +1654,29 @@ LyricPanel::PlaybackTimeInfo LyricPanel::get_playback_time()
     service_ptr_t<playback_control> playback = playback_control::get();
 
     PlaybackTimeInfo result = {};
-    result.current_time = playback->playback_get_position() - m_now_playing_time_offset;
+    double output_pos = playback->playback_get_position() - m_now_playing_time_offset;
+    if(output_pos < 0.0)
+    {
+        output_pos = 0.0;
+    }
+
+    if(preferences::display::tempo_compensation_enabled())
+    {
+        double elapsed_since_anchor = std::max(0.0, output_pos - m_anchor_output_pos);
+        result.current_time = m_anchor_track_time + (elapsed_since_anchor * m_active_tempo_multiplier);
+    }
+    else
+    {
+        result.current_time = output_pos;
+    }
+
     result.track_length = playback->playback_get_length_ex();
     if(result.track_length <= 0.0)
     {
-        result.track_length = m_now_playing_info.info->info().get_length();
+        if(m_now_playing_info.info.is_valid())
+        {
+            result.track_length = m_now_playing_info.info->info().get_length();
+        }
     }
     if(result.track_length <= 0.0)
     {
@@ -1812,6 +1895,20 @@ void recompute_lyric_panel_backgrounds()
                     panel->load_custom_background_image();
                 }
                 panel->compute_background_image();
+            }
+        });
+}
+
+void notify_active_panels_tempo_changed()
+{
+    fb2k::inMainThread2(
+        []()
+        {
+            core_api::ensure_main_thread();
+            for(LyricPanel* panel : g_active_panels)
+            {
+                assert(panel != nullptr);
+                panel->on_tempo_settings_changed();
             }
         });
 }
