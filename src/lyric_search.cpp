@@ -57,7 +57,7 @@ namespace
 // =========================================
 void initiate_lyrics_autosearch(metadb_handle_ptr track, metadb_v2_rec_t track_info, bool ignore_search_avoidance)
 {
-    core_api::ensure_main_thread();
+    core_api::ensure_main_thread(); // Required by `initiate_search`
     g_lyric_autosearch_manager.get_static_instance().initiate_search(track, track_info, ignore_search_avoidance);
 }
 std::optional<std::string> get_autosearch_progress_message()
@@ -127,6 +127,8 @@ void LyricAutosearchManager::initiate_search(metadb_handle_ptr track,
                                              metadb_v2_rec_t track_info,
                                              bool ignore_search_avoidance)
 {
+    core_api::ensure_main_thread(); // Required by `search_avoidance_allows_search`
+
     const SearchAvoidanceReason avoid_reason = ignore_search_avoidance
                                                    ? SearchAvoidanceReason::Allowed
                                                    : search_avoidance_allows_search(track, track_info);
@@ -184,6 +186,7 @@ std::optional<std::string> LyricAutosearchManager::get_progress_message()
 void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 {
     assert(track != nullptr);
+    core_api::ensure_main_thread(); // Required by `initiate_search`
 
     const bool track_changed = (track != m_last_played_track);
     m_last_played_track = track;
@@ -209,6 +212,8 @@ void LyricAutosearchManager::on_playback_new_track(metadb_handle_ptr track)
 
 void LyricAutosearchManager::on_playback_dynamic_info_track(const file_info& info)
 {
+    core_api::ensure_main_thread(); // Required by `initiate_search`
+
     service_ptr_t<playback_control> playback = playback_control::get();
     metadb_handle_ptr track;
     if(!playback->get_now_playing(track))

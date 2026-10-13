@@ -1542,7 +1542,7 @@ void announce_lyric_search_avoided(metadb_handle_ptr track, SearchAvoidanceReaso
 
 size_t num_visible_lyric_panels()
 {
-    core_api::ensure_main_thread();
+    core_api::ensure_main_thread(); // Required to avoid locking on g_active_panels
 
     size_t result = 0;
     for(LyricPanel* panel : g_active_panels)

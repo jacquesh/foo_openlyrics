@@ -98,6 +98,8 @@ static bool track_matches_skip_filter(metadb_handle_ptr track, const metadb_v2_r
 
 SearchAvoidanceReason search_avoidance_allows_search(metadb_handle_ptr track, const metadb_v2_rec_t& track_info)
 {
+    core_api::ensure_main_thread(); // Required by `num_visible_lyric_panels`
+
     if(track_matches_skip_filter(track, track_info))
     {
         return SearchAvoidanceReason::MatchesSkipFilter;
@@ -168,7 +170,9 @@ void search_avoidance_force_by_mark_instrumental(metadb_handle_ptr track, const 
 
 #ifndef NDEBUG
     // Sanity check this in debug builds to ensure we have successfully prevented searches
-    assert(search_avoidance_allows_search(track, track_info) == SearchAvoidanceReason::MarkedInstrumental);
+    fb2k::inMainThread2(
+        [track, track_info]
+        { assert(search_avoidance_allows_search(track, track_info) == SearchAvoidanceReason::MarkedInstrumental); });
 #endif
 }
 
