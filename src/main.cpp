@@ -26,9 +26,16 @@ namespace
         out += "\nChangelog:\n";
         // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
         // "\n";
+        out += "Version 1.15 (2026-10-19):\n"
+               "- Overwrite unsynchronized lyrics when confirmed matching synchronized\n"
+               "  lyrics become available\n"
+               "- Reject candidate lyrics containing only composer/arranger credits or\n"
+               "  instrumental placeholders (notably from NetEase)\n"
+               "\n";
         out += "Version 1.14 (2026-10-11):\n"
                "- Add real-time lyric timing offset adjustment with arrow keys and OSD\n"
-               "- Add tempo and playback rate compensation for time-stretching DSPs (Tempo Shift)\n"
+               "- Add tempo and playback rate compensation for time-stretching DSPs\n"
+               "  (Tempo Shift)\n"
                "- Better support non-latin whitespace characters for word wrapping\n"
                "- Fix auto-search triggering for missing local files\n"
                "- Fix Musixmatch always returning an invalid result\n"

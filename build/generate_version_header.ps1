@@ -4,7 +4,7 @@ param (
       )
 $version_string = $(git describe --tags --first-parent HEAD 2>$null)
 if ([string]::IsNullOrEmpty($version_string)) {
-    $version_string = "v1.14"
+    $version_string = "v1.15"
 }
 Write-Output "Computing version header from version string '$version_string'..."
 
