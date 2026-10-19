@@ -61,3 +61,9 @@ struct LyricData : public LyricDataCommon
     LyricData& operator=(const LyricData& other) = default;
     LyricData& operator=(LyricData&& other) = default;
 };
+
+// Returns true if the lyrics contain substantive lyric content (and not just composer/credit lines or instrumental placeholders)
+bool has_substantive_lyrics(const LyricData& lyrics);
+
+// Confirms whether a candidate set of lyrics (e.g. from a remote source) matches the same song as an existing set of lyrics (e.g. saved unsynced lyrics)
+bool are_lyrics_for_same_song(const LyricData& candidate, const LyricData& existing);
