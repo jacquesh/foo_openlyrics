@@ -106,7 +106,8 @@ void LyricAutosearchManager::check_for_available_updates()
             LyricUpdate update = { handle->get_result(),
                                    handle->get_track(),
                                    handle->get_track_info(),
-                                   handle->get_type() };
+                                   handle->get_type(),
+                                   handle->get_overwritten_unsynced_lyrics() };
             announce_lyric_update(std::move(update));
         }
 

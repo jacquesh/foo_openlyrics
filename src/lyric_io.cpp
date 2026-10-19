@@ -13,6 +13,11 @@
 #include "ui_hooks.h"
 #include "win32_util.h"
 
+// clang-format off: GUIDs should be one line
+static const GUID localfiles_src_guid = { 0x76d90970, 0x1c98, 0x4fe2, { 0x94, 0x4e, 0xac, 0xe4, 0x93, 0xf3, 0x8e, 0x85 } };
+static const GUID metadata_tags_src_guid = { 0x3fb0f715, 0xa097, 0x493a, { 0x94, 0x4e, 0xdb, 0x48, 0x66, 0x8, 0x86, 0x78 } };
+// clang-format on
+
 struct UploadQueueEntry
 {
     LyricSearchParams params;
@@ -300,6 +305,12 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
     }
 
     LyricDataRaw lyric_data_raw = {};
+    std::optional<LyricData> saved_unsynced_lyrics;
+    std::optional<LyricDataRaw> saved_unsynced_raw;
+    bool confirmed_overwrites_unsynced = false;
+
+    const bool seek_synced_override = !local_only && (preferences::searching::preferred_lyric_type() == LyricType::Synced);
+
     for(GUID source_id : preferences::searching::active_sources())
     {
         LyricSourceBase* source = LyricSourceBase::get(source_id);
@@ -364,12 +375,6 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
                     {
                         LOG_INFO("Source %s returned an empty lyric, skipping...", friendly_name.c_str());
                     }
-                    else
-                    {
-                        lyric_data_raw = std::move(result);
-                        LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
-                        break;
-                    }
                 }
                 else
                 {
@@ -380,18 +385,64 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
                         {
                             LOG_INFO("Received empty successful lookup from source: %s", friendly_name.c_str());
                         }
-                        else
-                        {
-                            lyric_data_raw = std::move(result);
-                            LOG_INFO("Successfully looked-up lyrics from source: %s", friendly_name.c_str());
-                            break;
-                        }
                     }
                     else
                     {
                         LOG_INFO("Look up for lyrics from source %s returned an empty result, ignoring...",
                                  friendly_name.c_str());
                     }
+                }
+
+                bool candidate_accepted = false;
+                if(!result.text_bytes.empty())
+                {
+                    LyricData parsed_candidate = parsers::lrc::parse(result, decode_raw_lyric_bytes_to_text(result));
+                    if(parsed_candidate.IsEmpty())
+                    {
+                        LOG_INFO("Candidate lyrics from %s parsed to empty, skipping...", friendly_name.c_str());
+                    }
+                    else if(source->is_local() && seek_synced_override && !parsed_candidate.IsTimestamped())
+                    {
+                        if(!saved_unsynced_lyrics.has_value())
+                        {
+                            LOG_INFO("Found saved unsynchronized lyrics from %s; continuing search for synchronized lyrics...",
+                                     friendly_name.c_str());
+                            saved_unsynced_lyrics = std::move(parsed_candidate);
+                            saved_unsynced_raw = std::move(result);
+                        }
+                    }
+                    else if(saved_unsynced_lyrics.has_value())
+                    {
+                        if(!parsed_candidate.IsTimestamped())
+                        {
+                            LOG_INFO("Skipping unsynchronized lyrics from %s because saved unsynchronized lyrics already exist",
+                                     friendly_name.c_str());
+                        }
+                        else if(are_lyrics_for_same_song(parsed_candidate, saved_unsynced_lyrics.value()))
+                        {
+                            LOG_INFO("Confirmed synchronized lyrics from %s are for the same song as saved unsynchronized lyrics; overwriting unsynced lyrics",
+                                     friendly_name.c_str());
+                            lyric_data_raw = std::move(result);
+                            confirmed_overwrites_unsynced = true;
+                            candidate_accepted = true;
+                        }
+                        else
+                        {
+                            LOG_INFO("Rejected synchronized lyrics from %s: not confirmed to be for the same song as saved unsynchronized lyrics",
+                                     friendly_name.c_str());
+                        }
+                    }
+                    else
+                    {
+                        lyric_data_raw = std::move(result);
+                        candidate_accepted = true;
+                    }
+                }
+
+                if(candidate_accepted)
+                {
+                    LOG_INFO("Successfully retrieved lyrics from source: %s", friendly_name.c_str());
+                    break;
                 }
             }
         }
@@ -411,6 +462,12 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
         LOG_INFO("Failed to retrieve lyrics from source: %s", friendly_name.c_str());
     }
 
+    if(lyric_data_raw.text_bytes.empty() && saved_unsynced_raw.has_value())
+    {
+        LOG_INFO("No confirmed synchronized lyrics found; keeping existing saved unsynchronized lyrics");
+        lyric_data_raw = std::move(saved_unsynced_raw.value());
+    }
+
     LOG_INFO("Parsing lyrics text...");
     handle.set_progress("Parsing...");
 
@@ -425,8 +482,22 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
     }
     else
     {
-        // Clear here so that we will continue searching even if auto-save is disabled and the user doesn't save
-        clear_search_avoidance(handle.get_track_info());
+        if(confirmed_overwrites_unsynced && saved_unsynced_lyrics.has_value())
+        {
+            clear_search_avoidance(handle.get_track_info());
+            handle.set_overwritten_unsynced_lyrics(std::move(saved_unsynced_lyrics.value()));
+        }
+        else if(saved_unsynced_lyrics.has_value() && !local_only)
+        {
+            // We had saved unsynced lyrics, searched remote sources for synced lyrics, but failed to find any.
+            // Log search failure so we avoid repeatedly hammering remote sources on every play.
+            search_avoidance_log_search_failure(handle.get_track_info());
+        }
+        else
+        {
+            // Clear here so that we will continue searching even if auto-save is disabled and the user doesn't save
+            clear_search_avoidance(handle.get_track_info());
+        }
         handle.set_result(std::move(lyric_data), true);
     }
     LOG_INFO("Lyric loading complete");
@@ -595,11 +666,13 @@ void io::search_for_all_lyrics(LyricSearchHandle& handle, std::string artist, st
 static bool should_lyric_update_be_saved(bool loaded_from_local_src,
                                          AutoSaveStrategy autosave,
                                          LyricUpdate::Type update_type,
-                                         bool is_timestamped)
+                                         bool is_timestamped,
+                                         bool overwriting_unsynced = false)
 {
     const bool is_configured_to_autosave = (autosave == AutoSaveStrategy::Always)
                                            || ((autosave == AutoSaveStrategy::OnlySynced) && is_timestamped)
-                                           || ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped);
+                                           || ((autosave == AutoSaveStrategy::OnlyUnsynced) && !is_timestamped)
+                                           || (overwriting_unsynced && (autosave != AutoSaveStrategy::Never));
     const bool should_autosave = ((update_type == LyricUpdate::Type::AutoSearch) && is_configured_to_autosave
                                   && !loaded_from_local_src);
 
@@ -712,10 +785,12 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
     const bool loaded_from_local_src = ((source != nullptr) && source->is_local());
     const AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
 
+    const bool overwriting_unsynced = update.overwritten_unsynced_lyrics.has_value();
     const bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
                                                           autosave,
                                                           update.type,
-                                                          update.lyrics.IsTimestamped());
+                                                          update.lyrics.IsTimestamped(),
+                                                          overwriting_unsynced);
     if(should_save)
     {
         try
@@ -735,8 +810,35 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
                 }
             }
 
-            const bool allow_overwrite = save_overwrite_allowed(update.type);
-            io::save_lyrics(update.track, update.track_info, update.lyrics, allow_overwrite);
+            const bool allow_overwrite = save_overwrite_allowed(update.type) || overwriting_unsynced;
+            const bool save_success = io::save_lyrics(update.track, update.track_info, update.lyrics, allow_overwrite);
+
+            if(save_success && overwriting_unsynced)
+            {
+                const LyricData& old_lyrics = update.overwritten_unsynced_lyrics.value();
+                const GUID target_save_source = preferences::saving::save_source();
+                const GUID old_source = old_lyrics.save_source.value_or(old_lyrics.source_id);
+                const std::string& old_path = old_lyrics.save_source.has_value() ? old_lyrics.save_path : old_lyrics.source_path;
+
+                bool is_identical_target = false;
+                if((target_save_source == metadata_tags_src_guid) && (old_source == metadata_tags_src_guid))
+                {
+                    if(tag_values_match(old_path, preferences::saving::timestamped_tag()))
+                    {
+                        is_identical_target = true;
+                    }
+                }
+                else if(old_path == update.lyrics.save_path)
+                {
+                    is_identical_target = true;
+                }
+
+                if(!is_identical_target)
+                {
+                    LOG_INFO("Deleting obsolete unsynchronized lyrics after saving synchronized lyrics");
+                    io::delete_saved_lyrics(update.track, old_lyrics);
+                }
+            }
 
             if((preferences::upload::lrclib_upload_strategy() == UploadStrategy::OnEdit)
                && (update.type == LyricUpdate::Type::Edit) && update.lyrics.IsTimestamped())
@@ -824,9 +926,11 @@ LyricSearchHandle::LyricSearchHandle(LyricUpdate::Type type,
 
 LyricSearchHandle::LyricSearchHandle(LyricSearchHandle&& other)
     : m_track(other.m_track)
+    , m_track_info(other.m_track_info)
     , m_type(other.m_type)
     , m_mutex()
     , m_lyrics(std::move(other.m_lyrics))
+    , m_overwritten_unsynced_lyrics(std::move(other.m_overwritten_unsynced_lyrics))
     , m_abort(other.m_abort)
     , m_complete(nullptr)
     , m_status(other.m_status)
@@ -916,6 +1020,22 @@ LyricData LyricSearchHandle::get_result()
     return result;
 }
 
+bool LyricSearchHandle::has_overwritten_unsynced_lyrics()
+{
+    EnterCriticalSection(&m_mutex);
+    bool output = m_overwritten_unsynced_lyrics.has_value();
+    LeaveCriticalSection(&m_mutex);
+    return output;
+}
+
+std::optional<LyricData> LyricSearchHandle::get_overwritten_unsynced_lyrics()
+{
+    EnterCriticalSection(&m_mutex);
+    std::optional<LyricData> result = m_overwritten_unsynced_lyrics;
+    LeaveCriticalSection(&m_mutex);
+    return result;
+}
+
 abort_callback& LyricSearchHandle::get_checked_abort()
 {
     m_abort.check();
@@ -973,6 +1093,13 @@ void LyricSearchHandle::set_result(LyricData&& data, bool final_result)
     LeaveCriticalSection(&m_mutex);
 
     repaint_all_lyric_panels();
+}
+
+void LyricSearchHandle::set_overwritten_unsynced_lyrics(LyricData lyrics)
+{
+    EnterCriticalSection(&m_mutex);
+    m_overwritten_unsynced_lyrics = std::move(lyrics);
+    LeaveCriticalSection(&m_mutex);
 }
 
 void LyricSearchHandle::set_complete()
@@ -1189,5 +1316,45 @@ MVTF_TEST(saving_only_save_unsynced_autosearch_results_with_save_strategy_onlyun
     bool save_unsynced = should_lyric_update_be_saved(loaded_from_local_src, autosave, update_type, false);
     ASSERT(!save_synced);
     ASSERT(save_unsynced);
+}
+
+MVTF_TEST(saving_allow_overwrite_for_overwriting_unsynced)
+{
+    const bool normal_autosearch = save_overwrite_allowed(LyricUpdate::Type::AutoSearch);
+    ASSERT(!normal_autosearch);
+
+    const bool overwriting_autosearch = normal_autosearch || true;
+    ASSERT(overwriting_autosearch);
+
+    const bool manual_search = save_overwrite_allowed(LyricUpdate::Type::ManualSearch);
+    ASSERT(manual_search);
+
+    const bool edit = save_overwrite_allowed(LyricUpdate::Type::Edit);
+    ASSERT(edit);
+}
+
+MVTF_TEST(saving_overwriting_unsynced_saves_unless_autosave_never)
+{
+    const bool loaded_from_local_src = false;
+    const LyricUpdate::Type update_type = LyricUpdate::Type::AutoSearch;
+    const bool is_timestamped = true;
+    const bool overwriting_unsynced = true;
+
+    for(AutoSaveStrategy autosave : g_all_save_strategies)
+    {
+        const bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
+                                                              autosave,
+                                                              update_type,
+                                                              is_timestamped,
+                                                              overwriting_unsynced);
+        if(autosave == AutoSaveStrategy::Never)
+        {
+            ASSERT(!should_save);
+        }
+        else
+        {
+            ASSERT(should_save);
+        }
+    }
 }
 #endif

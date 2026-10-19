@@ -20,6 +20,7 @@ struct LyricUpdate
     metadb_handle_ptr track;
     metadb_v2_rec_t track_info;
     Type type;
+    std::optional<LyricData> overwritten_unsynced_lyrics = std::nullopt;
 };
 
 class LyricSearchHandle
@@ -40,6 +41,8 @@ public:
     bool has_result();
     bool has_searched_remote_sources(); // True if this update handle has searched any remote sources
     LyricData get_result();
+    bool has_overwritten_unsynced_lyrics();
+    std::optional<LyricData> get_overwritten_unsynced_lyrics();
 
     abort_callback& get_checked_abort(); // Checks the abort flag (so it might throw) and returns it
     metadb_handle_ptr get_track();
@@ -49,6 +52,7 @@ public:
     void set_progress(std::string_view value);
     void set_remote_source_searched();
     void set_result(LyricData&& data, bool final_result);
+    void set_overwritten_unsynced_lyrics(LyricData lyrics);
     void set_complete();
 
 private:
@@ -67,6 +71,7 @@ private:
 
     CRITICAL_SECTION m_mutex;
     std::vector<LyricData> m_lyrics;
+    std::optional<LyricData> m_overwritten_unsynced_lyrics;
     abort_callback& m_abort;
     HANDLE m_complete;
     Status m_status;

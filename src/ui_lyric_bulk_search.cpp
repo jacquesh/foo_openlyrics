@@ -302,7 +302,7 @@ LRESULT BulkLyricSearch::OnTimer(WPARAM)
     if(update.has_result())
     {
         lyrics = io::process_available_lyric_update(
-            { update.get_result(), update.get_track(), update.get_track_info(), update.get_type() });
+            { update.get_result(), update.get_track(), update.get_track_info(), update.get_type(), update.get_overwritten_unsynced_lyrics() });
     }
     m_child_search.reset();
 
