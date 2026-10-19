@@ -5,6 +5,8 @@
 #include "logging.h"
 #include "lyric_data.h"
 #include "lyric_source.h"
+#include "mvtf/mvtf.h"
+#include "parsers.h"
 #include "tag_util.h"
 
 static const GUID src_guid = { 0xaac13215, 0xe32e, 0x4667, { 0xac, 0xd7, 0x1f, 0xd, 0xbd, 0x84, 0x27, 0xe4 } };
@@ -214,8 +216,17 @@ bool NetEaseLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
             if((lrc_lyric != nullptr) && (lrc_lyric->type == cJSON_String))
             {
                 const std::string_view trimmed_text = trim_surrounding_whitespace(lrc_lyric->valuestring);
-                data.text_bytes = string_to_raw_bytes(trimmed_text);
-                success = true;
+                LyricData parsed = parsers::lrc::parse(data, trimmed_text);
+                if(has_substantive_lyrics(parsed))
+                {
+                    data.text_bytes = string_to_raw_bytes(trimmed_text);
+                    success = true;
+                }
+                else
+                {
+                    LOG_INFO("NetEase lyrics for song ID %s contain only credits or placeholder text with no lyrics, skipping...",
+                             data.lookup_id.c_str());
+                }
             }
         }
     }
@@ -223,3 +234,30 @@ bool NetEaseLyricsSource::lookup(LyricDataRaw& data, abort_callback& abort)
 
     return success;
 }
+
+#if MVTF_TESTS_ENABLED
+MVTF_TEST(netease_lyrics_without_substantive_content_are_rejected)
+{
+    LyricDataRaw data = {};
+    const std::string composer_only = "[00:00.00] 作词 : Bob Dylan\n[00:01.00] 作曲 : Bob Dylan\n";
+    LyricData parsed = parsers::lrc::parse(data, composer_only);
+    ASSERT(!has_substantive_lyrics(parsed));
+}
+
+MVTF_TEST(netease_instrumental_placeholder_is_rejected)
+{
+    LyricDataRaw data = {};
+    const std::string instrumental = "[00:00.00] 纯音乐，请欣赏\n";
+    LyricData parsed = parsers::lrc::parse(data, instrumental);
+    ASSERT(!has_substantive_lyrics(parsed));
+}
+
+MVTF_TEST(netease_lyrics_with_credits_and_substantive_content_are_accepted)
+{
+    LyricDataRaw data = {};
+    const std::string lyrics_with_credits = "[00:00.00] 作词 : Bob Dylan\n[00:01.00] 作曲 : Bob Dylan\n[00:05.00] Come gather 'round people\n";
+    LyricData parsed = parsers::lrc::parse(data, lyrics_with_credits);
+    ASSERT(has_substantive_lyrics(parsed));
+}
+
+#endif
