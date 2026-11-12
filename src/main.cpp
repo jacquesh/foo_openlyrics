@@ -27,6 +27,8 @@ namespace
         // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
         // "\n";
         out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+               "- Remove Musixmatch integration\n"
+               "  - This is in response to a request received from Musixmatch themselves.\n"
                "- Better support non-latin whitespace characters for word wrapping\n"
                "- Fix auto-search triggering for missing local files\n"
                "- Fix Musixmatch always returning an invalid result\n"

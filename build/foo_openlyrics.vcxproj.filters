@@ -99,9 +99,6 @@
     <ClCompile Include="..\src\sources\qqmusic.cpp">
       <Filter>Source Files\sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sources\musixmatch.cpp">
-      <Filter>Source Files\sources</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\ui_lyric_manual_search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -148,9 +145,6 @@
       <Filter>Source Files\config</Filter>
     </ClCompile>
     <ClCompile Include="..\src\config\ui_preferences_src_localfiles.cpp">
-      <Filter>Source Files\config</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\config\ui_preferences_src_musixmatch.cpp">
       <Filter>Source Files\config</Filter>
     </ClCompile>
     <ClCompile Include="..\src\sources\lrclib.cpp">

@@ -108,9 +108,6 @@ namespace preferences
         bool should_search_without_panels();
 
         std::vector<std::string> tags();
-        std::string_view musixmatch_api_key();
-        std::optional<std::string> musixmatch_prompt_for_api_key_generation(std::string_view description,
-                                                                            HWND parent_window);
 
         namespace raw
         {
