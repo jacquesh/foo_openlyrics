@@ -26,7 +26,7 @@ namespace
         out += "\nChangelog:\n";
         // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
         // "\n";
-        out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+        out += "Version 1.14 (2026-11-12):\n"
                "- Remove Musixmatch integration\n"
                "  - This is in response to a request received from Musixmatch themselves.\n"
                "- Better support non-latin whitespace characters for word wrapping\n"
