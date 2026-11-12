@@ -31,7 +31,6 @@ namespace
                "  - This is in response to a request received from Musixmatch themselves.\n"
                "- Better support non-latin whitespace characters for word wrapping\n"
                "- Fix auto-search triggering for missing local files\n"
-               "- Fix Musixmatch always returning an invalid result\n"
                "\n";
         out += "Version 1.13 (2026-01-17):\n"
                "- Enable searching local sources with no visible panels by default\n"
