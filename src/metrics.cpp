@@ -256,13 +256,8 @@ static std::string get_openlyrics_dll_hash(abort_callback& abort)
 
 static std::string get_source_name(GUID guid)
 {
-    LyricSourceBase* source = LyricSourceBase::get(guid);
-    if(source == nullptr)
-    {
-        return "<unknown>";
-    }
-
-    return from_tstring(source->friendly_name());
+    LyricSourceBase& source = LyricSourceBase::get(guid);
+    return from_tstring(source.friendly_name());
 }
 
 std::string collect_metrics(abort_callback& abort, bool is_dark_mode, size_t number_of_visible_lyric_panels)
@@ -459,14 +454,14 @@ public:
 
         popup_message_v3::query_t query = {};
         query.title = "OpenLyrics metrics";
-        query
-            .msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo effectively "
-                   "direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, "
-                   "once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to "
-                   "inform which features are added or enhanced, as well as potentially which features get removed "
-                   "(e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information "
-                   "will be used exclusively to inform foo_openlyrics' development and will never be sold or used for "
-                   "marketing (by anybody).\n\nYou can click 'Retry' to view the exact data that would be submitted.";
+        query.msg = "Would you like to send some basic usage metrics to the foo_openlyrics developer?\n\nTo "
+                    "effectively "
+                    "direct the limited time that I have to work on foo_openlyrics, I'd like to collect some basic, "
+                    "once-off data about usage of foo_openlyrics among the community.\n\nThis usage data will help to "
+                    "inform which features are added or enhanced, as well as potentially which features get removed "
+                    "(e.g if nobody uses them).\n\nNo uniquely-identifying information is collected, all information "
+                    "will be used exclusively to inform foo_openlyrics' development and will never be sold or used for "
+                    "marketing (by anybody).\n\nYou can click 'Retry' to view the exact data that would be submitted.";
         query.buttons = popup_message_v3::buttonYes | popup_message_v3::buttonNo | popup_message_v3::buttonRetry;
         query.defButton = popup_message_v3::buttonNo;
         query.icon = popup_message_v3::iconQuestion;

@@ -71,8 +71,8 @@ bool io::save_lyrics(metadb_handle_ptr track,
     //       only happen on the main thread.
     core_api::ensure_main_thread();
 
-    LyricSourceBase* source = LyricSourceBase::get(preferences::saving::save_source());
-    if(source == nullptr)
+    LyricSourceBase& source = LyricSourceBase::get(preferences::saving::save_source());
+    if(source.is_dummy())
     {
         LOG_WARN("Failed to load configured save source");
         return false;
@@ -82,20 +82,20 @@ bool io::save_lyrics(metadb_handle_ptr track,
         parsers::lrc::expand_text(lyrics, preferences::saving::merge_equivalent_lrc_lines()));
     try
     {
-        std::string output_path = source->save(track,
-                                               track_info,
-                                               lyrics.IsTimestamped(),
-                                               text,
-                                               allow_overwrite,
-                                               fb2k::mainAborter());
+        std::string output_path = source.save(track,
+                                              track_info,
+                                              lyrics.IsTimestamped(),
+                                              text,
+                                              allow_overwrite,
+                                              fb2k::mainAborter());
         lyrics.save_path = output_path;
-        lyrics.save_source = source->id();
+        lyrics.save_source = source.id();
         clear_search_avoidance(track_info); // Clear here so that we will always find saved lyrics
         return true;
     }
     catch(const std::exception& e)
     {
-        std::string source_name = from_tstring(source->friendly_name());
+        std::string source_name = from_tstring(source.friendly_name());
         LOG_ERROR("Failed to save lyrics to %s: %s", source_name.c_str(), e.what());
         return false;
     }
@@ -302,16 +302,16 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
     LyricDataRaw lyric_data_raw = {};
     for(GUID source_id : preferences::searching::active_sources())
     {
-        LyricSourceBase* source = LyricSourceBase::get(source_id);
-        assert(source != nullptr);
-        if(source == nullptr)
+        LyricSourceBase& source = LyricSourceBase::get(source_id);
+        if(source.is_dummy())
         {
+            // This could happen if the user's configured to search an unrecognised source
             LOG_WARN("Attempt to search unrecognised lyric source, ignoring...");
             continue;
         }
 
-        std::string friendly_name = from_tstring(source->friendly_name());
-        if(local_only && !source->is_local())
+        std::string friendly_name = from_tstring(source.friendly_name());
+        if(local_only && !source.is_local())
         {
             LOG_INFO("Current search is only considering local sources and %s is not marked as local, skipping...",
                      friendly_name.c_str());
@@ -321,13 +321,13 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
 
         try
         {
-            if(!source->is_local())
+            if(!source.is_local())
             {
                 handle.set_remote_source_searched();
             }
-            std::vector<LyricDataRaw> search_results = source->search(handle.get_track(),
-                                                                      handle.get_track_info(),
-                                                                      handle.get_checked_abort());
+            std::vector<LyricDataRaw> search_results = source.search(handle.get_track(),
+                                                                     handle.get_track_info(),
+                                                                     handle.get_checked_abort());
             sort_source_results(search_results,
                                 tag_artist,
                                 tag_album,
@@ -373,7 +373,7 @@ static void internal_search_for_lyrics(LyricSearchHandle& handle, bool local_onl
                 }
                 else
                 {
-                    bool lyrics_found = source->lookup(result, handle.get_checked_abort());
+                    bool lyrics_found = source.lookup(result, handle.get_checked_abort());
                     if(lyrics_found)
                     {
                         if(result.text_bytes.empty())
@@ -443,37 +443,37 @@ void io::search_for_lyrics(LyricSearchHandle& handle, bool local_only)
 }
 
 static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle,
-                                                       LyricSourceBase* source,
+                                                       LyricSourceBase& source,
                                                        const LyricSearchParams& params)
 {
-    std::string friendly_name = from_tstring(source->friendly_name());
+    std::string friendly_name = from_tstring(source.friendly_name());
     handle.set_started();
 
     try
     {
         std::vector<LyricDataRaw> search_results;
-        if(source->is_local())
+        if(source.is_local())
         {
-            search_results = source->search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
+            search_results = source.search(handle.get_track(), handle.get_track_info(), handle.get_checked_abort());
         }
         else
         {
             handle.set_remote_source_searched();
-            LyricSourceRemote* remote_source = dynamic_cast<LyricSourceRemote*>(source);
-            assert(remote_source != nullptr);
-            if(remote_source == nullptr)
+            LyricSourceRemote& remote_source = dynamic_cast<LyricSourceRemote&>(source);
+            assert(!remote_source.is_dummy());
+            if(remote_source.is_dummy())
             {
                 LOG_ERROR("Bad LyricSourceRemote cast for: %s", friendly_name.c_str());
                 handle.set_complete();
                 return;
             }
 
-            search_results = remote_source->search(params, handle.get_checked_abort());
+            search_results = remote_source.search(params, handle.get_checked_abort());
         }
 
         for(LyricDataRaw& result : search_results)
         {
-            assert(result.source_id == source->id());
+            assert(result.source_id == source.id());
 
             std::optional<std::string> lyric;
             if(result.lookup_id.empty())
@@ -485,7 +485,7 @@ static void internal_search_for_all_lyrics_from_source(LyricSearchHandle& handle
             }
             else
             {
-                bool lyrics_found = source->lookup(result, handle.get_checked_abort());
+                bool lyrics_found = source.lookup(result, handle.get_checked_abort());
                 if(lyrics_found && !result.text_bytes.empty())
                 {
                     lyric = decode_raw_lyric_bytes_to_text(result);
@@ -535,9 +535,9 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle,
     std::vector<GUID> all_source_ids = LyricSourceBase::get_all_ids();
     for(GUID source_id : all_source_ids)
     {
-        LyricSourceBase* source = LyricSourceBase::get(source_id);
-        assert(source != nullptr);
-        if(source == nullptr)
+        LyricSourceBase& source = LyricSourceBase::get(source_id);
+        assert(!source.is_dummy()); // get_all_ids() should never return the dummy source
+        if(source.is_dummy())
         {
             LOG_WARN("Attempt to search unrecognised lyric source, ignoring...");
             continue;
@@ -549,7 +549,7 @@ static void internal_search_for_all_lyrics(LyricSearchHandle& handle,
                                     handle.get_checked_abort());
         LyricSearchHandle& src_handle = source_handles.back();
 
-        fb2k::splitTask([&src_handle, source, &params]()
+        fb2k::splitTask([&src_handle, &source, &params]()
                         { internal_search_for_all_lyrics_from_source(src_handle, source, params); });
     }
 
@@ -645,28 +645,27 @@ static void try_publish_update(LyricData lyrics, const metadb_v2_rec_t& track_in
 
     for(const GUID& guid : LyricSourceBase::get_all_ids())
     {
-        LyricSourceBase* src = LyricSourceBase::get(guid);
-        if((src == nullptr) || src->is_local())
+        LyricSourceBase& src = LyricSourceBase::get(guid);
+        if((src.is_dummy()) || src.is_local())
         {
             // Can't "upload" to a local source
             continue;
         }
-        LyricSourceRemote* remote_src = dynamic_cast<LyricSourceRemote*>(src);
-        assert(remote_src != nullptr);
-        if(remote_src == nullptr)
+        LyricSourceRemote& remote_src = dynamic_cast<LyricSourceRemote&>(src);
+        if(remote_src.is_dummy())
         {
-            std::string friendly_name = from_tstring(src->friendly_name());
+            std::string friendly_name = from_tstring(src.friendly_name());
             LOG_ERROR("Bad LyricSourceRemote cast during upload for: %s", friendly_name.c_str());
             continue;
         }
 
-        if(!remote_src->supports_upload())
+        if(!remote_src.supports_upload())
         {
             continue;
         }
 
         fb2k::splitTask(
-            [lyrics, remote_src, params = LyricSearchParams(track_info)]()
+            [lyrics, &remote_src, params = LyricSearchParams(track_info)]()
             {
                 try
                 {
@@ -681,7 +680,7 @@ static void try_publish_update(LyricData lyrics, const metadb_v2_rec_t& track_in
                         return;
                     }
 
-                    std::vector<LyricDataRaw> existing_lyrics = remote_src->search(params, fb2k::mainAborter());
+                    std::vector<LyricDataRaw> existing_lyrics = remote_src.search(params, fb2k::mainAborter());
                     if(!existing_lyrics.empty())
                     {
                         // For now we only upload if the source doesn't have *any* lyrics for this track
@@ -689,7 +688,7 @@ static void try_publish_update(LyricData lyrics, const metadb_v2_rec_t& track_in
                         return;
                     }
 
-                    remote_src->upload(lyrics, fb2k::mainAborter());
+                    remote_src.upload(lyrics, fb2k::mainAborter());
                     metrics::log_used_lyric_upload();
                 }
                 catch(std::exception& ex)
@@ -708,8 +707,8 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
         return {};
     }
 
-    const LyricSourceBase* source = LyricSourceBase::get(update.lyrics.source_id);
-    const bool loaded_from_local_src = ((source != nullptr) && source->is_local());
+    const LyricSourceBase& source = LyricSourceBase::get(update.lyrics.source_id);
+    const bool loaded_from_local_src = (!source.is_dummy() && source.is_local());
     const AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
 
     const bool should_save = should_lyric_update_be_saved(loaded_from_local_src,
@@ -766,30 +765,30 @@ bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)
     if(lyrics.save_source.has_value())
     {
         // These lyrics have been saved, delete them from the save source
-        LyricSourceBase* source = LyricSourceBase::get(lyrics.save_source.value());
-        if(source == nullptr)
+        LyricSourceBase& source = LyricSourceBase::get(lyrics.save_source.value());
+        if(source.is_dummy())
         {
             LOG_WARN("Failed to look up save source for lyric deletion request");
             return false;
         }
 
         LOG_INFO("Lyric was saved to a local source, deleting with the saver source");
-        return source->delete_persisted(track, lyrics.save_path);
+        return source.delete_persisted(track, lyrics.save_path);
     }
     else
     {
         // These lyrics have not been saved, but they may have been loaded from a local source
-        LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
-        if(source == nullptr)
+        LyricSourceBase& source = LyricSourceBase::get(lyrics.source_id);
+        if(source.is_dummy())
         {
             LOG_WARN("Failed to look up originating source for lyric deletion request");
             return false;
         }
 
-        if(source->is_local())
+        if(source.is_local())
         {
             LOG_INFO("Lyric was loaded from a local source, deleting with the loader source");
-            return source->delete_persisted(track, lyrics.source_path);
+            return source.delete_persisted(track, lyrics.source_path);
         }
         else
         {

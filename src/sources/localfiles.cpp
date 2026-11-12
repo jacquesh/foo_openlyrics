@@ -22,6 +22,10 @@ class LocalFileSource : public LyricSourceBase
     {
         return true;
     }
+    bool is_dummy() const final
+    {
+        return false;
+    }
 
     std::vector<LyricDataRaw> search(metadb_handle_ptr track,
                                      const metadb_v2_rec_t& track_info,

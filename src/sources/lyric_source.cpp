@@ -34,19 +34,75 @@ LyricSearchParams::LyricSearchParams(std::string in_artist,
 {
 }
 
+static const GUID dummy_src_guid = { 0x2c219517, 0x2c9, 0x494e, { 0xa5, 0x6f, 0x21, 0x65, 0x5e, 0xf2, 0x35, 0x64 } };
+class DummyLyricSource : public LyricSourceBase
+{
+public:
+    const GUID& id() const final
+    {
+        return dummy_src_guid;
+    }
+
+    std::tstring_view friendly_name() const final
+    {
+        return _T("<UNKNOWN SOURCE>");
+    }
+
+    bool is_local() const final
+    {
+        return true;
+    }
+    bool is_dummy() const final
+    {
+        return true;
+    }
+
+    std::vector<LyricDataRaw> search(metadb_handle_ptr track,
+                                     const metadb_v2_rec_t& track_info,
+                                     abort_callback& abort) final
+    {
+        return {};
+    }
+
+    bool lookup(LyricDataRaw& data, abort_callback& abort) final
+    {
+        return false;
+    }
+
+    std::string save(metadb_handle_ptr track,
+                     const metadb_v2_rec_t& track_info,
+                     bool is_timestamped,
+                     std::string_view lyrics,
+                     bool allow_overwrite,
+                     abort_callback& abort) final
+    {
+        return "";
+    }
+    bool delete_persisted(metadb_handle_ptr track, const std::string& path) final
+    {
+        return false;
+    }
+
+    std::tstring get_file_path(metadb_handle_ptr track, const LyricData& lyrics) final
+    {
+        return _T("");
+    }
+};
+static LyricSourceFactory<DummyLyricSource> dummy_src_factory;
+
 static std::vector<LyricSourceBase*> g_lyric_sources;
 
-LyricSourceBase* LyricSourceBase::get(GUID id)
+LyricSourceBase& LyricSourceBase::get(GUID id)
 {
     for(LyricSourceBase* src : g_lyric_sources)
     {
         if(src->id() == id)
         {
-            return src;
+            return *src;
         }
     }
 
-    return nullptr;
+    return dummy_src_factory.get_static_instance();
 }
 
 std::vector<GUID> LyricSourceBase::get_all_ids()
@@ -55,6 +111,10 @@ std::vector<GUID> LyricSourceBase::get_all_ids()
     result.reserve(g_lyric_sources.size());
     for(LyricSourceBase* src : g_lyric_sources)
     {
+        if(src->id() == dummy_src_guid)
+        {
+            continue; // We don't ever want to advertise the dummy source
+        }
         result.push_back(src->id());
     }
     return result;
@@ -108,6 +168,11 @@ std::vector<uint8_t> LyricSourceBase::string_to_raw_bytes(std::string_view str)
 }
 
 bool LyricSourceRemote::is_local() const
+{
+    return false;
+}
+
+bool LyricSourceRemote::is_dummy() const
 {
     return false;
 }

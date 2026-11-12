@@ -33,7 +33,7 @@ struct LyricSearchParams
 class LyricSourceBase : public initquit
 {
 public:
-    static LyricSourceBase* get(GUID guid);
+    static LyricSourceBase& get(GUID guid);
     static std::vector<GUID> get_all_ids();
 
     void on_init() final;
@@ -41,6 +41,7 @@ public:
     virtual const GUID& id() const = 0;
     virtual std::tstring_view friendly_name() const = 0;
     virtual bool is_local() const = 0;
+    virtual bool is_dummy() const = 0;
 
     virtual std::vector<LyricDataRaw> search(metadb_handle_ptr track,
                                              const metadb_v2_rec_t& track_info,
@@ -68,6 +69,7 @@ class LyricSourceRemote : public LyricSourceBase
 {
 public:
     bool is_local() const final;
+    bool is_dummy() const final;
     std::vector<LyricDataRaw> search(metadb_handle_ptr track,
                                      const metadb_v2_rec_t& track_info,
                                      abort_callback& abort) final;

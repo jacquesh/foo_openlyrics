@@ -389,10 +389,10 @@ void PreferencesSearchSources::SourceListResetFromSaved()
     for(size_t active_source_index = 0; active_source_index < active_source_count; active_source_index++)
     {
         GUID src_guid = cfg_search_active_sources[active_source_index];
-        LyricSourceBase* src = LyricSourceBase::get(src_guid);
-        assert(src != nullptr);
-        if(src == nullptr)
+        LyricSourceBase& src = LyricSourceBase::get(src_guid);
+        if(src.is_dummy())
         {
+            // This could happen if the config referenced a deprecated/removed source.
             LOG_WARN("Search configuration contains an unrecognised active source, ignoring...");
             continue;
         }
@@ -412,8 +412,8 @@ void PreferencesSearchSources::SourceListResetFromSaved()
         LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST,
                                                LB_ADDSTRING,
                                                0,
-                                               (LPARAM)src->friendly_name().data());
-        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
+                                               (LPARAM)src.friendly_name().data());
+        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src.id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
     }
@@ -422,9 +422,9 @@ void PreferencesSearchSources::SourceListResetFromSaved()
     {
         if(sources_active[entry_index]) continue;
 
-        LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
-        assert(src != nullptr);
-        if(src == nullptr)
+        LyricSourceBase& src = LyricSourceBase::get(all_src_ids[entry_index]);
+        assert(!src.is_dummy()); // get_all_ids() shouldn't ever return the dummy source
+        if(src.is_dummy())
         {
             LOG_WARN("Search configuration contains an unrecognised inactive source, ignoring...");
             continue;
@@ -433,11 +433,8 @@ void PreferencesSearchSources::SourceListResetFromSaved()
         LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST,
                                                LB_ADDSTRING,
                                                0,
-                                               (LPARAM)src->friendly_name().data());
-        LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST,
-                                                LB_SETITEMDATA,
-                                                new_index,
-                                                (LPARAM)&src->id());
+                                               (LPARAM)src.friendly_name().data());
+        LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src.id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
     }
@@ -454,9 +451,9 @@ void PreferencesSearchSources::SourceListResetToDefault()
 
     for(GUID src_guid : cfg_search_active_sources_default)
     {
-        LyricSourceBase* src = LyricSourceBase::get(src_guid);
-        assert(src != nullptr);
-        if(src == nullptr)
+        LyricSourceBase& src = LyricSourceBase::get(src_guid);
+        assert(!src.is_dummy()); // The default config should never include the dummy source
+        if(src.is_dummy())
         {
             LOG_WARN("Search configuration contains an unrecognised active source, ignoring...");
             continue;
@@ -477,8 +474,8 @@ void PreferencesSearchSources::SourceListResetToDefault()
         LRESULT new_index = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST,
                                                LB_ADDSTRING,
                                                0,
-                                               (LPARAM)src->friendly_name().data());
-        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src->id());
+                                               (LPARAM)src.friendly_name().data());
+        LRESULT set_result = SendDlgItemMessage(IDC_ACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src.id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
     }
@@ -487,9 +484,9 @@ void PreferencesSearchSources::SourceListResetToDefault()
     {
         if(sources_active[entry_index]) continue;
 
-        LyricSourceBase* src = LyricSourceBase::get(all_src_ids[entry_index]);
-        assert(src != nullptr);
-        if(src == nullptr)
+        LyricSourceBase& src = LyricSourceBase::get(all_src_ids[entry_index]);
+        assert(!src.is_dummy()); // get_all_ids() should never return the dummy source
+        if(src.is_dummy())
         {
             LOG_WARN("All-source list contains an unrecognised source, ignoring...");
             continue;
@@ -498,11 +495,8 @@ void PreferencesSearchSources::SourceListResetToDefault()
         LRESULT new_index = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST,
                                                LB_ADDSTRING,
                                                0,
-                                               (LPARAM)src->friendly_name().data());
-        LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST,
-                                                LB_SETITEMDATA,
-                                                new_index,
-                                                (LPARAM)&src->id());
+                                               (LPARAM)src.friendly_name().data());
+        LRESULT set_result = SendDlgItemMessage(IDC_INACTIVE_SOURCE_LIST, LB_SETITEMDATA, new_index, (LPARAM)&src.id());
         assert(new_index != LB_ERR);
         assert(set_result != LB_ERR);
     }

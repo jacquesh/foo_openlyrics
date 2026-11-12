@@ -237,19 +237,10 @@ static int CALLBACK column_sort_fn(LPARAM lparam1, LPARAM lparam2, LPARAM sort_d
         case 2: return order_factor * item1->artist.compare(item2->artist);
         case 3: // Source
         {
-            LyricSourceBase* source1 = LyricSourceBase::get(item1->source_id);
-            LyricSourceBase* source2 = LyricSourceBase::get(item2->source_id);
-            if((source1 != nullptr) && (source2 != nullptr))
-            {
-                return order_factor * source1->friendly_name().compare(source2->friendly_name());
-            }
-            else
-            {
-                LOG_ERROR("No source available for search result");
-                return -1;
-            }
+            LyricSourceBase& source1 = LyricSourceBase::get(item1->source_id);
+            LyricSourceBase& source2 = LyricSourceBase::get(item2->source_id);
+            return order_factor * source1.friendly_name().compare(source2.friendly_name());
         }
-        break;
         case 4: return order_factor * (int(item1->IsTimestamped()) - int(item2->IsTimestamped()));
 
         default: LOG_ERROR("Unexpected sort column index %d", sort_column_index); return 0;
@@ -463,12 +454,8 @@ LRESULT ManualLyricSearch::OnTimer(WPARAM)
         m_all_lyrics.push_back(child_search.get_result());
         const LyricData& lyrics = m_all_lyrics.back();
 
-        LyricSourceBase* source = LyricSourceBase::get(lyrics.source_id);
-        std::tstring source_name;
-        if(source != nullptr)
-        {
-            source_name = std::tstring(source->friendly_name());
-        }
+        LyricSourceBase& source = LyricSourceBase::get(lyrics.source_id);
+        const std::tstring source_name = std::tstring(source.friendly_name());
 
         std::tstring ui_artist = to_tstring(lyrics.artist);
         std::tstring ui_album = to_tstring(lyrics.album);

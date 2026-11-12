@@ -1168,12 +1168,12 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 LyricSourceBase* source = nullptr;
                 if(m_lyrics.save_source.has_value())
                 {
-                    source = LyricSourceBase::get(m_lyrics.save_source.value());
+                    source = &LyricSourceBase::get(m_lyrics.save_source.value());
                 }
 
-                if(source == nullptr)
+                if((source == nullptr) || source->is_dummy())
                 {
-                    LyricSourceBase* originating_source = LyricSourceBase::get(m_lyrics.source_id);
+                    LyricSourceBase* originating_source = &LyricSourceBase::get(m_lyrics.source_id);
                     if((originating_source != nullptr) && originating_source->is_local())
                     {
                         source = originating_source;
@@ -1181,7 +1181,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 }
 
                 std::tstring pathstr;
-                if(source != nullptr)
+                if((source != nullptr) && !source->is_dummy())
                 {
                     pathstr = source->get_file_path(m_now_playing, m_lyrics);
                 }

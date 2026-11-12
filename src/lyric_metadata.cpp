@@ -158,36 +158,23 @@ std::string get_lyric_metadata_string(const LyricData& lyrics, const metadb_v2_r
     std::string result;
     result += (lyrics.IsTimestamped() ? "Synced lyrics\n" : "Unsynced lyrics\n");
 
-    LyricSourceBase* src = LyricSourceBase::get(lyrics.source_id);
-    if(src != nullptr)
-    {
-        result += std::format("Retrieved from {} @ {}\n", from_tstring(src->friendly_name()), lyrics.source_path);
-    }
+    LyricSourceBase& src = LyricSourceBase::get(lyrics.source_id);
+    result += std::format("Retrieved from {} @ {}\n", from_tstring(src.friendly_name()), lyrics.source_path);
 
     if(lyrics.save_source.has_value())
     {
-        LyricSourceBase* saved_src = LyricSourceBase::get(lyrics.save_source.value());
-        if(saved_src != nullptr)
-        {
-            result += std::format("Saved to {} @ {}\n", from_tstring(saved_src->friendly_name()), lyrics.save_path);
-        }
+        LyricSourceBase& saved_src = LyricSourceBase::get(lyrics.save_source.value());
+        result += std::format("Saved to {} @ {}\n", from_tstring(saved_src.friendly_name()), lyrics.save_path);
     }
 
     const lyric_metadata metadata = load_lyric_metadata(track_info);
-    const LyricSourceBase* first_src = LyricSourceBase::get(metadata.first_retrieval_source);
+    const LyricSourceBase& first_src = LyricSourceBase::get(metadata.first_retrieval_source);
 
-    if(first_src != nullptr)
-    {
-        const pfc::string_formatter first_retrieved_str = pfc::format_filetimestamp(metadata.first_retrieval_timestamp);
-        result += std::format("First retrieved from {} at {} @ {}\n",
-                              from_tstring(first_src->friendly_name()),
-                              std::string_view(first_retrieved_str.c_str(), first_retrieved_str.length()),
-                              metadata.first_retrieval_path);
-    }
-    else
-    {
-        result += "First retrieved from an unknown source\n";
-    }
+    const pfc::string_formatter first_retrieved_str = pfc::format_filetimestamp(metadata.first_retrieval_timestamp);
+    result += std::format("First retrieved from {} at {} @ {}\n",
+                          from_tstring(first_src.friendly_name()),
+                          std::string_view(first_retrieved_str.c_str(), first_retrieved_str.length()),
+                          metadata.first_retrieval_path);
 
     if(metadata.number_of_edits == 0)
     {

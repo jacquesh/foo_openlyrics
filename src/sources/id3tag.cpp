@@ -25,6 +25,10 @@ class ID3TagLyricSource : public LyricSourceBase
     {
         return true;
     }
+    bool is_dummy() const final
+    {
+        return false;
+    }
 
     std::vector<LyricDataRaw> search(metadb_handle_ptr track,
                                      const metadb_v2_rec_t& track_info,
@@ -113,9 +117,9 @@ std::string ID3TagLyricSource::save(metadb_handle_ptr track,
     // save lyrics for a remote track to metadata.
     if(track_is_remote(track))
     {
-        LyricSourceBase* localfiles_source = LyricSourceBase::get(localfiles_src_guid);
-        assert(localfiles_source != nullptr);
-        return localfiles_source->save(track, track_info, is_timestamped, lyric_view, allow_overwrite, abort);
+        LyricSourceBase& localfiles_source = LyricSourceBase::get(localfiles_src_guid);
+        assert(!localfiles_source.is_dummy());
+        return localfiles_source.save(track, track_info, is_timestamped, lyric_view, allow_overwrite, abort);
     }
 
     std::string tag_name;
