@@ -78,8 +78,7 @@ jobs:
       - name: Create GitHub release
         id: release
         run: |
-          gh release create $env:GITHUB_REF_NAME \
-            $env:RELEASE_NAME.fb2k-component \
-            $env:RELEASE_NAME-with_debug_symbols.zip
+          gh release create $env:GITHUB_REF_NAME "${env:RELEASE_NAME}.fb2k-component" "${env:RELEASE_NAME}-with_debug_symbols.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # TODO: I wonder if we can automate the publication to the components-admin page...
