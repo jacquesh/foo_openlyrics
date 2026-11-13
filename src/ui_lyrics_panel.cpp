@@ -235,8 +235,20 @@ void LyricPanel::on_playback_new_track(metadb_handle_ptr track)
 
     if(track_changed && (preferences::background::image_type() == BackgroundImageType::AlbumArt))
     {
-        m_background_img = {};
-        m_albumart_original = {};
+        // now_playing_album_art_notify_manager sends a callback only when the album art
+        // *changes*. When switching between tracks of the same album the art is the same,
+        // so no callback arrives and the image stays cleared. Request the current art explicitly.
+        now_playing_album_art_notify_manager::ptr art_manager = now_playing_album_art_notify_manager::get();
+        album_art_data::ptr current_art = art_manager->current();
+        if(current_art != nullptr)
+        {
+            on_album_art_retrieved(current_art);
+        }
+        else
+        {
+            m_background_img = {};
+            m_albumart_original = {};
+        }
     }
 
     if(track_changed)
