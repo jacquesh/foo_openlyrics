@@ -40,6 +40,7 @@ static const cfg_auto_combo_option<BackgroundFillType> g_background_fill_options
     { _T("Default"), BackgroundFillType::Default },
     { _T("Solid colour"), BackgroundFillType::SolidColour },
     { _T("Gradient"), BackgroundFillType::Gradient },
+    { _T("Average image colour"), BackgroundFillType::AverageImageColor },
 };
 
 static const cfg_auto_combo_option<BackgroundImageType> g_background_image_options[] = {
@@ -48,7 +49,7 @@ static const cfg_auto_combo_option<BackgroundImageType> g_background_image_optio
     { _T("Custom image"), BackgroundImageType::CustomImage },
 };
 
-static cfg_auto_combo<BackgroundFillType, 3> cfg_background_fill_type(GUID_CFG_BACKGROUND_MODE,
+static cfg_auto_combo<BackgroundFillType, 4> cfg_background_fill_type(GUID_CFG_BACKGROUND_MODE,
                                                                       IDC_BACKGROUND_FILL_TYPE,
                                                                       BackgroundFillType::Default,
                                                                       g_background_fill_options);
