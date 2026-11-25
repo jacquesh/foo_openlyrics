@@ -68,3 +68,21 @@ jobs:
 
       - name: Build release binaries
         run: msbuild /r /m /p:Configuration=Release /p:Platform=x64 build\foo_openlyrics.sln
+
+  build-arm64:
+    name: Build - ARM64
+    runs-on: windows-2022
+    permissions: {}
+    steps:
+      - name: Add MSBuild to the PATH
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3
+
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0  # Fetch all the history so that `git describe` works to generate the version header
+          fetch-tags: true
+
+      - name: Build release binaries
+        run: msbuild /r /m /p:Configuration=Release /p:Platform=ARM64 build\foo_openlyrics.sln
