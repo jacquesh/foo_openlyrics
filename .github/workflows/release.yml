@@ -51,6 +51,9 @@ jobs:
       - name: Build 64-bit binary
         run: msbuild /r /m /p:Configuration=Release /p:Platform=x64 build\foo_openlyrics.sln
 
+      - name: Build ARM64 binary
+        run: msbuild /r /m /p:Configuration=Release /p:Platform=ARM64 build\foo_openlyrics.sln
+
       - name: Pack binary into archive
         shell: bash
         run: |
@@ -58,18 +61,23 @@ jobs:
           release_name="foo_openlyrics-${release_version}"
           echo "Release version ${release_version}"
           mkdir -p build_component_staging/x64
+          mkdir -p build_component_staging/arm64
           pushd build_component_staging
           cp "../build/Release/foo_openlyrics.dll" "."
           cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
+          cp "../build/ARM64/Release/foo_openlyrics.dll" "arm64/"
           7z a -tzip "../${release_name}.fb2k-component" "."
           popd
           mkdir -p build_symbols_staging/x86
           mkdir -p build_symbols_staging/x64
+          mkdir -p build_symbols_staging/arm64
           pushd build_symbols_staging
           cp "../build/Release/foo_openlyrics.dll" "x86/"
           cp "../build/Release/foo_openlyrics.pdb" "x86/"
           cp "../build/x64/Release/foo_openlyrics.dll" "x64/"
           cp "../build/x64/Release/foo_openlyrics.pdb" "x64/"
+          cp "../build/ARM64/Release/foo_openlyrics.dll" "arm64/"
+          cp "../build/ARM64/Release/foo_openlyrics.pdb" "arm64/"
           7z a "../${release_name}-with_debug_symbols.zip" "."
           popd
           echo "RELEASE_VERSION=${release_version}" >> $GITHUB_ENV

@@ -24,8 +24,9 @@ namespace
         out += "Source available at https://github.com/jacquesh/foo_openlyrics\n";
         out += "You can support development at https://www.buymeacoffee.com/jacquesheunis\n";
         out += "\nChangelog:\n";
-        // out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
-        // "\n";
+        out += "Version " OPENLYRICS_VERSION " (" __DATE__ "):\n"
+               "- Fix the ARM64 build for image blur\n"
+               "\n";
         out += "Version 1.14 (2026-11-12):\n"
                "- Remove Musixmatch integration\n"
                "  - This is in response to a request received from Musixmatch themselves.\n"
