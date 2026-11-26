@@ -5,10 +5,14 @@
 #include <wrl.h>
 
 #include "libdivide.h"
+#if (defined(_M_IX86) || defined(_M_X64)) && !defined(_M_ARM64EC)
+#include <emmintrin.h>
+#endif
 #pragma warning(pop)
 
 #include "img_processing.h"
 #include "logging.h"
+#include "mvtf/mvtf.h"
 #include "win32_util.h"
 
 RGBAColour from_colorref(COLORREF colour)
@@ -446,6 +450,7 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
             }
         }
 
+#if (defined(_M_IX86) || defined(_M_X64)) && !defined(_M_ARM64EC)
         const __m128i zero = {};
         __m128i accum128 = _mm_loadu_si64(accum);
         for(int x = radius; x < width - radius - 1; x++)
@@ -504,6 +509,20 @@ static void boxblur_horizontal_noalloc(int width, int height, const uint8_t* in_
             accum128 = _mm_sub_epi16(accum_tmp, old_pixel);
         }
         _mm_storeu_si64(accum, accum128);
+#else
+        for(int x = radius; x < width - radius - 1; x++)
+        {
+            const int old_x = x - radius;
+            const int new_x = x + radius + 1;
+            for(int c = 0; c < 4; c++)
+            {
+                uint16_t val = libdivide::libdivide_u16_branchfree_do(accum[c], &divisor);
+                out_row[4 * x + c] = val & 0xFF;
+                accum[c] += in_row[4 * new_x + c];
+                accum[c] -= in_row[4 * old_x + c];
+            }
+        }
+#endif
 
         for(int x = width - radius - 1; x < width; x++)
         {
@@ -596,3 +615,44 @@ void toggle_image_rgba_bgra_inplace(Image& img)
         }
     }
 }
+
+// ============
+// Tests
+// ============
+#if MVTF_TESTS_ENABLED
+MVTF_TEST(boxblur_horizontal_matches_clamped_window_average)
+{
+    const int height = 3;
+    const int max_width = 17;
+    uint8_t input[4 * max_width * height] = {};
+    uint8_t output[4 * max_width * height] = {};
+    for(int i = 0; i < 4 * max_width * height; i++)
+    {
+        input[i] = uint8_t((i * 73 + i / 7) % 256);
+    }
+
+    for(int width : { 4, 7, max_width })
+    {
+        for(int radius = 1; 2 * radius + 1 < width; radius++)
+        {
+            boxblur_horizontal_noalloc(width, height, input, output, radius);
+            for(int y = 0; y < height; y++)
+            {
+                for(int x = 0; x < width; x++)
+                {
+                    for(int c = 0; c < 4; c++)
+                    {
+                        int sum = 0;
+                        for(int dx = -radius; dx <= radius; dx++)
+                        {
+                            int sample_x = std::max(0, std::min(width - 1, x + dx));
+                            sum += input[4 * (width * y + sample_x) + c];
+                        }
+                        ASSERT(output[4 * (width * y + x) + c] == sum / (2 * radius + 1));
+                    }
+                }
+            }
+        }
+    }
+}
+#endif
